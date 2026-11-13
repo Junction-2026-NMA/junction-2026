@@ -166,4 +166,94 @@ export type ScenarioResult = {
   assumptions: string[];
 };
 
+// --- Agent, research and voice (lane C). See context/orchestration.md ---
+
+export type BillType = "electricity" | "mobile" | "internet";
+
+export type Citation = {
+  title: string;
+  url: string;
+  retrievedAt: string; // ISO time we fetched it
+  cacheAgeMs: number | null; // how old the provider's cached copy was, if it said
+};
+
+export type Offer = {
+  provider: string;
+  plan: string | null;
+  contractType: string | null; // e.g. fixed, spot
+  contractMonths: number | null;
+  monthlyPriceEur: number | null; // fixed monthly price or base fee
+  energyPriceCentsPerKwh: number | null; // electricity only
+  setupFeeEur: number | null;
+  sourceUrl: string;
+  comparable: boolean; // false when the price cannot be compared fairly (e.g. spot contracts)
+  estimatedMonthlyCostEur: number | null; // computed in code
+  estimatedYearlySavingEur: number | null; // computed in code, against the customer's current bill
+};
+
+export type ResearchStatus = "running" | "partial" | "done" | "failed";
+
+export type ResearchResult = {
+  key: string;
+  billType: BillType;
+  city: string;
+  status: ResearchStatus;
+  mock: boolean; // true = example data, not a live call. The UI must label it.
+  query: string;
+  startedAt: string;
+  finishedAt: string | null;
+  tookMs: number;
+  pagesDone: number;
+  pagesTotal: number;
+  baselineMonthlyEur: number | null; // the customer's current bill, from the finance engine
+  offers: Offer[];
+  best: Offer | null;
+  citations: Citation[];
+  assumptions: string[];
+  errors: string[];
+};
+
+export type ChatTurn = { role: "user" | "assistant"; content: string };
+
+export type AgentRequest = {
+  customerId: string;
+  text: string;
+  mode: "voice" | "text";
+  history?: ChatTurn[];
+  focusBill?: BillType; // the bill the user has open on screen, if any
+};
+
+export type ToolTrace = {
+  id: string;
+  name: string;
+  args: Record<string, unknown>;
+  source: "finance" | "exa+context.dev" | "exa";
+  startedAtMs: number; // since the turn started
+  tookMs: number;
+  ok: boolean;
+  summary: string; // one line a person can read
+  joinedPrefetch: boolean; // true when research was already running or cached
+};
+
+export type TurnTimings = {
+  sttMs: number | null;
+  firstTokenMs: number | null; // since the turn started
+  firstSentenceMs: number | null;
+  totalMs: number;
+  modelSteps: { model: string; firstTokenMs: number | null; totalMs: number }[];
+};
+
+export type AgentEvent =
+  | { type: "start"; turnId: string; provider: string; model: string; mock: boolean }
+  | { type: "transcript"; text: string; tookMs: number }
+  | { type: "speculation"; billType: BillType; reason: string }
+  | { type: "tool_start"; id: string; name: string; args: Record<string, unknown> }
+  | { type: "tool_end"; trace: ToolTrace }
+  | { type: "filler"; text: string }
+  | { type: "research"; result: ResearchResult }
+  | { type: "delta"; text: string }
+  | { type: "sentence"; index: number; text: string }
+  | { type: "done"; text: string; citations: Citation[]; timings: TurnTimings }
+  | { type: "error"; message: string };
+
 export type ApiError = { error: string };

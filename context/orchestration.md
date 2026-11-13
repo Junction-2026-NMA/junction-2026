@@ -1,0 +1,138 @@
+# Orchestration: how one turn runs, from speech to speech
+
+Owner: Nicholas (lane C). Code: `lib/agent/`, `app/api/agent/`, `app/api/research/`, `app/api/voice/`.
+This is the contract for how the tools run together. If the code and this file disagree, fix one of them.
+
+## The one idea
+
+**Slow work starts early and runs in the background. The model never waits for anything it did not ask for.**
+
+- The slowest tool is Context.dev's JSON extraction (3–6 s). It starts the moment we can guess it will be needed, before the model has decided anything.
+- Nemotron starts at the same time. If it can answer from the customer's numbers, it answers at once and the background research is simply kept for later.
+- Only when Nemotron itself calls `search_offers` does the turn wait for research. It then joins the run that is already in flight instead of starting a second one.
+
+## Stages and measured speed (14 Nov, Espoo, single runs)
+
+| Stage | Tool and setting | Measured |
+|---|---|---|
+| Speech to text | ElevenLabs `scribe_v3` | 0.47 s for a 3 s clip |
+| Reasoning, first word | Nemotron 3.5 Super VL, thinking off | 0.48–0.54 s |
+| Reasoning, tool choice | Nemotron 3.5 Super VL, thinking off | 0.79–0.88 s |
+| Finance tools | Our code in `lib/finance/`, in-process | under 5 ms |
+| Web search | Exa `type: "lite"`, no page contents | 0.22 s |
+| Web search with highlights | Exa `type: "lite"`, `contents.highlights` | 0.54 s |
+| Offer extraction | Context.dev `formats.json` + `jsonParams.schema`, 3 pages in parallel | 2.8–5.9 s per page, even when the page itself is cached |
+| Text to speech, first audio | ElevenLabs `eleven_turbo_v2_5` | 0.24 s |
+
+### "Lite" models: what the tests showed
+
+| Option | Result | Decision |
+|---|---|---|
+| Exa `lite` | 0.22 s. Exa's docs call `fast` and `instant` legacy names for it. | **Use `lite` everywhere.** |
+| `nemotron-3.5-lightning-30b-a3b` (the "lite" Nemotron) | First word 0.38 s, tool choice 0.64 s. Correct tool call. | Saves about 0.1–0.15 s per step. **Optional**, behind `NEMOTRON_FAST_MODEL`, for the tool-choice step only. Off by default, because the NVIDIA prize needs Super VL to be the core model. |
+| `nemotron-3.5-bolt-e4b` (smallest) | First word 0.28 s, but it **did not call the tool** when it should have. | **Do not use.** |
+| Super VL with thinking on | 3.1 s to first word. | Only for typed, slow "plan" tasks. Never for voice. |
+
+The big win was turning thinking off (2.5 s saved). The lite model is a small extra.
+
+## One voice turn
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant U as User (push to talk)
+  participant S as Sisu server
+  participant STT as ElevenLabs STT
+  participant N as Nemotron
+  participant R as Research (Exa + Context.dev)
+  participant F as Finance code
+  participant TTS as ElevenLabs TTS
+
+  U->>S: audio
+  S->>STT: transcribe
+  STT-->>S: text (~0.5 s)
+  par Speculation (never awaited here)
+    S->>R: start research if the words suggest it
+  and Reasoning
+    S->>N: question + customer summary + tools
+  end
+  alt Nemotron can answer directly
+    N-->>S: answer tokens (first word ~0.5 s)
+  else Nemotron calls finance tools
+    N-->>S: tool call
+    S->>F: compute (ms)
+    S->>N: results
+    N-->>S: answer tokens
+  else Nemotron calls search_offers
+    N-->>S: tool call
+    S-->>U: filler sentence, spoken at once
+    S->>R: join the run already in flight
+    R-->>S: offers (usable result)
+    S->>F: savings computed in code
+    S->>N: results
+    N-->>S: answer tokens
+  end
+  loop each finished sentence
+    S-->>U: sentence event
+    U->>TTS: speak it (first audio ~0.25 s)
+  end
+```
+
+## The rules
+
+1. **Speculation.** When the transcript arrives, a keyword check (no model call, under 1 ms) decides whether research is likely. It needs a bill word *and* an intent word ("cheaper electricity deal"), or an intent word plus the bill the user has open on screen. If yes, research starts immediately. A wrong guess costs one Exa search and three Context.dev reads, nothing else.
+2. **Earlier still.** When the user confirms a bill's name in the UI, the frontend calls `POST /api/research` with `wait: false`. By the time they ask, the offers are usually ready.
+3. **Single flight.** Research is keyed by `billType + city`. Every caller with the same key (speculation, the UI prefetch, the model's tool call) shares one run. A finished result is reused for 10 minutes. This is what prevents duplicate calls and overlapping work.
+4. **The model decides, not the speculation.** Nemotron gets the customer's computed summary in its prompt. If the answer is there, it answers without any tool. It is told explicitly to do so. Speculative research is never put in front of the model unless it calls the tool.
+5. **Usable beats complete.** A research wait ends when all pages are done, or when two or more comparable offers exist and 0.6 s has passed with nothing new, or at a hard 7 s limit. Pages that arrive later still land in the cache, and the UI can show them.
+6. **Never silence.** If the model calls `search_offers` and the result is not ready, the server sends a `filler` sentence at once ("Let me check today's electricity deals in Helsinki."). The client speaks it while research finishes.
+7. **Tools run in parallel.** When the model asks for several tools in one step, they all start together. The loop is capped at 4 model steps.
+8. **Streaming all the way.** Tokens stream from Nemotron. Each finished sentence is sent as its own event, and the client sends it to text to speech straight away. Sentences play in order.
+9. **Numbers come from code.** Finance tools and the savings comparison run in `lib/finance/` and `lib/agent/research/compare.ts`. The model words the answer; it does not calculate.
+10. **Privacy boundary.** The model sees aggregates only, never transactions or the customer ID. Exa and Context.dev queries are built by code from the bill type and city. The model's own `web_search` queries are stripped of IDs and euro amounts before they leave.
+11. **Cancellation.** If the user talks again, the client aborts the request. The abort signal stops the model stream. Background research keeps running, because its result is still useful.
+12. **Honest failure.** Every external call has a timeout. A tool that fails returns an error the model can explain ("I couldn't check live offers just now"). Nothing is invented, and cached results carry their real retrieval time.
+
+## Measured turn times (built system, 14 Nov, `node tests/agent-latency.mjs`)
+
+Times are from the moment the server has the text until the first sentence is ready to speak. For a voice turn add about 0.5 s of speech to text before and about 0.2 s of text to speech after.
+
+| Question | What happened | First sentence ready |
+|---|---|---|
+| "How much can I safely spend this week?" | No tool; answered from the summary | 0.55–0.85 s |
+| "How much do I pay for electricity each month?" | Mentions a bill but needs no research; none was started | 0.5–0.7 s |
+| "How much did I spend on restaurants last month?" | `get_spending`, then the answer | 1.4–1.6 s |
+| "What if I save fifty euros a month for five years?" | `run_scenario`, then the answer | 1.6–2.4 s |
+| "What is the general housing allowance from Kela?" | `web_search` (Exa, 0.4 s), then the answer with 4 sources | 1.7–1.8 s |
+| "Find me a cheaper electricity deal", research already done | Joined the cached result in 0 ms | 1.2–1.8 s |
+| Same, cold | Research started at 0.0 s by speculation. Filler spoken at 1.3 s. First usable page at 3.8 s. | filler 1.3 s, answer 4.5 s |
+
+Follow-through check: 16 of 16 repeated questions called the right tool (or correctly none).
+
+**Known risk: tail latency.** One of those 16 runs took 7.0 s because NVIDIA's free endpoint stalled. Fixes to consider: a hedged second request when no token arrives within 1.5 s, or switching to Verda or Gemini for the demo.
+
+## Endpoints
+
+| Endpoint | Body | Returns |
+|---|---|---|
+| `POST /api/agent/query` | `{ customerId, text, mode: "voice" \| "text", history?, focusBill? }` | Server-sent events of `AgentEvent` (see `lib/types.ts`) |
+| `POST /api/voice/turn` | multipart: `audio`, `customerId`, `history?`, `focusBill?` | The same event stream, starting with a `transcript` event |
+| `POST /api/voice/stt` | multipart: `audio` | `{ text, tookMs }` |
+| `POST /api/voice/tts` | `{ text }` | Audio stream (`audio/mpeg`) |
+| `POST /api/research` | `{ customerId, billType, wait? }` | `ResearchResult`; with `wait: false` it returns at once with `status: "running"` |
+| `GET /api/research?customerId=&billType=` | | Current `ResearchResult` snapshot, or 404 if none started |
+
+Event order in one turn: `start`, (`transcript`), (`speculation`), then any mix of `tool_start`, `filler`, `tool_end`, `research`, `delta`, `sentence`, and finally `done` or `error`.
+
+## Mock mode
+
+`MODEL_PROVIDER=mock` needs no keys. Every endpoint works and emits the same events with realistic timing, using fixed example offers marked `mock: true`. The UI must show a "mock data" label when it sees that flag. Lanes A and B develop against this.
+
+## Model switch
+
+| `MODEL_PROVIDER` | Reasoning model |
+|---|---|
+| `mock` | Scripted answers, no network |
+| `nvidia` | Nemotron 3.5 Super VL on NVIDIA Build (current default on Nicholas's machine) |
+| `verda` | The same model self-hosted on Verda; set `NEMOTRON_BASE_URL` to the vLLM server |
+| `gemini` | Gemini through its OpenAI-compatible endpoint; emergency fallback only |

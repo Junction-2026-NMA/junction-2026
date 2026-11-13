@@ -68,9 +68,9 @@ Each role edits only its own folders. Shared files (`lib/types.ts`, `package.jso
 
 ### C: Orchestration backend, from inference to speech (owner: Nicholas)
 
-- **Branch:** `feature/agent-orchestration`
+- **Branch:** `backend` (merged to `main` as each piece works)
 - **Owns:** `lib/agent/`, `app/api/agent/`, `app/api/research/`, `app/api/voice/`
-- **Read:** the latency plan in `context/architecture.md`, which has measured numbers.
+- **Read:** `context/orchestration.md` for how a turn runs and the measured numbers.
 - **The sponsor API keys live only on this machine**, so A and B build against mock mode (first task below) and never need them.
 
 | Priority | Task |
@@ -100,11 +100,12 @@ The types live in `lib/types.ts`. B and C first commit stubs that return fixed e
 | `GET /api/customers/:id/overview` | B | Baskets, bills, safe-to-spend, insights, months, assumptions | Live |
 | `GET /api/customers/:id/transactions?from&to&category&basket&mcc&negativeBalance` | B | Filtered rows behind any figure (newest 300) | Live |
 | `POST /api/scenarios` | B | Three futures (`nothing`, `save`, `invest`) with a low and high band and assumptions | Live |
-| `POST /api/agent/query` | C | Answer, tool-call trace, citations | To build |
-| `POST /api/research` | C | Offers with sources and retrieval time | To build |
+| `POST /api/agent/query` | C | Server-sent `AgentEvent` stream: tokens, sentences, tool trace, citations | Live |
+| `POST /api/research` (and `GET`) | C | `ResearchResult`: offers, savings, sources, retrieval time. `wait: false` prefetches. | Live |
 | `POST /api/actions/prepare` | B | Draft action awaiting approval | To build |
 | `POST /api/actions/:id/approve` | B | New status plus an audit event | To build |
-| `POST /api/voice/stt`, `POST /api/voice/tts` | C | Transcript; audio stream | To build |
+| `POST /api/voice/turn`, `/api/voice/stt`, `/api/voice/tts` | C | Audio in → event stream; transcript; audio stream | Live
+| `GET /api/agent/warm` | C | Opens connections; reports mock mode | Live |
 | `POST /api/demo/reset` | B | Clean demo state | To build |
 
 Responses carry `customerId`, `dataTimestamp`, `currency` and `assumptions` where relevant. Never expose API keys or raw tables to the browser.

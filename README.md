@@ -14,6 +14,7 @@ Everything we've decided lives in [`context/`](context/). Point your Claude, Cha
 |---|---|
 | [`context/log/`](context/log/) | **Shared team memory.** Every person's AI agent reads it at the start and adds an entry before committing ([how](context/log/README.md)). Run `sh scripts/context-digest.sh` to see the latest. |
 | [`context/build-plan.md`](context/build-plan.md) | **Start here.** What we are actually building before Sunday: decisions, the demo flow, who builds what, the API contract and the timeline gates. It overrides the spec where they differ. |
+| [`context/orchestration.md`](context/orchestration.md) | How one voice turn runs: what starts in parallel, who waits for whom, measured speeds, endpoints and mock mode. |
 | [`context/architecture.md`](context/architecture.md) | Layer stack, data boundary, the Nemotron → NVIDIA → Gemini fallback order, env vars, and what already exists in this repo. |
 | [`context/dataset-notes.md`](context/dataset-notes.md) | What the S-Pankki data really contains, and why the hero bill is electricity rather than telecom. |
 | [`context/sponsor-credits.md`](context/sponsor-credits.md) | Which credits are claimed, on whose account, and what each sponsor needs at submission. |
@@ -26,7 +27,7 @@ AI coding agents also read [`CLAUDE.md`](CLAUDE.md) (and [`AGENTS.md`](AGENTS.md
 
 ```bash
 npm install
-cp .env.example .env.local   # then add the API keys
+cp .env.example .env.local   # starts in mock mode: no API keys needed
 npm run dev
 ```
 
@@ -47,7 +48,7 @@ Open http://localhost:3000. The reduced demo data is already in `data/`, so no d
 |---|---|---|
 | A – Product, screens, voice UI | `feature/frontend` | `app/page.tsx`, `app/layout.tsx`, `app/globals.css`, `components/` |
 | B – Finance engine, actions, teaching | `feature/financial-engine` | `lib/finance/`, `data/`, `scripts/`, `app/api/customers/`, `app/api/scenarios/`, `app/api/actions/`, `app/api/demo/` |
-| C – Agent, sponsor APIs, Verda | `feature/agent-orchestration` | `lib/agent/`, `app/api/agent/`, `app/api/research/`, `app/api/voice/` |
+| C – Orchestration backend: inference, research, speech (Nicholas) | `backend` | `lib/agent/`, `app/api/agent/`, `app/api/research/`, `app/api/voice/` |
 
 - Work on your branch and open PRs into `main`.
 - Run `npm run build` before every PR.
