@@ -1,0 +1,664 @@
+<!-- Liito  (240x240, contain)
+     The mascot. Mood follows the user's effort, never their balance.
+
+     View model LiitoVM  (names and types are fixed by rive/contract.json):
+       mood        enum LiitoMood     in     default "idle"
+
+     How it works
+       Mood       AnyState -> one state per LiitoMood value, 200 ms blend. Each pose keys the same set of things:
+                  both arm rotations, the membrane (opacity and its hand point), head tilt, which eyes and mouth show,
+                  cheeks, the three think dots and the whole-body offset. Poses that move (cheering, gliding, thinking,
+                  cosy, sleepy, found) are loops.
+                  Clearly different: idle, cheering (arms up, membrane open), thinking (head tilt, dots), sleepy (eyes closed).
+                  proud, gliding, curious, found, focused and cosy are first-pass poses built from the same parts.
+       Breath     always-on loop: the root scales a little from the feet.
+       Blink      always-on loop: both eyes close for a few frames every 3.3 s. Hidden while the open eyes are hidden. -->
+<Rive version="1" kind="fragment">
+    <!-- View model -->
+    <ViewModel defaultInstanceId="12:3" name="LiitoVM" id="12:1">
+        <ViewModelPropertyEnumCustom enumId="0:240" name="mood" id="12:2"/>
+        <ViewModelInstance exports="true" name="Default" id="12:3">
+            <ViewModelInstanceEnum propertyValue="0:241" viewModelPropertyId="12:2" id="12:4"/>  <!-- mood = idle -->
+        </ViewModelInstance>
+    </ViewModel>
+
+    <Artboard defaultStateMachineId="12:27" viewModelId="12:1" viewModelInstanceId="12:3" clip="true" width="240" height="240"
+            x="1040" y="380" styleId="12:6" name="Liito" id="12:5">
+        <LayoutComponentStyle name="Artboard Style" id="12:6"/>
+
+        <!-- Scene. The first sibling draws on top. -->
+        <!-- Liito, drawn from the feet up: the root node sits on the ground line so breathing scales from the feet.
+             Pose is what the moods move. Head pivots at the neck, each arm at its shoulder. -->
+        <Node x="100" y="230" name="Liito" id="12:7">
+            <Node name="Pose" id="12:8">
+                <Shape x="62" y="-178" opacity="0" name="Think Dot 1" id="12:9">
+                    <Ellipse width="7" height="7" name="Path"/>
+                    <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                </Shape>
+                <Shape x="78" y="-194" opacity="0" name="Think Dot 2" id="12:10">
+                    <Ellipse width="10" height="10" name="Path"/>
+                    <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                </Shape>
+                <Shape x="96" y="-212" opacity="0" name="Think Dot 3" id="12:11">
+                    <Ellipse width="13" height="13" name="Path"/>
+                    <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                </Shape>
+                <Node y="-100" name="Head" id="12:12">
+                    <Node y="-42" name="Eyes Open" id="12:13">
+                        <Node x="-24" name="Eye L" id="12:14">
+                            <Shape name="Highlight">
+                                <Ellipse width="9" height="9" x="-4" y="-5" name="Highlight Path"/>
+                                <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill>
+                            </Shape>
+                            <Shape name="Pupil">
+                                <Ellipse width="30" height="30" name="Eye Path"/>
+                                <Fill name="Fill"><SolidColor colorValue="FF0B1F16" name="Color"/></Fill>
+                            </Shape>
+                        </Node>
+                        <Node x="24" name="Eye R" id="12:15">
+                            <Shape name="Highlight">
+                                <Ellipse width="9" height="9" x="-4" y="-5" name="Highlight Path"/>
+                                <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill>
+                            </Shape>
+                            <Shape name="Pupil">
+                                <Ellipse width="30" height="30" name="Eye Path"/>
+                                <Fill name="Fill"><SolidColor colorValue="FF0B1F16" name="Color"/></Fill>
+                            </Shape>
+                        </Node>
+                    </Node>
+                    <Shape y="-42" opacity="0" name="Eyes Happy" id="12:16">
+                        <PointsPath isClosed="false" name="Arc">
+                            <StraightVertex x="-33" y="3"/>
+                            <CubicMirroredVertex x="-24" y="-5" rotation="0" distance="6"/>
+                            <StraightVertex x="-15" y="3"/>
+                        </PointsPath>
+                        <PointsPath isClosed="false" name="Arc">
+                            <StraightVertex x="15" y="3"/>
+                            <CubicMirroredVertex x="24" y="-5" rotation="0" distance="6"/>
+                            <StraightVertex x="33" y="3"/>
+                        </PointsPath>
+                        <Stroke thickness="4" cap="round" join="round" name="Stroke"><SolidColor colorValue="FF0B1F16" name="Color"/></Stroke>
+                    </Shape>
+                    <Shape y="-42" opacity="0" name="Eyes Sleepy" id="12:17">
+                        <PointsPath isClosed="false" name="Arc">
+                            <StraightVertex x="-33" y="-3"/>
+                            <CubicMirroredVertex x="-24" y="5" rotation="0" distance="6"/>
+                            <StraightVertex x="-15" y="-3"/>
+                        </PointsPath>
+                        <PointsPath isClosed="false" name="Arc">
+                            <StraightVertex x="15" y="-3"/>
+                            <CubicMirroredVertex x="24" y="5" rotation="0" distance="6"/>
+                            <StraightVertex x="33" y="-3"/>
+                        </PointsPath>
+                        <Stroke thickness="4" cap="round" join="round" name="Stroke"><SolidColor colorValue="FF0B1F16" name="Color"/></Stroke>
+                    </Shape>
+                    <Shape name="Nose">
+                        <Ellipse width="8" height="5.5" y="-27.5" name="Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF0B1F16" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Mouth Smile" id="12:18">
+                        <PointsPath isClosed="false" name="Path">
+                            <StraightVertex x="-5" y="-21.5"/>
+                            <CubicMirroredVertex x="0" y="-18" rotation="0" distance="3.2"/>
+                            <StraightVertex x="5" y="-21.5"/>
+                        </PointsPath>
+                        <Stroke thickness="2.2" cap="round" join="round" name="Stroke"><SolidColor colorValue="FF0B1F16" name="Color"/></Stroke>
+                    </Shape>
+                    <Shape opacity="0" name="Mouth Open" id="12:19">
+                        <Ellipse width="8" height="9" y="-17.5" name="Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF0B1F16" name="Color"/></Fill>
+                    </Shape>
+                    <Shape opacity="0" name="Cheeks" id="12:20">
+                        <Ellipse width="13" height="10" x="-43" y="-23" name="Cheek L"/>
+                        <Ellipse width="13" height="10" x="43" y="-23" name="Cheek R"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Face Mask">
+                        <Ellipse width="58" height="62" x="-24" y="-42" name="Mask L"/>
+                        <Ellipse width="58" height="62" x="24" y="-42" name="Mask R"/>
+                        <Ellipse width="46" height="30" y="-27" name="Muzzle"/>
+                        <Fill name="Fill"><SolidColor colorValue="FFF4F1E8" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Head Shape">
+                        <Ellipse width="118" height="100" y="-46" name="Head Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FFB9C2BD" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Ears">
+                        <Ellipse width="36" height="36" x="-38" y="-88" name="Ear L"/>
+                        <Ellipse width="36" height="36" x="38" y="-88" name="Ear R"/>
+                        <Fill name="Fill"><SolidColor colorValue="FFB9C2BD" name="Color"/></Fill>
+                    </Shape>
+                </Node>
+                <Node x="-40" y="-88" rotation="-0.25" name="Arm L" id="12:21">
+                    <Shape name="Arm L Shape">
+                        <Rectangle width="20" height="56" cornerRadiusTL="10" y="-8" originY="0" name="Arm Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FFB9C2BD" name="Color"/></Fill>
+                    </Shape>
+                </Node>
+                <Node x="40" y="-88" rotation="0.25" name="Arm R" id="12:22">
+                    <Shape name="Arm R Shape">
+                        <Rectangle width="20" height="56" cornerRadiusTL="10" y="-8" originY="0" name="Arm Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FFB9C2BD" name="Color"/></Fill>
+                    </Shape>
+                </Node>
+                <Shape name="Belly">
+                    <Ellipse width="70" height="88" y="-56" name="Path"/>
+                    <Fill name="Fill"><SolidColor colorValue="FFF4F1E8" name="Color"/></Fill>
+                </Shape>
+                <Shape name="Body">
+                    <Rectangle width="108" height="122" cornerRadiusTL="50" y="-64" name="Path"/>
+                    <Fill name="Fill"><SolidColor colorValue="FFB9C2BD" name="Color"/></Fill>
+                </Shape>
+                <Shape name="Feet">
+                    <Ellipse width="30" height="14" x="-24" y="-4" name="Foot L"/>
+                    <Ellipse width="30" height="14" x="24" y="-4" name="Foot R"/>
+                    <Fill name="Fill"><SolidColor colorValue="FFB9C2BD" name="Color"/></Fill>
+                </Shape>
+                <Shape opacity="0" name="Membrane L" id="12:23">
+                    <PointsPath isClosed="true" name="Membrane Path">
+                        <StraightVertex x="-42" y="-88" radius="4"/>
+                        <StraightVertex x="-28.61942" y="-43.43003" radius="6" id="12:24"/>
+                        <StraightVertex x="-42" y="-6" radius="6"/>
+                    </PointsPath>
+                    <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                </Shape>
+                <Shape opacity="0" name="Membrane R" id="12:25">
+                    <PointsPath isClosed="true" name="Membrane Path">
+                        <StraightVertex x="42" y="-88" radius="4"/>
+                        <StraightVertex x="28.61942" y="-43.43003" radius="6" id="12:26"/>
+                        <StraightVertex x="42" y="-6" radius="6"/>
+                    </PointsPath>
+                    <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                </Shape>
+                <Shape name="Tail">
+                    <Ellipse width="70" height="92" x="64" y="-52" rotation="0.25" name="Tail Path"/>
+                    <Fill name="Fill"><SolidColor colorValue="FFB9C2BD" name="Color"/></Fill>
+                </Shape>
+            </Node>
+        </Node>
+
+        <!-- State machine. Declared before the timelines so the editor opens it first. -->
+        <StateMachine name="Main" id="12:27">
+            <StateMachineLayer name="Mood" id="12:28">
+                <AnyState x="0" y="-140" id="12:29">
+                    <StateTransition stateToId="12:32" duration="200" interpolationType="cubic">  <!-- to idle -->
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                        <TransitionViewModelCondition>  <!-- mood is idle -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="12:1-12:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:241"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="12:33" duration="200" interpolationType="cubic">  <!-- to cheering -->
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                        <TransitionViewModelCondition>  <!-- mood is cheering -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="12:1-12:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:242"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="12:34" duration="200" interpolationType="cubic">  <!-- to proud -->
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                        <TransitionViewModelCondition>  <!-- mood is proud -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="12:1-12:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:243"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="12:35" duration="200" interpolationType="cubic">  <!-- to gliding -->
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                        <TransitionViewModelCondition>  <!-- mood is gliding -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="12:1-12:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:244"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="12:36" duration="200" interpolationType="cubic">  <!-- to curious -->
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                        <TransitionViewModelCondition>  <!-- mood is curious -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="12:1-12:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:245"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="12:37" duration="200" interpolationType="cubic">  <!-- to found -->
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                        <TransitionViewModelCondition>  <!-- mood is found -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="12:1-12:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:246"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="12:38" duration="200" interpolationType="cubic">  <!-- to focused -->
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                        <TransitionViewModelCondition>  <!-- mood is focused -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="12:1-12:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:247"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="12:39" duration="200" interpolationType="cubic">  <!-- to cosy -->
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                        <TransitionViewModelCondition>  <!-- mood is cosy -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="12:1-12:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:248"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="12:40" duration="200" interpolationType="cubic">  <!-- to sleepy -->
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                        <TransitionViewModelCondition>  <!-- mood is sleepy -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="12:1-12:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:249"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="12:41" duration="200" interpolationType="cubic">  <!-- to thinking -->
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                        <TransitionViewModelCondition>  <!-- mood is thinking -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="12:1-12:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:250"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnyState>
+                <ExitState x="0" y="-280" id="12:30"/>
+                <EntryState x="0" y="0" id="12:31">
+                    <StateTransition stateToId="12:32"/>  <!-- starts in idle -->
+                </EntryState>
+                <AnimationState animationId="12:52" stateName="idle" x="240" y="0" id="12:32"/>
+                <AnimationState animationId="12:53" stateName="cheering" x="240" y="110" id="12:33"/>
+                <AnimationState animationId="12:54" stateName="proud" x="240" y="220" id="12:34"/>
+                <AnimationState animationId="12:55" stateName="gliding" x="240" y="330" id="12:35"/>
+                <AnimationState animationId="12:56" stateName="curious" x="240" y="440" id="12:36"/>
+                <AnimationState animationId="12:57" stateName="found" x="240" y="550" id="12:37"/>
+                <AnimationState animationId="12:58" stateName="focused" x="240" y="660" id="12:38"/>
+                <AnimationState animationId="12:59" stateName="cosy" x="240" y="770" id="12:39"/>
+                <AnimationState animationId="12:60" stateName="sleepy" x="240" y="880" id="12:40"/>
+                <AnimationState animationId="12:61" stateName="thinking" x="240" y="990" id="12:41"/>
+            </StateMachineLayer>
+            <StateMachineLayer name="Breath" id="12:42">
+                <AnyState x="0" y="-140" id="12:43"/>
+                <ExitState x="0" y="-280" id="12:44"/>
+                <EntryState x="0" y="0" id="12:45">
+                    <StateTransition stateToId="12:46"/>  <!-- starts in breathing -->
+                </EntryState>
+                <AnimationState animationId="12:62" stateName="breathing" x="240" y="0" id="12:46"/>
+            </StateMachineLayer>
+            <StateMachineLayer name="Blink" id="12:47">
+                <AnyState x="0" y="-140" id="12:48"/>
+                <ExitState x="0" y="-280" id="12:49"/>
+                <EntryState x="0" y="0" id="12:50">
+                    <StateTransition stateToId="12:51"/>  <!-- starts in blinking -->
+                </EntryState>
+                <AnimationState animationId="12:63" stateName="blinking" x="240" y="0" id="12:51"/>
+            </StateMachineLayer>
+        </StateMachine>
+
+        <!-- Timelines. Most are one-key poses: the state transitions do the blending. -->
+        <LinearAnimation duration="1" name="mood: idle" id="12:52">
+            <KeyedObject objectId="12:21"><KeyedProperty property="rotation"><KeyFrameDouble value="-0.25" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Arm L -->
+            <KeyedObject objectId="12:24"><KeyedProperty property="x"><KeyFrameDouble value="-28.61942" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="y"><KeyFrameDouble value="-43.43003" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane L Hand Point -->
+            <KeyedObject objectId="12:22"><KeyedProperty property="rotation"><KeyFrameDouble value="0.25" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Arm R -->
+            <KeyedObject objectId="12:26"><KeyedProperty property="x"><KeyFrameDouble value="28.61942" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="y"><KeyFrameDouble value="-43.43003" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane R Hand Point -->
+            <KeyedObject objectId="12:23"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane L -->
+            <KeyedObject objectId="12:25"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane R -->
+            <KeyedObject objectId="12:12"><KeyedProperty property="rotation"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="y"><KeyFrameDouble value="-100" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Head -->
+            <KeyedObject objectId="12:13"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Open -->
+            <KeyedObject objectId="12:16"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Happy -->
+            <KeyedObject objectId="12:17"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Sleepy -->
+            <KeyedObject objectId="12:18"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Mouth Smile -->
+            <KeyedObject objectId="12:19"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Mouth Open -->
+            <KeyedObject objectId="12:20"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Cheeks -->
+            <KeyedObject objectId="12:9"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Think Dot 1 -->
+            <KeyedObject objectId="12:10"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Think Dot 2 -->
+            <KeyedObject objectId="12:11"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Think Dot 3 -->
+            <KeyedObject objectId="12:8"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Pose -->
+        </LinearAnimation>
+        <LinearAnimation duration="44" loopValue="loop" name="mood: cheering" id="12:53">
+            <KeyedObject objectId="12:21">  <!-- Arm L -->
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="2.2" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="2.42" frame="22" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="2.2" frame="44" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="12:24">  <!-- Membrane L Hand Point -->
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="-77.19083" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-70.38674" frame="22" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-77.19083" frame="44" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                </KeyedProperty>
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="-115.07105" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-122.53471" frame="22" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-115.07105" frame="44" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="12:22">  <!-- Arm R -->
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="-2.2" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-2.42" frame="22" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-2.2" frame="44" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="12:26">  <!-- Membrane R Hand Point -->
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="77.19083" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="70.38674" frame="22" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="77.19083" frame="44" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                </KeyedProperty>
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="-115.07105" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-122.53471" frame="22" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-115.07105" frame="44" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="12:23"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane L -->
+            <KeyedObject objectId="12:25"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane R -->
+            <KeyedObject objectId="12:12"><KeyedProperty property="rotation"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="y"><KeyFrameDouble value="-100" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Head -->
+            <KeyedObject objectId="12:13"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1.04" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1.04" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Open -->
+            <KeyedObject objectId="12:16"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Happy -->
+            <KeyedObject objectId="12:17"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Sleepy -->
+            <KeyedObject objectId="12:18"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Mouth Smile -->
+            <KeyedObject objectId="12:19"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Mouth Open -->
+            <KeyedObject objectId="12:20"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Cheeks -->
+            <KeyedObject objectId="12:9"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Think Dot 1 -->
+            <KeyedObject objectId="12:10"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Think Dot 2 -->
+            <KeyedObject objectId="12:11"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Think Dot 3 -->
+            <KeyedObject objectId="12:8">  <!-- Pose -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-9" frame="11" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="22" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-5" frame="33" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="44" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty>
+                <KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty>
+                <KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="mood: proud" id="12:54">
+            <KeyedObject objectId="12:21"><KeyedProperty property="rotation"><KeyFrameDouble value="0.4" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Arm L -->
+            <KeyedObject objectId="12:24"><KeyedProperty property="x"><KeyFrameDouble value="-57.91324" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="y"><KeyFrameDouble value="-45.63119" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane L Hand Point -->
+            <KeyedObject objectId="12:22"><KeyedProperty property="rotation"><KeyFrameDouble value="-0.4" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Arm R -->
+            <KeyedObject objectId="12:26"><KeyedProperty property="x"><KeyFrameDouble value="57.91324" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="y"><KeyFrameDouble value="-45.63119" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane R Hand Point -->
+            <KeyedObject objectId="12:23"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane L -->
+            <KeyedObject objectId="12:25"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane R -->
+            <KeyedObject objectId="12:12"><KeyedProperty property="rotation"><KeyFrameDouble value="-0.04" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="y"><KeyFrameDouble value="-101" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Head -->
+            <KeyedObject objectId="12:13"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Open -->
+            <KeyedObject objectId="12:16"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Happy -->
+            <KeyedObject objectId="12:17"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Sleepy -->
+            <KeyedObject objectId="12:18"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Mouth Smile -->
+            <KeyedObject objectId="12:19"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Mouth Open -->
+            <KeyedObject objectId="12:20"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Cheeks -->
+            <KeyedObject objectId="12:9"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Think Dot 1 -->
+            <KeyedObject objectId="12:10"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Think Dot 2 -->
+            <KeyedObject objectId="12:11"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Think Dot 3 -->
+            <KeyedObject objectId="12:8"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1.03" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1.03" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Pose -->
+        </LinearAnimation>
+        <LinearAnimation duration="120" loopValue="loop" name="mood: gliding" id="12:55">
+            <KeyedObject objectId="12:21">  <!-- Arm L -->
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="1.66" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.56" frame="60" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.66" frame="120" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="12:24">  <!-- Membrane L Hand Point -->
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="-85.8171" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-85.99732" frame="60" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-85.8171" frame="120" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                </KeyedProperty>
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="-92.09793" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-87.50338" frame="60" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-92.09793" frame="120" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="12:22">  <!-- Arm R -->
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="-1.66" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-1.56" frame="60" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-1.66" frame="120" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="12:26">  <!-- Membrane R Hand Point -->
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="85.8171" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="85.99732" frame="60" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="85.8171" frame="120" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                </KeyedProperty>
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="-92.09793" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-87.50338" frame="60" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-92.09793" frame="120" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="12:23"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane L -->
+            <KeyedObject objectId="12:25"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane R -->
+            <KeyedObject objectId="12:12"><KeyedProperty property="rotation"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="y"><KeyFrameDouble value="-100" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Head -->
+            <KeyedObject objectId="12:13"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Open -->
+            <KeyedObject objectId="12:16"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Happy -->
+            <KeyedObject objectId="12:17"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Sleepy -->
+            <KeyedObject objectId="12:18"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Mouth Smile -->
+            <KeyedObject objectId="12:19"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Mouth Open -->
+            <KeyedObject objectId="12:20"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Cheeks -->
+            <KeyedObject objectId="12:9"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Think Dot 1 -->
+            <KeyedObject objectId="12:10"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Think Dot 2 -->
+            <KeyedObject objectId="12:11"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Think Dot 3 -->
+            <KeyedObject objectId="12:8">  <!-- Pose -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="-6" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-14" frame="60" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-6" frame="120" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation"><KeyFrameDouble value="0.1" frame="0" interpolationType="linear"/></KeyedProperty>
+                <KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty>
+                <KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="mood: curious" id="12:56">
+            <KeyedObject objectId="12:21"><KeyedProperty property="rotation"><KeyFrameDouble value="-0.25" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Arm L -->
+            <KeyedObject objectId="12:24"><KeyedProperty property="x"><KeyFrameDouble value="-28.61942" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="y"><KeyFrameDouble value="-43.43003" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane L Hand Point -->
+            <KeyedObject objectId="12:22"><KeyedProperty property="rotation"><KeyFrameDouble value="-0.7" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Arm R -->
+            <KeyedObject objectId="12:26"><KeyedProperty property="x"><KeyFrameDouble value="69.63401" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="y"><KeyFrameDouble value="-52.81726" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane R Hand Point -->
+            <KeyedObject objectId="12:23"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane L -->
+            <KeyedObject objectId="12:25"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane R -->
+            <KeyedObject objectId="12:12"><KeyedProperty property="rotation"><KeyFrameDouble value="0.16" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="y"><KeyFrameDouble value="-100" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Head -->
+            <KeyedObject objectId="12:13"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1.06" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1.06" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Open -->
+            <KeyedObject objectId="12:16"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Happy -->
+            <KeyedObject objectId="12:17"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Sleepy -->
+            <KeyedObject objectId="12:18"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Mouth Smile -->
+            <KeyedObject objectId="12:19"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Mouth Open -->
+            <KeyedObject objectId="12:20"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Cheeks -->
+            <KeyedObject objectId="12:9"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Think Dot 1 -->
+            <KeyedObject objectId="12:10"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Think Dot 2 -->
+            <KeyedObject objectId="12:11"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Think Dot 3 -->
+            <KeyedObject objectId="12:8"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="0.03" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Pose -->
+        </LinearAnimation>
+        <LinearAnimation duration="60" loopValue="loop" name="mood: found" id="12:57">
+            <KeyedObject objectId="12:21"><KeyedProperty property="rotation"><KeyFrameDouble value="1.9" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Arm L -->
+            <KeyedObject objectId="12:24"><KeyedProperty property="x"><KeyFrameDouble value="-83.5298" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="y"><KeyFrameDouble value="-102.87132" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane L Hand Point -->
+            <KeyedObject objectId="12:22"><KeyedProperty property="rotation"><KeyFrameDouble value="-1.9" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Arm R -->
+            <KeyedObject objectId="12:26"><KeyedProperty property="x"><KeyFrameDouble value="83.5298" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="y"><KeyFrameDouble value="-102.87132" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane R Hand Point -->
+            <KeyedObject objectId="12:23"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane L -->
+            <KeyedObject objectId="12:25"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane R -->
+            <KeyedObject objectId="12:12"><KeyedProperty property="rotation"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="y"><KeyFrameDouble value="-101" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Head -->
+            <KeyedObject objectId="12:13"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1.12" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1.12" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Open -->
+            <KeyedObject objectId="12:16"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Happy -->
+            <KeyedObject objectId="12:17"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Sleepy -->
+            <KeyedObject objectId="12:18"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Mouth Smile -->
+            <KeyedObject objectId="12:19"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Mouth Open -->
+            <KeyedObject objectId="12:20"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Cheeks -->
+            <KeyedObject objectId="12:9"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Think Dot 1 -->
+            <KeyedObject objectId="12:10"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Think Dot 2 -->
+            <KeyedObject objectId="12:11"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Think Dot 3 -->
+            <KeyedObject objectId="12:8">  <!-- Pose -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-10" frame="8" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="16" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="60" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty>
+                <KeyedProperty property="scaleX"><KeyFrameDouble value="1.02" frame="0" interpolationType="linear"/></KeyedProperty>
+                <KeyedProperty property="scaleY"><KeyFrameDouble value="1.02" frame="0" interpolationType="linear"/></KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="mood: focused" id="12:58">
+            <KeyedObject objectId="12:21"><KeyedProperty property="rotation"><KeyFrameDouble value="-0.25" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Arm L -->
+            <KeyedObject objectId="12:24"><KeyedProperty property="x"><KeyFrameDouble value="-28.61942" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="y"><KeyFrameDouble value="-43.43003" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane L Hand Point -->
+            <KeyedObject objectId="12:22"><KeyedProperty property="rotation"><KeyFrameDouble value="0.25" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Arm R -->
+            <KeyedObject objectId="12:26"><KeyedProperty property="x"><KeyFrameDouble value="28.61942" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="y"><KeyFrameDouble value="-43.43003" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane R Hand Point -->
+            <KeyedObject objectId="12:23"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane L -->
+            <KeyedObject objectId="12:25"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane R -->
+            <KeyedObject objectId="12:12"><KeyedProperty property="rotation"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="y"><KeyFrameDouble value="-98" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Head -->
+            <KeyedObject objectId="12:13"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="0.74" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Open -->
+            <KeyedObject objectId="12:16"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Happy -->
+            <KeyedObject objectId="12:17"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Sleepy -->
+            <KeyedObject objectId="12:18"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Mouth Smile -->
+            <KeyedObject objectId="12:19"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Mouth Open -->
+            <KeyedObject objectId="12:20"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Cheeks -->
+            <KeyedObject objectId="12:9"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Think Dot 1 -->
+            <KeyedObject objectId="12:10"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Think Dot 2 -->
+            <KeyedObject objectId="12:11"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Think Dot 3 -->
+            <KeyedObject objectId="12:8"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Pose -->
+        </LinearAnimation>
+        <LinearAnimation duration="150" loopValue="loop" name="mood: cosy" id="12:59">
+            <KeyedObject objectId="12:21"><KeyedProperty property="rotation"><KeyFrameDouble value="-0.6" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Arm L -->
+            <KeyedObject objectId="12:24"><KeyedProperty property="x"><KeyFrameDouble value="-14.02645" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="y"><KeyFrameDouble value="-50.03456" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane L Hand Point -->
+            <KeyedObject objectId="12:22"><KeyedProperty property="rotation"><KeyFrameDouble value="0.6" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Arm R -->
+            <KeyedObject objectId="12:26"><KeyedProperty property="x"><KeyFrameDouble value="14.02645" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="y"><KeyFrameDouble value="-50.03456" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane R Hand Point -->
+            <KeyedObject objectId="12:23"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane L -->
+            <KeyedObject objectId="12:25"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane R -->
+            <KeyedObject objectId="12:12">  <!-- Head -->
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="0.05" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-0.05" frame="75" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.05" frame="150" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="y"><KeyFrameDouble value="-99" frame="0" interpolationType="linear"/></KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="12:13"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Open -->
+            <KeyedObject objectId="12:16"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Happy -->
+            <KeyedObject objectId="12:17"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Sleepy -->
+            <KeyedObject objectId="12:18"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Mouth Smile -->
+            <KeyedObject objectId="12:19"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Mouth Open -->
+            <KeyedObject objectId="12:20"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Cheeks -->
+            <KeyedObject objectId="12:9"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Think Dot 1 -->
+            <KeyedObject objectId="12:10"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Think Dot 2 -->
+            <KeyedObject objectId="12:11"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Think Dot 3 -->
+            <KeyedObject objectId="12:8"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Pose -->
+        </LinearAnimation>
+        <LinearAnimation duration="180" loopValue="loop" name="mood: sleepy" id="12:60">
+            <KeyedObject objectId="12:21"><KeyedProperty property="rotation"><KeyFrameDouble value="-0.25" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Arm L -->
+            <KeyedObject objectId="12:24"><KeyedProperty property="x"><KeyFrameDouble value="-28.61942" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="y"><KeyFrameDouble value="-43.43003" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane L Hand Point -->
+            <KeyedObject objectId="12:22"><KeyedProperty property="rotation"><KeyFrameDouble value="0.25" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Arm R -->
+            <KeyedObject objectId="12:26"><KeyedProperty property="x"><KeyFrameDouble value="28.61942" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="y"><KeyFrameDouble value="-43.43003" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane R Hand Point -->
+            <KeyedObject objectId="12:23"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane L -->
+            <KeyedObject objectId="12:25"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane R -->
+            <KeyedObject objectId="12:12">  <!-- Head -->
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="0.12" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.17" frame="90" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.12" frame="180" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="-96" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-94" frame="90" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-96" frame="180" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="12:13"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Open -->
+            <KeyedObject objectId="12:16"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Happy -->
+            <KeyedObject objectId="12:17"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Sleepy -->
+            <KeyedObject objectId="12:18"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Mouth Smile -->
+            <KeyedObject objectId="12:19">  <!-- Mouth Open -->
+                <KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty>
+                <KeyedProperty property="scaleX"><KeyFrameDouble value="0.7" frame="0" interpolationType="linear"/></KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="0.6" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.9" frame="90" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.6" frame="180" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="12:20"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Cheeks -->
+            <KeyedObject objectId="12:9"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Think Dot 1 -->
+            <KeyedObject objectId="12:10"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Think Dot 2 -->
+            <KeyedObject objectId="12:11"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Think Dot 3 -->
+            <KeyedObject objectId="12:8"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Pose -->
+        </LinearAnimation>
+        <LinearAnimation duration="96" loopValue="loop" name="mood: thinking" id="12:61">
+            <KeyedObject objectId="12:21"><KeyedProperty property="rotation"><KeyFrameDouble value="-0.25" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Arm L -->
+            <KeyedObject objectId="12:24"><KeyedProperty property="x"><KeyFrameDouble value="-28.61942" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="y"><KeyFrameDouble value="-43.43003" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane L Hand Point -->
+            <KeyedObject objectId="12:22"><KeyedProperty property="rotation"><KeyFrameDouble value="-1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Arm R -->
+            <KeyedObject objectId="12:26"><KeyedProperty property="x"><KeyFrameDouble value="78.70767" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="y"><KeyFrameDouble value="-63.14609" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane R Hand Point -->
+            <KeyedObject objectId="12:23"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane L -->
+            <KeyedObject objectId="12:25"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Membrane R -->
+            <KeyedObject objectId="12:12"><KeyedProperty property="rotation"><KeyFrameDouble value="-0.14" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="y"><KeyFrameDouble value="-100" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Head -->
+            <KeyedObject objectId="12:13"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Open -->
+            <KeyedObject objectId="12:16"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Happy -->
+            <KeyedObject objectId="12:17"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyes Sleepy -->
+            <KeyedObject objectId="12:18"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Mouth Smile -->
+            <KeyedObject objectId="12:19"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Mouth Open -->
+            <KeyedObject objectId="12:20"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Cheeks -->
+            <KeyedObject objectId="12:9">  <!-- Think Dot 1 -->
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="12" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="72" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="88" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="96" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="12:10">  <!-- Think Dot 2 -->
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="14" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="26" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="72" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="88" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="96" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="12:11">  <!-- Think Dot 3 -->
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="28" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="40" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="72" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="88" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="96" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="12:8"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Pose -->
+        </LinearAnimation>
+        <LinearAnimation duration="150" loopValue="loop" name="idle: breath" id="12:62">
+            <KeyedObject objectId="12:7">  <!-- Liito -->
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.022" frame="75" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="150" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.992" frame="75" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="150" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+        <LinearAnimation duration="200" loopValue="loop" name="idle: blink" id="12:63">
+            <KeyedObject objectId="12:14">  <!-- Eye L -->
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="170" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.08" frame="175" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="181" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="200" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="12:15">  <!-- Eye R -->
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="170" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.08" frame="175" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="181" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="200" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+    </Artboard>
+</Rive>

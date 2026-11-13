@@ -1,0 +1,100 @@
+<!-- Shared roots for the sisu_ui library: fonts, enums and converters.
+     Ids in this file use client 0 (0:n). Each artboard file uses its own client number
+     (Button 1:n, HeroNumber 2:n, ...), so ids never collide between files. -->
+<Rive version="1" kind="fragment">
+    <!-- Fonts. Embedded once, used by every artboard. Figtree for everything, Bricolage Grotesque for headlines and big numbers. -->
+    <FontAsset file="fonts/Figtree-Regular.ttf" name="Figtree-Regular" id="0:10"/>
+    <FontAsset file="fonts/Figtree-SemiBold.ttf" name="Figtree-SemiBold" id="0:11"/>
+    <FontAsset file="fonts/Figtree-Bold.ttf" name="Figtree-Bold" id="0:12"/>
+    <FontAsset file="fonts/BricolageGrotesque-ExtraBold.ttf" name="BricolageGrotesque-ExtraBold" id="0:13"/>
+
+    <!-- Enums. `key` is what the app sets; the order is the contract's order. -->
+    <DataEnumCustom name="ButtonStyle" id="0:100">
+        <DataEnumValue key="primary" value="primary" id="0:101"/>
+        <DataEnumValue key="secondary" value="secondary" id="0:102"/>
+        <DataEnumValue key="onDark" value="onDark" id="0:103"/>
+        <DataEnumValue key="quiet" value="quiet" id="0:104"/>
+    </DataEnumCustom>
+    <DataEnumCustom name="Basket" id="0:120">
+        <DataEnumValue key="fixed" value="fixed" id="0:121"/>
+        <DataEnumValue key="curveballs" value="curveballs" id="0:122"/>
+        <DataEnumValue key="leaks" value="leaks" id="0:123"/>
+        <DataEnumValue key="jars" value="jars" id="0:124"/>
+    </DataEnumCustom>
+    <DataEnumCustom name="ProgressTone" id="0:140">
+        <DataEnumValue key="green" value="green" id="0:141"/>
+        <DataEnumValue key="streak" value="streak" id="0:142"/>
+    </DataEnumCustom>
+    <DataEnumCustom name="StatKind" id="0:160">
+        <DataEnumValue key="streak" value="streak" id="0:161"/>
+        <DataEnumValue key="berries" value="berries" id="0:162"/>
+    </DataEnumCustom>
+    <DataEnumCustom name="ChoiceState" id="0:180">
+        <DataEnumValue key="idle" value="idle" id="0:181"/>
+        <DataEnumValue key="selected" value="selected" id="0:182"/>
+        <DataEnumValue key="correct" value="correct" id="0:183"/>
+        <DataEnumValue key="wrong" value="wrong" id="0:184"/>
+    </DataEnumCustom>
+    <DataEnumCustom name="VoiceState" id="0:200">
+        <DataEnumValue key="idle" value="idle" id="0:201"/>
+        <DataEnumValue key="recording" value="recording" id="0:202"/>
+        <DataEnumValue key="thinking" value="thinking" id="0:203"/>
+        <DataEnumValue key="speaking" value="speaking" id="0:204"/>
+    </DataEnumCustom>
+    <DataEnumCustom name="ResearchStage" id="0:220">
+        <DataEnumValue key="searching" value="searching" id="0:221"/>
+        <DataEnumValue key="reading" value="reading" id="0:222"/>
+        <DataEnumValue key="comparing" value="comparing" id="0:223"/>
+        <DataEnumValue key="done" value="done" id="0:224"/>
+    </DataEnumCustom>
+    <DataEnumCustom name="LiitoMood" id="0:240">
+        <DataEnumValue key="idle" value="idle" id="0:241"/>
+        <DataEnumValue key="cheering" value="cheering" id="0:242"/>
+        <DataEnumValue key="proud" value="proud" id="0:243"/>
+        <DataEnumValue key="gliding" value="gliding" id="0:244"/>
+        <DataEnumValue key="curious" value="curious" id="0:245"/>
+        <DataEnumValue key="found" value="found" id="0:246"/>
+        <DataEnumValue key="focused" value="focused" id="0:247"/>
+        <DataEnumValue key="cosy" value="cosy" id="0:248"/>
+        <DataEnumValue key="sleepy" value="sleepy" id="0:249"/>
+        <DataEnumValue key="thinking" value="thinking" id="0:250"/>
+    </DataEnumCustom>
+    <DataEnumCustom name="StickerKind" id="0:260">
+        <DataEnumValue key="firstJar" value="firstJar" id="0:261"/>
+        <DataEnumValue key="leakPlugged" value="leakPlugged" id="0:262"/>
+        <DataEnumValue key="streak" value="streak" id="0:263"/>
+        <DataEnumValue key="lesson" value="lesson" id="0:264"/>
+    </DataEnumCustom>
+    <DataEnumCustom name="TagTone" id="0:280">
+        <DataEnumValue key="neutral" value="neutral" id="0:281"/>
+        <DataEnumValue key="amber" value="amber" id="0:282"/>
+        <DataEnumValue key="info" value="info" id="0:283"/>
+    </DataEnumCustom>
+
+    <!-- Converters shared by several artboards. -->
+    <DataConverterBooleanNegate name="not" id="0:60"/>
+    <!-- Eases a number to its new value over 0.45 s, so bars and fills animate when the app writes them. -->
+    <DataConverterInterpolator duration="0.45" interpolationType="cubic" name="ease to new value" id="0:61">
+        <CubicEaseInterpolator x1="0.2" y1="0.9" x2="0.3" y2="1"/>
+    </DataConverterInterpolator>
+    <DataConverterRangeMapper minInput="0" maxInput="1" minOutput="0" maxOutput="1" clampLower="true" clampUpper="true" name="clamp 0..1" id="0:62"/>
+    <DataConverterGroup name="clamp 0..1, eased" id="0:63">
+        <DataConverterGroupItem converterId="0:62"/>
+        <DataConverterGroupItem converterId="0:61"/>
+    </DataConverterGroup>
+    <DataConverterRangeMapper minInput="0" maxInput="1" minOutput="1" maxOutput="0" clampLower="true" clampUpper="true"
+            name="1 minus value" id="0:64"/>
+    <DataConverterGroup name="1 minus value, eased" id="0:65">
+        <DataConverterGroupItem converterId="0:64"/>
+        <DataConverterGroupItem converterId="0:61"/>
+    </DataConverterGroup>
+    <!-- Number to displayValue: 0 gives 1 (none), anything above gives 0 (flex). -->
+    <DataConverterRangeMapper minInput="0" maxInput="0.0001" minOutput="1" maxOutput="0" clampLower="true" clampUpper="true"
+            name="zero hides" id="0:66"/>
+    <!-- Number to flex weight. Scaled up so weights always sum past 1 and the row is always full. -->
+    <DataConverterRangeMapper minInput="0" maxInput="1" minOutput="0" maxOutput="1000" clampLower="true" name="flex weight" id="0:67"/>
+    <DataConverterGroup name="flex weight, eased" id="0:68">
+        <DataConverterGroupItem converterId="0:67"/>
+        <DataConverterGroupItem converterId="0:61"/>
+    </DataConverterGroup>
+</Rive>

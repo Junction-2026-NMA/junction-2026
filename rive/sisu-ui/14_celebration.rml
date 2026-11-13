@@ -1,0 +1,873 @@
+<!-- Celebration  (390x844, fill)
+     Full-screen big-win moment with confetti.
+
+     View model CelebrationVM  (names and types are fixed by rive/contract.json):
+       headline    string             in     default "Jar full."
+       detail      string             in     default "€1,000 that's yours to keep."
+       fire        trigger            in
+       done        trigger            out
+
+     How it works
+       Field      the artboard's own fill, S green. The artboard reflows to any size (`fill`).
+       Confetti   idle -> fall on `fire`. One 170-frame timeline (2.8 s) drops every piece from above the top edge to 1180 pt
+                  below it, each with its own start, sway and spin. When the timeline ends the transition back to idle fires `done`.
+                  Two twin states (A, B) play the same timeline, so firing `fire` again mid-fall restarts it; `done` then fires once,
+                  at the end of the last fall. The headline pops once at the start of a fall.
+       Nothing moves until `fire`: before that the pieces are transparent and above the top edge. -->
+<Rive version="1" kind="fragment">
+    <!-- View model -->
+    <ViewModel defaultInstanceId="14:6" name="CelebrationVM" id="14:1">
+        <ViewModelPropertyString name="headline" id="14:2"/>
+        <ViewModelPropertyString name="detail" id="14:3"/>
+        <ViewModelPropertyTrigger name="fire" id="14:4"/>
+        <ViewModelPropertyTrigger name="done" id="14:5"/>
+        <ViewModelInstance exports="true" name="Default" id="14:6">
+            <ViewModelInstanceString propertyValue="Jar full." viewModelPropertyId="14:2" id="14:7"/>  <!-- headline -->
+            <ViewModelInstanceString propertyValue="€1,000 that's yours to keep." viewModelPropertyId="14:3" id="14:8"/>  <!-- detail -->
+            <ViewModelInstanceTrigger viewModelPropertyId="14:4" id="14:9"/>  <!-- fire -->
+            <ViewModelInstanceTrigger viewModelPropertyId="14:5" id="14:10"/>  <!-- done -->
+        </ViewModelInstance>
+    </ViewModel>
+
+    <Artboard defaultStateMachineId="14:65" viewModelId="14:1" viewModelInstanceId="14:6" clip="true" width="390" height="844"
+            x="520" y="662" styleId="14:12" name="Celebration" id="14:11">
+        <LayoutComponentStyle name="Artboard Style" id="14:12"/>
+        <Fill name="Field"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+
+        <!-- Scene. The first sibling draws on top. -->
+        <!-- Confetti: 22 small boxes pinned above the top edge at a percentage of the width, so they spread over any screen.
+             Circles are fully rounded boxes; leaves round two opposite corners. The fall timeline keys y, x, rotation and opacity. -->
+        <LayoutComponent width="12" height="12" opacity="0" rotation="0.15" clip="false" styleId="14:14" name="Dot 1" id="14:13">
+            <LayoutComponentStyle cornerRadiusTL="6" positionTypeValue="absolute" positionLeft="3.7"
+                    positionLeftUnitsValue="percent" positionTop="-44" positionTopUnitsValue="points" name="Dot 1 Style"
+                    id="14:14"/>
+            <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+            <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+        </LayoutComponent>
+        <LayoutComponent width="12" height="22" opacity="0" rotation="-0.07" clip="false" styleId="14:16" name="Leaf 2" id="14:15">
+            <LayoutComponentStyle linkCornerRadius="false" cornerRadiusTL="12" cornerRadiusBR="12" cornerRadiusTR="2"
+                    cornerRadiusBL="2" positionTypeValue="absolute" positionLeft="7.1" positionLeftUnitsValue="percent"
+                    positionTop="-44" positionTopUnitsValue="points" name="Leaf 2 Style" id="14:16"/>
+            <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+            <Fill name="Fill"><SolidColor colorValue="FFD2FCD5" name="Color"/></Fill>
+        </LayoutComponent>
+        <LayoutComponent width="14" height="26" opacity="0" rotation="-0.11" clip="false" styleId="14:18" name="Leaf 3" id="14:17">
+            <LayoutComponentStyle linkCornerRadius="false" cornerRadiusTL="14" cornerRadiusBR="14" cornerRadiusTR="2"
+                    cornerRadiusBL="2" positionTypeValue="absolute" positionLeft="10.1" positionLeftUnitsValue="percent"
+                    positionTop="-44" positionTopUnitsValue="points" name="Leaf 3 Style" id="14:18"/>
+            <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+            <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill>
+        </LayoutComponent>
+        <LayoutComponent width="10" height="10" opacity="0" rotation="-0.52" clip="false" styleId="14:20" name="Dot 4" id="14:19">
+            <LayoutComponentStyle cornerRadiusTL="5" positionTypeValue="absolute" positionLeft="15.9"
+                    positionLeftUnitsValue="percent" positionTop="-44" positionTopUnitsValue="points" name="Dot 4 Style"
+                    id="14:20"/>
+            <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+            <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+        </LayoutComponent>
+        <LayoutComponent width="14" height="28" opacity="0" rotation="-0.34" clip="false" styleId="14:22" name="Leaf 5" id="14:21">
+            <LayoutComponentStyle linkCornerRadius="false" cornerRadiusTL="14" cornerRadiusBR="14" cornerRadiusTR="2"
+                    cornerRadiusBL="2" positionTypeValue="absolute" positionLeft="21.8" positionLeftUnitsValue="percent"
+                    positionTop="-44" positionTopUnitsValue="points" name="Leaf 5 Style" id="14:22"/>
+            <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+            <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+        </LayoutComponent>
+        <LayoutComponent width="10" height="18" opacity="0" rotation="-0.2" clip="false" styleId="14:24" name="Leaf 6" id="14:23">
+            <LayoutComponentStyle linkCornerRadius="false" cornerRadiusTL="10" cornerRadiusBR="10" cornerRadiusTR="2"
+                    cornerRadiusBL="2" positionTypeValue="absolute" positionLeft="25.2" positionLeftUnitsValue="percent"
+                    positionTop="-44" positionTopUnitsValue="points" name="Leaf 6 Style" id="14:24"/>
+            <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+            <Fill name="Fill"><SolidColor colorValue="FFD2FCD5" name="Color"/></Fill>
+        </LayoutComponent>
+        <LayoutComponent width="12" height="12" opacity="0" rotation="0.25" clip="false" styleId="14:26" name="Dot 7" id="14:25">
+            <LayoutComponentStyle cornerRadiusTL="6" positionTypeValue="absolute" positionLeft="28.4"
+                    positionLeftUnitsValue="percent" positionTop="-44" positionTopUnitsValue="points" name="Dot 7 Style"
+                    id="14:26"/>
+            <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+            <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill>
+        </LayoutComponent>
+        <LayoutComponent width="12" height="24" opacity="0" rotation="0.58" clip="false" styleId="14:28" name="Leaf 8" id="14:27">
+            <LayoutComponentStyle linkCornerRadius="false" cornerRadiusTL="12" cornerRadiusBR="12" cornerRadiusTR="2"
+                    cornerRadiusBL="2" positionTypeValue="absolute" positionLeft="34.3" positionLeftUnitsValue="percent"
+                    positionTop="-44" positionTopUnitsValue="points" name="Leaf 8 Style" id="14:28"/>
+            <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+            <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+        </LayoutComponent>
+        <LayoutComponent width="10" height="18" opacity="0" rotation="0.44" clip="false" styleId="14:30" name="Leaf 9" id="14:29">
+            <LayoutComponentStyle linkCornerRadius="false" cornerRadiusTL="10" cornerRadiusBR="10" cornerRadiusTR="2"
+                    cornerRadiusBL="2" positionTypeValue="absolute" positionLeft="40.1" positionLeftUnitsValue="percent"
+                    positionTop="-44" positionTopUnitsValue="points" name="Leaf 9 Style" id="14:30"/>
+            <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+            <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+        </LayoutComponent>
+        <LayoutComponent width="10" height="10" opacity="0" rotation="-0.55" clip="false" styleId="14:32" name="Dot 10" id="14:31">
+            <LayoutComponentStyle cornerRadiusTL="5" positionTypeValue="absolute" positionLeft="42.9"
+                    positionLeftUnitsValue="percent" positionTop="-44" positionTopUnitsValue="points" name="Dot 10 Style"
+                    id="14:32"/>
+            <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+            <Fill name="Fill"><SolidColor colorValue="FFD2FCD5" name="Color"/></Fill>
+        </LayoutComponent>
+        <LayoutComponent width="12" height="22" opacity="0" rotation="-0.51" clip="false" styleId="14:34" name="Leaf 11" id="14:33">
+            <LayoutComponentStyle linkCornerRadius="false" cornerRadiusTL="12" cornerRadiusBR="12" cornerRadiusTR="2"
+                    cornerRadiusBL="2" positionTypeValue="absolute" positionLeft="47.2" positionLeftUnitsValue="percent"
+                    positionTop="-44" positionTopUnitsValue="points" name="Leaf 11 Style" id="14:34"/>
+            <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+            <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill>
+        </LayoutComponent>
+        <LayoutComponent width="14" height="26" opacity="0" rotation="-0.45" clip="false" styleId="14:36" name="Leaf 12" id="14:35">
+            <LayoutComponentStyle linkCornerRadius="false" cornerRadiusTL="14" cornerRadiusBR="14" cornerRadiusTR="2"
+                    cornerRadiusBL="2" positionTypeValue="absolute" positionLeft="51.9" positionLeftUnitsValue="percent"
+                    positionTop="-44" positionTopUnitsValue="points" name="Leaf 12 Style" id="14:36"/>
+            <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+            <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+        </LayoutComponent>
+        <LayoutComponent width="12" height="12" opacity="0" rotation="-0.23" clip="false" styleId="14:38" name="Dot 13" id="14:37">
+            <LayoutComponentStyle cornerRadiusTL="6" positionTypeValue="absolute" positionLeft="55.9"
+                    positionLeftUnitsValue="percent" positionTop="-44" positionTopUnitsValue="points" name="Dot 13 Style"
+                    id="14:38"/>
+            <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+            <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+        </LayoutComponent>
+        <LayoutComponent width="10" height="18" opacity="0" rotation="0.46" clip="false" styleId="14:40" name="Leaf 14" id="14:39">
+            <LayoutComponentStyle linkCornerRadius="false" cornerRadiusTL="10" cornerRadiusBR="10" cornerRadiusTR="2"
+                    cornerRadiusBL="2" positionTypeValue="absolute" positionLeft="62.7" positionLeftUnitsValue="percent"
+                    positionTop="-44" positionTopUnitsValue="points" name="Leaf 14 Style" id="14:40"/>
+            <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+            <Fill name="Fill"><SolidColor colorValue="FFD2FCD5" name="Color"/></Fill>
+        </LayoutComponent>
+        <LayoutComponent width="10" height="18" opacity="0" rotation="-0.29" clip="false" styleId="14:42" name="Leaf 15" id="14:41">
+            <LayoutComponentStyle linkCornerRadius="false" cornerRadiusTL="10" cornerRadiusBR="10" cornerRadiusTR="2"
+                    cornerRadiusBL="2" positionTypeValue="absolute" positionLeft="67.3" positionLeftUnitsValue="percent"
+                    positionTop="-44" positionTopUnitsValue="points" name="Leaf 15 Style" id="14:42"/>
+            <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+            <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill>
+        </LayoutComponent>
+        <LayoutComponent width="10" height="10" opacity="0" rotation="-0.26" clip="false" styleId="14:44" name="Dot 16" id="14:43">
+            <LayoutComponentStyle cornerRadiusTL="5" positionTypeValue="absolute" positionLeft="70.4"
+                    positionLeftUnitsValue="percent" positionTop="-44" positionTopUnitsValue="points" name="Dot 16 Style"
+                    id="14:44"/>
+            <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+            <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+        </LayoutComponent>
+        <LayoutComponent width="10" height="18" opacity="0" rotation="-0.16" clip="false" styleId="14:46" name="Leaf 17" id="14:45">
+            <LayoutComponentStyle linkCornerRadius="false" cornerRadiusTL="10" cornerRadiusBR="10" cornerRadiusTR="2"
+                    cornerRadiusBL="2" positionTypeValue="absolute" positionLeft="73.7" positionLeftUnitsValue="percent"
+                    positionTop="-44" positionTopUnitsValue="points" name="Leaf 17 Style" id="14:46"/>
+            <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+            <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+        </LayoutComponent>
+        <LayoutComponent width="14" height="28" opacity="0" rotation="0.11" clip="false" styleId="14:48" name="Leaf 18" id="14:47">
+            <LayoutComponentStyle linkCornerRadius="false" cornerRadiusTL="14" cornerRadiusBR="14" cornerRadiusTR="2"
+                    cornerRadiusBL="2" positionTypeValue="absolute" positionLeft="81" positionLeftUnitsValue="percent"
+                    positionTop="-44" positionTopUnitsValue="points" name="Leaf 18 Style" id="14:48"/>
+            <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+            <Fill name="Fill"><SolidColor colorValue="FFD2FCD5" name="Color"/></Fill>
+        </LayoutComponent>
+        <LayoutComponent width="10" height="10" opacity="0" rotation="-0.02" clip="false" styleId="14:50" name="Dot 19" id="14:49">
+            <LayoutComponentStyle cornerRadiusTL="5" positionTypeValue="absolute" positionLeft="82.7"
+                    positionLeftUnitsValue="percent" positionTop="-44" positionTopUnitsValue="points" name="Dot 19 Style"
+                    id="14:50"/>
+            <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+            <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill>
+        </LayoutComponent>
+        <LayoutComponent width="14" height="28" opacity="0" rotation="0.48" clip="false" styleId="14:52" name="Leaf 20" id="14:51">
+            <LayoutComponentStyle linkCornerRadius="false" cornerRadiusTL="14" cornerRadiusBR="14" cornerRadiusTR="2"
+                    cornerRadiusBL="2" positionTypeValue="absolute" positionLeft="88.8" positionLeftUnitsValue="percent"
+                    positionTop="-44" positionTopUnitsValue="points" name="Leaf 20 Style" id="14:52"/>
+            <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+            <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+        </LayoutComponent>
+        <LayoutComponent width="12" height="24" opacity="0" rotation="0.44" clip="false" styleId="14:54" name="Leaf 21" id="14:53">
+            <LayoutComponentStyle linkCornerRadius="false" cornerRadiusTL="12" cornerRadiusBR="12" cornerRadiusTR="2"
+                    cornerRadiusBL="2" positionTypeValue="absolute" positionLeft="94.3" positionLeftUnitsValue="percent"
+                    positionTop="-44" positionTopUnitsValue="points" name="Leaf 21 Style" id="14:54"/>
+            <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+            <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+        </LayoutComponent>
+        <LayoutComponent width="10" height="10" opacity="0" rotation="-0.5" clip="false" styleId="14:56" name="Dot 22" id="14:55">
+            <LayoutComponentStyle cornerRadiusTL="5" positionTypeValue="absolute" positionLeft="96.3"
+                    positionLeftUnitsValue="percent" positionTop="-44" positionTopUnitsValue="points" name="Dot 22 Style"
+                    id="14:56"/>
+            <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+            <Fill name="Fill"><SolidColor colorValue="FFD2FCD5" name="Color"/></Fill>
+        </LayoutComponent>
+        <!-- Headline and detail, centred in the field. Both wrap and reflow with the artboard. -->
+        <LayoutComponent clip="false" styleId="14:58" name="Content" id="14:57">
+            <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" flexDirectionValue="column"
+                    layoutAlignmentType="center" paddingLeft="32" paddingLeftUnitsValue="points" paddingRight="32"
+                    paddingRightUnitsValue="points" gapVertical="12" gapVerticalUnitsValue="points" name="Content Style"
+                    id="14:58"/>
+            <LayoutComponent clip="false" styleId="14:60" name="Headline Pop" id="14:59">
+                <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="hug" flexDirectionValue="column"
+                        name="Headline Pop Style" id="14:60"/>
+                <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+                <Text wrapValue="wrap" alignValue="center" sizingValue="autoHeight" name="Headline" id="14:61">
+                    <LayoutParticipant layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="Layout"/>
+                    <TextStylePaint fontSize="40" lineHeight="44" fontAssetId="0:13" familyName="Bricolage Grotesque"
+                            styleName="ExtraBold" name="Headline Style" id="14:62">
+                        <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill>
+                    </TextStylePaint>
+                    <TextValueRun styleId="14:62" text="" name="Run"><DataBindContext sourcePathIds="14:1-14:2" propertyKey="268"/></TextValueRun>  <!-- text <- headline -->
+                </Text>
+            </LayoutComponent>
+            <Text wrapValue="wrap" alignValue="center" sizingValue="autoHeight" name="Detail" id="14:63">
+                <LayoutParticipant layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="Layout"/>
+                <TextStylePaint fontSize="18" lineHeight="24" fontAssetId="0:11" familyName="Figtree" styleName="SemiBold"
+                        name="Detail Style" id="14:64">
+                    <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="14:64" text="" name="Run"><DataBindContext sourcePathIds="14:1-14:3" propertyKey="268"/></TextValueRun>  <!-- text <- detail -->
+            </Text>
+        </LayoutComponent>
+
+        <!-- State machine. Declared before the timelines so the editor opens it first. -->
+        <StateMachine name="Main" id="14:65">
+            <StateMachineLayer name="Confetti" id="14:66">
+                <AnyState x="0" y="-140" id="14:67"/>
+                <ExitState x="0" y="-280" id="14:68"/>
+                <EntryState x="0" y="0" id="14:69">
+                    <StateTransition stateToId="14:70"/>  <!-- starts in idle -->
+                </EntryState>
+                <AnimationState animationId="14:73" stateName="idle" x="240" y="0" id="14:70">
+                    <StateTransition stateToId="14:71">  <!-- to fall A -->
+                        <TransitionViewModelCondition>  <!-- fire fired -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyTrigger><DataBindContext sourcePathIds="14:1-14:4" propertyKey="686"/></BindablePropertyTrigger></TransitionPropertyViewModelComparator>
+                            <TransitionValueTriggerComparator/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState animationId="14:74" stateName="fall A" x="480" y="-110" id="14:71">
+                    <StateTransition stateToId="14:72">  <!-- to fall B -->
+                        <TransitionViewModelCondition>  <!-- fire fired -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyTrigger><DataBindContext sourcePathIds="14:1-14:4" propertyKey="686"/></BindablePropertyTrigger></TransitionPropertyViewModelComparator>
+                            <TransitionValueTriggerComparator/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="14:70" enableExitTime="true" exitTimeIsPercetange="true" exitTime="100">  <!-- to idle -->
+                        <StateMachineFireTrigger viewModelPathIds="14:1-14:5" occursValue="atStart"/>  <!-- fires done -->
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState animationId="14:74" stateName="fall B" x="480" y="110" id="14:72">
+                    <StateTransition stateToId="14:71">  <!-- to fall A -->
+                        <TransitionViewModelCondition>  <!-- fire fired -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyTrigger><DataBindContext sourcePathIds="14:1-14:4" propertyKey="686"/></BindablePropertyTrigger></TransitionPropertyViewModelComparator>
+                            <TransitionValueTriggerComparator/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="14:70" enableExitTime="true" exitTimeIsPercetange="true" exitTime="100">  <!-- to idle -->
+                        <StateMachineFireTrigger viewModelPathIds="14:1-14:5" occursValue="atStart"/>  <!-- fires done -->
+                    </StateTransition>
+                </AnimationState>
+            </StateMachineLayer>
+        </StateMachine>
+
+        <!-- Timelines. Most are one-key poses: the state transitions do the blending. -->
+        <LinearAnimation duration="1" name="confetti: idle" id="14:73">
+            <KeyedObject objectId="14:59"><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Headline Pop -->
+            <KeyedObject objectId="14:13"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="x"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="0.15" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 1 -->
+            <KeyedObject objectId="14:15"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="x"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="-0.07" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Leaf 2 -->
+            <KeyedObject objectId="14:17"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="x"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="-0.11" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Leaf 3 -->
+            <KeyedObject objectId="14:19"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="x"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="-0.52" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 4 -->
+            <KeyedObject objectId="14:21"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="x"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="-0.34" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Leaf 5 -->
+            <KeyedObject objectId="14:23"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="x"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="-0.2" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Leaf 6 -->
+            <KeyedObject objectId="14:25"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="x"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="0.25" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 7 -->
+            <KeyedObject objectId="14:27"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="x"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="0.58" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Leaf 8 -->
+            <KeyedObject objectId="14:29"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="x"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="0.44" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Leaf 9 -->
+            <KeyedObject objectId="14:31"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="x"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="-0.55" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 10 -->
+            <KeyedObject objectId="14:33"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="x"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="-0.51" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Leaf 11 -->
+            <KeyedObject objectId="14:35"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="x"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="-0.45" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Leaf 12 -->
+            <KeyedObject objectId="14:37"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="x"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="-0.23" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 13 -->
+            <KeyedObject objectId="14:39"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="x"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="0.46" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Leaf 14 -->
+            <KeyedObject objectId="14:41"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="x"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="-0.29" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Leaf 15 -->
+            <KeyedObject objectId="14:43"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="x"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="-0.26" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 16 -->
+            <KeyedObject objectId="14:45"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="x"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="-0.16" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Leaf 17 -->
+            <KeyedObject objectId="14:47"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="x"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="0.11" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Leaf 18 -->
+            <KeyedObject objectId="14:49"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="x"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="-0.02" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 19 -->
+            <KeyedObject objectId="14:51"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="x"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="0.48" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Leaf 20 -->
+            <KeyedObject objectId="14:53"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="x"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="0.44" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Leaf 21 -->
+            <KeyedObject objectId="14:55"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="x"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="-0.5" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 22 -->
+        </LinearAnimation>
+        <LinearAnimation duration="170" name="confetti: fall" id="14:74">
+            <KeyedObject objectId="14:59">  <!-- Headline Pop -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0.86" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.06" frame="12" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="24" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="0.86" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.06" frame="12" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="24" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="14:13">  <!-- Dot 1 -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="7" interpolationType="cubic"><CubicEaseInterpolator x1="0.3" y1="0" x2="0.9" y2="0.9"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1180" frame="121" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="7" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-15.42923" frame="45" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="10.80046" frame="83" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-6.17169" frame="121" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="0.15" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.15" frame="7" interpolationType="linear"/>
+                    <KeyFrameDouble value="-6.30804" frame="121" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="7" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="9" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="111" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="121" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="14:15">  <!-- Leaf 2 -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="37" interpolationType="cubic"><CubicEaseInterpolator x1="0.3" y1="0" x2="0.9" y2="0.9"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1180" frame="141" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="37" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-29.367" frame="71" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="20.5569" frame="106" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-11.7468" frame="141" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="-0.07" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.07" frame="37" interpolationType="linear"/>
+                    <KeyFrameDouble value="2.45067" frame="141" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="37" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="39" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="131" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="141" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="14:17">  <!-- Leaf 3 -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="49" interpolationType="cubic"><CubicEaseInterpolator x1="0.3" y1="0" x2="0.9" y2="0.9"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1180" frame="164" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="49" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-30.98743" frame="87" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="21.6912" frame="125" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-12.39497" frame="164" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="-0.11" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.11" frame="49" interpolationType="linear"/>
+                    <KeyFrameDouble value="5.80096" frame="164" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="49" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="51" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="154" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="164" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="14:19">  <!-- Dot 4 -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="9" interpolationType="cubic"><CubicEaseInterpolator x1="0.3" y1="0" x2="0.9" y2="0.9"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1180" frame="110" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="9" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="16.58727" frame="42" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-11.61109" frame="76" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="6.63491" frame="110" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="-0.52" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.52" frame="9" interpolationType="linear"/>
+                    <KeyFrameDouble value="3.71931" frame="110" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="9" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="11" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="100" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="110" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="14:21">  <!-- Leaf 5 -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.3" y1="0" x2="0.9" y2="0.9"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1180" frame="99" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="23.01112" frame="33" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-16.10778" frame="66" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="9.20445" frame="99" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="-0.34" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="4.04906" frame="99" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="2" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="89" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="99" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="14:23">  <!-- Leaf 6 -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="32" interpolationType="cubic"><CubicEaseInterpolator x1="0.3" y1="0" x2="0.9" y2="0.9"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1180" frame="139" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="32" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="14.36359" frame="67" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-10.05451" frame="103" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="5.74544" frame="139" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="-0.2" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.2" frame="32" interpolationType="linear"/>
+                    <KeyFrameDouble value="5.71118" frame="139" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="32" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="34" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="129" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="139" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="14:25">  <!-- Dot 7 -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="27" interpolationType="cubic"><CubicEaseInterpolator x1="0.3" y1="0" x2="0.9" y2="0.9"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1180" frame="125" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="27" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-25.15856" frame="59" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="17.61099" frame="92" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-10.06342" frame="125" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="0.25" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.25" frame="27" interpolationType="linear"/>
+                    <KeyFrameDouble value="3.54955" frame="125" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="27" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="29" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="115" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="125" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="14:27">  <!-- Leaf 8 -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="44" interpolationType="cubic"><CubicEaseInterpolator x1="0.3" y1="0" x2="0.9" y2="0.9"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1180" frame="146" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="44" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="29.44916" frame="78" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-20.61441" frame="112" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="11.77967" frame="146" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="0.58" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.58" frame="44" interpolationType="linear"/>
+                    <KeyFrameDouble value="-3.69684" frame="146" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="44" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="46" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="136" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="146" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="14:29">  <!-- Leaf 9 -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="2" interpolationType="cubic"><CubicEaseInterpolator x1="0.3" y1="0" x2="0.9" y2="0.9"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1180" frame="118" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="2" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="37.94969" frame="40" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-26.56478" frame="79" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="15.17988" frame="118" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="0.44" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.44" frame="2" interpolationType="linear"/>
+                    <KeyFrameDouble value="-3.0082" frame="118" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="2" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="4" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="108" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="118" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="14:31">  <!-- Dot 10 -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="4" interpolationType="cubic"><CubicEaseInterpolator x1="0.3" y1="0" x2="0.9" y2="0.9"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1180" frame="106" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="4" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-24.597" frame="38" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="17.2179" frame="72" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-9.8388" frame="106" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="-0.55" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.55" frame="4" interpolationType="linear"/>
+                    <KeyFrameDouble value="-6.5271" frame="106" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="4" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="6" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="96" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="106" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="14:33">  <!-- Leaf 11 -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="22" interpolationType="cubic"><CubicEaseInterpolator x1="0.3" y1="0" x2="0.9" y2="0.9"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1180" frame="122" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="22" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-27.98564" frame="55" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="19.58994" frame="88" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-11.19425" frame="122" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="-0.51" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.51" frame="22" interpolationType="linear"/>
+                    <KeyFrameDouble value="-3.07979" frame="122" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="22" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="24" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="112" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="122" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="14:35">  <!-- Leaf 12 -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="24" interpolationType="cubic"><CubicEaseInterpolator x1="0.3" y1="0" x2="0.9" y2="0.9"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1180" frame="140" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="24" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="33.97662" frame="62" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-23.78364" frame="101" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="13.59065" frame="140" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="-0.45" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.45" frame="24" interpolationType="linear"/>
+                    <KeyFrameDouble value="-6.84937" frame="140" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="24" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="26" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="130" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="140" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="14:37">  <!-- Dot 13 -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="17" interpolationType="cubic"><CubicEaseInterpolator x1="0.3" y1="0" x2="0.9" y2="0.9"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1180" frame="122" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="17" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-31.40938" frame="52" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="21.98657" frame="87" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-12.56375" frame="122" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="-0.23" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.23" frame="17" interpolationType="linear"/>
+                    <KeyFrameDouble value="-6.05741" frame="122" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="17" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="19" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="112" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="122" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="14:39">  <!-- Leaf 14 -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="19" interpolationType="cubic"><CubicEaseInterpolator x1="0.3" y1="0" x2="0.9" y2="0.9"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1180" frame="119" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="19" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="15.13764" frame="52" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-10.59635" frame="85" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="6.05506" frame="119" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="0.46" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.46" frame="19" interpolationType="linear"/>
+                    <KeyFrameDouble value="-2.21413" frame="119" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="19" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="21" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="109" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="119" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="14:41">  <!-- Leaf 15 -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="29" interpolationType="cubic"><CubicEaseInterpolator x1="0.3" y1="0" x2="0.9" y2="0.9"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1180" frame="142" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="29" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="26.48178" frame="66" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-18.53725" frame="104" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="10.59271" frame="142" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="-0.29" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.29" frame="29" interpolationType="linear"/>
+                    <KeyFrameDouble value="-3.3588" frame="142" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="29" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="31" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="132" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="142" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="14:43">  <!-- Dot 16 -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="12" interpolationType="cubic"><CubicEaseInterpolator x1="0.3" y1="0" x2="0.9" y2="0.9"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1180" frame="116" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="12" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-15.6597" frame="46" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="10.96179" frame="81" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-6.26388" frame="116" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="-0.26" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.26" frame="12" interpolationType="linear"/>
+                    <KeyFrameDouble value="4.24567" frame="116" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="12" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="14" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="106" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="116" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="14:45">  <!-- Leaf 17 -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="14" interpolationType="cubic"><CubicEaseInterpolator x1="0.3" y1="0" x2="0.9" y2="0.9"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1180" frame="130" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="14" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-16.21261" frame="52" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="11.34883" frame="91" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-6.48504" frame="130" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="-0.16" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.16" frame="14" interpolationType="linear"/>
+                    <KeyFrameDouble value="-6.66923" frame="130" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="14" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="16" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="120" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="130" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="14:47">  <!-- Leaf 18 -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="39" interpolationType="cubic"><CubicEaseInterpolator x1="0.3" y1="0" x2="0.9" y2="0.9"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1180" frame="137" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="39" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="35.8451" frame="71" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-25.09157" frame="104" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="14.33804" frame="137" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="0.11" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.11" frame="39" interpolationType="linear"/>
+                    <KeyFrameDouble value="6.94247" frame="137" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="39" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="41" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="127" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="137" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="14:49">  <!-- Dot 19 -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="47" interpolationType="cubic"><CubicEaseInterpolator x1="0.3" y1="0" x2="0.9" y2="0.9"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1180" frame="154" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="47" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="17.27854" frame="82" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-12.09498" frame="118" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="6.91142" frame="154" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="-0.02" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.02" frame="47" interpolationType="linear"/>
+                    <KeyFrameDouble value="-2.85868" frame="154" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="47" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="49" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="144" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="154" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="14:51">  <!-- Leaf 20 -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="52" interpolationType="cubic"><CubicEaseInterpolator x1="0.3" y1="0" x2="0.9" y2="0.9"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1180" frame="154" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="52" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="22.44402" frame="86" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-15.71081" frame="120" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="8.97761" frame="154" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="0.48" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.48" frame="52" interpolationType="linear"/>
+                    <KeyFrameDouble value="7.03376" frame="154" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="52" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="54" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="144" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="154" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="14:53">  <!-- Leaf 21 -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="42" interpolationType="cubic"><CubicEaseInterpolator x1="0.3" y1="0" x2="0.9" y2="0.9"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1180" frame="158" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="42" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-28.99905" frame="80" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="20.29934" frame="119" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-11.59962" frame="158" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="0.44" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.44" frame="42" interpolationType="linear"/>
+                    <KeyFrameDouble value="4.64629" frame="158" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="42" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="44" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="148" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="158" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="14:55">  <!-- Dot 22 -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="34" interpolationType="cubic"><CubicEaseInterpolator x1="0.3" y1="0" x2="0.9" y2="0.9"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1180" frame="135" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="34" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="35.115" frame="67" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-24.5805" frame="101" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="14.046" frame="135" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="-0.5" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="-0.5" frame="34" interpolationType="linear"/>
+                    <KeyFrameDouble value="3.74796" frame="135" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="34" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="36" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="125" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="135" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+    </Artboard>
+</Rive>

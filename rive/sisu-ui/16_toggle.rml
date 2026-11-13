@@ -1,0 +1,92 @@
+<!-- Toggle  (64x36, fixed)
+     On/off switch.
+
+     View model ToggleVM  (names and types are fixed by rive/contract.json):
+       on          boolean            in     default false
+       toggled     trigger            out
+
+     How it works
+       On         off <-> on on `on`: the knob slides 18 -> 46 and the track turns from neutral to deep green.
+       Tap        the click listener reads `on` through a NOT converter and writes it back, then fires `toggled`.
+                  The app can also write `on` itself; the knob follows either way. -->
+<Rive version="1" kind="fragment">
+    <!-- View model -->
+    <ViewModel defaultInstanceId="16:4" name="ToggleVM" id="16:1">
+        <ViewModelPropertyBoolean name="on" id="16:2"/>
+        <ViewModelPropertyTrigger name="toggled" id="16:3"/>
+        <ViewModelInstance exports="true" name="Default" id="16:4">
+            <ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="16:2" id="16:5"/>  <!-- on -->
+            <ViewModelInstanceTrigger viewModelPropertyId="16:3" id="16:6"/>  <!-- toggled -->
+        </ViewModelInstance>
+    </ViewModel>
+
+    <Artboard defaultStateMachineId="16:12" viewModelId="16:1" viewModelInstanceId="16:4" clip="true" width="64" height="36" x="0"
+            y="852" styleId="16:8" name="Toggle" id="16:7">
+        <LayoutComponentStyle name="Artboard Style" id="16:8"/>
+
+        <!-- Scene. The first sibling draws on top. -->
+        <!-- White knob on a pill track. The track is the listener target. -->
+        <Shape x="18" y="18" name="Knob" id="16:9">
+            <Ellipse width="28" height="28" name="Path"/>
+            <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill>
+        </Shape>
+        <Shape x="32" y="18" name="Track" id="16:10">
+            <Rectangle width="64" height="36" cornerRadiusTL="18" name="Path"/>
+            <Fill name="Fill"><SolidColor colorValue="FFE6E6E6" name="Color" id="16:11"/></Fill>
+        </Shape>
+
+        <!-- State machine. Declared before the timelines so the editor opens it first. -->
+        <StateMachine name="Main" id="16:12">
+            <StateMachineListenerSingle targetId="16:10" listenerTypeValue="click" name="Tap" id="16:13">  <!-- on Track -->
+                <ListenerViewModelChange fromViewModelProperty="true" fromDataBindId="16:14">
+                    <BindablePropertyBoolean>
+                        <DataBindContext sourcePathIds="16:1-16:2" propertyKey="634" converterId="0:60" id="16:14"/>  <!-- read on through NOT -->
+                        <DataBindContext sourcePathIds="16:1-16:2" propertyKey="634" direction="true"/>  <!-- write it back -->
+                    </BindablePropertyBoolean>
+                </ListenerViewModelChange>
+                <ListenerViewModelChange><BindablePropertyTrigger propertyValue="1"><DataBindContext sourcePathIds="16:1-16:3" propertyKey="686" direction="true"/></BindablePropertyTrigger></ListenerViewModelChange>  <!-- fires toggled -->
+            </StateMachineListenerSingle>
+            <StateMachineLayer name="On" id="16:15">
+                <AnyState x="0" y="-140" id="16:16"/>
+                <ExitState x="0" y="-280" id="16:17"/>
+                <EntryState x="0" y="0" id="16:18">
+                    <StateTransition stateToId="16:20">  <!-- starts in on if the condition holds -->
+                        <TransitionViewModelCondition>  <!-- on is true -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="16:1-16:2" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="16:19"/>  <!-- otherwise starts in off -->
+                </EntryState>
+                <AnimationState animationId="16:21" stateName="off" x="240" y="0" id="16:19">
+                    <StateTransition stateToId="16:20" duration="180" interpolationType="cubic">  <!-- to on -->
+                        <CubicEaseInterpolator x1="0.2" y1="0.9" x2="0.3" y2="1"/>
+                        <TransitionViewModelCondition>  <!-- on is true -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="16:1-16:2" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState animationId="16:22" stateName="on" x="480" y="0" id="16:20">
+                    <StateTransition stateToId="16:19" duration="180" interpolationType="cubic">  <!-- to off -->
+                        <CubicEaseInterpolator x1="0.2" y1="0.9" x2="0.3" y2="1"/>
+                        <TransitionViewModelCondition>  <!-- on is false -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="16:1-16:2" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="false"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+            </StateMachineLayer>
+        </StateMachine>
+
+        <!-- Timelines. Most are one-key poses: the state transitions do the blending. -->
+        <LinearAnimation duration="1" name="on: no" id="16:21">
+            <KeyedObject objectId="16:9"><KeyedProperty property="x"><KeyFrameDouble value="18" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Knob -->
+            <KeyedObject objectId="16:11"><KeyedProperty property="colorValue"><KeyFrameColor value="FFE6E6E6" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Track Color -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="on: yes" id="16:22">
+            <KeyedObject objectId="16:9"><KeyedProperty property="x"><KeyFrameDouble value="46" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Knob -->
+            <KeyedObject objectId="16:11"><KeyedProperty property="colorValue"><KeyFrameColor value="FF007841" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Track Color -->
+        </LinearAnimation>
+    </Artboard>
+</Rive>

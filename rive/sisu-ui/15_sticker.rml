@@ -1,0 +1,186 @@
+<!-- Sticker  (120x120, contain)
+     Die-cut milestone sticker.
+
+     View model StickerVM  (names and types are fixed by rive/contract.json):
+       kind        enum StickerKind   in     default "firstJar"
+       label       string             in     default "First jar"
+
+     How it works
+       Sticker    one node at the centre, tilted. Disc colour and label colour are keyed per kind.
+       Pictogram  a Solo holding one drawing per kind: jar, drop with a tick, flame, open book.
+       Kind       AnyState -> firstJar | leakPlugged | streak | lesson on `kind` (instant). The pose keys the disc colour,
+                  the label colour and Solo.activeComponentId.
+       Label      bound to `label`, centred under the pictogram; the font shrinks to fit 78 pt. -->
+<Rive version="1" kind="fragment">
+    <!-- View model -->
+    <ViewModel defaultInstanceId="15:4" name="StickerVM" id="15:1">
+        <ViewModelPropertyEnumCustom enumId="0:260" name="kind" id="15:2"/>
+        <ViewModelPropertyString name="label" id="15:3"/>
+        <ViewModelInstance exports="true" name="Default" id="15:4">
+            <ViewModelInstanceEnum propertyValue="0:261" viewModelPropertyId="15:2" id="15:5"/>  <!-- kind = firstJar -->
+            <ViewModelInstanceString propertyValue="First jar" viewModelPropertyId="15:3" id="15:6"/>  <!-- label -->
+        </ViewModelInstance>
+    </ViewModel>
+
+    <Artboard defaultStateMachineId="15:20" viewModelId="15:1" viewModelInstanceId="15:4" clip="true" width="120" height="120"
+            x="1040" y="700" styleId="15:8" name="Sticker" id="15:7">
+        <LayoutComponentStyle name="Artboard Style" id="15:8"/>
+
+        <!-- Scene. The first sibling draws on top. -->
+        <!-- A round sticker: 104 pt disc on a 112 pt white circle (the 4 pt die-cut border), tilted 6 degrees. -->
+        <Node x="60" y="60" rotation="-0.105" name="Sticker" id="15:9">
+            <Text x="0" y="27" width="78" height="16" originX="0.5" originY="0.5" sizingValue="fixed" alignValue="center"
+                    verticalAlignValue="middle" wrapValue="noWrap" overflowValue="fitFontSize" name="Label" id="15:10">
+                <TextStylePaint fontSize="12" fontAssetId="0:12" familyName="Figtree" styleName="Bold" name="Label Style" id="15:11">
+                    <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color" id="15:12"/></Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="15:11" text="" name="Run"><DataBindContext sourcePathIds="15:1-15:3" propertyKey="268"/></TextValueRun>  <!-- text <- label -->
+            </Text>
+            <Solo y="-11" activeComponentId="15:14" name="Pictogram" id="15:13">
+                <Node name="firstJar: jar" id="15:14">
+                    <Shape name="Jar Label">
+                        <Rectangle width="15" height="9" cornerRadiusTL="3" y="4.5" name="Label Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Jar Lid">
+                        <Rectangle width="22" height="8" cornerRadiusTL="3" y="-13.5" name="Lid Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Jar Body">
+                        <Rectangle width="28" height="25" cornerRadiusTL="7" y="3.5" name="Body Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill>
+                    </Shape>
+                </Node>
+                <Node name="leakPlugged: drop with a tick" id="15:15">
+                    <Shape y="4" name="Tick" id="15:16">
+                        <PointsPath isClosed="false" name="Path">
+                            <StraightVertex x="-5.625" y="0.5"/>
+                            <StraightVertex x="-1.75" y="4.5"/>
+                            <StraightVertex x="6" y="-4.25"/>
+                        </PointsPath>
+                        <Stroke thickness="3.4" cap="round" join="round" name="Stroke"><SolidColor colorValue="FF004628" name="Color"/></Stroke>
+                    </Shape>
+                    <Shape name="Drop">
+                        <PointsPath isClosed="true" name="Drop">
+                            <StraightVertex x="0" y="-16.575" radius="2.34"/>
+                            <CubicDetachedVertex x="11.505" y="5.07" inRotation="-1.5708" inDistance="8.19" outRotation="1.5708" outDistance="6.435"/>
+                            <CubicMirroredVertex x="0" y="16.575" rotation="3.14159" distance="6.435"/>
+                            <CubicDetachedVertex x="-11.505" y="5.07" inRotation="1.5708" inDistance="6.435" outRotation="-1.5708"
+                                    outDistance="8.19"/>
+                        </PointsPath>
+                        <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+                    </Shape>
+                </Node>
+                <Node name="streak: flame" id="15:17">
+                    <Shape name="Inner Flame">
+                        <PointsPath isClosed="true" name="Inner Flame">
+                            <StraightVertex x="0.7" y="-2.1" radius="1.05"/>
+                            <CubicDetachedVertex x="5.775" y="8.75" inRotation="-1.5708" inDistance="4.2" outRotation="1.5708" outDistance="3.325"/>
+                            <CubicMirroredVertex x="0" y="14.35" rotation="3.14159" distance="3.325"/>
+                            <CubicDetachedVertex x="-5.775" y="8.75" inRotation="1.5708" inDistance="3.325" outRotation="-1.5708" outDistance="4.2"/>
+                        </PointsPath>
+                        <Fill name="Fill"><SolidColor colorValue="FFFFF1D8" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Flame">
+                        <PointsPath isClosed="true" name="Flame">
+                            <StraightVertex x="3.5" y="-16.8" radius="1.75"/>
+                            <CubicDetachedVertex x="12.25" y="5.25" inRotation="-1.85" inDistance="9.8" outRotation="1.5708" outDistance="6.125"/>
+                            <CubicMirroredVertex x="0" y="16.625" rotation="3.14159" distance="6.825"/>
+                            <CubicDetachedVertex x="-12.25" y="5.6" inRotation="1.5708" inDistance="6.125" outRotation="-1.5708" outDistance="4.55"/>
+                            <StraightVertex x="-9.8" y="-7.7" radius="1.575"/>
+                            <StraightVertex x="-4.2" y="-1.05" radius="1.75"/>
+                        </PointsPath>
+                        <Fill name="Fill"><SolidColor colorValue="FFCF8300" name="Color"/></Fill>
+                    </Shape>
+                </Node>
+                <Node name="lesson: open book" id="15:18">
+                    <Shape name="Book Spine">
+                        <Rectangle width="2.4" height="20" cornerRadiusTL="1.2" name="Spine Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FFD2FCD5" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Book Pages">
+                        <PointsPath isClosed="true" name="Pages Path">
+                            <StraightVertex x="-17" y="-11" radius="2.5"/>
+                            <StraightVertex x="0" y="-8.5" radius="1"/>
+                            <StraightVertex x="17" y="-11" radius="2.5"/>
+                            <StraightVertex x="17" y="9" radius="2.5"/>
+                            <StraightVertex x="0" y="11.5" radius="1"/>
+                            <StraightVertex x="-17" y="9" radius="2.5"/>
+                        </PointsPath>
+                        <Fill name="Fill"><SolidColor colorValue="FF007841" name="Color"/></Fill>
+                    </Shape>
+                </Node>
+            </Solo>
+            <Shape name="Disc">
+                <Ellipse width="104" height="104" name="Disc Path"/>
+                <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color" id="15:19"/></Fill>
+            </Shape>
+            <Shape name="White Border">
+                <Ellipse width="112" height="112" name="Border Path"/>
+                <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill>
+            </Shape>
+        </Node>
+
+        <!-- State machine. Declared before the timelines so the editor opens it first. -->
+        <StateMachine name="Main" id="15:20">
+            <StateMachineLayer name="Kind" id="15:21">
+                <AnyState x="0" y="-140" id="15:22">
+                    <StateTransition stateToId="15:25">  <!-- to firstJar -->
+                        <TransitionViewModelCondition>  <!-- kind is firstJar -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="15:1-15:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:261"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="15:26">  <!-- to leakPlugged -->
+                        <TransitionViewModelCondition>  <!-- kind is leakPlugged -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="15:1-15:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:262"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="15:27">  <!-- to streak -->
+                        <TransitionViewModelCondition>  <!-- kind is streak -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="15:1-15:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:263"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="15:28">  <!-- to lesson -->
+                        <TransitionViewModelCondition>  <!-- kind is lesson -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="15:1-15:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:264"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnyState>
+                <ExitState x="0" y="-280" id="15:23"/>
+                <EntryState x="0" y="0" id="15:24">
+                    <StateTransition stateToId="15:25"/>  <!-- starts in firstJar -->
+                </EntryState>
+                <AnimationState animationId="15:29" stateName="firstJar" x="240" y="0" id="15:25"/>
+                <AnimationState animationId="15:30" stateName="leakPlugged" x="240" y="110" id="15:26"/>
+                <AnimationState animationId="15:31" stateName="streak" x="240" y="220" id="15:27"/>
+                <AnimationState animationId="15:32" stateName="lesson" x="240" y="330" id="15:28"/>
+            </StateMachineLayer>
+        </StateMachine>
+
+        <!-- Timelines. Most are one-key poses: the state transitions do the blending. -->
+        <LinearAnimation duration="1" name="kind: firstJar" id="15:29">
+            <KeyedObject objectId="15:19"><KeyedProperty property="colorValue"><KeyFrameColor value="FF00AA46" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Disc Color -->
+            <KeyedObject objectId="15:12"><KeyedProperty property="colorValue"><KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Label Color -->
+            <KeyedObject objectId="15:13"><KeyedProperty property="activeComponentId"><KeyFrameId value="15:14" frame="0"/></KeyedProperty></KeyedObject>  <!-- Pictogram -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="kind: leakPlugged" id="15:30">
+            <KeyedObject objectId="15:19"><KeyedProperty property="colorValue"><KeyFrameColor value="FF007841" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Disc Color -->
+            <KeyedObject objectId="15:12"><KeyedProperty property="colorValue"><KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Label Color -->
+            <KeyedObject objectId="15:13"><KeyedProperty property="activeComponentId"><KeyFrameId value="15:15" frame="0"/></KeyedProperty></KeyedObject>  <!-- Pictogram -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="kind: streak" id="15:31">
+            <KeyedObject objectId="15:19"><KeyedProperty property="colorValue"><KeyFrameColor value="FFFFF1D8" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Disc Color -->
+            <KeyedObject objectId="15:12"><KeyedProperty property="colorValue"><KeyFrameColor value="FF885600" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Label Color -->
+            <KeyedObject objectId="15:13"><KeyedProperty property="activeComponentId"><KeyFrameId value="15:17" frame="0"/></KeyedProperty></KeyedObject>  <!-- Pictogram -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="kind: lesson" id="15:32">
+            <KeyedObject objectId="15:19"><KeyedProperty property="colorValue"><KeyFrameColor value="FFD2FCD5" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Disc Color -->
+            <KeyedObject objectId="15:12"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Label Color -->
+            <KeyedObject objectId="15:13"><KeyedProperty property="activeComponentId"><KeyFrameId value="15:18" frame="0"/></KeyedProperty></KeyedObject>  <!-- Pictogram -->
+        </LinearAnimation>
+    </Artboard>
+</Rive>

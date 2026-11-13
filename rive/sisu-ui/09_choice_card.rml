@@ -1,0 +1,197 @@
+<!-- ChoiceCard  (350x64, flexibleWidth)
+     An answer option for a teaching question.
+
+     View model ChoiceCardVM  (names and types are fixed by rive/contract.json):
+       label       string             in     default "Invest it"
+       state       enum ChoiceState   in     default "idle"
+       pressed     trigger            out
+       _down       boolean            private  default false
+
+     How it works
+       Hit        transparent box over the artboard; the listeners target it.
+       State      AnyState -> idle | selected | correct | wrong on `state`. Each pose keys face, outline, edge and label colours.
+                  selected = deep green outline and edge. correct = pale mint face with a tick. wrong = neutral grey outline, never red.
+       Press      up <-> down on the private boolean _down: Face.y 0 -> 4, Edge fades out, springs back.
+       pressed    fired by the click listener, once per completed tap, in every state. -->
+<Rive version="1" kind="fragment">
+    <!-- View model -->
+    <ViewModel defaultInstanceId="9:6" name="ChoiceCardVM" id="9:1">
+        <ViewModelPropertyString name="label" id="9:2"/>
+        <ViewModelPropertyEnumCustom enumId="0:180" name="state" id="9:3"/>
+        <ViewModelPropertyTrigger name="pressed" id="9:4"/>
+        <!-- private: written by the listeners, read by the state machine. The app does not touch these. -->
+        <ViewModelPropertyBoolean name="_down" id="9:5"/>
+        <ViewModelInstance exports="true" name="Default" id="9:6">
+            <ViewModelInstanceString propertyValue="Invest it" viewModelPropertyId="9:2" id="9:7"/>  <!-- label -->
+            <ViewModelInstanceEnum propertyValue="0:181" viewModelPropertyId="9:3" id="9:8"/>  <!-- state = idle -->
+            <ViewModelInstanceTrigger viewModelPropertyId="9:4" id="9:9"/>  <!-- pressed -->
+            <ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="9:5" id="9:10"/>  <!-- _down -->
+        </ViewModelInstance>
+    </ViewModel>
+
+    <Artboard defaultStateMachineId="9:28" viewModelId="9:1" viewModelInstanceId="9:6" clip="true" width="350" height="64"
+            x="1040" y="236" styleId="9:12" name="ChoiceCard" id="9:11">
+        <LayoutComponentStyle name="Artboard Style" id="9:12"/>
+
+        <!-- Scene. The first sibling draws on top. -->
+        <!-- Transparent hit area over the whole card. -->
+        <LayoutComponent clip="false" styleId="9:14" name="Hit" id="9:13">
+            <LayoutComponentStyle positionTypeValue="absolute" widthUnitsValue="auto" heightUnitsValue="auto" positionLeft="0"
+                    positionLeftUnitsValue="points" positionRight="0" positionRightUnitsValue="points" positionTop="0"
+                    positionTopUnitsValue="points" positionBottom="0" positionBottomUnitsValue="points" name="Hit Style" id="9:14"/>
+            <Fill name="Fill"><SolidColor colorValue="00FFFFFF" name="Color"/></Fill>
+        </LayoutComponent>
+        <!-- The face: 60 tall, moves down 4 while pressed. The label wraps to two lines, then ends in an ellipsis. -->
+        <LayoutComponent height="60" clip="false" styleId="9:16" name="Face" id="9:15">
+            <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fixed" flexDirectionValue="row"
+                    layoutAlignmentType="centerLeft" cornerRadiusTL="18" paddingLeft="20" paddingLeftUnitsValue="points"
+                    paddingRight="16" paddingRightUnitsValue="points" gapHorizontal="12" gapHorizontalUnitsValue="points"
+                    name="Face Style" id="9:16"/>
+            <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color" id="9:17"/></Fill>
+            <Stroke thickness="2" position="inside" name="Outline"><SolidColor colorValue="FF99D59F" name="Color" id="9:18"/></Stroke>
+            <Text wrapValue="wrap" overflowValue="ellipsis" verticalAlignValue="middle" sizingValue="fixed" name="Label" id="9:19">
+                <LayoutParticipant layoutWidthScaleType="fill" layoutHeightScaleType="fill" name="Layout"/>
+                <TextStylePaint fontSize="17" lineHeight="22" fontAssetId="0:11" familyName="Figtree" styleName="SemiBold"
+                        name="Label Style" id="9:20">
+                    <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color" id="9:21"/></Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="9:20" text="" name="Run"><DataBindContext sourcePathIds="9:1-9:2" propertyKey="268"/></TextValueRun>  <!-- text <- label -->
+            </Text>
+            <LayoutComponent width="24" height="24" opacity="0" clip="false" styleId="9:23" name="Correct Mark" id="9:22">
+                <LayoutComponentStyle cornerRadiusTL="12" name="Correct Mark Style" id="9:23"/>
+                <Fill name="Fill"><SolidColor colorValue="FF007841" name="Color"/></Fill>
+                <Node x="12" y="12" name="Tick Holder">
+                    <Shape name="Tick" id="9:24">
+                        <PointsPath isClosed="false" name="Path">
+                            <StraightVertex x="-4.5" y="0.4"/>
+                            <StraightVertex x="-1.4" y="3.6"/>
+                            <StraightVertex x="4.8" y="-3.4"/>
+                        </PointsPath>
+                        <Stroke thickness="2.4" cap="round" join="round" name="Stroke"><SolidColor colorValue="FFFFFFFF" name="Color"/></Stroke>
+                    </Shape>
+                </Node>
+            </LayoutComponent>
+        </LayoutComponent>
+        <!-- The 4 pt bottom edge. -->
+        <LayoutComponent height="60" clip="false" styleId="9:26" name="Edge" id="9:25">
+            <LayoutComponentStyle positionTypeValue="absolute" widthUnitsValue="auto" positionLeft="0"
+                    positionLeftUnitsValue="points" positionRight="0" positionRightUnitsValue="points" positionTop="4"
+                    positionTopUnitsValue="points" cornerRadiusTL="18" name="Edge Style" id="9:26"/>
+            <Fill name="Fill"><SolidColor colorValue="FF99D59F" name="Color" id="9:27"/></Fill>
+        </LayoutComponent>
+
+        <!-- State machine. Declared before the timelines so the editor opens it first. -->
+        <StateMachine name="Main" id="9:28">
+            <StateMachineListenerSingle targetId="9:13" listenerTypeValue="down" name="Pointer down" id="9:29">  <!-- on Hit -->
+                <ListenerViewModelChange><BindablePropertyBoolean propertyValue="true"><DataBindContext sourcePathIds="9:1-9:5" propertyKey="634" direction="true"/></BindablePropertyBoolean></ListenerViewModelChange>  <!-- _down = true -->
+            </StateMachineListenerSingle>
+            <StateMachineListenerSingle targetId="9:13" listenerTypeValue="up" name="Pointer up" id="9:30">  <!-- on Hit -->
+                <ListenerViewModelChange><BindablePropertyBoolean propertyValue="false"><DataBindContext sourcePathIds="9:1-9:5" propertyKey="634" direction="true"/></BindablePropertyBoolean></ListenerViewModelChange>  <!-- _down = false -->
+            </StateMachineListenerSingle>
+            <StateMachineListenerSingle targetId="9:13" listenerTypeValue="exit" name="Pointer exit" id="9:31">  <!-- on Hit -->
+                <ListenerViewModelChange><BindablePropertyBoolean propertyValue="false"><DataBindContext sourcePathIds="9:1-9:5" propertyKey="634" direction="true"/></BindablePropertyBoolean></ListenerViewModelChange>  <!-- _down = false -->
+            </StateMachineListenerSingle>
+            <StateMachineListenerSingle targetId="9:13" listenerTypeValue="click" name="Tap" id="9:32">  <!-- on Hit -->
+                <ListenerViewModelChange><BindablePropertyTrigger propertyValue="1"><DataBindContext sourcePathIds="9:1-9:4" propertyKey="686" direction="true"/></BindablePropertyTrigger></ListenerViewModelChange>  <!-- fires pressed -->
+            </StateMachineListenerSingle>
+            <StateMachineLayer name="State" id="9:33">
+                <AnyState x="0" y="-140" id="9:34">
+                    <StateTransition stateToId="9:37" duration="160">  <!-- to idle -->
+                        <TransitionViewModelCondition>  <!-- state is idle -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="9:1-9:3" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:181"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="9:38" duration="160">  <!-- to selected -->
+                        <TransitionViewModelCondition>  <!-- state is selected -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="9:1-9:3" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:182"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="9:39" duration="160">  <!-- to correct -->
+                        <TransitionViewModelCondition>  <!-- state is correct -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="9:1-9:3" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:183"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="9:40" duration="160">  <!-- to wrong -->
+                        <TransitionViewModelCondition>  <!-- state is wrong -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="9:1-9:3" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:184"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnyState>
+                <ExitState x="0" y="-280" id="9:35"/>
+                <EntryState x="0" y="0" id="9:36">
+                    <StateTransition stateToId="9:37"/>  <!-- starts in idle -->
+                </EntryState>
+                <AnimationState animationId="9:47" stateName="idle" x="240" y="0" id="9:37"/>
+                <AnimationState animationId="9:48" stateName="selected" x="240" y="110" id="9:38"/>
+                <AnimationState animationId="9:49" stateName="correct" x="240" y="220" id="9:39"/>
+                <AnimationState animationId="9:50" stateName="wrong" x="240" y="330" id="9:40"/>
+            </StateMachineLayer>
+            <StateMachineLayer name="Press" id="9:41">
+                <AnyState x="0" y="-140" id="9:42"/>
+                <ExitState x="0" y="-280" id="9:43"/>
+                <EntryState x="0" y="0" id="9:44">
+                    <StateTransition stateToId="9:45"/>  <!-- starts in up -->
+                </EntryState>
+                <AnimationState animationId="9:51" stateName="up" x="240" y="0" id="9:45">
+                    <StateTransition stateToId="9:46" duration="60">  <!-- to down -->
+                        <TransitionViewModelCondition>  <!-- _down is true -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="9:1-9:5" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState animationId="9:52" stateName="down" x="480" y="0" id="9:46">
+                    <StateTransition stateToId="9:45" duration="260" interpolationType="elastic">  <!-- to up -->
+                        <ElasticInterpolator easingValue="easeOut" amplitude="1" period="0.5"/>
+                        <TransitionViewModelCondition>  <!-- _down is false -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="9:1-9:5" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="false"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+            </StateMachineLayer>
+        </StateMachine>
+
+        <!-- Timelines. Most are one-key poses: the state transitions do the blending. -->
+        <LinearAnimation duration="1" name="state: idle" id="9:47">
+            <KeyedObject objectId="9:17"><KeyedProperty property="colorValue"><KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Face Color -->
+            <KeyedObject objectId="9:18"><KeyedProperty property="colorValue"><KeyFrameColor value="FF99D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Outline Color -->
+            <KeyedObject objectId="9:27"><KeyedProperty property="colorValue"><KeyFrameColor value="FF99D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Edge Color -->
+            <KeyedObject objectId="9:21"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Label Color -->
+            <KeyedObject objectId="9:22"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Correct Mark -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="state: selected" id="9:48">
+            <KeyedObject objectId="9:17"><KeyedProperty property="colorValue"><KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Face Color -->
+            <KeyedObject objectId="9:18"><KeyedProperty property="colorValue"><KeyFrameColor value="FF007841" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Outline Color -->
+            <KeyedObject objectId="9:27"><KeyedProperty property="colorValue"><KeyFrameColor value="FF007841" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Edge Color -->
+            <KeyedObject objectId="9:21"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Label Color -->
+            <KeyedObject objectId="9:22"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Correct Mark -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="state: correct" id="9:49">
+            <KeyedObject objectId="9:17"><KeyedProperty property="colorValue"><KeyFrameColor value="FFD2FCD5" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Face Color -->
+            <KeyedObject objectId="9:18"><KeyedProperty property="colorValue"><KeyFrameColor value="FF00AA46" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Outline Color -->
+            <KeyedObject objectId="9:27"><KeyedProperty property="colorValue"><KeyFrameColor value="FF00AA46" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Edge Color -->
+            <KeyedObject objectId="9:21"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Label Color -->
+            <KeyedObject objectId="9:22"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Correct Mark -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="state: wrong" id="9:50">
+            <KeyedObject objectId="9:17"><KeyedProperty property="colorValue"><KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Face Color -->
+            <KeyedObject objectId="9:18"><KeyedProperty property="colorValue"><KeyFrameColor value="FF949494" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Outline Color -->
+            <KeyedObject objectId="9:27"><KeyedProperty property="colorValue"><KeyFrameColor value="FF949494" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Edge Color -->
+            <KeyedObject objectId="9:21"><KeyedProperty property="colorValue"><KeyFrameColor value="FF666666" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Label Color -->
+            <KeyedObject objectId="9:22"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Correct Mark -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="press: up" id="9:51">
+            <KeyedObject objectId="9:15"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Face -->
+            <KeyedObject objectId="9:25"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Edge -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="press: down" id="9:52">
+            <KeyedObject objectId="9:15"><KeyedProperty property="y"><KeyFrameDouble value="4" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Face -->
+            <KeyedObject objectId="9:25"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Edge -->
+        </LinearAnimation>
+    </Artboard>
+</Rive>

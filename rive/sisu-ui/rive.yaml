@@ -1,0 +1,9 @@
+# Sisu component library. Builds to build/sisu_ui.riv (see ../build.sh).
+name: sisu_ui
+
+# The file's default artboard. The app picks artboards by name, so this only matters for previews.
+main: Button
+
+logs:
+  file: build/rive.log
+  problems: build/problems.log

@@ -1,0 +1,319 @@
+<!-- VoiceButton  (96x96, fixed)
+     Hold-to-talk button with recording, thinking and speaking states.
+
+     View model VoiceButtonVM  (names and types are fixed by rive/contract.json):
+       state       enum VoiceState    in     default "idle"
+       pressDown   trigger            out
+       pressUp     trigger            out
+       _touchDown  trigger            private
+       _touchUp    trigger            private
+
+     How it works
+       Hit        transparent 96 x 96 shape; the listeners target it.
+       State      AnyState -> idle | recording | thinking | speaking on `state`. The pose picks the glyph (Solo.activeComponentId):
+                  microphone, rotating dots or moving bars. `recording` loops the mint pulse ring.
+       Hold       rest -> down -> released -> rest. The down / up / exit listeners fire the private triggers _touchDown and _touchUp;
+                  the transitions fire `pressDown` and `pressUp`. Every pressDown is followed by exactly one pressUp, also when the
+                  finger slides off the button. These transitions are instant (duration 0): a layer that is still blending ignores triggers. -->
+<Rive version="1" kind="fragment">
+    <!-- View model -->
+    <ViewModel defaultInstanceId="10:7" name="VoiceButtonVM" id="10:1">
+        <ViewModelPropertyEnumCustom enumId="0:200" name="state" id="10:2"/>
+        <ViewModelPropertyTrigger name="pressDown" id="10:3"/>
+        <ViewModelPropertyTrigger name="pressUp" id="10:4"/>
+        <!-- private: written by the listeners, read by the state machine. The app does not touch these. -->
+        <ViewModelPropertyTrigger name="_touchDown" id="10:5"/>
+        <ViewModelPropertyTrigger name="_touchUp" id="10:6"/>
+        <ViewModelInstance exports="true" name="Default" id="10:7">
+            <ViewModelInstanceEnum propertyValue="0:201" viewModelPropertyId="10:2" id="10:8"/>  <!-- state = idle -->
+            <ViewModelInstanceTrigger viewModelPropertyId="10:3" id="10:9"/>  <!-- pressDown -->
+            <ViewModelInstanceTrigger viewModelPropertyId="10:4" id="10:10"/>  <!-- pressUp -->
+            <ViewModelInstanceTrigger viewModelPropertyId="10:5" id="10:11"/>  <!-- _touchDown -->
+            <ViewModelInstanceTrigger viewModelPropertyId="10:6" id="10:12"/>  <!-- _touchUp -->
+        </ViewModelInstance>
+    </ViewModel>
+
+    <Artboard defaultStateMachineId="10:26" viewModelId="10:1" viewModelInstanceId="10:7" clip="true" width="96" height="96" x="0"
+            y="396" styleId="10:14" name="VoiceButton" id="10:13">
+        <LayoutComponentStyle name="Artboard Style" id="10:14"/>
+
+        <!-- Scene. The first sibling draws on top. -->
+        <!-- Transparent hit area: the whole 96 x 96 artboard, so the target is easy to hold. -->
+        <Shape x="48" y="48" name="Hit" id="10:15">
+            <Rectangle width="96" height="96" name="Path"/>
+            <Fill name="Fill"><SolidColor colorValue="00FFFFFF" name="Color"/></Fill>
+        </Shape>
+        <!-- The button: a deep green disc with one of three glyphs (Solo shows one child at a time). -->
+        <Node x="48" y="48" name="Button" id="10:16">
+            <Solo activeComponentId="10:18" name="Glyph" id="10:17">
+                <Node name="Microphone" id="10:18">
+                    <Shape name="Mic Body">
+                        <Rectangle width="12" height="21" cornerRadiusTL="6" y="-5.5" name="Capsule"/>
+                        <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Mic Stand">
+                        <PointsPath isClosed="false" name="Cradle">
+                            <StraightVertex x="-9.5" y="-3"/>
+                            <CubicMirroredVertex x="0" y="8" rotation="0" distance="9.5"/>
+                            <StraightVertex x="9.5" y="-3"/>
+                        </PointsPath>
+                        <PointsPath isClosed="false" name="Stem">
+                            <StraightVertex x="0" y="8"/>
+                            <StraightVertex x="0" y="13.5"/>
+                        </PointsPath>
+                        <PointsPath isClosed="false" name="Foot">
+                            <StraightVertex x="-5" y="13.5"/>
+                            <StraightVertex x="5" y="13.5"/>
+                        </PointsPath>
+                        <Stroke thickness="2.6" cap="round" join="round" name="Stroke"><SolidColor colorValue="FFFFFFFF" name="Color"/></Stroke>
+                    </Shape>
+                </Node>
+                <Node name="Thinking Dots" id="10:19">
+                    <Shape x="0" y="-11" name="Dot 1">
+                        <Ellipse width="7.5" height="7.5" name="Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill>
+                    </Shape>
+                    <Shape x="9.52628" y="5.5" name="Dot 2">
+                        <Ellipse width="6" height="6" name="Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill>
+                    </Shape>
+                    <Shape x="-9.52628" y="5.5" name="Dot 3">
+                        <Ellipse width="4.5" height="4.5" name="Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill>
+                    </Shape>
+                </Node>
+                <Node name="Speaking Bars" id="10:20">
+                    <Shape x="-12" name="Bar 1">
+                        <Rectangle width="5" height="12" cornerRadiusTL="2.5" name="Bar 1 Path" id="10:21"/>
+                        <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill>
+                    </Shape>
+                    <Shape x="-4" name="Bar 2">
+                        <Rectangle width="5" height="12" cornerRadiusTL="2.5" name="Bar 2 Path" id="10:22"/>
+                        <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill>
+                    </Shape>
+                    <Shape x="4" name="Bar 3">
+                        <Rectangle width="5" height="12" cornerRadiusTL="2.5" name="Bar 3 Path" id="10:23"/>
+                        <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill>
+                    </Shape>
+                    <Shape x="12" name="Bar 4">
+                        <Rectangle width="5" height="12" cornerRadiusTL="2.5" name="Bar 4 Path" id="10:24"/>
+                        <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill>
+                    </Shape>
+                </Node>
+            </Solo>
+            <Shape name="Disc">
+                <Ellipse width="72" height="72" name="Path"/>
+                <Fill name="Fill"><SolidColor colorValue="FF007841" name="Color"/></Fill>
+            </Shape>
+        </Node>
+        <!-- Mint ring that pulses outward while recording. -->
+        <Shape x="48" y="48" opacity="0" name="Pulse Ring" id="10:25">
+            <Ellipse width="72" height="72" name="Path"/>
+            <Stroke thickness="4" name="Stroke"><SolidColor colorValue="FF91FA9B" name="Color"/></Stroke>
+        </Shape>
+
+        <!-- State machine. Declared before the timelines so the editor opens it first. -->
+        <StateMachine name="Main" id="10:26">
+            <StateMachineListenerSingle targetId="10:15" listenerTypeValue="down" name="Pointer down" id="10:27">  <!-- on Hit -->
+                <ListenerViewModelChange><BindablePropertyTrigger propertyValue="1"><DataBindContext sourcePathIds="10:1-10:5" propertyKey="686" direction="true"/></BindablePropertyTrigger></ListenerViewModelChange>  <!-- fires _touchDown -->
+            </StateMachineListenerSingle>
+            <StateMachineListenerSingle targetId="10:15" listenerTypeValue="up" name="Pointer up" id="10:28">  <!-- on Hit -->
+                <ListenerViewModelChange><BindablePropertyTrigger propertyValue="1"><DataBindContext sourcePathIds="10:1-10:6" propertyKey="686" direction="true"/></BindablePropertyTrigger></ListenerViewModelChange>  <!-- fires _touchUp -->
+            </StateMachineListenerSingle>
+            <StateMachineListenerSingle targetId="10:15" listenerTypeValue="exit" name="Pointer exit" id="10:29">  <!-- on Hit -->
+                <ListenerViewModelChange><BindablePropertyTrigger propertyValue="1"><DataBindContext sourcePathIds="10:1-10:6" propertyKey="686" direction="true"/></BindablePropertyTrigger></ListenerViewModelChange>  <!-- fires _touchUp -->
+            </StateMachineListenerSingle>
+            <StateMachineLayer name="State" id="10:30">
+                <AnyState x="0" y="-140" id="10:31">
+                    <StateTransition stateToId="10:34" duration="120">  <!-- to idle -->
+                        <TransitionViewModelCondition>  <!-- state is idle -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="10:1-10:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:201"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="10:35" duration="120">  <!-- to recording -->
+                        <TransitionViewModelCondition>  <!-- state is recording -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="10:1-10:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:202"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="10:36" duration="120">  <!-- to thinking -->
+                        <TransitionViewModelCondition>  <!-- state is thinking -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="10:1-10:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:203"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="10:37" duration="120">  <!-- to speaking -->
+                        <TransitionViewModelCondition>  <!-- state is speaking -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="10:1-10:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:204"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnyState>
+                <ExitState x="0" y="-280" id="10:32"/>
+                <EntryState x="0" y="0" id="10:33">
+                    <StateTransition stateToId="10:34"/>  <!-- starts in idle -->
+                </EntryState>
+                <AnimationState animationId="10:45" stateName="idle" x="240" y="0" id="10:34"/>
+                <AnimationState animationId="10:46" stateName="recording" x="240" y="110" id="10:35"/>
+                <AnimationState animationId="10:47" stateName="thinking" x="240" y="220" id="10:36"/>
+                <AnimationState animationId="10:48" stateName="speaking" x="240" y="330" id="10:37"/>
+            </StateMachineLayer>
+            <StateMachineLayer name="Hold" id="10:38">
+                <AnyState x="0" y="-140" id="10:39"/>
+                <ExitState x="0" y="-280" id="10:40"/>
+                <EntryState x="0" y="0" id="10:41">
+                    <StateTransition stateToId="10:42"/>  <!-- starts in rest -->
+                </EntryState>
+                <AnimationState animationId="10:49" stateName="rest" x="240" y="0" id="10:42">
+                    <StateTransition stateToId="10:43">  <!-- to down -->
+                        <TransitionViewModelCondition>  <!-- _touchDown fired -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyTrigger><DataBindContext sourcePathIds="10:1-10:5" propertyKey="686"/></BindablePropertyTrigger></TransitionPropertyViewModelComparator>
+                            <TransitionValueTriggerComparator/>
+                        </TransitionViewModelCondition>
+                        <StateMachineFireTrigger viewModelPathIds="10:1-10:3" occursValue="atStart"/>  <!-- fires pressDown -->
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState animationId="10:50" stateName="down" x="480" y="0" id="10:43">
+                    <StateTransition stateToId="10:44">  <!-- to released -->
+                        <TransitionViewModelCondition>  <!-- _touchUp fired -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyTrigger><DataBindContext sourcePathIds="10:1-10:6" propertyKey="686"/></BindablePropertyTrigger></TransitionPropertyViewModelComparator>
+                            <TransitionValueTriggerComparator/>
+                        </TransitionViewModelCondition>
+                        <StateMachineFireTrigger viewModelPathIds="10:1-10:4" occursValue="atStart"/>  <!-- fires pressUp -->
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState animationId="10:51" stateName="released" x="480" y="160" id="10:44">
+                    <StateTransition stateToId="10:43">  <!-- to down -->
+                        <TransitionViewModelCondition>  <!-- _touchDown fired -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyTrigger><DataBindContext sourcePathIds="10:1-10:5" propertyKey="686"/></BindablePropertyTrigger></TransitionPropertyViewModelComparator>
+                            <TransitionValueTriggerComparator/>
+                        </TransitionViewModelCondition>
+                        <StateMachineFireTrigger viewModelPathIds="10:1-10:3" occursValue="atStart"/>  <!-- fires pressDown -->
+                    </StateTransition>
+                    <StateTransition stateToId="10:42" enableExitTime="true" exitTimeIsPercetange="true" exitTime="100"/>  <!-- to rest -->
+                </AnimationState>
+            </StateMachineLayer>
+        </StateMachine>
+
+        <!-- Timelines. Most are one-key poses: the state transitions do the blending. -->
+        <LinearAnimation duration="1" name="state: idle" id="10:45">
+            <KeyedObject objectId="10:17"><KeyedProperty property="activeComponentId"><KeyFrameId value="10:18" frame="0"/></KeyedProperty></KeyedObject>  <!-- Glyph -->
+            <KeyedObject objectId="10:25"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Pulse Ring -->
+            <KeyedObject objectId="10:19"><KeyedProperty property="rotation"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Thinking Dots -->
+            <KeyedObject objectId="10:21"><KeyedProperty property="height"><KeyFrameDouble value="12" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Bar 1 Path -->
+            <KeyedObject objectId="10:22"><KeyedProperty property="height"><KeyFrameDouble value="12" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Bar 2 Path -->
+            <KeyedObject objectId="10:23"><KeyedProperty property="height"><KeyFrameDouble value="12" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Bar 3 Path -->
+            <KeyedObject objectId="10:24"><KeyedProperty property="height"><KeyFrameDouble value="12" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Bar 4 Path -->
+        </LinearAnimation>
+        <LinearAnimation duration="66" loopValue="loop" name="state: recording" id="10:46">
+            <KeyedObject objectId="10:17"><KeyedProperty property="activeComponentId"><KeyFrameId value="10:18" frame="0"/></KeyedProperty></KeyedObject>  <!-- Glyph -->
+            <KeyedObject objectId="10:25">  <!-- Pulse Ring -->
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0.95" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="54" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="66" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.25" frame="54" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.25" frame="66" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.25" frame="54" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.25" frame="66" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="10:19"><KeyedProperty property="rotation"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Thinking Dots -->
+            <KeyedObject objectId="10:21"><KeyedProperty property="height"><KeyFrameDouble value="12" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Bar 1 Path -->
+            <KeyedObject objectId="10:22"><KeyedProperty property="height"><KeyFrameDouble value="12" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Bar 2 Path -->
+            <KeyedObject objectId="10:23"><KeyedProperty property="height"><KeyFrameDouble value="12" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Bar 3 Path -->
+            <KeyedObject objectId="10:24"><KeyedProperty property="height"><KeyFrameDouble value="12" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Bar 4 Path -->
+        </LinearAnimation>
+        <LinearAnimation duration="66" loopValue="loop" name="state: thinking" id="10:47">
+            <KeyedObject objectId="10:17"><KeyedProperty property="activeComponentId"><KeyFrameId value="10:19" frame="0"/></KeyedProperty></KeyedObject>  <!-- Glyph -->
+            <KeyedObject objectId="10:25"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Pulse Ring -->
+            <KeyedObject objectId="10:19">  <!-- Thinking Dots -->
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="6.28319" frame="66" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="10:21"><KeyedProperty property="height"><KeyFrameDouble value="12" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Bar 1 Path -->
+            <KeyedObject objectId="10:22"><KeyedProperty property="height"><KeyFrameDouble value="12" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Bar 2 Path -->
+            <KeyedObject objectId="10:23"><KeyedProperty property="height"><KeyFrameDouble value="12" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Bar 3 Path -->
+            <KeyedObject objectId="10:24"><KeyedProperty property="height"><KeyFrameDouble value="12" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Bar 4 Path -->
+        </LinearAnimation>
+        <LinearAnimation duration="48" loopValue="loop" name="state: speaking" id="10:48">
+            <KeyedObject objectId="10:17"><KeyedProperty property="activeComponentId"><KeyFrameId value="10:20" frame="0"/></KeyedProperty></KeyedObject>  <!-- Glyph -->
+            <KeyedObject objectId="10:25"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Pulse Ring -->
+            <KeyedObject objectId="10:19"><KeyedProperty property="rotation"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Thinking Dots -->
+            <KeyedObject objectId="10:21">  <!-- Bar 1 Path -->
+                <KeyedProperty property="height">
+                    <KeyFrameDouble value="10" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="26" frame="12" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="12" frame="24" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="22" frame="36" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="10" frame="48" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="10:22">  <!-- Bar 2 Path -->
+                <KeyedProperty property="height">
+                    <KeyFrameDouble value="24" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="10" frame="12" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="28" frame="24" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="12" frame="36" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="24" frame="48" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="10:23">  <!-- Bar 3 Path -->
+                <KeyedProperty property="height">
+                    <KeyFrameDouble value="12" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="22" frame="12" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="10" frame="24" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="28" frame="36" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="12" frame="48" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="10:24">  <!-- Bar 4 Path -->
+                <KeyedProperty property="height">
+                    <KeyFrameDouble value="20" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="12" frame="12" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="24" frame="24" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="10" frame="36" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="20" frame="48" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="hold: rest" id="10:49">
+            <KeyedObject objectId="10:16"><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Button -->
+        </LinearAnimation>
+        <LinearAnimation duration="5" name="hold: down" id="10:50">
+            <KeyedObject objectId="10:16">  <!-- Button -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.92" frame="5" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.92" frame="5" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+        <LinearAnimation duration="14" name="hold: released" id="10:51">
+            <KeyedObject objectId="10:16">  <!-- Button -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0.92" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.05" frame="7" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="14" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="0.92" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.05" frame="7" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="14" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+    </Artboard>
+</Rive>

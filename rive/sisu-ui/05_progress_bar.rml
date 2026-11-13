@@ -1,0 +1,96 @@
+<!-- ProgressBar  (350x14, flexibleWidth)
+     Thick rounded progress bar that animates to its value.
+
+     View model ProgressBarVM  (names and types are fixed by rive/contract.json):
+       progress    number             in     default 0.66
+       tone        enum ProgressTone  in     default "green"
+
+     How it works
+       Track      clipped, rounded layout row. Value (weight = progress) and Rest (weight = 1 - progress) share it.
+                  Both binds go through an eased converter, so the bar animates to a new value over 0.45 s.
+       Tone       AnyState -> green | streak on `tone`; the pose keys the fill colour (S green or amber).
+       Appear     plays once on load: the fill grows from the left edge to its value in half a second (Value.scaleX 0 -> 1). -->
+<Rive version="1" kind="fragment">
+    <!-- View model -->
+    <ViewModel defaultInstanceId="5:4" name="ProgressBarVM" id="5:1">
+        <ViewModelPropertyNumber name="progress" id="5:2"/>
+        <ViewModelPropertyEnumCustom enumId="0:140" name="tone" id="5:3"/>
+        <ViewModelInstance exports="true" name="Default" id="5:4">
+            <ViewModelInstanceNumber propertyValue="0.66" viewModelPropertyId="5:2" id="5:5"/>  <!-- progress -->
+            <ViewModelInstanceEnum propertyValue="0:141" viewModelPropertyId="5:3" id="5:6"/>  <!-- tone = green -->
+        </ViewModelInstance>
+    </ViewModel>
+
+    <Artboard defaultStateMachineId="5:16" viewModelId="5:1" viewModelInstanceId="5:4" clip="true" width="350" height="14" x="520"
+            y="280" styleId="5:8" name="ProgressBar" id="5:7">
+        <LayoutComponentStyle name="Artboard Style" id="5:8"/>
+
+        <!-- Scene. The first sibling draws on top. -->
+        <!-- Pale mint track. Value and Rest are two `fill` boxes whose flex weights are progress and 1 - progress, so the fill is right at any width. -->
+        <LayoutComponent clip="true" styleId="5:10" name="Track" id="5:9">
+            <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" flexDirectionValue="row"
+                    cornerRadiusTL="7" name="Track Style" id="5:10"/>
+            <Fill name="Fill"><SolidColor colorValue="FFD2FCD5" name="Color"/></Fill>
+            <LayoutComponent clip="false" styleId="5:12" name="Value" id="5:11">
+                <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" cornerRadiusTL="7" name="Value Style" id="5:12"/>
+                <ComponentOrigin originX="0" originY="0.5" name="Origin"/>
+                <DataBindContext sourcePathIds="5:1-5:2" propertyKey="706" converterId="0:63"/>  <!-- fractionalWidth <- progress -->
+                <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color" id="5:13"/></Fill>
+            </LayoutComponent>
+            <LayoutComponent clip="false" styleId="5:15" name="Rest" id="5:14">
+                <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" name="Rest Style" id="5:15"/>
+                <DataBindContext sourcePathIds="5:1-5:2" propertyKey="706" converterId="0:65"/>  <!-- fractionalWidth <- 1 - progress -->
+            </LayoutComponent>
+        </LayoutComponent>
+
+        <!-- State machine. Declared before the timelines so the editor opens it first. -->
+        <StateMachine name="Main" id="5:16">
+            <StateMachineLayer name="Tone" id="5:17">
+                <AnyState x="0" y="-140" id="5:18">
+                    <StateTransition stateToId="5:21">  <!-- to green -->
+                        <TransitionViewModelCondition>  <!-- tone is green -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="5:1-5:3" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:141"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="5:22">  <!-- to streak -->
+                        <TransitionViewModelCondition>  <!-- tone is streak -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="5:1-5:3" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:142"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnyState>
+                <ExitState x="0" y="-280" id="5:19"/>
+                <EntryState x="0" y="0" id="5:20">
+                    <StateTransition stateToId="5:21"/>  <!-- starts in green -->
+                </EntryState>
+                <AnimationState animationId="5:28" stateName="green" x="240" y="0" id="5:21"/>
+                <AnimationState animationId="5:29" stateName="streak" x="240" y="110" id="5:22"/>
+            </StateMachineLayer>
+            <StateMachineLayer name="Appear" id="5:23">
+                <AnyState x="0" y="-140" id="5:24"/>
+                <ExitState x="0" y="-280" id="5:25"/>
+                <EntryState x="0" y="0" id="5:26">
+                    <StateTransition stateToId="5:27"/>  <!-- starts in grow -->
+                </EntryState>
+                <AnimationState animationId="5:30" stateName="grow" x="240" y="0" id="5:27"/>
+            </StateMachineLayer>
+        </StateMachine>
+
+        <!-- Timelines. Most are one-key poses: the state transitions do the blending. -->
+        <LinearAnimation duration="1" name="tone: green" id="5:28">
+            <KeyedObject objectId="5:13"><KeyedProperty property="colorValue"><KeyFrameColor value="FF00AA46" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Value Color -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="tone: streak" id="5:29">
+            <KeyedObject objectId="5:13"><KeyedProperty property="colorValue"><KeyFrameColor value="FFCF8300" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Value Color -->
+        </LinearAnimation>
+        <LinearAnimation duration="30" name="appear: grow" id="5:30">
+            <KeyedObject objectId="5:11">  <!-- Value -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.2" y1="0.8" x2="0.3" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="30" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+    </Artboard>
+</Rive>
