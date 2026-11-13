@@ -6,8 +6,8 @@ Status as of Fri 13 Nov, 23:40 EET. No keys or codes are kept here. Ask Nicholas
 |---|---|---|---|
 | Exa | Live offer search | Claimed: $120 balance | Nicholas |
 | Context.dev | Offer pages turned into JSON | Claimed: 51,000 credits. **The team code is used; do not redeem it again.** | Nicholas |
-| Verda (€200) | Nemotron GPU, EU hosting | Coupon received by email. **Not applied:** Verda refuses it until a payment method is on the account ("You must add a payment method to redeem this coupon"). Redeem in the console under Billing → Top-up → Credit coupon → Verify, or ask Verda at booth 6 (3rd floor). Each teammate gets their own coupon; invite them to the project first and they redeem into it. | Nicholas |
-| NVIDIA Build | Hosted Nemotron fallback | Google sign-in done and trial terms accepted; waiting on NVIDIA's email verification link, then generate an API key. The model page lists function calling and structured output as supported, with a 262K context. | Nicholas |
+| Verda (€200) | Nemotron GPU, EU hosting | **Claimed: €200.00** in the "Cloud Project" project. Each teammate can claim their own €200 through the hackerpack form; invite them to the project first and they redeem into it. Redeeming needs a payment method on the account. | Nicholas |
+| NVIDIA Build | Hosted Nemotron fallback | Signed in and trial terms accepted. Next: **Generate API Key** on the model page and put it in `.env.local` as `NEMOTRON_API_KEY`. The model page lists function calling and structured output as supported, with a 262K context. | Nicholas |
 | ElevenLabs | Voice in and out | Free plan active (10,000 credits a month, includes API). The MLH Creator code is saved but needs a card and renews at €26.05/month, so it is not applied. | Nicholas |
 | Gemini | Speed fallback | Team form not sent. **One teammate aged 18 or over** fills it in (team name, name, email). A free Google AI Studio key works meanwhile. | — |
 | OpenAI Codex | Coding help | Claimed: 2,500 credits (personal) | Nicholas |
