@@ -75,41 +75,78 @@ export async function prefetchOffers(customerId: string, billType: BillType): Pr
 export type Speaker = {
   say: (text: string) => void; // queue a sentence; audio is fetched at once and played in order
   stop: () => void; // drop everything, used when the user interrupts
-  unlock: () => void; // call inside a tap or click so the browser allows audio
+  unlock: () => void; // call inside a tap or click so the browser allows sound
   whenQuiet: () => Promise<void>; // resolves when the queue has finished playing
 };
 
-// Plays sentences one after another. Each sentence's audio is requested the moment it is queued,
-// so by the time the previous one finishes, the next is usually already downloaded.
-export function createSpeaker(onSpeakingChange?: (speaking: boolean) => void): Speaker {
-  const player = new Audio();
-  let queue: Promise<string | null>[] = [];
+type AudioContextClass = typeof AudioContext;
+
+// Plays sentences one after another through the Web Audio API. Each sentence's audio is requested the
+// moment it is queued, so the next one is usually ready before the previous one ends.
+// Web Audio is used instead of an <audio> element because, once unlocked by one tap, it keeps working
+// in Safari and on phones, where <audio>.play() is blocked outside a tap.
+export function createSpeaker(onSpeakingChange?: (speaking: boolean) => void, onError?: (message: string) => void): Speaker {
+  let context: AudioContext | null = null;
+  let queue: Promise<AudioBuffer | null>[] = [];
+  let current: AudioBufferSourceNode | null = null;
   let generation = 0; // bumping this cancels a playback loop in progress
   let running: Promise<void> | null = null;
 
-  async function fetchClip(text: string): Promise<string | null> {
-    const response = await fetch("/api/voice/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) }).catch(() => null);
-    return response?.ok ? URL.createObjectURL(await response.blob()) : null;
+  function audio(): AudioContext | null {
+    if (context) return context;
+    const Context: AudioContextClass | undefined = window.AudioContext ?? (window as unknown as { webkitAudioContext?: AudioContextClass }).webkitAudioContext;
+    if (!Context) {
+      onError?.("This browser cannot play Sisu's voice. The answer is shown as text.");
+      return null;
+    }
+    context = new Context();
+    return context;
   }
 
-  function playClip(url: string): Promise<void> {
+  async function fetchClip(text: string): Promise<AudioBuffer | null> {
+    try {
+      const response = await fetch("/api/voice/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        onError?.(body?.error ?? "Sisu's voice is unavailable right now. The answer is shown as text.");
+        return null;
+      }
+      const ctx = audio();
+      return ctx ? await ctx.decodeAudioData(await response.arrayBuffer()) : null;
+    } catch {
+      onError?.("Sisu's voice could not be loaded. The answer is shown as text.");
+      return null;
+    }
+  }
+
+  function playClip(ctx: AudioContext, buffer: AudioBuffer): Promise<void> {
     return new Promise((resolve) => {
-      player.onended = () => resolve();
-      player.onerror = () => resolve();
-      player.src = url;
-      player.play().catch(() => resolve()); // autoplay blocked: carry on silently, the text is on screen
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+      source.onended = () => {
+        if (current === source) current = null;
+        resolve();
+      };
+      current = source;
+      source.start();
     });
   }
 
   async function drain(mine: number): Promise<void> {
     onSpeakingChange?.(true);
     while (queue.length && mine === generation) {
-      const url = await queue[0];
+      const buffer = await queue[0];
       if (mine !== generation) break;
       queue = queue.slice(1);
-      if (!url) continue;
-      await playClip(url);
-      URL.revokeObjectURL(url);
+      const ctx = audio();
+      if (!buffer || !ctx) continue;
+      if (ctx.state === "suspended") await ctx.resume().catch(() => undefined);
+      if (ctx.state !== "running") {
+        onError?.("Your browser is blocking sound. Tap anywhere on the page, then ask again.");
+        continue;
+      }
+      await playClip(ctx, buffer);
     }
     if (mine === generation) {
       running = null;
@@ -126,17 +163,16 @@ export function createSpeaker(onSpeakingChange?: (speaking: boolean) => void): S
       generation += 1;
       queue = [];
       running = null;
-      player.pause();
-      player.removeAttribute("src");
+      try {
+        current?.stop();
+      } catch {
+        // already stopped
+      }
+      current = null;
       onSpeakingChange?.(false);
     },
     unlock() {
-      // A silent play inside a user gesture lets later play() calls through on phones.
-      player.muted = true;
-      player.play().catch(() => undefined).finally(() => {
-        player.pause();
-        player.muted = false;
-      });
+      void audio()?.resume().catch(() => undefined);
     },
     whenQuiet: () => running ?? Promise.resolve(),
   };

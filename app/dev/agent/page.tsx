@@ -65,6 +65,7 @@ export default function AgentBench() {
           Speak replies
         </label>
         <button type="button" onClick={prefetch} className="min-h-11 rounded-xl border border-line bg-card px-3 font-semibold">Prefetch electricity offers</button>
+        <button type="button" onClick={sisu.testVoice} className="min-h-11 rounded-xl border border-line bg-card px-3 font-semibold">Test voice</button>
         <button type="button" onClick={sisu.reset} className="min-h-11 rounded-xl border border-line bg-card px-3 font-semibold">Clear</button>
       </div>
       {prefetched && <p className="text-xs text-muted">{prefetched}</p>}
@@ -85,12 +86,14 @@ export default function AgentBench() {
 
       <div className="fixed inset-x-0 bottom-0 border-t border-line bg-card/95 px-4 pb-5 pt-3 backdrop-blur">
         <div className="mx-auto flex w-full max-w-[560px] flex-col gap-3">
-          {sisu.micError && <p className="text-sm text-coral">{sisu.micError}</p>}
+          {sisu.micError && <p role="alert" className="text-sm text-coral">{sisu.micError}</p>}
+          {sisu.voiceError && <p role="alert" className="text-sm text-coral">{sisu.voiceError}</p>}
           <button
             type="button"
             onPointerDown={sisu.startTalking}
             onPointerUp={sisu.stopTalking}
             onPointerLeave={sisu.stopTalking}
+            onPointerCancel={sisu.stopTalking}
             onContextMenu={(e) => e.preventDefault()}
             className={`min-h-16 w-full touch-none select-none rounded-2xl text-lg font-semibold text-white transition ${sisu.status === "recording" ? "scale-[0.98] bg-coral" : "bg-green"}`}
           >

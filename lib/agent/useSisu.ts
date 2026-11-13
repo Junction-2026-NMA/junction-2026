@@ -49,14 +49,17 @@ export function useSisu({ customerId, focusBill, speakReplies = true }: SisuOpti
   const [speaking, setSpeaking] = useState(false);
   const [server, setServer] = useState<{ mock: boolean; provider: string; model: string } | null>(null);
   const [micError, setMicError] = useState<string | null>(null);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
 
   const speaker = useRef<Speaker | null>(null);
   const recorder = useRef<Recorder | null>(null);
   const controller = useRef<AbortController | null>(null);
   const history = useRef<ChatTurn[]>([]);
+  const pressed = useRef(false); // is the talk button held right now?
+  const capturing = useRef(false); // is the microphone actually recording?
 
   useEffect(() => {
-    speaker.current = createSpeaker(setSpeaking);
+    speaker.current = createSpeaker(setSpeaking, setVoiceError);
     recorder.current = createRecorder();
     warmAgent().then(setServer);
     return () => {
@@ -153,6 +156,7 @@ export function useSisu({ customerId, focusBill, speakReplies = true }: SisuOpti
       const question = text.trim();
       if (!question) return;
       speaker.current?.unlock();
+      setVoiceError(null);
       void runTurn({ text: question });
     },
     [runTurn],
@@ -160,25 +164,47 @@ export function useSisu({ customerId, focusBill, speakReplies = true }: SisuOpti
 
   // Press: stop Sisu talking and start listening. Release: send what was said.
   const startTalking = useCallback(async () => {
+    if (pressed.current) return;
+    pressed.current = true;
     cancel();
     speaker.current?.unlock();
     setMicError(null);
+    setVoiceError(null);
     try {
       await recorder.current?.start();
-      setRecording(true);
     } catch (error) {
+      pressed.current = false;
       setMicError((error as Error).message);
+      return;
     }
+    // The first press shows the browser's permission prompt, and the button is released while it is up.
+    if (!pressed.current) {
+      await recorder.current?.stop();
+      setMicError("The microphone is ready. Hold the button while you speak, then let go.");
+      return;
+    }
+    capturing.current = true;
+    setRecording(true);
   }, [cancel]);
 
   const stopTalking = useCallback(async () => {
-    if (!recording) return;
+    if (!pressed.current) return;
+    pressed.current = false;
+    if (!capturing.current) return; // still starting; startTalking handles it
+    capturing.current = false;
     setRecording(false);
     const audio = await recorder.current?.stop();
     if (audio && audio.size > 2_000) void runTurn({ audio });
-    else setMicError("That was too short. Hold the button while you speak.");
-  }, [recording, runTurn]);
+    else setMicError("That was too short. Hold the button while you speak, then let go.");
+  }, [runTurn]);
+
+  // Says a fixed sentence, to check that sound works on this device.
+  const testVoice = useCallback(() => {
+    setVoiceError(null);
+    speaker.current?.unlock();
+    speaker.current?.say("Hi, this is Sisu. If you can hear me, sound is working.");
+  }, []);
 
   const status: SisuStatus = recording ? "recording" : busy ? "thinking" : speaking ? "speaking" : "idle";
-  return { status, messages, server, micError, ask, startTalking, stopTalking, cancel, reset };
+  return { status, messages, server, micError, voiceError, ask, startTalking, stopTalking, testVoice, cancel, reset };
 }
