@@ -17,7 +17,7 @@ The store screenshots are a few years old and the logged-in app was not seen, so
 
 ## Core greens (from the app, unchanged)
 
-| Token | Name | Hex | In S-mobiili today | In Hillo |
+| Token | Name | Hex | In S-mobiili today | In Siso |
 |---|---|---|---|---|
 | `green-900` | Dark green | `#004628` | Headlines, text, dark blocks | All main text, hero blocks, the Fixed basket |
 | `green-700` | Deep green | `#007841` | Headings, the round action buttons, the Bonus card | **The primary colour**: buttons, active states, links, the Curveballs basket |
@@ -42,7 +42,7 @@ The store screenshots are a few years old and the logged-in app was not seen, so
 
 These are the only non-green colours, and they are S-Pankki's. Each keeps the meaning it has at the bank.
 
-| Token | Background | Mark | Text | Means in Hillo |
+| Token | Background | Mark | Text | Means in Siso |
 |---|---|---|---|---|
 | `amber` | `#FFF1D8` | `#CF8300` | `#885600` | Warm moments and heads-ups: the **streak** flame, "above your usual" notes |
 | `info` | `#E0F4FF` | `#00A1C5` | `#006E87` | Explanations and tips |

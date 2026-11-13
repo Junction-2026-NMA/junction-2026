@@ -2,7 +2,7 @@
 
 # s banking · brand kit
 
-This is the `brand-kit` branch: the brand and UI reference for **Hillo** (working name), a money coach for 18 to 35 year olds inside S-Pankki, made for the Junction 2026 challenge "Personal Economic Trainer".
+This is the `brand-kit` branch: the brand and UI reference for **Siso**, a money coach for 18 to 35 year olds inside S-Pankki, made for the Junction 2026 challenge "Personal Economic Trainer".
 
 Its purpose is consistency. Point any AI assistant or teammate at this branch and the UI, images and copy they produce should match. Treat the branch as read-only; build the product elsewhere.
 
@@ -42,7 +42,7 @@ For an assistant that cannot read the repository, paste the contents of `AGENTS.
 
 ## What is not done yet
 
-- The product name, mascot, fonts and Finnish wording are proposals awaiting the team's confirmation.
+- The mascot, fonts and Finnish wording are proposals awaiting the team's confirmation.
 - No brand images have been generated. Prompts are ready in `brand/07-image-prompts.md`.
 - The chart colours have not been tested with a colour-blindness simulator.
 - The name has not been checked for trademarks.

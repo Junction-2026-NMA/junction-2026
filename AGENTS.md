@@ -1,6 +1,6 @@
 # Instructions for AI assistants
 
-This branch (`brand-kit`) is the brand and UI reference for **Hillo**, a money coach for young adults inside S-Pankki, built for the Junction 2026 challenge "Personal Economic Trainer". Use it so that every screen, image and line of copy you produce matches, in any chat and with any model.
+This branch (`brand-kit`) is the brand and UI reference for **Siso**, a money coach for young adults inside S-Pankki, built for the Junction 2026 challenge "Personal Economic Trainer". Use it so that every screen, image and line of copy you produce matches, in any chat and with any model.
 
 **This branch is read-only reference.** Do not edit files here unless the user asks you to change the brand kit itself. Build the product on other branches.
 
@@ -49,4 +49,4 @@ Read when relevant:
 
 ## Status of this kit
 
-Version 0.2, 2026-11-13 (colours rebuilt to match the S-mobiili app). The product name (Hillo), the mascot (Liito), the fonts and all Finnish wording are proposals awaiting the team's confirmation. No brand images exist yet; prompts are ready in `brand/07-image-prompts.md`.
+Version 0.2, 2026-11-13 (colours rebuilt to match the S-mobiili app). The mascot (Liito), the fonts and all Finnish wording are proposals awaiting the team's confirmation. No brand images exist yet; prompts are ready in `brand/07-image-prompts.md`.

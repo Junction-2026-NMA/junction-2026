@@ -25,13 +25,14 @@ It does not ask for a rebrand, an age range or an income limit. Those are our ch
 
 ## Our product in one paragraph
 
-**Hillo** (working name) is a money coach inside S-Pankki for 18 to 35 year olds who earn under €2,000 net a month. You chat with your own transactions through Liito, a flying squirrel mascot. Liito sorts your spending into three baskets, tells you what is safe to spend this week, finds the small leaks, and turns each finding into one tiny daily action. Small actions keep a streak, earn berries and fill savings jars. It feels like Duolingo, and it runs on real bank data.
+**Siso** is a money coach inside S-Pankki for 18 to 35 year olds who earn under €2,000 net a month. You chat with your own transactions through Liito, a flying squirrel mascot. Liito sorts your spending into three baskets, tells you what is safe to spend this week, finds the small leaks, and turns each finding into one tiny daily action. Small actions keep a streak, earn berries and fill savings jars. It feels like Duolingo, and it runs on real bank data.
 
 ## Our choices (decided 2026-11-13)
 
 | Choice | Decision |
 |---|---|
-| Brand direction | Bold youth rebrand. S-Pankki green is the only link to the bank. |
+| Product name | Siso |
+| Brand direction | Youth-oriented, in the S-mobiili app's own colours. |
 | Interaction | Duolingo-like: streak, daily action, celebrations, visible progress. |
 | Mascot | Yes, a new character with moods. |
 | Target user | 18 to 35, under €2,000 net a month, lots of avoidable spending. |
@@ -40,7 +41,6 @@ It does not ask for a rebrand, an age range or an income limit. Those are our ch
 
 | Item | Proposal | Fallback |
 |---|---|---|
-| Product name | Hillo | "S-Pankki Treeni" |
 | Mascot | Liito, a Siberian flying squirrel | An abstract green companion |
 | Fonts | Bricolage Grotesque + Figtree | Any heavy rounded sans |
 | Finnish wording | All Finnish copy in this kit | Needs a native speaker's check |

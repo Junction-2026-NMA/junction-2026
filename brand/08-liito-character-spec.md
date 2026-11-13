@@ -4,7 +4,7 @@ Status: v0.2 draft, 13 November 2026. A drawing and implementation handoff for t
 
 ## The character
 
-Liito is Hillo's Siberian flying squirrel: a small, rounded companion who makes money feel easier to approach. The character is playful, straight and on the user's side. Liito notices, explains and cheers an action. Liito never judges a balance.
+Liito is Siso's Siberian flying squirrel: a small, rounded companion who makes money feel easier to approach. The character is playful, straight and on the user's side. Liito notices, explains and cheers an action. Liito never judges a balance.
 
 The signature is **a grey dumpling, huge dark eyes, a pale face and a green glide**. Keep all four together. Do not turn Liito into an owl, a bat, a bushy-tailed red squirrel or a person in an animal costume.
 
@@ -49,7 +49,7 @@ The current identity's **S green membrane** and **mint cheeks** take precedence 
 | Eye highlight | `--white` · `#FFFFFF` | One highlight per open eye. |
 | Inside membrane | `--green-500` · `#00AA46` | Fixed across all backgrounds; do not swap to aurora or spruce. |
 | Optional proud cheek accent | `--green-200` · `#91FA9B` | Small flat accent, without a glow effect. |
-| Jar, berry and prop accents | Existing green tokens | Apply the same object colours as the rest of Hillo. No gold lid or pink drop. |
+| Jar, berry and prop accents | Existing green tokens | Apply the same object colours as the rest of Siso. No gold lid or pink drop. |
 | Branch or dark prop detail | `--green-900` · `#004628` | A simple filled shape, without a stroke. |
 
 The three mascot neutrals above are inherited character values, not new brand hues. They are not present in the core `tokens.css` at this writing. Register them as dedicated mascot tokens before application integration; do not scatter hard-coded values through components. Preserve the core UI's green and status-colour roles. No other colour exceptions are proposed.
