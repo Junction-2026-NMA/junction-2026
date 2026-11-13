@@ -1,11 +1,11 @@
 # 07 · Image prompts
 
-Status: v0.2, 2026-11-13 (palette now follows the S-mobiili app). **No images have been generated yet.** They are to be made with gpt-6.1-sol at xhigh effort through T3 delegation, which was not connected when this was written. Save results to [`moodboard/generated/`](../moodboard/) with the file names below.
+Status: v0.2, 2026-11-13 (palette now follows the S-mobiili app). **Draft master, eight-state sheet, transparent glide and forest-pantry artwork generated.** See the [updated mood board](../moodboard/updated-board.html), [character spec](08-liito-character-spec.md) and [exact prompts used](../moodboard/generation-prompts-v02.md). These concept PNGs were generated with the built-in imagegen tool; they are not an approved vector master. Save results to [`moodboard/generated/`](../moodboard/) with the file names below.
 
 ## How to use these prompts
 
-1. Generate **A1 (Liito master sheet)** first and get it approved.
-2. Attach the approved A1 as a reference image to every later prompt that includes Liito, so the character stays the same.
+1. Generate **A1 (Liito master sheet)** first. The current A1 is a draft for team selection; get it approved before production artwork.
+2. Attach A1 as a reference image to every later prompt that includes Liito, so the character stays the same. Current mood and glide studies use the draft A1 and share its review status.
 3. Paste the **style block** at the top of every prompt.
 4. Ask for flat colour and the exact hex values. If a result has gradients, outlines, 3D shading or text, regenerate.
 5. Images contain no text, except the receipt (B4), where the text is added afterwards in the UI.

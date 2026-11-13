@@ -5,7 +5,7 @@ Status: v0.2, 2026-11-13 (colours now follow the S-mobiili app). The name and th
 ## Positioning
 
 **For** 18 to 35 year olds who never learned to budget,
-**Siso is** the money coach inside S-Pankki
+**Sisu is** the money coach inside S-Pankki
 **that** turns your own transactions into one small win a day,
 **unlike** budgeting apps that need setup and bank apps that only show lists,
 **because** it already has your data, it is free, and it never earns from your debt.
@@ -16,17 +16,17 @@ White space we take (from [`research/competitor-analysis.md`](../research/compet
 
 ## Name
 
-**Siso.** Chosen by the team on 2026-11-13. It replaces the earlier working name.
+**Sisu.** Chosen by the team on 2026-11-13. It replaces the earlier working name.
 
-- Written lowercase in the logo: **siso**.
-- Always shown with the parent on first contact: "siso by S-Pankki".
+- Written lowercase in the logo: **sisu**.
+- Always shown with the parent on first contact: "sisu by S-Pankki".
 - Not checked for trademarks.
 
 ## The idea system
 
 Everything in the product maps to one small world. Use these words and pictures, and no others.
 
-| Concept | In Siso | Finnish | Meaning in the product |
+| Concept | In Sisu | Finnish | Meaning in the product |
 |---|---|---|---|
 | Effort points | **Berries** | marjat | Earned for actions (a check-in, a lesson, a challenge). Never euros, never bought, never lost. |
 | Savings goal | **Jar** | purkki | A named goal with a target. Fills with real money. |
@@ -50,7 +50,7 @@ The darker the green, the more fixed the money. Jars (savings) are mint, the lig
 
 ## Personality
 
-Siso is **the friend who is good with money and never makes you feel small**.
+Sisu is **the friend who is good with money and never makes you feel small**.
 
 | Trait | Means | Does not mean |
 |---|---|---|
@@ -62,7 +62,7 @@ Siso is **the friend who is good with money and never makes you feel small**.
 
 Dials (0 = left, 10 = right):
 
-| | 0 | 10 | Siso |
+| | 0 | 10 | Sisu |
 |---|---|---|---|
 | Formal ↔ casual | bank letter | group chat | 8 |
 | Serious ↔ funny | auditor | comedian | 6 |
@@ -71,7 +71,7 @@ Dials (0 = left, 10 = right):
 
 ## What makes it unmistakable
 
-Seven things. A screen that uses at least four of them looks like Siso.
+Seven things. A screen that uses at least four of them looks like Sisu.
 
 1. **S-Pankki's green world, turned up.** The app's own greens on its own pale green surface, with dark green hero blocks and mint numbers. Nobody mistakes it for another bank.
 2. **Buttons that press down.** Deep green face, white label, a dark green edge underneath.
@@ -143,8 +143,8 @@ Seven things. A screen that uses at least four of them looks like Siso.
 
 ## Logo (direction)
 
-- Wordmark **siso**, lowercase, Bricolage Grotesque ExtraBold, tight spacing, in dark green `#004628` or white.
+- Wordmark **sisu**, lowercase, Bricolage Grotesque ExtraBold, tight spacing, in dark green `#004628` or white.
 - The dot of the "i" is a berry in S green `#00AA46` (mint on dark).
 - App icon: Liito's face on S green `#00AA46`, the colour of the S-mobiili icon.
-- Lockup with the parent: "siso" above a small "by S-Pankki" in Figtree SemiBold.
+- Lockup with the parent: "sisu" above a small "by S-Pankki" in Figtree SemiBold.
 - Do not redraw or alter the S-Pankki logo itself.

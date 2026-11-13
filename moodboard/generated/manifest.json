@@ -1,0 +1,16 @@
+{
+  "brand": "Sisu",
+  "character": "Liito",
+  "version": "0.2-draft",
+  "date": "2026-11-13",
+  "status": "concept-for-team-review",
+  "generator": "built-in imagegen",
+  "spec": "../../brand/08-liito-character-spec.md",
+  "prompts": "../generation-prompts-v02.md",
+  "assets": [
+    {"file": "liito-master-sheet.png", "width": 1536, "height": 1024, "alpha": false, "role": "five-view character reference", "views": ["front", "three-quarter", "side", "back", "membrane-open"]},
+    {"file": "liito-moods.png", "width": 1774, "height": 887, "alpha": false, "role": "eight-state review sheet", "reference": "liito-master-sheet.png", "states": ["cheering", "proud", "gliding", "curious", "found-something", "focused", "cosy", "sleepy"]},
+    {"file": "liito-glide.png", "width": 1254, "height": 1254, "alpha": true, "role": "isolated signature pose", "reference": "liito-master-sheet.png", "alt": "Liito glides with its green membrane spread."},
+    {"file": "mood-forest-pantry.png", "width": 1672, "height": 941, "alpha": false, "role": "brand atmosphere", "alt": "A green Finnish forest with berries and three savings jars on a shelf."}
+  ]
+}

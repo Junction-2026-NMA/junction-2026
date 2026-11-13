@@ -2,7 +2,7 @@
 
 # s banking · brand kit
 
-This is the `brand-kit` branch: the brand and UI reference for **Siso**, a money coach for 18 to 35 year olds inside S-Pankki, made for the Junction 2026 challenge "Personal Economic Trainer".
+This is the `brand-kit` branch: the brand and UI reference for **Sisu**, a money coach for 18 to 35 year olds inside S-Pankki, made for the Junction 2026 challenge "Personal Economic Trainer".
 
 Its purpose is consistency. Point any AI assistant or teammate at this branch and the UI, images and copy they produce should match. Treat the branch as read-only; build the product elsewhere.
 
@@ -21,6 +21,8 @@ Version 0.2, 2026-11-13. Colours follow the S-mobiili app (see `references/s-mob
 | Design a screen | [`brand/05-ui-style.md`](brand/05-ui-style.md) |
 | Get exact sizes and tokens | [`brand/06-specifications.md`](brand/06-specifications.md), [`brand/tokens.css`](brand/tokens.css), [`brand/tokens.json`](brand/tokens.json) |
 | Generate brand images | [`brand/07-image-prompts.md`](brand/07-image-prompts.md) |
+| Draw or implement Liito consistently | [`brand/08-liito-character-spec.md`](brand/08-liito-character-spec.md) |
+| See the updated visual mood board and character sheets | [`moodboard/updated-board.html`](moodboard/updated-board.html), [`PNG export`](moodboard/style-board-v02.png) |
 | See the look on one page | [`moodboard/index.html`](moodboard/index.html) (open in a browser) |
 
 ## Research behind it
@@ -43,7 +45,7 @@ For an assistant that cannot read the repository, paste the contents of `AGENTS.
 ## What is not done yet
 
 - The mascot, fonts and Finnish wording are proposals awaiting the team's confirmation.
-- No brand images have been generated. Prompts are ready in `brand/07-image-prompts.md`.
+- Draft Liito master, eight-state sheet, transparent glide and forest-pantry illustration are in `moodboard/generated/`. The team still needs to select the character master; clean vector and animation assets remain future production work.
 - The chart colours have not been tested with a colour-blindness simulator.
 - The name has not been checked for trademarks.
 

@@ -25,13 +25,13 @@ It does not ask for a rebrand, an age range or an income limit. Those are our ch
 
 ## Our product in one paragraph
 
-**Siso** is a money coach inside S-Pankki for 18 to 35 year olds who earn under €2,000 net a month. You chat with your own transactions through Liito, a flying squirrel mascot. Liito sorts your spending into three baskets, tells you what is safe to spend this week, finds the small leaks, and turns each finding into one tiny daily action. Small actions keep a streak, earn berries and fill savings jars. It feels like Duolingo, and it runs on real bank data.
+**Sisu** is a money coach inside S-Pankki for 18 to 35 year olds who earn under €2,000 net a month. You chat with your own transactions through Liito, a flying squirrel mascot. Liito sorts your spending into three baskets, tells you what is safe to spend this week, finds the small leaks, and turns each finding into one tiny daily action. Small actions keep a streak, earn berries and fill savings jars. It feels like Duolingo, and it runs on real bank data.
 
 ## Our choices (decided 2026-11-13)
 
 | Choice | Decision |
 |---|---|
-| Product name | Siso |
+| Product name | Sisu |
 | Brand direction | Youth-oriented, in the S-mobiili app's own colours. |
 | Interaction | Duolingo-like: streak, daily action, celebrations, visible progress. |
 | Mascot | Yes, a new character with moods. |

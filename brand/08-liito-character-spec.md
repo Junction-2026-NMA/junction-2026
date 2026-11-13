@@ -1,10 +1,10 @@
 # 08 · Liito character specification
 
-Status: v0.2 draft, 13 November 2026. A drawing and implementation handoff for the Liito proposed in [`02-identity.md`](02-identity.md). The name and character still await the team's confirmation. The generated sheets below are concept references, not approved vector masters or production animation assets.
+Status: v0.2 draft, 13 November 2026. A drawing and implementation handoff for the Liito proposed in [`02-identity.md`](02-identity.md). Sisu is the chosen product name; the character still awaits the team's confirmation. The generated sheets below are concept references, not approved vector masters or production animation assets.
 
 ## The character
 
-Liito is Siso's Siberian flying squirrel: a small, rounded companion who makes money feel easier to approach. The character is playful, straight and on the user's side. Liito notices, explains and cheers an action. Liito never judges a balance.
+Liito is Sisu's Siberian flying squirrel: a small, rounded companion who makes money feel easier to approach. The character is playful, straight and on the user's side. Liito notices, explains and cheers an action. Liito never judges a balance.
 
 The signature is **a grey dumpling, huge dark eyes, a pale face and a green glide**. Keep all four together. Do not turn Liito into an owl, a bat, a bushy-tailed red squirrel or a person in an animal costume.
 
@@ -39,7 +39,7 @@ These make the first sheets consistent; they do not replace the kit's establishe
 
 ## Palette
 
-The current identity's **S green membrane** and **mint cheeks** take precedence over the old aurora membrane and pink blush in [`07-image-prompts.md`](07-image-prompts.md). The mood board and surrounding UI follow [`04-colors.md`](04-colors.md) v0.2.
+The current identity and [`07-image-prompts.md`](07-image-prompts.md) v0.2 specify the **S green membrane** and **mint cheeks**. The mood board and surrounding UI follow [`04-colors.md`](04-colors.md) v0.2. The earlier aurora membrane and pink blush are superseded.
 
 | Role | Value | Source and scope |
 |---|---|---|
@@ -49,7 +49,7 @@ The current identity's **S green membrane** and **mint cheeks** take precedence 
 | Eye highlight | `--white` · `#FFFFFF` | One highlight per open eye. |
 | Inside membrane | `--green-500` · `#00AA46` | Fixed across all backgrounds; do not swap to aurora or spruce. |
 | Optional proud cheek accent | `--green-200` · `#91FA9B` | Small flat accent, without a glow effect. |
-| Jar, berry and prop accents | Existing green tokens | Apply the same object colours as the rest of Siso. No gold lid or pink drop. |
+| Jar, berry and prop accents | Existing green tokens | Apply the same object colours as the rest of Sisu. No gold lid or pink drop. |
 | Branch or dark prop detail | `--green-900` · `#004628` | A simple filled shape, without a stroke. |
 
 The three mascot neutrals above are inherited character values, not new brand hues. They are not present in the core `tokens.css` at this writing. Register them as dedicated mascot tokens before application integration; do not scatter hard-coded values through components. Preserve the core UI's green and status-colour roles. No other colour exceptions are proposed.
@@ -160,6 +160,6 @@ The five-view sheet and eight-state grid should remain available as review image
 
 ## Source status
 
-This spec follows the current v0.2 identity, colour and UI chapters. The v0.1 prompts in chapter 07 still mention oat backgrounds, aurora membranes, pink cheeks and gold berries. Update those prompts before reusing them. They do not override the current identity.
+This spec follows the current v0.2 identity, colour, UI and image-prompt chapters. Exact prompts used for these concept images, including the shared visual reference and cleanup passes, are saved in [`generation-prompts-v02.md`](../moodboard/generation-prompts-v02.md). The earlier oat backgrounds, aurora membrane, pink cheeks and gold berries are superseded.
 
 The kit's general “no cream” UI rule and Liito's existing pale face value need a narrow distinction: keep the inherited neutral inside the character only. This document makes that distinction explicit; it does not introduce cream into the UI palette. Mascot token registration, master selection and production vector/animation delivery remain separate checks, not claims made by the concept sheets.

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Siso mood board</title>
+<title>Sisu mood board</title>
 <link rel="stylesheet" href="../brand/tokens.css">
 <style>
   * { box-sizing: border-box; }
@@ -30,7 +30,7 @@
   .tags { display: flex; flex-wrap: wrap; gap: 8px; }
   .tag { background: #fff; color: #004628; border-radius: 999px; padding: 6px 12px; font: 600 14px/20px var(--font-text); }
 
-  /* Today vs Siso */
+  /* Today vs Sisu */
   .compare { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); align-items: start; }
   .compare figure { margin: 0; }
   .compare img { width: 100%; border-radius: 24px; display: block; }
@@ -116,10 +116,16 @@
 <body>
 <div class="wrap">
 
+  <section class="card" style="margin-bottom:24px">
+    <div class="label">Updated mood board and Liito character direction</div>
+    <p><a href="updated-board.html">Open the visual board</a> · <a href="style-board-v02.png">Save the board PNG</a> · <a href="../brand/08-liito-character-spec.md">Read the character spec</a></p>
+    <p class="caption">Five-view master, eight states and a transparent glide. Concept artwork for team review.</p>
+  </section>
+
   <section class="top">
     <div class="hero">
       <div class="by">by S-Pankki · mood board v0.2 · 13 Nov 2026</div>
-      <h1>siso</h1>
+      <h1>sisu</h1>
       <p class="line">Small wins, every day, with your own money.</p>
     </div>
     <div class="side">
@@ -266,7 +272,7 @@
   </div>
 
   <h2>Generated images</h2>
-  <p class="muted" style="margin-bottom:16px">Not generated yet. Each slot fills in when its file is saved to <code>moodboard/generated/</code>. Prompts: <code>brand/07-image-prompts.md</code>.</p>
+  <p class="muted" style="margin-bottom:16px">Liito's five-view master, eight states and transparent glide are available as draft concepts. Other slots remain planned. The forest-pantry illustration is on the <a href="updated-board.html">updated visual board</a>. Exact prompts: <a href="generation-prompts-v02.md">generation-prompts-v02.md</a>.</p>
   <div class="grid gen" id="gen"></div>
 
   <h2>UI references</h2>

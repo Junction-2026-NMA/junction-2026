@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sisu mood board and Liito character direction</title>
+<link rel="stylesheet" href="../brand/tokens.css">
+<style>
+* { box-sizing: border-box; }
+html, body { margin: 0; background: transparent; }
+body { color: var(--text); font: 400 16px/24px var(--font-text); }
+/* Dark study uses the existing dark background value from tokens.css. */
+:root { --study-dark-background: #00301B; }
+main { display: grid; gap: var(--space-4); max-width: 1240px; margin: auto; }
+h1, h2, h3, .display { margin: 0; font-family: var(--font-display); font-weight: 800; letter-spacing: -.02em; }
+h1 { font-size: 96px; line-height: 96px; }
+h2 { font-size: 32px; line-height: 36px; }
+h3 { font-size: 24px; line-height: 28px; }
+p, figure { margin: 0; }
+a { color: inherit; text-underline-offset: 4px; }
+img { display: block; width: 100%; }
+.label { font: 600 14px/20px var(--font-text); }
+.caption { font: 600 12px/16px var(--font-text); }
+.muted { color: var(--text-muted); }
+.tile { padding: var(--space-7); border-radius: var(--radius-xl); background: var(--surface); min-width: 0; }
+.hero { display: grid; grid-template-columns: 1.2fr 1fr; align-items: center; background: var(--green-900); color: var(--white); min-height: 360px; overflow: hidden; }
+.hero .label, .hero h1 { color: var(--green-200); }
+.hero-copy { display: grid; gap: var(--space-6); }
+.hero h2 { max-width: 15ch; }
+.hero-art { width: 100%; max-height: 360px; object-fit: contain; }
+.pills { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.pill { padding: var(--space-2) var(--space-3); border-radius: var(--radius-full); background: var(--green-100); color: var(--green-900); font: 600 14px/20px var(--font-text); }
+.two { display: grid; grid-template-columns: 1.1fr 1fr; gap: var(--space-4); }
+.world { padding: 0; overflow: hidden; background: var(--green-50); display: flex; flex-direction: column; }
+.world img { object-fit: cover; flex: 1; min-height: 220px; aspect-ratio: 16/9; }
+.world figcaption { padding: var(--space-6); }
+.world h3 { margin-bottom: var(--space-2); }
+.palette { background: var(--green-50); display: flex; flex-direction: column; gap: var(--space-5); }
+.palette-ramp { display: flex; height: 96px; overflow: hidden; border-radius: var(--radius-lg); }
+.palette-ramp span { flex: 1; }
+.palette-ramp span:nth-child(1) { background: var(--green-900); }
+.palette-ramp span:nth-child(2) { background: var(--green-700); }
+.palette-ramp span:nth-child(3) { background: var(--green-500); }
+.palette-ramp span:nth-child(4) { background: var(--green-200); }
+.palette-ramp span:nth-child(5) { background: var(--white); }
+.palette-list { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+.palette-list b { display: block; font-weight: 700; }
+.palette-list span { color: var(--neutral-600); }
+.swatch-dot { display: inline-block; width: 12px; height: 12px; border-radius: var(--radius-full); margin-right: var(--space-2); background: var(--amber); }
+.type { background: var(--green-100); display: grid; gap: var(--space-5); }
+.type .sample { font: 800 40px/44px var(--font-display); letter-spacing: -.02em; }
+.type .alphabet { font: 700 24px/28px var(--font-display); overflow-wrap: anywhere; }
+.receipt { background: var(--green-900); color: var(--white); display: grid; gap: var(--space-5); }
+.receipt h3 { color: var(--green-200); }
+.paper { background: var(--white); color: var(--green-900); padding: var(--space-6) var(--space-6) var(--space-8); border-radius: var(--radius-sm); clip-path: polygon(0 0,100% 0,100% 94%,95% 100%,90% 94%,85% 100%,80% 94%,75% 100%,70% 94%,65% 100%,60% 94%,55% 100%,50% 94%,45% 100%,40% 94%,35% 100%,30% 94%,25% 100%,20% 94%,15% 100%,10% 94%,5% 100%,0 94%); }
+.paper p + p { margin-top: var(--space-2); }
+.paper .display { font-size: 40px; line-height: 44px; }
+.paper .line { display: flex; justify-content: space-between; gap: var(--space-4); padding-top: var(--space-3); margin-top: var(--space-3); border-top: var(--border) solid var(--green-100); }
+.specimen { background: var(--green-50); display: grid; gap: var(--space-6); }
+.specimen-head { display: flex; justify-content: space-between; gap: var(--space-5); align-items: end; }
+.specimen-head p { max-width: 38ch; }
+.screens { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+.screen { background: var(--white); border-radius: var(--radius-lg); padding: var(--space-5); display: grid; gap: var(--space-4); }
+.screen.dark { background: var(--study-dark-background); color: var(--white); }
+.number-block { background: var(--green-900); color: var(--white); border-radius: var(--radius-lg); padding: var(--space-6); }
+.number-block .label { color: var(--green-200); }
+.number { font: 800 64px/68px var(--font-display); letter-spacing: -.02em; color: var(--green-200); }
+.daily { padding: var(--space-4); border-radius: var(--radius-md); background: var(--green-100); color: var(--green-900); }
+.primary-example { min-height: 60px; display: grid; align-items: center; text-align: center; padding: var(--space-4); border-radius: var(--radius-md); border-bottom: var(--edge) solid var(--green-900); background: var(--green-700); color: var(--white); font: 700 17px/24px var(--font-text); }
+.dark .primary-example { background: var(--green-200); color: var(--green-900); border-color: var(--green-500); }
+.basket-key { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.basket-key .pill { display: inline-flex; align-items: center; gap: var(--space-2); }
+.basket-key svg { width: 20px; height: 20px; fill: currentColor; }
+.fixed { color: var(--green-900); }.curve { color: var(--green-700); }.leaks { color: var(--green-500); }.jars { color: var(--green-700); }
+.character { background: var(--green-50); overflow: hidden; }
+.character h2, .states h2 { margin-bottom: var(--space-2); }
+.sheet { margin-top: var(--space-5); border-radius: var(--radius-lg); overflow: hidden; }
+.model-image { aspect-ratio: 3/1; object-fit: cover; object-position: center 51%; }
+.view-labels { display: grid; grid-template-columns: repeat(5,1fr); text-align: center; gap: var(--space-2); margin-top: var(--space-2); }
+.character-rules { display: grid; grid-template-columns: repeat(3,1fr); gap: var(--space-4); margin-top: var(--space-6); }
+.character-rules b { display: block; font: 700 20px/26px var(--font-text); margin-bottom: var(--space-2); }
+.states { background: var(--green-50); }
+.states .sheet img { aspect-ratio: 2/1; object-fit: contain; }
+.state-labels { display: grid; grid-template-columns: repeat(4,1fr); gap: var(--space-4); margin-top: var(--space-5); }
+.state-labels b { display: block; font-weight: 700; }
+.state-labels span { color: var(--neutral-600); }
+.handoff { background: var(--green-900); color: var(--white); display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); }
+.handoff h3 { color: var(--green-200); margin-bottom: var(--space-2); }
+.links { display: flex; flex-wrap: wrap; gap: var(--space-4); font-weight: 600; }
+.draft { background: var(--amber-bg); color: var(--amber-text); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-6); }
+@media (max-width: 600px) {
+ main { gap: var(--space-3); }
+ .tile { padding: var(--space-6); }
+ .hero { grid-template-columns: 1fr; }
+ .hero-art { max-height: 240px; }
+ h1 { font-size: 64px; line-height: 68px; }
+ .two, .screens { grid-template-columns: 1fr; }
+ .world { padding: 0; }
+ .specimen-head, .handoff { display: grid; }
+ .character-rules { grid-template-columns: 1fr; }
+ .view-labels { font-size: 12px; line-height: 16px; }
+ .state-labels { grid-template-columns: 1fr 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<main>
+ <section class="tile hero" aria-label="Sisu brand direction">
+  <div class="hero-copy">
+   <div class="label">Sisu by S-Pankki · Mood board v0.2 · 13 Nov 2026</div>
+   <h1>sisu</h1>
+   <h2>Small wins, every day.</h2>
+   <p>Your own money. One small next step.</p>
+   <div class="pills"><span class="pill">Playful</span><span class="pill">Clear</span><span class="pill">On your side</span></div>
+  </div>
+  <img class="hero-art" src="generated/liito-glide.png" alt="Liito, a grey flying squirrel with huge eyes and a green gliding membrane.">
+ </section>
+
+ <div class="two">
+  <figure class="tile world">
+   <img src="generated/mood-forest-pantry.png" alt="A flat illustrated Finnish forest with green berries and three savings jars on a shelf.">
+   <figcaption><h3>A little put aside.</h3><p>Forest shapes. Berries for effort. Jars for real savings.</p></figcaption>
+  </figure>
+  <section class="tile palette">
+   <div class="label">S-mobiili greens, kept familiar</div>
+   <h2>Quiet base.<br>Clear moments.</h2>
+   <div class="palette-ramp" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+   <div class="palette-list label">
+    <div><b>Spruce · #004628</b><span>Text and hero blocks</span></div>
+    <div><b>Deep green · #007841</b><span>The next action</span></div>
+    <div><b>S green · #00AA46</b><span>Progress and accents</span></div>
+    <div><b>Mint · #91FA9B</b><span>A highlight on dark</span></div>
+   </div>
+   <p class="caption"><i class="swatch-dot" aria-hidden="true"></i>Amber stays with streaks and heads-ups.</p>
+  </section>
+ </div>
+
+ <div class="two">
+  <section class="tile type">
+   <div class="label">Bricolage Grotesque + Figtree</div>
+   <div class="sample">Big on clarity.<br>Small on fuss.</div>
+   <p class="alphabet">Aa Bb Cc Åå Ää Öö</p>
+   <p>Heavy headlines. Plain, short replies.<br>Room to breathe. Sentence case.</p>
+  </section>
+  <section class="tile receipt">
+   <div><div class="label">The weekly receipt</div><h3>Effort, made visible.</h3></div>
+   <div class="paper">
+    <p class="display">5 check-ins.</p>
+    <p>You showed up this week.</p>
+    <div class="line label"><span>One lesson finished</span><span>✓</span></div>
+    <div class="line label"><span>Your berries stay yours</span><span>✓</span></div>
+   </div>
+  </section>
+ </div>
+
+ <section class="tile specimen">
+  <div class="specimen-head"><div><div class="label">The interface rhythm</div><h2>One number. One next step.</h2></div><p class="caption muted">Illustrative content · light and dark component studies. Each study has one primary action.</p></div>
+  <div class="screens">
+   <div class="screen">
+    <p class="label">Today</p>
+    <div class="number-block"><p class="label">Safe to spend</p><p class="number">€64</p><p>6 days to payday</p></div>
+    <p class="daily">One small check-in keeps today going.</p>
+    <div class="primary-example">Check in for today</div>
+   </div>
+   <div class="screen dark">
+    <p class="label">Today · dark</p>
+    <div class="number-block"><p class="label">Safe to spend</p><p class="number">€64</p><p>6 days to payday</p></div>
+    <p class="daily">One small check-in keeps today going.</p>
+    <div class="primary-example">Check in for today</div>
+   </div>
+  </div>
+  <div class="basket-key" aria-label="The basket colours always have an icon and a name">
+   <span class="pill"><svg class="fixed" viewBox="0 0 256 256" aria-hidden="true"><path d="M224,144c0,38.11-27.67,45.66-49.9,51.72C149.77,202.36,136,207.31,136,232a8,8,0,0,1-16,0c0-24.69-13.77-29.64-38.1-36.28C59.67,189.66,32,182.11,32,144a8,8,0,0,1,16,0c0,24.69,13.77,29.64,38.1,36.28,11.36,3.1,24.12,6.6,33.9,14.34V128H88a8,8,0,0,1,0-16h32V82.83a28,28,0,1,1,16,0V112h32a8,8,0,0,1,0,16H136v66.62c9.78-7.74,22.54-11.24,33.9-14.34C194.23,173.64,208,168.69,208,144a8,8,0,0,1,16,0Z"/></svg>Fixed</span>
+   <span class="pill"><svg class="curve" viewBox="0 0 256 256" aria-hidden="true"><path d="M213.85,125.46l-112,120a8,8,0,0,1-13.69-7l14.66-73.33L45.19,143.49a8,8,0,0,1-3-13l112-120a8,8,0,0,1,13.69,7L153.18,90.9l57.63,21.61a8,8,0,0,1,3,12.95Z"/></svg>Curveballs</span>
+   <span class="pill"><svg class="leaks" viewBox="0 0 256 256" aria-hidden="true"><path d="M174,47.75a254.19,254.19,0,0,0-41.45-38.3,8,8,0,0,0-9.18,0A254.19,254.19,0,0,0,82,47.75C54.51,79.32,40,112.6,40,144a88,88,0,0,0,176,0C216,112.6,201.49,79.32,174,47.75Zm9.85,105.59a57.6,57.6,0,0,1-46.56,46.55A8.75,8.75,0,0,1,136,200a8,8,0,0,1-1.32-15.89c16.57-2.79,30.63-16.85,33.44-33.45a8,8,0,0,1,15.78,2.68Z"/></svg>Leaks</span>
+   <span class="pill"><svg class="jars" viewBox="0 0 256 256" aria-hidden="true"><path d="M184,48.81V32a16,16,0,0,0-16-16H88A16,16,0,0,0,72,32V48.81A40.05,40.05,0,0,0,40,88V200a40,40,0,0,0,40,40h96a40,40,0,0,0,40-40V88A40.05,40.05,0,0,0,184,48.81ZM120,48V32h16V48Zm48,0H152V32h16ZM104,32V48H88V32Z"/></svg>Jars</span>
+  </div>
+ </section>
+
+ <section class="tile character">
+  <div class="label">Meet Liito · character direction</div>
+  <h2>A grey dumpling. A green glide.</h2>
+  <p>Huge eyes, round ears and a broad, flat tail. No clothes. No judgement.</p>
+  <figure class="sheet"><img class="model-image" src="generated/liito-master-sheet.png" alt="Five Liito studies, left to right: front, three-quarter, side, back, and open gliding membrane."></figure>
+  <div class="view-labels label"><span>Front</span><span>Three-quarter</span><span>Side</span><span>Back</span><span>Membrane open</span></div>
+  <div class="character-rules">
+   <p><b>One soft silhouette</b>Head and body merge. A standing body is about 1:1.1 wide to tall.</p>
+   <p><b>Built to glide</b>S-green skin joins forepaws to hind paws. The tail stays flat and wide.</p>
+   <p><b>Kind, in every state</b>Liito responds to effort and context. A low balance never changes the character's mood.</p>
+  </div>
+ </section>
+
+ <section class="tile states">
+  <div class="label">Eight states · one companion</div>
+  <h2>Cheers the action.</h2>
+  <p>One Liito per product screen. This sheet shows the full expression range.</p>
+  <figure class="sheet"><img src="generated/liito-moods.png" alt="Eight Liito poses: cheering, proud, gliding, curious, found something, focused, cosy, and sleepy."></figure>
+  <div class="state-labels label">
+   <div><b>1 · Cheering</b><span>An action is done.</span></div><div><b>2 · Proud</b><span>A milestone is reached.</span></div>
+   <div><b>3 · Gliding</b><span>On to the next step.</span></div><div><b>4 · Curious</b><span>Listening in chat.</span></div>
+   <div><b>5 · Found something</b><span>A finding to explore.</span></div><div><b>6 · Focused</b><span>A little learning.</span></div>
+   <div><b>7 · Cosy</b><span>Tight-week mode.</span></div><div><b>8 · Sleepy</b><span>Today's action waits.</span></div>
+  </div>
+ </section>
+
+ <aside class="draft label">Concept artwork for team review. PNG studies establish the direction; the approved character will need a clean vector master and individual production poses. Mascot grey, cream and eye ink stay inside the character.</aside>
+ <footer class="tile handoff">
+  <div><h3>Keep the character consistent.</h3><p>Use the same master for every new pose.</p></div>
+  <div class="links"><a href="../brand/08-liito-character-spec.md">Character spec</a><a href="generation-prompts-v02.md">Exact prompts</a><a href="index.html">Full brand reference</a></div>
+ </footer>
+</main>
+</body>
+</html>
