@@ -1,6 +1,6 @@
 # 02 · Identity, personality and mascot
 
-Status: v0.1, 2026-11-13. The name and the mascot are proposals (see [`00-brief.md`](00-brief.md), "Still open").
+Status: v0.2, 2026-11-13 (colours now follow the S-mobiili app). The name and the mascot are proposals (see [`00-brief.md`](00-brief.md), "Still open").
 
 ## Positioning
 
@@ -46,11 +46,11 @@ The brief's teaching angle. Each basket has a fixed name, colour and icon everyw
 
 | Brief wording | Name | Finnish (proposed) | Colour | Icon | Examples |
 |---|---|---|---|---|---|
-| Mandatory and regular | **Fixed** | Kiinteät | Mustikka (blue-violet) | Anchor | Rent, phone, insurance |
-| Mandatory and irregular | **Curveballs** | Yllärit | Lakka (gold) | Lightning | Dentist, repairs, annual fees |
-| Everyday that slips away | **Leaks** | Vuodot | Puolukka (pink) | Drop | Coffee, delivery, subscriptions |
+| Mandatory and regular | **Fixed** | Kiinteät | Dark green `#004628` | Anchor | Rent, phone, insurance |
+| Mandatory and irregular | **Curveballs** | Yllärit | Deep green `#007841` | Lightning | Dentist, repairs, annual fees |
+| Everyday that slips away | **Leaks** | Vuodot | S green `#00AA46` | Drop | Coffee, delivery, subscriptions |
 
-Savings are always green. Jars are the fourth thing the user sees next to the baskets.
+The darker the green, the more fixed the money. Jars (savings) are mint, the lightest step, and are the fourth thing the user sees next to the baskets.
 
 ## Personality
 
@@ -77,8 +77,8 @@ Dials (0 = left, 10 = right):
 
 Seven things. A screen that uses at least four of them looks like Hillo.
 
-1. **Aurora buttons.** Bright green face, dark spruce text, a darker green edge underneath. They press down.
-2. **Berry colours with fixed jobs.** Pink, gold, blue-violet and orange each mean one thing.
+1. **S-Pankki's green world, turned up.** The app's own greens on its own pale green surface, with dark green hero blocks and mint numbers. Nobody mistakes it for another bank.
+2. **Buttons that press down.** Deep green face, white label, a dark green edge underneath.
 3. **Liito.** A grey flying squirrel with huge eyes and a green-lined glide.
 4. **Jars on a shelf.** Savings goals are jam jars that fill.
 5. **The receipt.** Weekly recaps look like a shop receipt with a zigzag edge.
@@ -89,9 +89,9 @@ Seven things. A screen that uses at least four of them looks like Hillo.
 
 | From | They do | We do |
 |---|---|---|
-| Today's S-Pankki | Green on green, outline icons, no illustration, long copy, uppercase headings | Green plus berries on warm off-white, filled icons, a mascot, short copy, sentence case |
-| Duolingo | Lime green, white text on buttons, pure white background, green owl | Emerald and aurora green, dark text on buttons, warm background, grey squirrel |
-| Lunar | Black with vivid green | Forest-tinted dark mode with berry accents |
+| Today's S-Pankki | Its greens used quietly: lists, outline icons, no illustration, long copy | The same greens used boldly: dark hero blocks, mint numbers, pressable buttons, filled icons, a mascot, short copy |
+| Duolingo | Lime green on pure white, many accent colours, green owl | S-Pankki's deep and dark greens on pale green, almost no other colour, grey squirrel |
+| Lunar | Black with vivid green | Dark green, never black, also in dark mode |
 | Cleo | Sassy, roasts the user, sells cash advances | Warm, never roasts, never sells credit |
 
 ## Mascot: Liito
@@ -113,10 +113,10 @@ Seven things. A screen that uses at least four of them looks like Hillo.
 | Silhouette | A rounded dumpling. Head and body are one shape, about 1 : 1.1 wide to tall. |
 | Eyes | Very large, round, near-black (`#0B1F16`), one white highlight each. About one third of the face width each. |
 | Fur | Soft warm grey `#B9C2BD`, lighter belly and face `#F4F1E8`. |
-| Glide membrane | Stretches between front and back paws. Outside grey, **inside aurora green `#00EB5A`**. Only visible when arms are out. |
+| Glide membrane | Stretches between front and back paws. Outside grey, **inside S green `#00AA46`**. Only visible when arms are out. |
 | Ears | Small and round. They carry mood: up, flat, one down. |
 | Tail | Flat and wide, like a feather. Curls round the body at rest. |
-| Cheeks | Round. A small Puolukka-pink blush when proud or shy. |
+| Cheeks | Round. A small mint `#91FA9B` glow when proud or shy. |
 | Mouth | Tiny. Most emotion comes from eyes, ears and arms. |
 | Style | Flat vector, no outline, two tones per colour at most, no gradients, no 3D render. |
 | Clothes | None. Props only: a jar, a berry, a receipt, a mug, a blanket. |
@@ -147,8 +147,8 @@ Seven things. A screen that uses at least four of them looks like Hillo.
 
 ## Logo (direction)
 
-- Wordmark **hillo**, lowercase, Bricolage Grotesque ExtraBold, tight spacing, in spruce `#004628` or white.
-- The dot of the "i" is a berry in aurora green.
-- App icon: Liito's face on aurora green, or the wordmark's berry on spruce.
+- Wordmark **hillo**, lowercase, Bricolage Grotesque ExtraBold, tight spacing, in dark green `#004628` or white.
+- The dot of the "i" is a berry in S green `#00AA46` (mint on dark).
+- App icon: Liito's face on S green `#00AA46`, the colour of the S-mobiili icon.
 - Lockup with the parent: "hillo" above a small "by S-Pankki" in Figtree SemiBold.
 - Do not redraw or alter the S-Pankki logo itself.

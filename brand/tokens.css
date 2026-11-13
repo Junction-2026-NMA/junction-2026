@@ -1,70 +1,70 @@
-/* Hillo design tokens v0.1 (2026-11-13). Source of truth for values: brand/04-colors.md and brand/06-specifications.md. */
+/* Hillo design tokens v0.2 (2026-11-13). Colours are the S-mobiili app's own palette.
+   Source of truth for values: brand/04-colors.md and brand/06-specifications.md. */
 @import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Figtree:wght@400;600;700&display=swap");
 
 :root {
-  /* Greens: inherited from S-Pankki, unchanged */
-  --green-50: #EBF7EC;
-  --green-100: #D2FCD5;
-  --green-200: #91FA9B;
-  --green-400: #00EB5A; /* Aurora: primary button face, hero colour */
-  --green-500: #00AA46; /* S green: button edge, progress fill */
-  --green-700: #007841; /* Deep green: green text on light */
-  --green-900: #004628; /* Spruce: all main text */
+  /* Core greens: from S-mobiili, unchanged */
+  --green-25: #F7FCF7;  /* Near-white green */
+  --green-50: #EBF7EC;  /* Surface green: screen background */
+  --green-100: #D2FCD5; /* Pale mint: selected rows, tracks, chips */
+  --green-200: #91FA9B; /* Mint: highlight on dark, buttons on dark */
+  --green-300: #99D59F; /* Soft green: outlines, soft blocks */
+  --green-500: #00AA46; /* S green: brand accent, progress fill */
+  --green-700: #007841; /* Deep green: primary colour, buttons */
+  --green-900: #004628; /* Dark green: text, hero blocks */
+  --green-bright: #00EB5A; /* Celebration confetti and glow only */
 
-  /* Neutrals */
-  --oat: #FBF8F1;
+  /* Neutrals: S-Pankki tokens */
   --white: #FFFFFF;
-  --line: #E4E0D4;
-  --line-strong: #7F8C85;
-  --muted: #4F6257;
+  --neutral-900: #1F1F1F;
+  --neutral-600: #666666;
+  --neutral-400: #949494;
+  --neutral-200: #E6E6E6;
 
-  /* Berries: one meaning each */
-  --puolukka: #D81E5B;      /* Leaks basket */
-  --puolukka-text: #C2185B;
-  --puolukka-tint: #FFE3EC;
-  --puolukka-on-tint: #8F0F3F;
-  --lakka: #FFC233;         /* Curveballs basket, berries (points) */
-  --lakka-text: #8A5A00;
-  --lakka-tint: #FFF1CC;
-  --lakka-on-tint: #6B4500;
-  --mustikka: #4B4BD8;      /* Fixed basket, lessons, info */
-  --mustikka-text: #4B4BD8;
-  --mustikka-tint: #E6E6FF;
-  --mustikka-on-tint: #2B2BA8;
-  --nuotio: #FF7A1A;        /* Streak only */
-  --nuotio-text: #B84A00;
-  --nuotio-tint: #FFE8D6;
-  --nuotio-on-tint: #8A3600;
-  --nuotio-ink: #4A1D00;
-
-  /* Status */
-  --success: #007841;
+  /* Signal colours: S-Pankki status tokens */
+  --amber-bg: #FFF1D8;   /* Streak, heads-up */
+  --amber: #CF8300;
+  --amber-text: #885600;
+  --info-bg: #E0F4FF;    /* Explanations, tips */
+  --info: #00A1C5;
+  --info-text: #006E87;
+  --error-bg: #FFEDED;   /* Failed actions only */
   --error: #B70000;
-  --error-tint: #FFE5E5;
 
   /* Semantic roles (light) */
-  --bg: var(--oat);
+  --bg: var(--green-50);
   --surface: var(--white);
-  --surface-raised: var(--white);
-  --surface-tint: var(--green-50);
-  --border-color: var(--line);
+  --surface-alt: var(--green-25);
+  --surface-selected: var(--green-100);
+  --border-color: var(--green-300);
+  --input-border: var(--neutral-400);
+  --divider: var(--neutral-200);
   --text: var(--green-900);
-  --text-muted: var(--muted);
+  --text-muted: var(--neutral-600);
   --text-link: var(--green-700);
-  --primary-face: var(--green-400);
-  --primary-edge: var(--green-500);
-  --primary-label: var(--green-900);
+  --primary-face: var(--green-700);
+  --primary-edge: var(--green-900);
+  --primary-label: var(--white);
   --secondary-face: var(--white);
-  --secondary-edge: var(--line);
-  --progress-track: var(--green-50);
+  --secondary-edge: var(--green-300);
+  --secondary-label: var(--green-900);
+  --ondark-face: var(--green-200);
+  --ondark-edge: var(--green-500);
+  --ondark-label: var(--green-900);
+  --progress-track: var(--green-100);
   --progress-fill: var(--green-500);
   --hero-bg: var(--green-900);
-  --hero-number: var(--green-400);
-  --basket-fixed: var(--mustikka);
-  --basket-curveballs: var(--lakka);
-  --basket-leaks: var(--puolukka);
-  --basket-jars: var(--green-500);
-  --streak: var(--nuotio);
+  --hero-number: var(--green-200);
+  --hero-text: var(--white);
+  --streak: var(--amber);
+  --streak-bg: var(--amber-bg);
+  --streak-text: var(--amber-text);
+
+  /* Baskets: the darker the green, the more fixed the money */
+  --basket-fixed: var(--green-900);
+  --basket-curveballs: var(--green-700);
+  --basket-leaks: var(--green-500);
+  --basket-jars: var(--green-200); /* draw with a 2px --green-500 outline */
 
   /* Type */
   --font-display: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -104,51 +104,67 @@
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Dark mode: forest-tinted, berries lightened */
+/* Dark mode: the same greens reversed. #00301B, #1B6B43 and the lightened signal colours are the only values not from S-Pankki. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #04140D;
-    --surface: #0B2418;
-    --surface-raised: #123524;
-    --surface-tint: #123524;
-    --border-color: #1E4A33;
-    --text: #EFFBF2;
-    --text-muted: #9DB8A8;
-    --text-link: #00EB5A;
-    --primary-label: #04140D;
-    --secondary-face: #123524;
-    --secondary-edge: #1E4A33;
-    --progress-track: #123524;
-    --progress-fill: #00EB5A;
-    --hero-bg: #0B2418;
-    --puolukka: #FF6B97;
-    --mustikka: #9A9AFF;
-    --nuotio: #FF8A3D;
-    --error: #FF7A7A;
+    --bg: #00301B;
+    --surface: #004628;
+    --surface-alt: #004628;
+    --surface-selected: #1B6B43;
+    --border-color: #1B6B43;
+    --input-border: #99D59F;
+    --divider: #1B6B43;
+    --text: #F7FCF7;
+    --text-muted: #99D59F;
+    --text-link: #91FA9B;
+    --primary-face: #91FA9B;
+    --primary-edge: #00AA46;
+    --primary-label: #00301B;
+    --secondary-face: #004628;
+    --secondary-edge: #1B6B43;
+    --secondary-label: #F7FCF7;
+    --progress-track: #1B6B43;
+    --progress-fill: #91FA9B;
+    --hero-bg: #004628;
+    --amber-bg: #3A2E0E;
+    --amber: #FFC14D;
+    --amber-text: #FFC14D;
+    --info-bg: #0B3A46;
+    --info-text: #7FD9F2;
+    --error-bg: #4A1515;
+    --error: #FF8A8A;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #04140D;
-  --surface: #0B2418;
-  --surface-raised: #123524;
-  --surface-tint: #123524;
-  --border-color: #1E4A33;
-  --text: #EFFBF2;
-  --text-muted: #9DB8A8;
-  --text-link: #00EB5A;
-  --primary-label: #04140D;
-  --secondary-face: #123524;
-  --secondary-edge: #1E4A33;
-  --progress-track: #123524;
-  --progress-fill: #00EB5A;
-  --hero-bg: #0B2418;
-  --puolukka: #FF6B97;
-  --mustikka: #9A9AFF;
-  --nuotio: #FF8A3D;
-  --error: #FF7A7A;
+  --bg: #00301B;
+  --surface: #004628;
+  --surface-alt: #004628;
+  --surface-selected: #1B6B43;
+  --border-color: #1B6B43;
+  --input-border: #99D59F;
+  --divider: #1B6B43;
+  --text: #F7FCF7;
+  --text-muted: #99D59F;
+  --text-link: #91FA9B;
+  --primary-face: #91FA9B;
+  --primary-edge: #00AA46;
+  --primary-label: #00301B;
+  --secondary-face: #004628;
+  --secondary-edge: #1B6B43;
+  --secondary-label: #F7FCF7;
+  --progress-track: #1B6B43;
+  --progress-fill: #91FA9B;
+  --hero-bg: #004628;
+  --amber-bg: #3A2E0E;
+  --amber: #FFC14D;
+  --amber-text: #FFC14D;
+  --info-bg: #0B3A46;
+  --info-text: #7FD9F2;
+  --error-bg: #4A1515;
+  --error: #FF8A8A;
 }
 
-/* The one signature component, as a reference implementation */
+/* The signature component, as a reference implementation */
 .btn-primary {
   font: 700 17px/24px var(--font-text);
   color: var(--primary-label);

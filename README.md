@@ -6,7 +6,7 @@ This is the `brand-kit` branch: the brand and UI reference for **Hillo** (workin
 
 Its purpose is consistency. Point any AI assistant or teammate at this branch and the UI, images and copy they produce should match. Treat the branch as read-only; build the product elsewhere.
 
-Version 0.1, 2026-11-13.
+Version 0.2, 2026-11-13. Colours follow the S-mobiili app (see `references/s-mobiili/`).
 
 ## Start here
 

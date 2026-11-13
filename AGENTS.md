@@ -24,10 +24,10 @@ Read when relevant:
 ## Hard rules
 
 1. **Use tokens.** Take every colour, size, radius and font from `brand/tokens.css` or `brand/tokens.json`. Never invent a hex value.
-2. **Greens are S-Pankki's own** and stay unchanged. Text is spruce `#004628`, never pure black.
-3. **Primary button:** aurora face `#00EB5A`, S green edge `#00AA46`, spruce label. One per screen. It presses down.
-4. **No white body text on `#00AA46`.** It fails contrast.
-5. **Berry colours have fixed meanings:** Mustikka = Fixed basket, Lakka = Curveballs basket and berries, Puolukka = Leaks basket, Nuotio = streak. Do not use them for anything else.
+2. **The palette is the S-mobiili app's palette.** Surface green `#EBF7EC` behind white cards, dark green `#004628` text, deep green `#007841` for actions, S green `#00AA46` as accent, mint `#91FA9B` on dark. Add no other hues: no pink, violet, gold, cream or neon green.
+3. **Primary button:** deep green face `#007841`, white label, dark green edge `#004628`. On a dark block: mint face `#91FA9B`, dark green label. One per screen. It presses down.
+4. **No body text in or on `#00AA46`.** It fails contrast. Use it for fills, icons and large type.
+5. **Baskets are a green ramp, dark to light:** Fixed `#004628`, Curveballs `#007841`, Leaks `#00AA46`, Jars `#91FA9B`, always with icon and label. The only non-green colours are S-Pankki's own status colours: amber (`#FFF1D8`, `#CF8300`, `#885600`) for the streak and heads-ups, blue for info, red `#B70000` for errors.
 6. **Fonts:** Bricolage Grotesque for headlines and hero numbers, Figtree for everything else. Sentence case.
 7. **One hero number, one primary action, at most one Liito per screen.**
 8. **No shadows, gradients, glass effects, thin fonts or square corners.**
@@ -38,7 +38,7 @@ Read when relevant:
 
 ## Checklist before you hand over a screen
 
-- [ ] Background is Oat (light) or forest `#04140D` (dark); cards are white with a 2 px outline and 24 px corners.
+- [ ] Background is surface green `#EBF7EC` (light) or `#00301B` (dark); cards are white with 24 px corners and no outline, as in S-mobiili.
 - [ ] Exactly one primary button, with a label that says what happens.
 - [ ] The biggest thing on screen is one number or one headline in Bricolage Grotesque.
 - [ ] Every spending amount shows its basket (icon, name and colour).
@@ -49,4 +49,4 @@ Read when relevant:
 
 ## Status of this kit
 
-Version 0.1, 2026-11-13. The product name (Hillo), the mascot (Liito), the fonts and all Finnish wording are proposals awaiting the team's confirmation. No brand images exist yet; prompts are ready in `brand/07-image-prompts.md`.
+Version 0.2, 2026-11-13 (colours rebuilt to match the S-mobiili app). The product name (Hillo), the mascot (Liito), the fonts and all Finnish wording are proposals awaiting the team's confirmation. No brand images exist yet; prompts are ready in `brand/07-image-prompts.md`.

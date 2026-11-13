@@ -1,10 +1,10 @@
 # 05 · UI style
 
-Status: v0.1, 2026-11-13. Exact sizes are in [`06-specifications.md`](06-specifications.md). Reference screens are in [`references/ui/`](../references/ui/) and described in [`research/ui-references.md`](../research/ui-references.md). References show patterns to learn from. Never copy a screen, and never reproduce the Appllama watermark.
+Status: v0.2, 2026-11-13 (colours now follow the S-mobiili app). Exact sizes are in [`06-specifications.md`](06-specifications.md). Reference screens are in [`references/ui/`](../references/ui/) and described in [`research/ui-references.md`](../research/ui-references.md). References show patterns to learn from. Never copy a screen, and never reproduce the Appllama watermark.
 
 ## The look in one paragraph
 
-Warm off-white screens, dark spruce text, and one bright green button that presses down. Thick rounded shapes, white cards with a soft outline and no shadow. One very big number per screen. Berry colours appear in small, exact places. A grey flying squirrel shows up when something happens. It should feel like a game you trust with your money.
+It starts from S-mobiili: pale green screens, white cards, dark green text. Then it turns the volume up: a dark green hero block with one very big mint number, one deep green button that presses down, thick rounded shapes and heavy type. Almost everything is green. A small amber flame for the streak is the warmest thing on screen. A grey flying squirrel shows up when something happens. It should feel like the S-Pankki app became a game you trust with your money.
 
 ## Principles
 
@@ -19,7 +19,7 @@ Warm off-white screens, dark spruce text, and one bright green button that press
 
 - Mobile first, 390 pt wide reference frame, 20 pt side margins, 4 pt grid.
 - Content stacks in a single column of cards. No side-by-side cards narrower than 160 pt.
-- A coloured header block (Spruce or Aurora) may sit behind the top of the first card, which overlaps it by 24 pt.
+- A coloured header block (Dark green or Deep green) may sit behind the top of the first card, which overlaps it by 24 pt.
 - The primary button sits in the thumb zone, pinned above the tab bar or the safe area.
 - Bottom tab bar with 4 tabs: **Today**, **Chat**, **Jars**, **Path**. Profile and settings open from the avatar at the top right.
 
@@ -48,35 +48,35 @@ S-Pankki's own fonts (S Bonus Display and S Bonus UX) are proprietary, so this k
 
 ## Components
 
-### Primary button ("aurora button")
+### Primary button
 
-Aurora face, S green bottom edge, Spruce label in Figtree Bold. On press the face moves down 4 pt and the edge disappears. One per screen. The label says what happens ("Put €5 in the jar").
+Deep green face, Dark green bottom edge, white label in Figtree Bold. On a dark block: Mint face, S green edge, Dark green label. On press the face moves down 4 pt and the edge disappears. One per screen. The label says what happens ("Put €5 in the jar").
 
 ### Secondary and quiet buttons
 
-- Secondary: white face, Line edge, Spruce label. Same press behaviour.
+- Secondary: white face, Soft green outline and edge, Dark green label. Same press behaviour.
 - Quiet: text only in Deep green, for "Not now".
 - Destructive actions use a white button with error-red text, never a red face.
 
 ### Cards
 
-White, 24 pt corners, 2 pt Line outline, 20 pt padding, no shadow. A tinted card uses a berry tint or Frost with no outline. A tappable card gets the 4 pt bottom edge.
+White on the Surface green background, 24 pt corners, 20 pt padding, no outline and no shadow, as in S-mobiili. On a white background a card gets a 2 pt Soft green outline. A tinted card uses Pale mint, or the amber or info background for a heads-up or a tip. A tappable card gets a 4 pt Soft green bottom edge.
 
 ### Hero number
 
-A Spruce block or a white card with one figure in Bricolage ExtraBold at 56 to 72 pt, a short label above, and one line of context below ("6 days to payday").
+A Dark green block with one figure in Mint, in Bricolage ExtraBold at 56 to 72 pt, a short label above, and one line of context below ("6 days to payday").
 
 ### Basket chip
 
-A pill with the basket's icon and name on the basket's tint, text in the tint's text colour. Used on every transaction and in every chat reply about spending.
+A Pale mint pill with the basket's icon in the basket's green and its name in Dark green. Used on every transaction and in every chat reply about spending.
 
 ### Basket bar
 
-One fully rounded bar split into Fixed, Curveballs, Leaks and Jars, with 2 px gaps. Under it, a row per basket: icon, name, amount, and change against the user's usual.
+One fully rounded bar split into Fixed, Curveballs, Leaks and Jars, running from Dark green to Mint, with 2 px white gaps. Under it, a row per basket: icon, name, amount, and change against the user's usual.
 
 ### Jar
 
-A jam jar drawn flat: glass outline in Spruce, a lid, a label with the goal's name. The fill rises in S green with a flat top edge and two or three berries floating in it. Shows the saved amount and target under it. A full jar gets a Lakka lid and a sticker.
+A jam jar drawn flat: glass outline in Dark green, a lid, a label with the goal's name. The fill rises in S green with a flat top edge and two or three Mint berries floating in it. Shows the saved amount and target under it. A full jar gets a Mint lid and a sticker.
 
 ### Shelf
 
@@ -84,28 +84,28 @@ Jars side by side on a line, scrolling sideways. An empty slot with a dashed out
 
 ### Streak
 
-A Nuotio flame with the day count in Bricolage ExtraBold, and a seven-day strip of circles under it (filled Nuotio when done, outline when not, a small blanket icon for a protected day).
+An amber flame (`#CF8300`) with the day count in Bricolage ExtraBold, and a seven-day strip of circles under it (filled Deep green with a check when done, outline when not, a small blanket icon for a protected day). The flame is the only amber on the screen.
 
 ### Daily action card
 
-A checklist of up to three actions with thick progress on top. Done rows turn Pale mint with a check and a strike-through. Each row shows the berries it earns.
+A checklist of up to three actions with thick progress on top. Done rows turn Pale mint with a Deep green check and a strike-through. Each row shows the berries it earns.
 
 ### Chat
 
-- Liito's replies: white bubble, 2 pt Line outline, 24 pt corners with the bottom-left corner 6 pt. Liito's avatar (32 pt) beside the first bubble of a group.
-- The user's messages: Spruce bubble, white text, bottom-right corner 6 pt.
+- Liito's replies: white bubble, 24 pt corners with the bottom-left corner 6 pt. Liito's avatar (32 pt) beside the first bubble of a group.
+- The user's messages: Deep green bubble, white text, bottom-right corner 6 pt.
 - Data cards inside a reply: a white card with a number, a small chart or up to five rows, and a "From your card payments, 1 to 31 Oct" source line that opens the transactions.
-- Suggested next steps: Mint pills under the reply.
-- The input bar has a text field, a send button in Aurora, and three starter questions above it when the chat is empty.
+- Suggested next steps: Pale mint pills with Dark green text under the reply.
+- The input bar has a text field, a round Deep green send button, and three starter questions above it when the chat is empty.
 - While thinking: Liito's "curious" pose with three bouncing dots. No spinner.
 
 ### Receipt (weekly recap)
 
-A white card with a zigzag bottom edge, shown slightly tilted on a Spruce background. Monospaced-looking rows in Figtree with tabular numerals: the three baskets, the jar total, the streak, and one line from Liito at the bottom. It can be saved as an image and shared. Shared versions hide amounts by default and show percentages and the streak.
+A white card with a zigzag bottom edge, shown slightly tilted on a Dark green background. Monospaced-looking rows in Figtree with tabular numerals: the three baskets, the jar total, the streak, and one line from Liito at the bottom. It can be saved as an image and shared. Shared versions hide amounts by default and show percentages and the streak.
 
 ### Path (lessons)
 
-A vertical winding path of round nodes with the 4 pt edge. Done nodes are S green with a check, the current node is Aurora with a bouncing "Start" bubble, locked nodes are grey. A unit header card names the topic in Mustikka. Liito stands beside the current node. Lessons take about two minutes and end with one action on the user's real data.
+A vertical winding path of round nodes with the 4 pt edge. Done nodes are S green with a check, the current node is Deep green with a bouncing "Start" bubble, locked nodes are Pale mint with a Soft green edge. A unit header card names the topic on Dark green. Liito stands beside the current node. Lessons take about two minutes and end with one action on the user's real data.
 
 ### Stickers and badges
 
@@ -113,13 +113,13 @@ Flat illustrations with a 4 pt white die-cut border, tilted. Earned for firsts a
 
 ### Sheets and feedback
 
-Feedback rises from the bottom as a sheet: Pale mint for success, a berry tint for a finding, error tint for a failed action. A sheet holds one line, an optional figure and one button.
+Feedback rises from the bottom as a sheet: Pale mint for success and findings, the amber background for a heads-up, the error background for a failed action. A sheet holds one line, an optional figure and one button.
 
 ## Icons
 
 - Use **Phosphor Icons**, "fill" weight for navigation and basket icons, "bold" weight inside text and lists. One set only.
 - 24 pt default, 28 pt in the tab bar, 20 pt inside chips.
-- Icon colour follows the text colour next to it, or the berry of its basket.
+- Icon colour follows the text colour next to it, or the green of its basket.
 - Basket icons: Anchor (Fixed), Lightning (Curveballs), Drop (Leaks), Jar (Jars). Streak: Flame. Berries: a custom berry mark.
 
 ## Illustration
@@ -128,7 +128,7 @@ Feedback rises from the bottom as a sheet: Pale mint for success, a berry tint f
 - Two tones per colour at most: the colour and one darker shade for depth.
 - Objects from the idea system only: jars, berries, receipts, branches, leaves, mugs, blankets, coins as plain discs.
 - Liito follows [`02-identity.md`](02-identity.md). One Liito per screen.
-- Backgrounds for celebrations: a full Aurora, Spruce or berry field with large, simple confetti shapes (circles, leaves, berries).
+- Backgrounds for celebrations: a full S green or Dark green field with large, simple confetti shapes (circles, leaves, berries) in Mint, Pale mint and white.
 
 ## Motion
 
@@ -168,7 +168,7 @@ Each blueprint lists the order of things on the screen and the references to stu
 
 ### Today (home)
 
-1. Top row: greeting, streak pill (Nuotio), berries pill (Lakka), avatar.
+1. Top row: greeting, streak pill (amber), berries pill (Pale mint), avatar.
 2. Hero block: "Safe to spend" figure, days to payday, a thin bar of the pay period.
 3. Daily action card with up to three actions.
 4. Basket bar for this pay period.
@@ -201,13 +201,13 @@ References: `duolingo/09-learning-path`, `munyun/05-learning-path-lesson-popup`.
 
 ### Streak celebration
 
-Full Nuotio-tint screen, the flame, the day count at 96 pt or more, the seven-day strip, one line from Liito, one button.
+Full Dark green screen, the amber flame, the day count in Mint at 96 pt or more, the seven-day strip, one line from Liito, one button.
 
 References: `munyun/09-streak-celebration`, `rootd/01-streak-celebration-green`, `duolingo/07-first-word-learned`.
 
 ### Weekly receipt
 
-Spruce background, the tilted receipt, "Share" and "Done". No library reference; use the Receipt component.
+Dark green background, the tilted receipt, "Share" and "Done". No library reference; use the Receipt component.
 
 ### Onboarding
 
@@ -227,7 +227,8 @@ References: `munyun/02-onboarding-goal-quiz`, `buddy/02-quiz-stress-slider`.
 
 - No red totals or red arrows as the first thing on a screen.
 - No thin fonts, hairlines, glass effects or drop shadows.
-- No white text on S green `#00AA46` at body size.
+- No body text in or on S green `#00AA46`.
+- No colours outside the S-mobiili palette: no pink, violet, gold, cream or neon green.
 - No more than one primary button, one Liito or one celebration on a screen.
 - No dashboards with more than one chart above the fold.
 - No stock photos of people.

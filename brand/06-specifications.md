@@ -1,6 +1,6 @@
 # 06 · Specifications
 
-Status: v0.1, 2026-11-13. These are the exact values. Machine-readable copies: [`tokens.css`](tokens.css) and [`tokens.json`](tokens.json). Units are points on iOS, dp on Android and px on the web at 1x.
+Status: v0.2, 2026-11-13 (colours now follow the S-mobiili app). These are the exact values. Machine-readable copies: [`tokens.css`](tokens.css) and [`tokens.json`](tokens.json). Units are points on iOS, dp on Android and px on the web at 1x.
 
 ## Frame
 
@@ -85,16 +85,17 @@ Use a real minus sign (−) and a non-breaking space between number and unit.
 | Height | 56 face + 4 edge |
 | Width | Full width minus margins; never under 160 |
 | Radius | 18 |
-| Face | `green-400` `#00EB5A` |
-| Edge | `green-500` `#00AA46` |
-| Label | `button`, `green-900` `#004628` |
+| Face | `green-700` `#007841` |
+| Edge | `green-900` `#004628` |
+| Label | `button`, white `#FFFFFF` |
+| On a dark block | Face `#91FA9B`, edge `#00AA46`, label `#004628` |
 | Pressed | Face moves down 4, edge hidden |
-| Disabled | Face `#E4E0D4`, edge `#CFCABB`, label `#4F6257` |
+| Disabled | Face `#E6E6E6`, no edge, label `#666666` |
 | Loading | Label swaps for three dots; width does not change |
 
 ### Secondary button
 
-Same size. Face `#FFFFFF`, edge and 2 outline `#E4E0D4`, label `#004628`.
+Same size. Face `#FFFFFF`, edge and 2 outline `#99D59F`, label `#004628`.
 
 ### Quiet button
 
@@ -102,11 +103,11 @@ Text only, `button` style in `#007841`, 48 tall.
 
 ### Card
 
-Radius 24, padding 20, background `#FFFFFF`, outline 2 `#E4E0D4`. Tappable cards add a 4 edge in `#E4E0D4`.
+Radius 24, padding 20, background `#FFFFFF` on the `#EBF7EC` screen, no outline. On a white background add an outline 2 `#99D59F`. Tappable cards add a 4 edge in `#99D59F`.
 
 ### Hero block
 
-Radius 32, padding 24, background `#004628`. Label `label` in `#91FA9B`, number `hero` in `#00EB5A`, context line `body` in `#FFFFFF`.
+Radius 32, padding 24, background `#004628`. Label `label` in `#91FA9B`, number `hero` in `#91FA9B`, context line `body` in `#FFFFFF`.
 
 ### Chip
 
@@ -114,23 +115,23 @@ Height 32, horizontal padding 12, radius full, icon 20, gap 6, text `label`. Bas
 
 ### Progress bar
 
-Height 14, radius full, track `#EBF7EC`, fill `#00AA46`. Streak bars use `#FF7A1A`, lesson bars `#4B4BD8`.
+Height 14, radius full, track `#D2FCD5`, fill `#00AA46`. All progress is green.
 
 ### Input
 
-Height 56, radius 12, background `#FFFFFF`, outline 2 `#7F8C85`, focus outline 2 `#004628` plus a 4 ring in `#91FA9B`. Label above in `label`. Error text below in `#B70000` with an icon.
+Height 56, radius 12, background `#FFFFFF`, outline 2 `#949494`, focus outline 2 `#004628` plus a 4 ring in `#91FA9B`. Label above in `label`. Error text below in `#B70000` with an icon.
 
 ### Tab bar
 
-Height 64, background `#FFFFFF`, top outline 2 `#E4E0D4`. Four tabs, icon 28 plus `caption`. Active: icon and label `#004628` on a `#D2FCD5` pill 56 × 36. Inactive: `#4F6257`.
+Height 64, background `#FFFFFF`, top divider 1 `#E6E6E6`. Four tabs, icon 28 plus `caption`. Active: icon and label `#004628` on a `#D2FCD5` pill 56 × 36. Inactive: `#666666`.
 
 ### Chat bubble
 
-Max width 80 % of the frame. Padding 14 × 16. Radius 24 with one 6 corner. Liito: `#FFFFFF`, outline 2 `#E4E0D4`, text `#004628`. User: `#004628`, text `#FFFFFF`. Gap between bubbles in a group 4, between groups 16. Avatar 32.
+Max width 80 % of the frame. Padding 14 × 16. Radius 24 with one 6 corner. Liito: `#FFFFFF`, text `#004628`. User: `#007841`, text `#FFFFFF`. Gap between bubbles in a group 4, between groups 16. Avatar 32.
 
 ### Streak pill and berries pill
 
-Height 36, radius full, padding 12. Streak: `#FFE8D6` background, flame `#FF7A1A`, number `#8A3600`. Berries: `#FFF1CC` background, berry mark `#FFC233`, number `#6B4500`.
+Height 36, radius full, padding 12. Streak: `#FFF1D8` background, flame `#CF8300`, number `#885600`. Berries: `#D2FCD5` background, berry mark `#00AA46`, number `#004628`.
 
 ### Sticker
 
@@ -138,7 +139,7 @@ Height 36, radius full, padding 12. Streak: `#FFE8D6` background, flame `#FF7A1A
 
 ### Bottom sheet
 
-Top radius 32, padding 24, a 36 × 4 grabber in `#E4E0D4`. Holds one headline, up to two lines of text and one or two buttons.
+Top radius 32, padding 24, a 36 × 4 grabber in `#E6E6E6`. Holds one headline, up to two lines of text and one or two buttons.
 
 ## Motion tokens
 
