@@ -1,0 +1,169 @@
+/* Hillo design tokens v0.1 (2026-11-13). Source of truth for values: brand/04-colors.md and brand/06-specifications.md. */
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Figtree:wght@400;600;700&display=swap");
+
+:root {
+  /* Greens: inherited from S-Pankki, unchanged */
+  --green-50: #EBF7EC;
+  --green-100: #D2FCD5;
+  --green-200: #91FA9B;
+  --green-400: #00EB5A; /* Aurora: primary button face, hero colour */
+  --green-500: #00AA46; /* S green: button edge, progress fill */
+  --green-700: #007841; /* Deep green: green text on light */
+  --green-900: #004628; /* Spruce: all main text */
+
+  /* Neutrals */
+  --oat: #FBF8F1;
+  --white: #FFFFFF;
+  --line: #E4E0D4;
+  --line-strong: #7F8C85;
+  --muted: #4F6257;
+
+  /* Berries: one meaning each */
+  --puolukka: #D81E5B;      /* Leaks basket */
+  --puolukka-text: #C2185B;
+  --puolukka-tint: #FFE3EC;
+  --puolukka-on-tint: #8F0F3F;
+  --lakka: #FFC233;         /* Curveballs basket, berries (points) */
+  --lakka-text: #8A5A00;
+  --lakka-tint: #FFF1CC;
+  --lakka-on-tint: #6B4500;
+  --mustikka: #4B4BD8;      /* Fixed basket, lessons, info */
+  --mustikka-text: #4B4BD8;
+  --mustikka-tint: #E6E6FF;
+  --mustikka-on-tint: #2B2BA8;
+  --nuotio: #FF7A1A;        /* Streak only */
+  --nuotio-text: #B84A00;
+  --nuotio-tint: #FFE8D6;
+  --nuotio-on-tint: #8A3600;
+  --nuotio-ink: #4A1D00;
+
+  /* Status */
+  --success: #007841;
+  --error: #B70000;
+  --error-tint: #FFE5E5;
+
+  /* Semantic roles (light) */
+  --bg: var(--oat);
+  --surface: var(--white);
+  --surface-raised: var(--white);
+  --surface-tint: var(--green-50);
+  --border-color: var(--line);
+  --text: var(--green-900);
+  --text-muted: var(--muted);
+  --text-link: var(--green-700);
+  --primary-face: var(--green-400);
+  --primary-edge: var(--green-500);
+  --primary-label: var(--green-900);
+  --secondary-face: var(--white);
+  --secondary-edge: var(--line);
+  --progress-track: var(--green-50);
+  --progress-fill: var(--green-500);
+  --hero-bg: var(--green-900);
+  --hero-number: var(--green-400);
+  --basket-fixed: var(--mustikka);
+  --basket-curveballs: var(--lakka);
+  --basket-leaks: var(--puolukka);
+  --basket-jars: var(--green-500);
+  --streak: var(--nuotio);
+
+  /* Type */
+  --font-display: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-text: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* Spacing (4 grid) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+  --space-10: 64px;
+
+  /* Radii */
+  --radius-xs: 6px;
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --radius-full: 999px;
+
+  /* Borders and edges */
+  --border: 2px;
+  --edge: 4px;
+
+  /* Motion */
+  --duration-press: 80ms;
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-fill: 600ms;
+  --duration-celebrate: 1200ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Dark mode: forest-tinted, berries lightened */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #04140D;
+    --surface: #0B2418;
+    --surface-raised: #123524;
+    --surface-tint: #123524;
+    --border-color: #1E4A33;
+    --text: #EFFBF2;
+    --text-muted: #9DB8A8;
+    --text-link: #00EB5A;
+    --primary-label: #04140D;
+    --secondary-face: #123524;
+    --secondary-edge: #1E4A33;
+    --progress-track: #123524;
+    --progress-fill: #00EB5A;
+    --hero-bg: #0B2418;
+    --puolukka: #FF6B97;
+    --mustikka: #9A9AFF;
+    --nuotio: #FF8A3D;
+    --error: #FF7A7A;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #04140D;
+  --surface: #0B2418;
+  --surface-raised: #123524;
+  --surface-tint: #123524;
+  --border-color: #1E4A33;
+  --text: #EFFBF2;
+  --text-muted: #9DB8A8;
+  --text-link: #00EB5A;
+  --primary-label: #04140D;
+  --secondary-face: #123524;
+  --secondary-edge: #1E4A33;
+  --progress-track: #123524;
+  --progress-fill: #00EB5A;
+  --hero-bg: #0B2418;
+  --puolukka: #FF6B97;
+  --mustikka: #9A9AFF;
+  --nuotio: #FF8A3D;
+  --error: #FF7A7A;
+}
+
+/* The one signature component, as a reference implementation */
+.btn-primary {
+  font: 700 17px/24px var(--font-text);
+  color: var(--primary-label);
+  background: var(--primary-face);
+  border: 0;
+  border-radius: var(--radius-md);
+  min-height: 56px;
+  padding: 0 var(--space-6);
+  box-shadow: 0 var(--edge) 0 var(--primary-edge);
+  transition: transform var(--duration-press) var(--ease-out), box-shadow var(--duration-press) var(--ease-out);
+}
+.btn-primary:active {
+  transform: translateY(var(--edge));
+  box-shadow: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary { transition: none; }
+}
