@@ -1,0 +1,5 @@
+# Files copied into each `claude -w` worktree (gitignored files only)
+.env
+.env.local
+.env.development.local
+.entire/settings.local.json
