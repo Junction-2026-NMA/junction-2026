@@ -107,6 +107,9 @@ export type Overview = {
   balance: number;
   monthlyIncome: number;
   monthlySpending: number;
+  monthlySaved: number;
+  monthlyMandatory: number;
+  monthlyEveryday: number;
   runwayMonths: number;
   baskets: BasketSummary[];
   months: MonthPoint[];
@@ -124,6 +127,43 @@ export type TransactionList = {
   total: number;
   truncated: boolean;
   transactions: Transaction[];
+};
+
+// --- Financial futures ---
+
+export type ScenarioBase = {
+  balance: number;
+  monthlyIncome: number;
+  monthlySpending: number;
+  monthlySaved: number; // deposits to investments the customer already makes
+  monthlyMandatory: number;
+  monthlyEveryday: number;
+};
+
+export type ScenarioInput = {
+  billSavingPerMonth: number; // from switching a contract
+  everydayCutPct: number; // 0..50, share of everyday spending trimmed
+  years: number; // 1..10
+};
+
+export type BranchId = "nothing" | "save" | "invest";
+
+export type BranchPoint = { month: number; cash: number; invested: number; total: number; totalLow: number; totalHigh: number };
+
+export type Branch = {
+  id: BranchId;
+  label: string;
+  points: BranchPoint[];
+  endTotal: number;
+  endLow: number;
+  endHigh: number;
+  runwayMonthsAtYear1: number; // months of must-pay costs covered by cash alone after 12 months
+};
+
+export type ScenarioResult = {
+  freedPerMonth: number;
+  branches: Branch[];
+  assumptions: string[];
 };
 
 export type ApiError = { error: string };

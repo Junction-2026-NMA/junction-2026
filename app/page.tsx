@@ -10,6 +10,7 @@ import { BasketsCard } from "@/components/BasketsCard";
 import { CashflowChart } from "@/components/CashflowChart";
 import { BillsCard } from "@/components/BillsCard";
 import { InsightsCard } from "@/components/InsightsCard";
+import { FuturesCard } from "@/components/FuturesCard";
 import { TransactionSheet } from "@/components/TransactionSheet";
 
 type Evidence = { title: string; filter: EvidenceFilter };
@@ -79,6 +80,7 @@ export default function Home() {
           <InsightsCard overview={overview} onEvidence={openEvidence} />
           <BasketsCard overview={overview} onEvidence={openEvidence} />
           <BillsCard overview={overview} onEvidence={openEvidence} />
+          <FuturesCard overview={overview} />
           <CashflowChart overview={overview} />
 
           <details className="px-1 text-xs leading-relaxed text-muted">
