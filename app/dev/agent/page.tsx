@@ -1,0 +1,107 @@
+"use client";
+
+// A live test bench for the agent: talk or type to Sisu and see every step with its timing.
+// It is for the team, not the judges. The real UI lives in app/page.tsx and components/.
+import { useEffect, useState } from "react";
+import { fetchDemoCustomers } from "@/lib/api";
+import { prefetchOffers } from "@/lib/agent/client";
+import { useSisu } from "@/lib/agent/useSisu";
+import type { DemoCustomer } from "@/lib/types";
+import { MessageCard } from "./MessageCard";
+
+const STATUS_LABEL = { idle: "Hold to talk", recording: "Listening… release to send", thinking: "Thinking…", speaking: "Speaking… hold to interrupt" };
+const EXAMPLES = ["How much can I safely spend this week?", "How much did I spend on restaurants last month?", "Can you find me a cheaper electricity deal?", "What if I save 50 euros a month for five years?", "What is Kela's general housing allowance?"];
+
+export default function AgentBench() {
+  const [customers, setCustomers] = useState<DemoCustomer[]>([]);
+  const [customerId, setCustomerId] = useState<string | null>(null);
+  const [speakReplies, setSpeakReplies] = useState(true);
+  const [draft, setDraft] = useState("");
+  const [prefetched, setPrefetched] = useState<string | null>(null);
+  const sisu = useSisu({ customerId, speakReplies });
+
+  useEffect(() => {
+    fetchDemoCustomers().then((list) => {
+      setCustomers(list);
+      setCustomerId((current) => current ?? list[0]?.customerId ?? null);
+    });
+  }, []);
+
+  const switchCustomer = (id: string) => {
+    sisu.reset();
+    setPrefetched(null);
+    setCustomerId(id);
+  };
+
+  const prefetch = async () => {
+    if (!customerId) return;
+    const result = await prefetchOffers(customerId, "electricity");
+    setPrefetched(result ? `Electricity research ${result.status} (started in the background)` : "Could not start research");
+  };
+
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+    sisu.ask(draft);
+    setDraft("");
+  };
+
+  return (
+    <main className="mx-auto flex min-h-dvh w-full max-w-[560px] flex-col gap-4 bg-paper px-4 pb-48 pt-6">
+      <header className="flex flex-wrap items-center gap-2">
+        <h1 className="mr-auto text-xl font-semibold tracking-tight">Sisu agent test bench</h1>
+        {sisu.server?.mock && <span className="rounded-full bg-amber/20 px-2 py-0.5 text-xs font-semibold text-[#8a5f08]">MOCK DATA</span>}
+        <span className="rounded-full border border-line bg-card px-2 py-0.5 text-xs text-muted">{sisu.server ? sisu.server.model.split("/").pop() : "connecting…"}</span>
+      </header>
+
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <label className="flex items-center gap-2">
+          <span className="text-muted">Customer</span>
+          <select id="customer" value={customerId ?? ""} onChange={(e) => switchCustomer(e.target.value)} className="min-h-11 rounded-xl border border-line bg-card px-3 font-semibold">
+            {customers.map((c) => <option key={c.customerId} value={c.customerId}>{c.displayName}, {c.age} · {c.area}</option>)}
+          </select>
+        </label>
+        <label className="flex min-h-11 items-center gap-2">
+          <input id="speak" type="checkbox" checked={speakReplies} onChange={(e) => setSpeakReplies(e.target.checked)} className="h-5 w-5 accent-[var(--green)]" />
+          Speak replies
+        </label>
+        <button type="button" onClick={prefetch} className="min-h-11 rounded-xl border border-line bg-card px-3 font-semibold">Prefetch electricity offers</button>
+        <button type="button" onClick={sisu.reset} className="min-h-11 rounded-xl border border-line bg-card px-3 font-semibold">Clear</button>
+      </div>
+      {prefetched && <p className="text-xs text-muted">{prefetched}</p>}
+
+      {sisu.messages.length === 0 && (
+        <ul className="space-y-2">
+          {EXAMPLES.map((example) => (
+            <li key={example}>
+              <button type="button" onClick={() => sisu.ask(example)} className="min-h-11 w-full rounded-2xl border border-line bg-card px-4 py-2 text-left text-sm hover:border-green">{example}</button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <ol className="space-y-3">
+        {sisu.messages.map((message) => <li key={message.id}><MessageCard message={message} /></li>)}
+      </ol>
+
+      <div className="fixed inset-x-0 bottom-0 border-t border-line bg-card/95 px-4 pb-5 pt-3 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-[560px] flex-col gap-3">
+          {sisu.micError && <p className="text-sm text-coral">{sisu.micError}</p>}
+          <button
+            type="button"
+            onPointerDown={sisu.startTalking}
+            onPointerUp={sisu.stopTalking}
+            onPointerLeave={sisu.stopTalking}
+            onContextMenu={(e) => e.preventDefault()}
+            className={`min-h-16 w-full touch-none select-none rounded-2xl text-lg font-semibold text-white transition ${sisu.status === "recording" ? "scale-[0.98] bg-coral" : "bg-green"}`}
+          >
+            {STATUS_LABEL[sisu.status]}
+          </button>
+          <form onSubmit={submit} className="flex gap-2">
+            <input id="question" value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Or type a question" maxLength={500} className="min-h-11 flex-1 rounded-xl border border-line bg-paper px-3" />
+            <button type="submit" disabled={!draft.trim()} className="min-h-11 rounded-xl bg-ink px-4 font-semibold text-white disabled:opacity-40">Ask</button>
+          </form>
+        </div>
+      </div>
+    </main>
+  );
+}
