@@ -66,25 +66,29 @@ Each role edits only its own folders. Shared files (`lib/types.ts`, `package.jso
 
 **Done when** every number the agent says comes from these functions and all three profiles reconcile.
 
-### C: Agent, sponsor APIs and Verda
+### C: Orchestration backend, from inference to speech (owner: Nicholas)
 
 - **Branch:** `feature/agent-orchestration`
 - **Owns:** `lib/agent/`, `app/api/agent/`, `app/api/research/`, `app/api/voice/`
+- **Read:** the latency plan in `context/architecture.md`, which has measured numbers.
+- **The sponsor API keys live only on this machine**, so A and B build against mock mode (first task below) and never need them.
 
 | Priority | Task |
 |---|---|
-| Must | Verda: start a GPU instance and serve Nemotron 3.5 Super VL with vLLM's OpenAI-compatible server. Measure the time to first token. Put the NVIDIA Build and Gemini fallbacks behind `MODEL_PROVIDER`. |
-| Must | Orchestrator `POST /api/agent/query`: system prompt, tool schemas for B's functions, and a tool loop capped at 5 steps. Return the answer, the tool-call trace and citations. |
-| Must | Research: Exa search for current Finnish offers; the query contains only the bill type and city, never customer data. Then Context.dev extracts provider, plan, monthly price, contract months, setup fee and cancellation terms. Use `maxAgeMs: 0` and check the `success` flag. |
-| Must | Voice: `/api/voice/stt` (ElevenLabs speech to text) and `/api/voice/tts` (streamed speech), wrapped around the same agent endpoint. |
+| Must | **Mock mode first.** `MODEL_PROVIDER=mock` returns fixed example answers, traces, offers and audio placeholders through the real endpoints. Teammates run the whole app without keys. |
+| Must | Orchestrator `POST /api/agent/query`, **streamed** over server-sent events. It includes the system prompt, tool schemas for B's functions, and a tool loop capped at 4 steps. It returns tokens as they arrive, the tool-call trace with per-step timings, and citations. |
+| Must | Call Nemotron with `chat_template_kwargs: {"enable_thinking": false}` for conversation turns (0.54 s to first token, against 3.1 s with thinking on). Turn thinking on only for slow "plan" tasks typed into the ask box. |
+| Must | Research: Exa search (`type: "fast"`, 0.55 s) for current Finnish offers. The query holds only the bill type and city. Context.dev then reads the top 3 pages in parallel with a 2.5 s budget; use whatever came back and check each `success` flag. **Prefetch** this when the user confirms the bill, labelled with its real retrieval time. |
+| Must | Voice: push-to-talk ElevenLabs speech to text, then the same agent stream, then ElevenLabs text to speech (`eleven_turbo_v2_5`, 0.24 s to first audio), sentence by sentence. Pre-generate short "checking that now" clips so a slow tool never leaves silence. |
 | Must | Timeouts on every external call. Show the last good research result with its real retrieval time. When something cannot be checked, answer "I could not verify this" instead of guessing. |
-| Should | Run 20 unexpected judge questions and fix what breaks. |
+| Should | Run 20 unexpected judge questions by voice and fix what breaks. Keep a latency log per stage. |
 | Should | Sponsor write-ups: the NVIDIA model-role explanation, the Context.dev endpoints used and why, the Verda summary for their Discord, and how Exa is used. |
-| Stretch | Upgrade voice to an ElevenLabs conversational agent that uses our endpoint as its custom model. |
+| Stretch | Self-host Nemotron on Verda. Switch the demo to it only if its time to first token is at or below NVIDIA Build's 0.54 s. |
+| Stretch | Vision: the user photographs a bill, and Nemotron VL reads the provider and price. |
 
-**Done when** a typed judge question gets a source-backed answer, or an honest limit, within 10 seconds.
+**Done when** a spoken question about the user's own numbers starts answering aloud within about 2 s, and a live-offer question within about 3 s (with prefetch) or 6 s (cold).
 
-**Suggested:** Nicholas is the integration lead and pitch owner. He merges branches after the build passes, runs the smoke test, and owns the demo script and backup video.
+**Owners:** Nicholas owns C, the whole orchestration backend (decided 14 Nov), and the sponsor keys. Roles A and B still need names.
 
 ## Shared API contract
 
