@@ -1,5 +1,5 @@
 // Streaming chat client for any OpenAI-compatible endpoint (NVIDIA Build, a Verda vLLM server, Gemini).
-import { getConfig, missingKey } from "./config";
+import { type ModelEndpoint, getConfig, missingKey } from "./config";
 import { mockStream } from "./mock";
 
 export type ToolCall = { id: string; type: "function"; function: { name: string; arguments: string } };
@@ -16,7 +16,7 @@ export type ToolSchema = {
 
 export type ModelChunk =
   | { type: "delta"; text: string }
-  | { type: "end"; toolCalls: ToolCall[]; model: string; firstTokenMs: number | null; totalMs: number };
+  | { type: "end"; toolCalls: ToolCall[]; model: string; provider: string; usedBackup: boolean; firstTokenMs: number | null; totalMs: number };
 
 export type StreamOptions = {
   messages: ChatMessage[];
@@ -27,6 +27,8 @@ export type StreamOptions = {
 };
 
 const MODEL_TIMEOUT_MS = 25_000;
+// If the main model has produced nothing by now, the backup takes the turn. Normal first tokens arrive in 0.1 to 0.6 s.
+const FIRST_TOKEN_LIMIT_MS = 2_000;
 
 type Delta = {
   content?: string | null;
@@ -34,24 +36,62 @@ type Delta = {
 };
 
 // Yields text as it arrives, then one "end" chunk carrying any tool calls the model asked for.
+// Stall protection: if the main model errors or stays silent past FIRST_TOKEN_LIMIT_MS, the same
+// request goes to the backup model (the same Nemotron on another host) and the trace says so.
 export async function* streamChat(options: StreamOptions): AsyncGenerator<ModelChunk> {
   const config = getConfig();
   if (config.isMock) {
     yield* mockStream(options.messages);
     return;
   }
-  if (!config.model.baseUrl) throw missingKey("The reasoning model", "NEMOTRON_BASE_URL");
-  if (!config.model.apiKey) throw missingKey("The reasoning model", "NEMOTRON_API_KEY");
+  const backup = config.fallbackModel;
+  if (!backup) {
+    yield* streamFrom(config.model, options, options.signal, false);
+    return;
+  }
 
-  const model = options.useFastModel && config.model.fastName ? config.model.fastName : config.model.name;
+  const giveUp = new AbortController();
+  const signal = options.signal ? AbortSignal.any([options.signal, giveUp.signal]) : giveUp.signal;
+  const main = streamFrom(config.model, options, signal, false);
+  const firstChunk = main.next();
+  firstChunk.catch(() => undefined); // handled below; this stops a late failure being reported twice
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const tooSlow = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`no reply within ${FIRST_TOKEN_LIMIT_MS} ms`)), FIRST_TOKEN_LIMIT_MS);
+  });
+
+  let first: IteratorResult<ModelChunk>;
+  try {
+    first = await Promise.race([firstChunk, tooSlow]);
+  } catch (error) {
+    if (options.signal?.aborted) throw error;
+    giveUp.abort();
+    console.error(`[agent] ${config.model.provider} model failed or stalled (${(error as Error).message}); switching to ${backup.provider}`);
+    yield* streamFrom(backup, options, options.signal, true);
+    return;
+  } finally {
+    clearTimeout(timer);
+  }
+  if (first.done) return;
+  yield first.value;
+  yield* main;
+}
+
+async function* streamFrom(endpoint: ModelEndpoint, options: StreamOptions, outerSignal: AbortSignal | undefined, usedBackup: boolean): AsyncGenerator<ModelChunk> {
+  const { thinking } = getConfig();
+  const prefix = { nvidia: "NEMOTRON", verda: "VERDA", gemini: "GEMINI", mock: "" }[endpoint.provider];
+  if (!endpoint.baseUrl) throw missingKey("The reasoning model", `${prefix}_BASE_URL`);
+  if (!endpoint.apiKey) throw missingKey("The reasoning model", `${prefix}_API_KEY`);
+
+  const model = options.useFastModel && endpoint.fastName ? endpoint.fastName : endpoint.name;
   const started = Date.now();
   const timeout = AbortSignal.timeout(MODEL_TIMEOUT_MS);
-  const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
+  const signal = outerSignal ? AbortSignal.any([outerSignal, timeout]) : timeout;
 
-  const response = await fetch(`${config.model.baseUrl}/chat/completions`, {
+  const response = await fetch(`${endpoint.baseUrl}/chat/completions`, {
     method: "POST",
     signal,
-    headers: { Authorization: `Bearer ${config.model.apiKey}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${endpoint.apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model,
       messages: options.messages,
@@ -59,12 +99,12 @@ export async function* streamChat(options: StreamOptions): AsyncGenerator<ModelC
       max_tokens: options.maxTokens,
       temperature: 0.3,
       ...(options.tools.length ? { tools: options.tools, tool_choice: "auto" } : {}),
-      ...(config.model.sendsThinkingFlag ? { chat_template_kwargs: { enable_thinking: config.model.thinking } } : {}),
+      ...(endpoint.sendsThinkingFlag ? { chat_template_kwargs: { enable_thinking: thinking } } : {}),
     }),
   });
   if (!response.ok || !response.body) {
     const detail = (await response.text().catch(() => "")).slice(0, 300);
-    console.error(`[agent] model ${model} returned ${response.status}: ${detail}`);
+    console.error(`[agent] ${endpoint.provider} model ${model} returned ${response.status}: ${detail}`);
     throw new Error(`The reasoning model returned an error (${response.status}).`);
   }
 
@@ -103,7 +143,7 @@ export async function* streamChat(options: StreamOptions): AsyncGenerator<ModelC
       type: "function",
       function: { name: call.name, arguments: call.args || "{}" },
     }));
-  yield { type: "end", toolCalls, model, firstTokenMs, totalMs: Date.now() - started };
+  yield { type: "end", toolCalls, model, provider: endpoint.provider, usedBackup, firstTokenMs, totalMs: Date.now() - started };
 }
 
 function parseDelta(line: string): Delta | null {

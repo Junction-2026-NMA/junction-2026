@@ -58,7 +58,7 @@ export function MessageCard({ message }: { message: SisuMessage }) {
 
       {timings && (
         <p className="tabular border-t border-line pt-2 text-xs text-muted">
-          {timings.sttMs !== null && <>heard in {seconds(timings.sttMs)} · </>}first word {seconds(timings.firstTokenMs)} · first sentence {seconds(timings.firstSentenceMs)} · done {seconds(timings.totalMs)} · {timings.modelSteps.length} model {timings.modelSteps.length === 1 ? "step" : "steps"}
+          {timings.sttMs !== null && <>heard in {seconds(timings.sttMs)} · </>}first word {seconds(timings.firstTokenMs)} · first sentence {seconds(timings.firstSentenceMs)} · done {seconds(timings.totalMs)} · {timings.modelSteps.length} model {timings.modelSteps.length === 1 ? "step" : "steps"} on {[...new Set(timings.modelSteps.map((step) => step.provider))].join(" + ")}{timings.modelSteps.some((step) => step.usedBackup) ? " (backup took over)" : ""}
         </p>
       )}
     </article>

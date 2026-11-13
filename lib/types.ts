@@ -242,7 +242,7 @@ export type TurnTimings = {
   firstTokenMs: number | null; // since the turn started
   firstSentenceMs: number | null;
   totalMs: number;
-  modelSteps: { model: string; firstTokenMs: number | null; totalMs: number }[];
+  modelSteps: { model: string; provider: string; usedBackup: boolean; firstTokenMs: number | null; totalMs: number }[];
 };
 
 export type AgentEvent =

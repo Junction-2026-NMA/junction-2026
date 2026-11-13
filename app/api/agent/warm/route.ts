@@ -9,5 +9,5 @@ export async function GET() {
   const started = Date.now();
   await warmUp();
   const config = getConfig();
-  return Response.json({ ok: true, provider: config.provider, mock: config.isMock, model: config.isMock ? "mock" : config.model.name, tookMs: Date.now() - started });
+  return Response.json({ ok: true, provider: config.provider, mock: config.isMock, model: config.model.name, backup: config.fallbackModel?.provider ?? null, tookMs: Date.now() - started });
 }

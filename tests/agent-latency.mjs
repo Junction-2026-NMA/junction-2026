@@ -59,7 +59,7 @@ async function runTurn(label, response, speak = true) {
     if (event.type === "error") console.log(`  ${at()} ERROR: ${event.message}`);
     if (event.type === "done") {
       const t = event.timings;
-      console.log(`  ${at()} done · first token ${t.firstTokenMs} ms · first sentence ${t.firstSentenceMs} ms · total ${t.totalMs} ms · model steps ${t.modelSteps.map((s) => `${s.firstTokenMs ?? "-"}/${s.totalMs}`).join(", ")} · sources ${event.citations.length}`);
+      console.log(`  ${at()} done · first token ${t.firstTokenMs} ms · first sentence ${t.firstSentenceMs} ms · total ${t.totalMs} ms · model steps ${t.modelSteps.map((s) => `${s.provider}${s.usedBackup ? "(BACKUP)" : ""} ${s.firstTokenMs ?? "-"}/${s.totalMs}`).join(", ")} · sources ${event.citations.length}`);
     }
   }
   if (speak && firstSpeakable) {

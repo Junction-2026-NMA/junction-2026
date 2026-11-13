@@ -2,14 +2,34 @@
 
 Why: the pitch is that a bank can run Sisu on its own European servers with an open model, so customer data never goes to a model provider. This folder is how we make that true for the demo.
 
-**Status: prepared, not yet run.** Starting a GPU spends Verda credits, so Nicholas starts it.
+**Status: running and verified (14 Nov, 03:50).** Nemotron 3.5 Super VL is serving from one RTX PRO 6000 in Verda's FIN-02 data centre in Finland.
+
+| Measured | Verda (our GPU) | NVIDIA Build (hosted) |
+|---|---|---|
+| First word | 0.09–0.18 s | 0.49–0.58 s |
+| Tool choice, complete | 0.37 s | 0.60 s |
+| Full app, 16 repeated questions | 16 of 16 correct, slowest 1.6 s | 16 of 16 correct, one 7 s stall |
+| Load time from a cold start | about 4 minutes including the 70 GB download | n/a |
+
+GPU memory in use: 90.4 of 97.9 GB. The app runs with `MODEL_PROVIDER=verda` and `MODEL_FALLBACK=nvidia`: if Verda errors or is silent for 2 s, NVIDIA's hosted copy answers and the trace says "backup".
+
+## Turning it on (once the instance exists)
+
+```bash
+# 1. On the instance, if the container is not already running (it restarts by itself after a reboot):
+VLLM_API_KEY=<the key in .env.local as VERDA_API_KEY> sh /root/serve-nemotron.sh
+# 2. On the laptop that runs the app:
+sh deploy/verda/tunnel.sh <instance-ip>
+# 3. Check:
+node tests/agent-latency.mjs http://localhost:3000
+```
 
 ## What runs where
 
 | Piece | Today | On Verda |
 |---|---|---|
-| Reasoning model (Nemotron 3.5 Super VL) | NVIDIA's hosted trial (logs inputs) | **Our own GPU instance**, served by vLLM |
-| App and finance engine (holds the bank data) | Laptop | **A small CPU instance** next to the GPU |
+| Reasoning model (Nemotron 3.5 Super VL) | **Our own Verda GPU**, served by vLLM, reached through an SSH tunnel. NVIDIA's hosted trial is the automatic backup. | The same |
+| App and finance engine (holds the bank data) | Laptop | **A small CPU instance** next to the GPU (not done yet) |
 | Exa, Context.dev | Their clouds | Unchanged. They only ever get the bill type and city. |
 | ElevenLabs voice | Its cloud | Unchanged. Be honest in the pitch: speech still leaves the EU box. A bank would swap in a self-hosted speech model. |
 

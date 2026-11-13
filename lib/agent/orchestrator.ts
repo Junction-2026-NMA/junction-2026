@@ -46,7 +46,7 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
     return;
   }
 
-  yield { type: "start", turnId: crypto.randomUUID(), provider: config.provider, model: config.isMock ? "mock" : config.model.name, mock: config.isMock };
+  yield { type: "start", turnId: crypto.randomUUID(), provider: config.provider, model: config.model.name, mock: config.isMock };
 
   // Rule 1: start slow research now if the words suggest it. Nothing here is awaited.
   const guess = speculate(request.text, request.focusBill);
@@ -98,7 +98,7 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
           yield* emitSentences(splitter.push(chunk.text));
         } else {
           toolCalls = chunk.toolCalls;
-          timings.modelSteps = [...timings.modelSteps, { model: chunk.model, firstTokenMs: chunk.firstTokenMs, totalMs: chunk.totalMs }];
+          timings.modelSteps = [...timings.modelSteps, { model: chunk.model, provider: chunk.provider, usedBackup: chunk.usedBackup, firstTokenMs: chunk.firstTokenMs, totalMs: chunk.totalMs }];
         }
       }
       answer += stepText;

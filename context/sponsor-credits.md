@@ -6,7 +6,7 @@ Status as of Fri 13 Nov, 23:40 EET. No keys or codes are kept here. Ask Nicholas
 |---|---|---|---|
 | Exa | Live offer search | Claimed: $120 balance | Nicholas |
 | Context.dev | Offer pages turned into JSON | Claimed: 51,000 credits. **The team code is used; do not redeem it again.** | Nicholas |
-| Verda (€200) | Nemotron GPU, EU hosting | **Claimed: €200.00** in the "Cloud Project" project. Each teammate can claim their own €200 through the hackerpack form; invite them to the project first and they redeem into it. Redeeming needs a payment method on the account. | Nicholas |
+| Verda (€200) | Nemotron on our own GPU in Finland | **In use.** 1x RTX PRO 6000 (96 GB) in FIN-02 at €2.583 an hour, started 14 Nov 03:20. Runbook and measurements: `deploy/verda/README.md`. Teammates can each claim another €200 into the project. | Nicholas |
 | NVIDIA Build | Hosted Nemotron fallback | **Key working (14 Nov 00:10).** One real tool call returned the right tool and arguments in 1.5 s. Function calling and structured output are supported, with a 262K context. | Nicholas |
 
 ## Keys (status only, never values)

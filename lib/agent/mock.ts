@@ -16,7 +16,7 @@ async function* speak(text: string): AsyncGenerator<ModelChunk> {
     firstTokenMs ??= Date.now() - started;
     yield { type: "delta", text: `${word} ` };
   }
-  yield { type: "end", toolCalls: [], model: "mock", firstTokenMs, totalMs: Date.now() - started };
+  yield { type: "end", toolCalls: [], model: "mock", provider: "mock", usedBackup: false, firstTokenMs, totalMs: Date.now() - started };
 }
 
 function lastUserText(messages: ChatMessage[]): string {
@@ -49,7 +49,7 @@ export async function* mockStream(messages: ChatMessage[]): AsyncGenerator<Model
       type: "function",
       function: { name: "search_offers", arguments: JSON.stringify({ billType: guess.billType }) },
     };
-    yield { type: "end", toolCalls: [call], model: "mock", firstTokenMs: 300, totalMs: 300 };
+    yield { type: "end", toolCalls: [call], model: "mock", provider: "mock", usedBackup: false, firstTokenMs: 300, totalMs: 300 };
     return;
   }
 

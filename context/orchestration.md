@@ -134,6 +134,8 @@ Event order in one turn: `start`, (`transcript`), (`speculation`), then any mix 
 | `MODEL_PROVIDER` | Reasoning model |
 |---|---|
 | `mock` | Scripted answers, no network |
-| `nvidia` | Nemotron 3.5 Super VL on NVIDIA Build (current default on Nicholas's machine) |
-| `verda` | The same model self-hosted on Verda; set `NEMOTRON_BASE_URL` to the vLLM server |
+| `nvidia` | Nemotron 3.5 Super VL on NVIDIA Build. Now the backup. |
+| `verda` | The same model self-hosted on our Verda GPU in Finland (`VERDA_BASE_URL`, `VERDA_API_KEY`). **Current default on Nicholas's machine**, measured at 0.09–0.18 s to first word. |
 | `gemini` | Gemini through its OpenAI-compatible endpoint; emergency fallback only |
+
+**Stall protection.** `MODEL_FALLBACK=nvidia` names a backup. If the main model returns an error, cannot be reached, or produces nothing within 2 s, the same request goes to the backup and each model step in `timings.modelSteps` records `provider` and `usedBackup`. Tested by cutting the tunnel to Verda: NVIDIA answered in 0.7 s, and Verda took over again when the tunnel returned. With the backup in use, aggregates (never transactions) reach NVIDIA, so say "backup" in the pitch if it shows.
