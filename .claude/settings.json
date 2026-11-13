@@ -55,6 +55,16 @@
             "timeout": 30
           }
         ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"$CLAUDE_PROJECT_DIR/scripts/context-digest.sh\"",
+            "timeout": 20
+          }
+        ]
       }
     ],
     "Stop": [

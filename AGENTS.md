@@ -11,3 +11,5 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 This repo's instructions live in `CLAUDE.md` (stack, commands, priorities, lane ownership, done criteria).
 Read it before starting and follow it exactly; it applies to Codex and every other agent too.
+
+**Shared team context is mandatory:** at session start run `sh scripts/context-digest.sh` and read the newest entries in `context/log/`. Before committing a working chunk and at session end, add your own entry (template: `context/log/README.md`). Full protocol: "Shared context" in `CLAUDE.md`.

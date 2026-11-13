@@ -12,6 +12,7 @@ Everything we've decided lives in [`context/`](context/). Point your Claude, Cha
 
 | File | What it is |
 |---|---|
+| [`context/log/`](context/log/) | **Shared team memory.** Every person's AI agent reads it at the start and adds an entry before committing ([how](context/log/README.md)). Run `sh scripts/context-digest.sh` to see the latest. |
 | [`context/build-plan.md`](context/build-plan.md) | **Start here.** What we are actually building before Sunday: decisions, the demo flow, who builds what, the API contract and the timeline gates. It overrides the spec where they differ. |
 | [`context/architecture.md`](context/architecture.md) | Layer stack, data boundary, the Nemotron → NVIDIA → Gemini fallback order, env vars, and what already exists in this repo. |
 | [`context/dataset-notes.md`](context/dataset-notes.md) | What the S-Pankki data really contains, and why the hero bill is electricity rather than telecom. |

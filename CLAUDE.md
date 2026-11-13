@@ -2,6 +2,13 @@
 
 One line: a mobile-first financial coach on S-Pankki's synthetic data. It finds a costly pattern in a customer's transactions, researches live alternatives, shows the effect on their future, teaches one concept and prepares an action they approve. For young Finnish adults; judged by peer reviewers at a booth.
 
+## Shared context (every agent, every session — mandatory)
+Four people's agents work in this repo. Context is shared through `context/log/` (format and template: `context/log/README.md`).
+1. **Start:** run `sh scripts/context-digest.sh` (Claude Code runs it automatically), then read the newest entries relevant to your task, plus `context/build-plan.md`. If it says you are behind `origin/main`, tell the user and suggest `git pull --rebase origin main`.
+2. **Before each commit of a working chunk, and at the end of the session:** add a new file `context/log/YYYY-MM-DD-HHMM-<name>-<topic>.md` using the template, and commit it with the work. Never edit another person's entry.
+3. **If a decision changes scope, roles or the API contract,** also update `context/build-plan.md` or `lib/types.ts` (on `main`) and note it in your entry.
+4. If a teammate's entry conflicts with what you were told, flag it to your user instead of silently picking one.
+
 ## Read first
 - `context/build-plan.md`: decisions, demo flow, roles, API contract, timeline. It overrides the original spec where they differ.
 - `context/architecture.md`: layer stack, data boundary, model fallback order, env vars.

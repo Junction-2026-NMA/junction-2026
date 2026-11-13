@@ -1,0 +1,7 @@
+---
+description: Team shared-context protocol for the Sisu repo
+alwaysApply: true
+---
+Follow `CLAUDE.md` in the repo root (stack, rules, lanes). In particular its "Shared context" section:
+at session start run `sh scripts/context-digest.sh` and read the newest entries in `context/log/`;
+before committing a working chunk and at session end, add a new entry using the template in `context/log/README.md`.
