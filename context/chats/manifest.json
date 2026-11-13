@@ -1,0 +1,158 @@
+{
+  "captured_at": "2026-11-13T23:40:01.011929+02:00",
+  "canonical_repository": "Junction-2026-NMA/junction-2026",
+  "verified_asset_commit": "0b58ea220fb93bd1dc0f19178afb23567ef57065",
+  "records": [
+    {
+      "file": "2026-11-13-sisu-brand-assets.md",
+      "source_id": "9bd03a63-a893-442d-9b8e-8004ddd29fa7",
+      "source_link": "<t3-thread://v2/699bd055-6afa-4ddf-9c94-4b70358a24dd/9bd03a63-a893-442d-9b8e-8004ddd29fa7>",
+      "updated_at": "2026-11-13T21:33:03.967Z",
+      "messages": 26,
+      "coverage": "complete accessible user and assistant messages"
+    },
+    {
+      "file": "2026-11-13-sisu-mood-board.md",
+      "source_id": "7118dc5b-c2c2-4b17-8a6f-663701c9f051",
+      "source_link": "<t3-thread://v2/699bd055-6afa-4ddf-9c94-4b70358a24dd/7118dc5b-c2c2-4b17-8a6f-663701c9f051>",
+      "updated_at": "2026-11-13T21:16:18.406Z",
+      "messages": 8,
+      "coverage": "complete accessible user and assistant messages"
+    },
+    {
+      "file": "2026-11-13-liito-spec-handoff.md",
+      "source_id": "thread:provider:codex:native-thread:01a1d6b4-0891-75e2-8d64-5dfee6836e97",
+      "source_link": "<t3-thread://v2/699bd055-6afa-4ddf-9c94-4b70358a24dd/thread:provider:codex:native-thread:01a1d6b4-0891-75e2-8d64-5dfee6836e97>",
+      "updated_at": "2026-11-13T21:14:18.841Z",
+      "messages": 1,
+      "coverage": "completion handoff"
+    },
+    {
+      "file": "2026-11-13-s-pankki-brand-audit-handoff.md",
+      "source_id": "thread:provider:claudeAgent:native-thread:provider-thread%3Aprovider%3AclaudeAgent%3Anative-thread%3Apending%253Arun%253Athread%253A9bd03a63-a893-442d-9b8e-8004ddd29fa7%253Aordinal%253A1%3Aae9cb97ff11626df2",
+      "source_link": "<t3-thread://v2/699bd055-6afa-4ddf-9c94-4b70358a24dd/thread:provider:claudeAgent:native-thread:provider-thread%3Aprovider%3AclaudeAgent%3Anative-thread%3Apending%253Arun%253Athread%253A9bd03a63-a893-442d-9b8e-8004ddd29fa7%253Aordinal%253A1%3Aae9cb97ff11626df2>",
+      "updated_at": "2026-11-13T20:14:53.559Z",
+      "messages": 1,
+      "coverage": "completion handoff"
+    },
+    {
+      "file": "2026-11-13-competitor-research-handoff.md",
+      "source_id": "thread:provider:claudeAgent:native-thread:provider-thread%3Aprovider%3AclaudeAgent%3Anative-thread%3Apending%253Arun%253Athread%253A9bd03a63-a893-442d-9b8e-8004ddd29fa7%253Aordinal%253A1%3Aabbf9ef61af10ea7b",
+      "source_link": "<t3-thread://v2/699bd055-6afa-4ddf-9c94-4b70358a24dd/thread:provider:claudeAgent:native-thread:provider-thread%3Aprovider%3AclaudeAgent%3Anative-thread%3Apending%253Arun%253Athread%253A9bd03a63-a893-442d-9b8e-8004ddd29fa7%253Aordinal%253A1%3Aabbf9ef61af10ea7b>",
+      "updated_at": "2026-11-13T20:12:26.121Z",
+      "messages": 1,
+      "coverage": "completion handoff"
+    },
+    {
+      "file": "2026-11-13-ui-reference-handoff.md",
+      "source_id": "thread:provider:claudeAgent:native-thread:provider-thread%3Aprovider%3AclaudeAgent%3Anative-thread%3Apending%253Arun%253Athread%253A9bd03a63-a893-442d-9b8e-8004ddd29fa7%253Aordinal%253A1%3Aaf90024968b6a6ccb",
+      "source_link": "<t3-thread://v2/699bd055-6afa-4ddf-9c94-4b70358a24dd/thread:provider:claudeAgent:native-thread:provider-thread%3Aprovider%3AclaudeAgent%3Anative-thread%3Apending%253Arun%253Athread%253A9bd03a63-a893-442d-9b8e-8004ddd29fa7%253Aordinal%253A1%3Aaf90024968b6a6ccb>",
+      "updated_at": "2026-11-13T20:11:11.283Z",
+      "messages": 1,
+      "coverage": "completion handoff"
+    },
+    {
+      "file": "2026-11-13-sisu-repository-migration.md",
+      "source_id": "e8277ef1-7681-410d-9a4a-886e07b88c59",
+      "source_link": "<t3-thread://v2/699bd055-6afa-4ddf-9c94-4b70358a24dd/e8277ef1-7681-410d-9a4a-886e07b88c59>",
+      "updated_at": "2026-11-13T21:37:21.448Z",
+      "messages": 8,
+      "coverage": "migration completion and follow-up request; current audit outcome in the team log"
+    },
+    {
+      "file": "2026-11-13-sisu-image-worker-completion.md",
+      "source_id": "01a1d6bb-1e6c-7f22-b247-33acaa69349d",
+      "completed_at": "2026-11-13T21:32:11.713Z",
+      "messages": 1,
+      "coverage": "actual task_complete report"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "context/chats/assets/liito-exec-02fba3b1-5238-4c75-badf-a2498d05d530.png",
+      "bytes": 759735,
+      "sha256": "f5010aa2dbd13aaa77c92a0f486f096a3c46d30e56f68a6aac06f82abc564ed2",
+      "git_blob": "23b26446ecfacaa24a7f1b3152e6c5ad50aa7578",
+      "dimensions": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "path": "context/chats/assets/liito-exec-05d2c0d2-6555-4689-80a1-f5d896ec8c3c.png",
+      "bytes": 1340242,
+      "sha256": "dfbf0951838045af642e15336e43d3528f4d850cd06f7c4b25ea762794aac72d",
+      "git_blob": "851fac9534fe4033ef4aed9b172ccf28c37095de",
+      "dimensions": [
+        1774,
+        887
+      ]
+    },
+    {
+      "path": "context/chats/assets/liito-exec-784cd81a-0d0a-44da-9537-1f3aa671b282.png",
+      "bytes": 691404,
+      "sha256": "72cb5344db1cb945e6921b82833139fbfdd9da05f981b22c1598bc96325352ff",
+      "git_blob": "7af12a00aa756cc11d4dd0100baf898fa4354f12",
+      "dimensions": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "path": "context/chats/assets/liito-exec-79efb3da-fbe8-4b78-b148-8f9554a3c457.png",
+      "bytes": 1372500,
+      "sha256": "03fa21c5bfadbaa52b0337b03a4148a52d35702d88eaed30f04f995262b7c99a",
+      "git_blob": "cae70dc334a44b42d1b78f11ea50eeb13b8784fc",
+      "dimensions": [
+        1672,
+        941
+      ]
+    },
+    {
+      "path": "context/chats/assets/liito-exec-8408ac7c-8d5c-4e19-874a-98b99ba1f576.png",
+      "bytes": 1146007,
+      "sha256": "788539512df987ec6558f12fc5bb2c5edd73c4712dd9ad58dfd59cf7f772dcad",
+      "git_blob": "29c1609a82b2c708470b752beb3ed98804bb78a5",
+      "dimensions": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "path": "context/chats/assets/liito-exec-9bcc456c-f047-440a-ae0c-4c727a9a4846.png",
+      "bytes": 1371580,
+      "sha256": "ae6e20cebd228e9225a48648ba4ecb044abb31e37f45aef9f71bade86de28b6f",
+      "git_blob": "abd08e1bd35eddcbd5b4258156300f5af06a2139",
+      "dimensions": [
+        1672,
+        941
+      ]
+    },
+    {
+      "path": "context/chats/assets/migration-destination.png",
+      "bytes": 236789,
+      "sha256": "b93d06201c3c2e62622711beced031c75503e5295244d3f67c575a57f8b13426",
+      "git_blob": "efc4423477bf9ff3c1cb7217a1ba132cf55b26fd",
+      "dimensions": [
+        2000,
+        1092
+      ]
+    },
+    {
+      "path": "context/chats/assets/sisu-mood-board-original-export.html",
+      "bytes": 6094885,
+      "sha256": "9d8f245876d25ad13cce1f5113aaaa08f2943fd9d681f8fd5e8ef38e9e09dc93",
+      "git_blob": "486f591c79bd4c82bc20a8a9aee9210c0b644e42"
+    },
+    {
+      "path": "context/chats/assets/ui-reference-task.png",
+      "bytes": 158673,
+      "sha256": "fda79e1f3defa3051a644535f8970fe5a7a268c9f6bc52162de0238c35ccb4a0",
+      "git_blob": "10385200eb844da822c639b50ee0dafc72223084",
+      "dimensions": [
+        1272,
+        1390
+      ]
+    }
+  ]
+}
