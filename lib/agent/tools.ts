@@ -56,7 +56,14 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
     function: {
       name: "search_offers",
       description: "Live search for current Finnish offers for one of the customer's bills, with the yearly saving computed against their real bill.",
-      parameters: { type: "object", properties: { billType: { type: "string", enum: BILL_TYPES } }, required: ["billType"] },
+      parameters: {
+        type: "object",
+        properties: {
+          billType: { type: "string", enum: BILL_TYPES },
+          yearlyKwh: { type: "number", description: "Electricity only: the customer's yearly use in kWh, ONLY if they said it. Never guess." },
+        },
+        required: ["billType"],
+      },
     },
   },
   {
@@ -163,7 +170,8 @@ async function searchOffers(args: Record<string, unknown>, ctx: ToolContext): Pr
   if (!raw) return failure("exa+context.dev", "Live offer research did not start.");
 
   const bill = ctx.overview.recurringBills.find((b) => b.guessLabel === BILL_GUESS_LABEL[billType]);
-  const research = toResult(raw, bill?.monthlyAvg ?? null);
+  const stated = typeof args.yearlyKwh === "number" && Number.isFinite(args.yearlyKwh) && args.yearlyKwh > 0 ? args.yearlyKwh : null;
+  const research = toResult(raw, bill?.monthlyAvg ?? null, stated);
   const compact = (o: (typeof research.offers)[number]) => ({
     provider: o.provider,
     plan: o.plan,
@@ -181,6 +189,8 @@ async function searchOffers(args: Record<string, unknown>, ctx: ToolContext): Pr
       status: research.status,
       exampleDataOnly: research.mock,
       currentBillMonthlyEur: research.baselineMonthlyEur,
+      yearlyKwhUsed: research.assumedYearlyKwh,
+      yearlyKwhIs: research.usageSource === "stated" ? "what the customer told us" : "an estimate, not a meter reading: say so, and invite them to give their real yearly kWh",
       best: research.best ? compact(research.best) : null,
       note: research.best ? undefined : "No comparable offer is cheaper than the current bill. Say so honestly.",
       offers: research.offers.slice(0, 5).map(compact),

@@ -92,6 +92,7 @@ sequenceDiagram
 10. **Privacy boundary.** The model sees aggregates only, never transactions or the customer ID. Exa and Context.dev queries are built by code from the bill type and city. The model's own `web_search` queries are stripped of IDs and euro amounts before they leave.
 11. **Cancellation.** If the user talks again, the client aborts the request. The abort signal stops the model stream. Background research keeps running, because its result is still useful.
 12. **Honest failure.** Every external call has a timeout. A tool that fails returns an error the model can explain ("I couldn't check live offers just now"). Nothing is invented, and cached results carry their real retrieval time.
+13. **Savings are never overstated.** The bank data has no meter reading, so electricity use is estimated from the customer's own bill at today's typical fixed price. A bigger bill then means more use, not a bigger saving. If the customer states their yearly kWh, that is used instead, and the comparison counts at most 1.5 times the typical price as "energy"; the rest of the bill is treated as grid fees that switching cannot change. Test result: savings of 12 to 15% of the bill, where a flat 2,000 kWh assumption had claimed 60 to 81%.
 
 ## Measured turn times (built system, 14 Nov, `node tests/agent-latency.mjs`)
 

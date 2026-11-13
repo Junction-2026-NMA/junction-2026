@@ -206,6 +206,8 @@ export type ResearchResult = {
   pagesDone: number;
   pagesTotal: number;
   baselineMonthlyEur: number | null; // the customer's current bill, from the finance engine
+  assumedYearlyKwh: number | null; // electricity only: the use the comparison is based on
+  usageSource: "stated" | "estimated-from-bill" | "default" | null; // where that figure came from
   offers: Offer[];
   best: Offer | null;
   citations: Citation[];

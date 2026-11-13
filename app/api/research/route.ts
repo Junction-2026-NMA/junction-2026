@@ -1,5 +1,5 @@
 import { TOO_MANY, allowRequest, jsonError, parseBillType, parseCustomerId } from "@/lib/agent/http";
-import { toResult } from "@/lib/agent/research/compare";
+import { KWH_LIMITS, toResult } from "@/lib/agent/research/compare";
 import { ensureResearch, peekResearch, waitForUsable } from "@/lib/agent/research";
 import { findCustomer } from "@/lib/finance/data";
 import { buildOverview } from "@/lib/finance/overview";
@@ -30,7 +30,8 @@ export async function POST(request: Request) {
   const { key } = ensureResearch(billType, customer.area);
   const raw = body.wait === false ? peekResearch(key) : await waitForUsable(key, WAIT_LIMIT_MS, request.signal);
   if (!raw) return jsonError("Research could not start.", 500);
-  return Response.json(toResult(raw, baselineFor(customerId, billType)));
+  const stated = typeof body.yearlyKwh === "number" && body.yearlyKwh >= KWH_LIMITS[0] && body.yearlyKwh <= KWH_LIMITS[1] ? body.yearlyKwh : null;
+  return Response.json(toResult(raw, baselineFor(customerId, billType), stated));
 }
 
 // The current snapshot, for polling while pages are still arriving.
