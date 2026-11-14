@@ -42,7 +42,7 @@ node tests/agent-latency.mjs http://localhost:3000
 
 **Availability check, 14 Nov 03:15 (console, logged in):** H200, H100, B200 and B300 all show "Notify me" (sold out). Available now: **1x RTX PRO 6000, 96 GB, €2.546 an hour in FIN-03** (2x is unavailable), plus A100 80 GB in 1x to 8x. Verda's ready-made inference offers only Kimi and DeepSeek. So the realistic first try is 1x RTX PRO 6000, which the vLLM recipe lists for this model but with almost no memory headroom (91 GB needed of 96 GB): lower `--max-model-len` if it fails to load. €200 is about 78 hours of it.
 
-If an H200 becomes available: €200 of credit is about 30 hours of H200. **Use on-demand, not spot**: a spot instance can be taken away mid-demo. Stop the GPU when nobody is testing.
+If an H200 becomes available: €200 of credit is about 30 hours of H200. **Use on-demand, not spot**: a spot instance can be taken away mid-demo. Shutting an instance down does **not** stop the charge on Verda; only deleting it does (keep the disk, and boot a new instance from it later with `image` set to the volume's ID). Decided 14 Nov: keep ours on through judging, about €100 of the €200 credit.
 The vLLM recipe also lists a 96 GB RTX PRO 6000 profile (about $2.81 an hour). It is cheaper but leaves almost no memory headroom; ask Verda's booth before choosing it.
 
 ## Steps
