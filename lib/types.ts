@@ -623,3 +623,12 @@ export type Visual = VisualBase &
 export type SisuActivityState = "idle" | "listening" | "thinking" | "reading_account" | "searching_web" | "reading_pages" | "calculating" | "found_something" | "setting_up" | "waiting_for_approval" | "speaking" | "approved" | "declined" | "error";
 export type LiitoPose = "sleepy" | "curious" | "focused" | "gliding" | "found-something" | "cheering" | "proud" | "cosy";
 export type SisuActivity = { state: SisuActivityState; liito: LiitoPose; label: string; detail: string | null };
+
+// --- Demo readiness (added 14 Nov, afternoon): GET /api/health/ready ---
+// Unlike /api/health, which says what is configured, every check here makes one real call to the service.
+// status: "ok" answered correctly; "down" did not answer or answered wrongly; "not-configured" no key on this
+// server; "mock" the server runs on example data, so nothing was called.
+// blocksDemo: true when the flagship flow cannot run without it and nothing else stands in.
+export type ReadinessId = "model" | "model-backup" | "exa" | "context-dev" | "elevenlabs" | "finance" | "store";
+export type ReadinessCheck = { id: ReadinessId; sponsor: string; role: string; status: "ok" | "down" | "not-configured" | "mock"; latencyMs: number | null; detail: string; standIn: string | null; blocksDemo: boolean };
+export type ReadinessReport = { ready: boolean; voiceReady: boolean; mock: boolean; headline: string; checks: ReadinessCheck[]; checkedAt: string; ageMs: number };

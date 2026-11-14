@@ -66,11 +66,11 @@ function checkPlan(name, run, repeat = false) {
     if (!item.sources.length || item.sources.some((s) => !s.retrievedAt)) fail(`${item.id}: a source without a retrieval time`);
     if (!item.actionId) fail(`${item.id}: no action was set up`);
   }
-  // A habit and a bill must not count the same euros twice.
-  const billCategories = new Set(run.events.filter((e) => e.type === "finding" && e.role === "bill").map((e) => e.title));
-  const habitCategories = plan.items.filter((i) => i.kind === "habit").map((i) => i.facts.find((f) => f.evidence?.category)?.evidence.category).filter(Boolean);
+  // A habit counts once per category, and only as a gap against a reference (people the same age, or last year).
+  const habitIds = plan.items.filter((i) => i.kind === "habit").map((i) => i.id);
+  const habitCategories = habitIds.map((id) => id.split(":")[2]).filter(Boolean);
   if (new Set(habitCategories).size !== habitCategories.length) fail("two habits count the same category");
-
+  for (const id of habitIds) if (!/^habit:(peer-gap|category-drift):/.test(id)) fail(`${id}: counted as a saving without a reference level`);
   // Nothing is approved by the plan itself: an action is waiting, or was approved by the customer on an earlier run.
   for (const action of plan.actions) {
     if (action.status !== "awaiting_approval" && !(repeat && action.status === "executed_simulated")) fail(`action ${action.title}: status ${action.status} before any approval`);
