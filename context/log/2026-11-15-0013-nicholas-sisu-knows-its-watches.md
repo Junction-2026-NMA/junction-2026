@@ -14,3 +14,6 @@
 
 ## Learned / gotchas
 - "Find me a one-room flat in Helsinki under 600" finds flats that fit, so there is no "nothing fits" moment. For the demo use a search where nothing fits (three rooms under 700, or an iPhone 15 under 450).
+
+## Added afterwards (branch feat/demo-drop-link)
+- `GET /api/watch/demo-drop`: a link that triggers the simulated price drop for the visitor who opens it. A watch belongs to one visitor's session, so the drop has to come from the same browser as the app. Open the link there, go back to the app, ask Sisu whether the watch found anything. Same simulation as the button (`POST /api/watch/:id/simulate-drop`), labelled "simulated" in the notification and the audit log. 2 tests.
