@@ -17,6 +17,7 @@
 <link rel="stylesheet" href="panels.css">
 <link rel="stylesheet" href="mockups.css">
 <link rel="stylesheet" href="week.css">
+<link rel="stylesheet" href="week-motion.css">
 <script src="boot.js"></script>
 <script src="page.js" defer></script>
 <script src="nav.js" defer></script>
@@ -276,20 +277,25 @@
   <section class="peers">
     <div class="section-head reveal">
       <h2>You are not the only one.</h2>
+      <p>Money worry is common. One small step is a good place to start.</p>
     </div>
+    <!-- Each row of ten dots draws the share: 48% about 5 in 10, 21% about 2, 11% about 1. -->
     <ul class="stat-grid">
       <li class="stat-card stat-large reveal">
-        <p class="stat-figure js-count">48%</p>
+        <p class="stat-figure js-count" data-count-ms="700">48%</p>
+        <span class="stat-dots" aria-hidden="true"><span class="dot dot-on"></span><span class="dot dot-on"></span><span class="dot dot-on"></span><span class="dot dot-on"></span><span class="dot dot-on"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>
         <p class="stat-text">of under-30s in Finland worry about money at least once a week.</p>
         <a class="source-link" href="https://www.sttinfo.fi/tiedote/72282300/s-pankin-tutkimus-nuoret-kokevat-arjen-turvalliseksi-vaikka-talous-huolettaakin?lang=fi">S-Pankki study of young adults, press release on STT Info</a>
       </li>
       <li class="stat-card reveal">
-        <p class="stat-figure js-count">21%</p>
+        <p class="stat-figure js-count" data-count-ms="700">21%</p>
+        <span class="stat-dots" aria-hidden="true"><span class="dot dot-on"></span><span class="dot dot-on"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>
         <p class="stat-text">of under-30s in Finland have no savings at all.</p>
         <a class="source-link" href="https://www.sttinfo.fi/tiedote/72282300/s-pankin-tutkimus-nuoret-kokevat-arjen-turvalliseksi-vaikka-talous-huolettaakin?lang=fi">S-Pankki study of young adults, press release on STT Info</a>
       </li>
       <li class="stat-card reveal">
-        <p class="stat-figure js-count">11%</p>
+        <p class="stat-figure js-count" data-count-ms="700">11%</p>
+        <span class="stat-dots" aria-hidden="true"><span class="dot dot-on"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>
         <p class="stat-text">of the people who use S-Pankki's <span lang="fi">Säästäjä</span> are 18 to 25.</p>
         <a class="source-link" href="https://dokumentit.s-pankki.fi/tiedostot/s-pankki-saastajien-suomi-032026">S-Pankki report Säästäjien Suomi, March 2026</a>
       </li>
@@ -300,44 +306,51 @@
     <div class="section-head reveal">
       <h2>Your week on one receipt.</h2>
     </div>
+    <!-- The receipt and the shelf close the example week that starts in section 4 (Monday, 6 days to payday).
+         Each figure is its own reveal trigger, so the receipt prints and the jars fill when they come into view. -->
     <div class="week-grid">
       <div class="tall-card tall-receipt reveal">
-        <h3>The weekly receipt</h3>
-        <p class="tall-lead">Every Sunday, your week fits on one slip.</p>
-        <figure class="receipt-figure">
+        <div class="tall-head">
+          <h3>The weekly receipt</h3>
+          <p class="tall-lead">Every Sunday, your week fits on one slip.</p>
+        </div>
+        <figure class="receipt-figure reveal">
           <div class="receipt">
             <p class="receipt-title">Your week</p>
             <p class="receipt-dates">9 to 15 Nov 2026</p>
-            <p class="receipt-row"><span>Fixed</span> <span class="num">€148.00</span></p>
+            <p class="receipt-row"><span>Fixed</span> <span class="num">€254.50</span></p>
             <p class="receipt-row"><span>Curveballs</span> <span class="num">€32.50</span></p>
-            <p class="receipt-row"><span>Leaks</span> <span class="num">€47.80</span></p>
-            <p class="receipt-row receipt-rule"><span>Into jars</span> <span class="num">+€20.00</span></p>
+            <p class="receipt-row"><span>Leaks</span> <span class="num">€29.40</span></p>
+            <p class="receipt-row receipt-concert"><span>Concert ticket</span> <span class="num">€45.00</span></p>
+            <p class="receipt-row receipt-rule"><span>Into jars</span> <span class="num">+€40.00</span></p>
             <p class="receipt-row">
               <span>Streak</span>
-              <span class="num receipt-streak"><svg class="flame" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c0 4 6 6.5 6 12a6 6 0 0 1-12 0c0-2 .8-3.6 2-5 .2 1.6 1 2.6 2 3 0-3.5.5-7 2-10z"/></svg> 12 days</span>
+              <span class="num receipt-streak"><svg class="flame" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c0 4 6 6.5 6 12a6 6 0 0 1-12 0c0-2 .8-3.6 2-5 .2 1.6 1 2.6 2 3 0-3.5.5-7 2-10z"/></svg> 18 days</span>
             </p>
-            <p class="receipt-liito">Liito: 5 check-ins this week. Day 12 is yours.</p>
+            <p class="receipt-liito">Liito: 7 check-ins. The concert fit, with €0.60 to spare.</p>
           </div>
           <figcaption class="example-note">Example figures</figcaption>
         </figure>
       </div>
       <div class="tall-card tall-shelf reveal">
-        <h3>The jar shelf</h3>
-        <p class="tall-lead">Each jar is one goal with a name and a target.</p>
-        <figure class="shelf-figure">
+        <div class="tall-head">
+          <h3>The jar shelf</h3>
+          <p class="tall-lead">Each jar is one goal with a name and a target.</p>
+        </div>
+        <figure class="shelf-figure reveal">
           <div class="shelf">
             <div class="shelf-slot">
               <p class="slot-stand"><span class="jar jar-buffer"><span class="jar-lid"></span><span class="jar-glass"><span class="jar-fill"></span></span></span></p>
               <p class="slot-name">Buffer</p>
-              <p class="slot-sum"><span class="num">€120</span> <span class="slot-goal">of €500</span></p>
+              <p class="slot-sum"><span class="num js-count" data-count-ms="700">€160</span> <span class="slot-goal">of €500</span></p>
             </div>
             <div class="shelf-slot">
               <p class="slot-stand"><span class="jar jar-trip"><span class="jar-lid"></span><span class="jar-glass"><span class="jar-fill"></span></span></span></p>
               <p class="slot-name">Summer trip</p>
-              <p class="slot-sum"><span class="num">€260</span> <span class="slot-goal">of €400</span></p>
+              <p class="slot-sum"><span class="num js-count" data-count-ms="700">€260</span> <span class="slot-goal">of €400</span></p>
             </div>
             <div class="shelf-slot">
-              <p class="slot-stand"><span class="jar-empty"></span></p>
+              <p class="slot-stand"><span class="jar-empty"><span class="jar-plus"></span></span></p>
               <p class="slot-name">Empty slot</p>
               <p class="slot-sum"><span class="slot-goal">Room for one more jar</span></p>
             </div>

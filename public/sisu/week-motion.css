@@ -1,0 +1,242 @@
+/* Sections 5 and 6: the dot rows of the sourced figures, and the motion of both sections.
+   Each sequence starts from a .js ... .is-in class set by page.js, runs once, ends in the normal CSS
+   state about 1.1 s after its trigger, and sits in the no-preference query, so reduced motion stays still. */
+
+/* Ten dots under each figure, filled ones first: about 5 in 10, 2 in 10 and 1 in 10. Deep green rings
+   and fills (5.0:1 on pale mint, 5.6:1 on white). */
+.stat-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.dot {
+  --i: 0;
+  --ring: 2px;
+  position: relative;
+  display: block;
+  width: 14px;
+  height: 14px;
+  border: var(--ring) solid var(--green-700);
+  border-radius: var(--radius-full);
+}
+
+.dot:nth-child(2) { --i: 1; }
+.dot:nth-child(3) { --i: 2; }
+.dot:nth-child(4) { --i: 3; }
+.dot:nth-child(5) { --i: 4; }
+
+/* The fill covers the ring too, so a filled dot is one solid disc with no seam. */
+.dot-on::before {
+  content: "";
+  position: absolute;
+  inset: calc(-1 * var(--ring));
+  border-radius: inherit;
+  background: var(--green-700);
+}
+
+/* The large card first, then the two smaller ones 100 ms apart. */
+.stat-card {
+  --card-delay: 0ms;
+}
+
+.stat-card:nth-child(2) {
+  --card-delay: 100ms;
+}
+
+.stat-card:nth-child(3) {
+  --card-delay: 200ms;
+}
+
+/* The receipt lines print in reading order: title, dates, four amounts, jars, streak, Liito. */
+.receipt > * { --line: 0; }
+.receipt > :nth-child(2) { --line: 1; }
+.receipt > :nth-child(3) { --line: 2; }
+.receipt > :nth-child(4) { --line: 3; }
+.receipt > :nth-child(5) { --line: 4; }
+.receipt > :nth-child(6) { --line: 5; }
+.receipt > :nth-child(7) { --line: 6; }
+.receipt > :nth-child(8) { --line: 7; }
+.receipt > :nth-child(9) { --line: 8; }
+
+@media (min-width: 600px) {
+  .stat-large .stat-dots {
+    gap: 8px;
+  }
+
+  .stat-large .dot {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* From 1024 px the large card is tall: its dots move to the top as a picture, two rows of five
+   (the filled row on top), and the figure, sentence and source stay at the bottom. */
+@media (min-width: 1024px) {
+  .stat-large .stat-dots {
+    order: -1;
+    gap: 12px;
+    max-width: 210px;
+    margin-bottom: auto;
+  }
+
+  .stat-large .dot {
+    --ring: 3px;
+    width: 30px;
+    height: 30px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Section 5: each card fades in and rises 12 px in 320 ms. Its figure counts up in 700 ms as it arrives
+     (page.js, data-count-ms), then its filled dots pop in from the left, 70 ms apart. */
+  .js .stat-card.reveal.is-waiting {
+    transform: translateY(12px);
+  }
+
+  .js .stat-card.reveal.is-in {
+    transition: none;
+    animation: stat-arrive 320ms cubic-bezier(0.22, 1, 0.36, 1) var(--card-delay) backwards;
+  }
+
+  .js .stat-card.reveal.is-waiting .dot-on::before {
+    transform: scale(0);
+  }
+
+  .js .stat-card.reveal.is-in .dot-on::before {
+    animation: dot-pop 300ms var(--ease-spring) backwards;
+    animation-delay: calc(var(--card-delay) + 260ms + var(--i) * 70ms);
+  }
+
+  /* Section 6: the two figures are only triggers. They do not fade themselves; what is inside moves. */
+  .js .receipt-figure.reveal.is-waiting,
+  .js .shelf-figure.reveal.is-waiting {
+    opacity: 1;
+    transform: none;
+  }
+
+  .js .receipt-figure.reveal.is-in,
+  .js .shelf-figure.reveal.is-in {
+    transition: none;
+  }
+
+  /* The receipt prints once from its top edge down in 900 ms, the zigzag edge leading the paper. */
+  .receipt {
+    --receipt-closed: polygon(
+      0 0, 100% 0, 100% -12px,
+      95% 0, 90% -12px, 85% 0, 80% -12px,
+      75% 0, 70% -12px, 65% 0, 60% -12px,
+      55% 0, 50% -12px, 45% 0, 40% -12px,
+      35% 0, 30% -12px, 25% 0, 20% -12px,
+      15% 0, 10% -12px, 5% 0, 0 -12px
+    );
+  }
+
+  .js .receipt-figure.is-waiting .receipt {
+    clip-path: var(--receipt-closed);
+  }
+
+  .js .receipt-figure.is-in .receipt {
+    animation: receipt-print 900ms cubic-bezier(0.3, 0.1, 0.3, 1) 100ms backwards;
+  }
+
+  /* Its lines follow in reading order, 60 ms apart; each dashed rule draws from left to right,
+     and the concert line gets its highlight. */
+  .js .receipt-figure.is-waiting .receipt > * {
+    opacity: 0;
+  }
+
+  .js .receipt-figure.is-in .receipt > * {
+    animation: receipt-line 280ms var(--ease-out) backwards;
+    animation-delay: calc(200ms + var(--line) * 60ms);
+  }
+
+  .js .receipt-figure.is-in .receipt-dates::after,
+  .js .receipt-figure.is-in .receipt-rule::before,
+  .js .receipt-figure.is-in .receipt-liito::before {
+    animation: rule-draw 350ms var(--ease-out) backwards;
+    animation-delay: calc(300ms + var(--line) * 60ms);
+  }
+
+  .js .receipt-figure.is-in .receipt-concert::before {
+    animation: mark-sweep 380ms var(--ease-out) backwards;
+    animation-delay: calc(360ms + var(--line) * 60ms);
+  }
+
+  /* The jars fill to their levels once with a slight overshoot, 250 and 370 ms after the shelf shows.
+     While the shelf waits below the view its fills stay down, also against the section 4 jar rule. */
+  .js .shelf-figure.is-waiting .jar-fill {
+    animation: none;
+    transform: translateY(100%);
+  }
+
+  .js .shelf-figure.is-in .jar-fill {
+    animation: shelf-fill 650ms var(--ease-spring) 250ms backwards;
+  }
+
+  .js .shelf-figure.is-in .shelf-slot:nth-child(2) .jar-fill {
+    animation-delay: 370ms;
+  }
+}
+
+@keyframes stat-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@keyframes dot-pop {
+  from {
+    transform: scale(0);
+  }
+}
+
+@keyframes receipt-print {
+  from {
+    clip-path: var(--receipt-closed);
+  }
+}
+
+@keyframes receipt-line {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@keyframes rule-draw {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+
+  to {
+    clip-path: inset(0);
+  }
+}
+
+@keyframes mark-sweep {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes shelf-fill {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+/* A print-out shows the finished state. */
+@media print {
+  .stat-card,
+  .dot-on::before,
+  .receipt,
+  .receipt > *,
+  .receipt > *::before,
+  .receipt > *::after,
+  .jar-fill {
+    animation: none !important;
+  }
+}
