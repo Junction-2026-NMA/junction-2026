@@ -30,7 +30,7 @@ export type PlanView = {
   findings: Finding[];
   lanes: Lane[];
   checks: CheckLane[]; // rules and prices outside the account that Exa is researching
-  calc: { steps: CalcStep[]; totalYearlyEur: number; effortlessYearlyEur: number } | null;
+  calc: { steps: CalcStep[]; totalYearlyEur: number; effortlessYearlyEur: number; checkPlanYearlyEur: number } | null;
   actions: AgentAction[];
   projection: PlanProjection | null;
   summary: { text: string; by: "nemotron" | "code" } | null;

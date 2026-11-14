@@ -8,7 +8,8 @@ import { asksForChart } from "@/lib/agent/guards";
 import { setMockScript } from "@/lib/agent/mock";
 import { runTurn } from "@/lib/agent/orchestrator";
 import { runPlan } from "@/lib/agent/plan";
-import { CHART_KINDS, budgetVisual, chartFor, futuresVisual } from "@/lib/agent/visuals";
+import { CHART_KINDS, basketsVisual, budgetVisual, chartFor, futuresVisual } from "@/lib/agent/visuals";
+import { categoryAverages } from "@/lib/finance/categories";
 import { buildOverview } from "@/lib/finance/overview";
 import { cleanInput, runScenario } from "@/lib/finance/scenario";
 import type { ScenarioInput, SisuActivity, SisuEvent, Visual } from "@/lib/types";
@@ -34,6 +35,42 @@ describe("charts", () => {
         assert.ok(check.ok, `${customerId} ${visual.kind}: "${visual.summary}" has unsourced ${check.unverified.join(", ")}`);
       }
     }
+  });
+
+  it("the three baskets add up to all spending and their shares to a hundred", () => {
+    for (const customerId of ALL) {
+      const visual = basketsVisual(buildOverview(customerId)!);
+      assert.ok(visual.kind === "basket_bar" && visual.baskets.length === 3);
+      assert.ok(Math.abs(visual.baskets.reduce((sum, basket) => sum + basket.monthly, 0) - visual.total) < 0.02);
+      assert.ok(Math.abs(visual.baskets.reduce((sum, basket) => sum + basket.share, 0) - 100) < 1);
+      assert.ok(visual.baskets.every((basket) => basket.top.length >= 1));
+    }
+  });
+
+  // Regression, 14 Nov: S-Pankki's own example question. The model took 20% of one unusual month (252 a month); the honest figure is 55.
+  it("cutting a category by a percentage starts from its twelve-month average, worked out in code", async () => {
+    freshState();
+    const overview = buildOverview(AINO)!;
+    const average = categoryAverages(overview).find((entry) => entry.category === "Restaurants")!.monthly;
+    const { script } = scriptedModel([[call("run_scenario", { category: "Restaurants", categoryCutPct: 20 })], "That frees money every month."]);
+    setMockScript(script);
+    const events = await collect(runTurn({ customerId: AINO, text: "How much could I save if I reduced dining out by 20%?", mode: "text" }));
+    const facts = ofType(events, "grounding")[0].facts;
+    const freed = facts.find((f) => f.id === "scenario:category-freed");
+    assert.equal(freed?.value, Math.round(average * 20) / 100);
+    assert.equal(facts.find((f) => f.id === "scenario:category-freed-yearly")?.value, Math.round((freed?.value ?? 0) * 12 * 100) / 100);
+    assert.ok((freed?.value ?? 0) < 100, "a fifth of an average month of restaurants, not of one unusual month");
+    assert.equal(ofType(events, "visual")[0]?.visual.kind, "futures_lines");
+  });
+
+  it("the three-baskets lesson keeps its answer back, and carries the customer's own baskets for the reveal", async () => {
+    freshState();
+    const { script } = scriptedModel([[call("explain_concept", { concept: "three-baskets" })], "What share do you think goes on everyday choices?"]);
+    setMockScript(script);
+    const events = await collect(runTurn({ customerId: AINO, text: "Explain the three baskets with my own money.", mode: "text" }));
+    const card = ofType(events, "teaching")[0].card;
+    assert.equal(card.revealVisual?.kind, "basket_bar");
+    assert.equal(ofType(events, "visual").length, 0, "the chart is not shown before the customer has guessed");
   });
 
   it("recognises a request for a picture, but not a what-if", () => {

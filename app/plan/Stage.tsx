@@ -13,6 +13,7 @@ const ACTS: { id: Exclude<Act, "idle">; label: string }[] = [
   { id: "web", label: "Web" },
   { id: "sums", label: "Sums" },
 ];
+const BASKET_COLOUR = ["#c9f26b", "#eda100", "#6aa6ff"]; // must pay every month, must pay now and then, everyday choices
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const monthYear = (date: string): string => `${MONTHS[Number(date.slice(5, 7)) - 1]} ${date.slice(0, 4)}`;
 
@@ -62,7 +63,24 @@ function ScanAct({ view }: { view: PlanView }) {
         </p>
       </div>
 
-      <div className="plan-rows-mask relative h-36 overflow-hidden rounded-xl border border-[var(--stage-line)] bg-black/15">
+      {/* The three baskets: where the money really goes. S-Pankki's own way of teaching it. */}
+      <div className="plan-in space-y-1.5" style={{ animationDelay: "500ms" }}>
+        <div className="flex h-3 w-full gap-0.5">
+          {scan.baskets.map((basket, index) => (
+            <div key={basket.id} className="plan-grow h-full first:rounded-l-full last:rounded-r-full" style={{ width: `${Math.max(4, basket.sharePct)}%`, background: BASKET_COLOUR[index % BASKET_COLOUR.length], animationDelay: `${600 + index * 160}ms` }} />
+          ))}
+        </div>
+        <ul className="grid grid-cols-3 gap-2 text-[11px] leading-tight text-[var(--stage-dim)]">
+          {scan.baskets.map((basket, index) => (
+            <li key={basket.id}>
+              <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full align-middle" style={{ background: BASKET_COLOUR[index % BASKET_COLOUR.length] }} />
+              <span className="tabular font-semibold text-white">{basket.sharePct}%</span> {basket.label.toLowerCase()}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="plan-rows-mask relative h-28 overflow-hidden rounded-xl border border-[var(--stage-line)] bg-black/15">
         <ul className="plan-rows px-3 py-1 font-mono text-[12px] leading-6">
           {rows.map((row, index) => (
             <li key={index} className="flex justify-between gap-3 text-white/70">
@@ -202,7 +220,12 @@ function SumsAct({ view }: { view: PlanView }) {
   const calc = view.calc;
   const total = useCountUp(calc?.totalYearlyEur ?? 0, 1300);
   if (!calc) return null;
-  const effort = calc.totalYearlyEur - calc.effortlessYearlyEur;
+  const effort = calc.totalYearlyEur - calc.effortlessYearlyEur - calc.checkPlanYearlyEur;
+  const split = [
+    calc.effortlessYearlyEur > 0 ? `${euro(calc.effortlessYearlyEur)} needs nothing from you` : null,
+    calc.checkPlanYearlyEur > 0 ? `${euro(calc.checkPlanYearlyEur)} if cheaper plans match yours` : null,
+    effort > 0 ? `${euro(effort)} needs spending to come down` : null,
+  ].filter((part): part is string => part !== null);
   return (
     <div className="plan-act space-y-4">
       <p className="text-sm text-[var(--stage-dim)]">Adding it up. Every sum is done in code, not by the model.</p>
@@ -222,7 +245,7 @@ function SumsAct({ view }: { view: PlanView }) {
         </p>
         {calc.totalYearlyEur > 0 && (
           <p className="mt-2 text-[13px] text-[var(--stage-dim)]">
-            {euro(calc.effortlessYearlyEur)} needs nothing from you · {euro(effort)} needs spending to come down
+            {split.join(" · ")}
           </p>
         )}
       </div>

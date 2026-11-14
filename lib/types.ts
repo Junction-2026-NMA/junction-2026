@@ -366,6 +366,7 @@ export type TeachingCard = {
   correctIndex: number;
   reveal: string;
   facts: Fact[];
+  revealVisual?: Visual; // a chart to show with the answer, once the customer has guessed
 };
 
 export type ActionKind = "switch_contract" | "standing_transfer" | "one_off_transfer";
@@ -545,7 +546,11 @@ export type PlanItem = {
   detail: string;
   yearlyEur: number;
   monthlyEur: number;
-  needs: "nothing" | "spending-change"; // a switch saves money as it is; a habit saves only if the spending really comes down
+  // "nothing": saves money as it is (an electricity switch, priced at the customer's own use).
+  // "check-plan": a cheaper internet or mobile plan. Sisu cannot see the speed or data the customer has now, so it
+  // may be a smaller plan: it saves money only if it matches what they need.
+  // "spending-change": a habit, which saves only if the spending really comes down.
+  needs: "nothing" | "check-plan" | "spending-change";
   actionId: string | null; // the action set up for it, if one could be
   sources: Citation[];
   facts: Fact[];
@@ -570,6 +575,7 @@ export type MoneyPlan = {
   actions: AgentAction[]; // set up and waiting for approval
   totalYearlyEur: number;
   effortlessYearlyEur: number; // the part that needs nothing from the customer
+  checkPlanYearlyEur: number; // cheaper internet or mobile plans, if they match what the customer has now
   projection: PlanProjection | null;
   searches: PlanSearch[];
   summary: string;
@@ -580,7 +586,7 @@ export type MoneyPlan = {
 
 export type PlanEvent =
   | { type: "plan_start"; planId: string; customerName: string; provider: string; model: string; mock: boolean }
-  | { type: "scan"; transactions: number; months: number; from: string; to: string; rows: { date: string; category: string; amount: number }[]; categories: { category: string; monthlyEur: number }[]; tookMs: number }
+  | { type: "scan"; transactions: number; months: number; from: string; to: string; rows: { date: string; category: string; amount: number }[]; categories: { category: string; monthlyEur: number }[]; baskets: { id: BasketId; label: string; monthlyEur: number; sharePct: number }[]; tookMs: number }
   | { type: "finding"; id: string; role: "habit" | "bill" | "notice"; title: string; detail: string; yearlyEur: number | null }
   | { type: "search_start"; billType: BillType; query: string; engine: "exa" }
   | { type: "search_pages"; billType: BillType; pages: { url: string; host: string; title: string }[]; tookMs: number }
@@ -588,7 +594,7 @@ export type PlanEvent =
   | { type: "offers"; billType: BillType; ok: boolean; best: Offer | null; yearlySavingEur: number | null; currentMonthlyEur: number | null; offersFound: number; live: boolean; note: string | null }
   | { type: "check_start"; id: string; title: string; query: string; engine: "exa" }
   | { type: "check_done"; check: PlanCheck }
-  | { type: "calc"; steps: CalcStep[]; totalYearlyEur: number; effortlessYearlyEur: number }
+  | { type: "calc"; steps: CalcStep[]; totalYearlyEur: number; effortlessYearlyEur: number; checkPlanYearlyEur: number }
   | { type: "action"; action: AgentAction }
   | { type: "projection"; projection: PlanProjection }
   | { type: "summary"; text: string; by: "nemotron" | "code"; tookMs: number }
@@ -603,6 +609,7 @@ type VisualBase = { id: string; title: string; caption: string; summary: string;
 export type Visual = VisualBase &
   (
     | { kind: "budget_donut"; slices: { label: string; value: number; share: number }[]; total: number; centerLabel: string } // share is 0..100
+    | { kind: "basket_bar"; total: number; baskets: { id: BasketId; label: string; description: string; monthly: number; share: number; top: { category: string; monthly: number }[] }[] } // share is 0..100
     | { kind: "peer_bars"; peerGroup: string; rows: { label: string; you: number; peers: number }[] }
     | { kind: "month_bars"; months: { month: string; label: string; income: number; spending: number }[] }
     | { kind: "waterfall"; steps: CalcStep[]; resultLabel: string; resultValue: number }

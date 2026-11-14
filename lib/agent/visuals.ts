@@ -1,12 +1,13 @@
 // Pictures the agent can put on screen. Each one is built in code from the same figures the answer uses, and
 // carries a receipt for every number in it, so a chart can never show something the customer's data does not.
 // The screen draws them (see app/visuals/); the model only chooses which one to show.
-import { peerAverage, transactionsFor } from "@/lib/finance/data";
+import { categoryAverages } from "@/lib/finance/categories";
+import { peerAverage } from "@/lib/finance/data";
 import { fact } from "@/lib/finance/facts";
-import { groupBy, round2, sum } from "@/lib/finance/math";
+import { round2, sum } from "@/lib/finance/math";
 import type { Fact, Overview, ResearchResult, ScenarioResult, Visual } from "@/lib/types";
 
-export const CHART_KINDS = ["budget", "vs_peers", "months", "safe_to_spend"] as const;
+export const CHART_KINDS = ["baskets", "budget", "vs_peers", "months", "safe_to_spend"] as const;
 export type ChartKind = (typeof CHART_KINDS)[number];
 
 const MAX_SLICES = 5; // more than this and the smallest fold into "Other"
@@ -16,15 +17,6 @@ const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Se
 const monthLabel = (month: string): string => `${MONTH_NAMES[Number(month.slice(5, 7)) - 1]} ${month.slice(2, 4)}`;
 const eur = (value: number): string => `€${Math.round(value).toLocaleString("en-US")}`;
 const period = (o: Overview): string => `Average of the last ${o.windowMonths} months, ${monthLabel(o.windowFrom.slice(0, 7))} to ${monthLabel(o.windowTo.slice(0, 7))}`;
-
-// Average monthly spending per category over the overview's window, largest first.
-function categoryAverages(overview: Overview): { category: string; monthly: number }[] {
-  const rows = transactionsFor(overview.customerId).filter((row) => row.amount < 0 && row.date >= overview.windowFrom && row.date <= overview.windowTo);
-  return Object.entries(groupBy(rows, (row) => row.category))
-    .map(([category, list]) => ({ category, monthly: round2(-sum(list.map((row) => row.amount)) / overview.windowMonths) }))
-    .filter((entry) => entry.monthly > 0)
-    .sort((a, b) => b.monthly - a.monthly);
-}
 
 export function budgetVisual(overview: Overview): Visual {
   const all = categoryAverages(overview);
@@ -109,7 +101,36 @@ export function safeToSpendVisual(overview: Overview): Visual {
   };
 }
 
+// The three baskets every customer's spending falls into: what must be paid every month, what must be paid now
+// and then, and everyday choices. This is the picture S-Pankki's own teaching starts from.
+export function basketsVisual(overview: Overview): Visual {
+  const total = round2(sum(overview.baskets.map((basket) => basket.monthlyAvg)));
+  const baskets = overview.baskets.map((basket) => ({
+    id: basket.id,
+    label: basket.label,
+    description: basket.description,
+    monthly: round2(basket.monthlyAvg),
+    share: round2(basket.share * 100),
+    top: [...basket.categories].sort((a, b) => b.monthlyAvg - a.monthlyAvg).slice(0, 3).map((category) => ({ category: category.category, monthly: round2(category.monthlyAvg) })),
+  }));
+  return {
+    id: "baskets",
+    kind: "basket_bar",
+    title: "Your three baskets",
+    caption: period(overview),
+    summary: `${baskets.map((basket) => `${eur(basket.monthly)} a month (${Math.round(basket.share)}%) goes on ${basket.label.toLowerCase()}`).join(", ")}.`,
+    source: "bank-data",
+    facts: [
+      ...baskets.flatMap((basket) => [fact(`chart:basket:${basket.id}`, `${basket.label}, average per month`, basket.monthly, "EUR/month", period(overview)), fact(`chart:basket:${basket.id}:share`, `${basket.label}, share of spending`, Math.round(basket.share), "percent", "its share of all spending", { source: "calculation" })]),
+      fact("chart:basket:total", "All three baskets, average per month", total, "EUR/month", "the sum of the baskets", { source: "calculation" }),
+    ],
+    baskets,
+    total,
+  };
+}
+
 export function chartFor(kind: ChartKind, overview: Overview): Visual | null {
+  if (kind === "baskets") return basketsVisual(overview);
   if (kind === "budget") return budgetVisual(overview);
   if (kind === "vs_peers") return peersVisual(overview);
   if (kind === "months") return monthsVisual(overview);

@@ -43,6 +43,10 @@ describe("money plan", () => {
       const sum = Math.round(result.items.reduce((total, item) => total + item.yearlyEur, 0) * 100) / 100;
       assert.equal(result.totalYearlyEur, sum);
       assert.equal(result.effortlessYearlyEur, Math.round(result.items.filter((item) => item.needs === "nothing").reduce((total, item) => total + item.yearlyEur, 0) * 100) / 100);
+      // Only an electricity switch "needs nothing": it is priced at the customer's own use. A cheaper internet or
+      // mobile plan may be a smaller one, so it is counted apart.
+      assert.equal(result.checkPlanYearlyEur, Math.round(result.items.filter((item) => item.needs === "check-plan").reduce((total, item) => total + item.yearlyEur, 0) * 100) / 100);
+      assert.ok(result.items.filter((item) => item.kind === "switch").every((item) => (item.needs === "nothing") === item.id.endsWith(":electricity")));
       assert.ok(checkGrounding(result.summary, result.facts, [], []).ok, `summary is sourced: ${result.summary}`);
       assert.equal(result.summaryBy, "code", "mock mode has no model, so code words the summary");
     }
