@@ -1,10 +1,11 @@
 /* Mock-ups of panels 2 and 3 in section 4: the chat with Liito and the daily checklist.
    Pictures built from HTML and CSS. Nothing in them can be focused or clicked. */
-/* Panel 2: a short chat. The user's bubble is deep green, Liito's replies are white on pale green. */
+/* Panel 2: a short chat. The user's bubble is deep green, Liito's replies are white on pale green.
+   Question, answer, the number behind it, then two suggested next steps (pictures, not buttons). */
 .mock-chat {
   gap: 6px;
   padding: 14px;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   background: var(--bg);
 }
 
@@ -166,4 +167,23 @@
 
 .daily-jar-name {
   font-weight: 700;
+}
+
+/* From 1024px the checklist card is as tall as the chat card, so its parts grow a little. */
+@media (min-width: 1024px) {
+  .mock-daily {
+    gap: 10px;
+  }
+
+  .daily-day {
+    font-size: 2rem;
+  }
+
+  .task {
+    min-height: 56px;
+  }
+
+  .daily-jar .jar {
+    width: 56px;
+  }
 }

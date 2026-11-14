@@ -1,12 +1,17 @@
 /* Section 4: three large panels. Each has its text and one mock-up on a white inner card.
-   From 1024px they are two columns; on tall wide screens they also stack while scrolling. */
+   On phones the text comes first. From 1024px text and mock-up sit side by side in equal
+   columns and the mock-up changes side: left, right, left. On tall wide screens with motion
+   allowed the panels also stack while scrolling: each one rests for a beat, then the next
+   slides over it and the covered one recedes a little (panels.js sets --cover). */
 .panel-stack {
+  --beat: clamp(200px, 34vh, 320px);
   display: grid;
   gap: 24px;
 }
 
 .panel {
   --stick-top: 24px;
+  --cover: 0;
   --panel-face: var(--green-100);
   --panel-ink: var(--green-900);
   --tick-face: var(--green-700);
@@ -39,6 +44,7 @@
   font-weight: 800;
   line-height: 1.1;
   letter-spacing: -0.02em;
+  text-wrap: balance;
 }
 
 .panel-copy p {
@@ -83,8 +89,10 @@
   transform: rotate(45deg);
 }
 
+/* The white card: the mock-up takes any spare height, the caption stays at the bottom. */
 .panel-visual {
   display: grid;
+  grid-template-rows: 1fr auto;
   gap: 10px;
   justify-self: center;
   width: min(100%, 480px);
@@ -96,16 +104,29 @@
 
 .mock {
   display: grid;
+  align-content: start;
   gap: 8px;
 }
 
+@media (min-width: 600px) {
+  .panel {
+    gap: 28px;
+    padding: 40px 32px 32px;
+  }
+}
+
+/* Equal columns, 60px apart, 56px inside the panel. The cards share one height per panel. */
 @media (min-width: 1024px) {
   .panel {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas: "visual copy";
     align-items: center;
-    gap: 48px;
-    padding: 32px 48px 32px 32px;
+    gap: 60px;
+    padding: 56px;
+  }
+
+  .panel-chat {
+    grid-template-areas: "copy visual";
   }
 
   .panel-copy {
@@ -114,17 +135,38 @@
 
   .panel-visual {
     grid-area: visual;
-    width: min(100%, 420px);
+    align-self: stretch;
+    width: 100%;
+    padding: 20px;
   }
 }
 
-/* Stacking: each panel sticks a little lower than the one before, so the next slides over it.
-   Only on wide and tall viewports with motion allowed; everywhere else the panels just follow. */
+/* Stacking. Each panel sticks a little lower than the one before. The row gap is the reading
+   beat: the scroll during which a panel rests in full view before the next one reaches it.
+   The empty last row gives the third panel the same rest before the stack scrolls away.
+   As the next panel slides over, the covered one shrinks to 0.94 and lifts 12px. */
 @media (min-width: 1024px) and (min-height: 760px) and (prefers-reduced-motion: no-preference) {
+  .panel-stack {
+    row-gap: var(--beat);
+  }
+
+  .panel-stack::after {
+    content: "";
+  }
+
   .panel {
     position: sticky;
     top: var(--stick-top);
-    min-height: 600px;
-    max-height: calc(100vh - 96px);
+    min-height: 560px;
+    transform-origin: 50% 0;
+    scale: calc(1 - 0.06 * var(--cover));
+    translate: 0 calc(-12px * var(--cover));
+  }
+}
+
+@media print {
+  .panel {
+    scale: none;
+    translate: none;
   }
 }

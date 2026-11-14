@@ -1,0 +1,222 @@
+/* Section 4: what builds inside each panel when it is revealed. page.js adds is-in once, as the
+   panel scrolls into view, and the panel (or, while stacking, its two halves) fades in. The
+   insides then build from --build on; panels.js may hold a half until it is well in view. Every
+   step is a keyframe animation with backwards fill that ends in the normal state from the other
+   stylesheets, so without scripts, for panels already on screen and with reduced motion the
+   panels are simply complete. Nothing loops, and each build takes at most 1.5 s. */
+.panel {
+  --build: 200ms;
+}
+
+/* While the panels stack, a panel slides in over the one before. So there it comes in opaque
+   and only its two halves fade in: the panel underneath never shows through. */
+@media (min-width: 1024px) and (min-height: 760px) and (prefers-reduced-motion: no-preference) {
+  .js .panel.reveal.is-waiting {
+    opacity: 1;
+    transform: none;
+  }
+
+  .js .panel.is-waiting > * {
+    opacity: 0;
+  }
+
+  .js .panel.is-in > * {
+    transition: opacity var(--reveal-time) var(--ease-out);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* panels.js holds each half's build, paused on its first frame, until that half is well in view
+     (at most 3 s after the panel shows). Without panels.js nothing is held. */
+  .js.panels-wired .panel.is-in > :not(.is-near) *,
+  .js.panels-wired .panel.is-in > :not(.is-near) *::before,
+  .js.panels-wired .panel.is-in > :not(.is-near) *::after {
+    animation-play-state: paused !important;
+  }
+
+  /* All panels: the three ticks beside the mock-up arrive one after another, each tick popping. */
+  .js .panel.is-in .tick-list li {
+    animation: panel-rise 260ms var(--ease-out) backwards;
+  }
+
+  .js .panel.is-in .tick-list li:nth-child(1) {
+    animation-delay: calc(var(--build) + 280ms);
+  }
+
+  .js .panel.is-in .tick-list li:nth-child(2) {
+    animation-delay: calc(var(--build) + 400ms);
+  }
+
+  .js .panel.is-in .tick-list li:nth-child(3) {
+    animation-delay: calc(var(--build) + 520ms);
+  }
+
+  .js .panel.is-in .tick-list li::before,
+  .js .panel.is-in .tick-list li::after {
+    animation: tick-pop 320ms var(--ease-spring) backwards;
+    animation-delay: inherit;
+  }
+
+  /* Panel 1: the €64 counts up (page.js, 800 ms), the pay period bar fills over 700 ms and the
+     three rows behind the number arrive: balance, bills still to come, set aside for jars. */
+  .js .panel.panel-safe.is-in .period-fill {
+    transform-origin: left center;
+    transition: none;
+    animation: bar-fill 700ms var(--ease-spring) backwards;
+    animation-delay: calc(var(--build) + 100ms);
+  }
+
+  .js .panel-safe.is-in .safe-row {
+    animation: panel-rise 260ms var(--ease-out) backwards;
+  }
+
+  .js .panel-safe.is-in .safe-row:nth-child(2) {
+    animation-delay: calc(var(--build) + 200ms);
+  }
+
+  .js .panel-safe.is-in .safe-row:nth-child(3) {
+    animation-delay: calc(var(--build) + 320ms);
+  }
+
+  .js .panel-safe.is-in .safe-row:nth-child(4) {
+    animation-delay: calc(var(--build) + 440ms);
+  }
+
+  /* Panel 2: the chat builds like a conversation. The question, Liito's answer, the follow-up,
+     the number behind it, then the suggested next steps. No typing effect. */
+  .js .panel-chat.is-in .mock-chat > *,
+  .js .panel-chat.is-in .data-card {
+    animation: panel-rise 260ms var(--ease-out) backwards;
+  }
+
+  .js .panel-chat.is-in .mock-chat > .chat-name-user,
+  .js .panel-chat.is-in .mock-chat > .bubble-user {
+    animation-delay: var(--build);
+  }
+
+  .js .panel-chat.is-in .mock-chat > .chat-name-liito,
+  .js .panel-chat.is-in .mock-chat > .bubble-answer {
+    animation-delay: calc(var(--build) + 260ms);
+  }
+
+  .js .panel-chat.is-in .mock-chat > .bubble-follow {
+    animation-delay: calc(var(--build) + 520ms);
+  }
+
+  .js .panel-chat.is-in .bubble-follow .data-card {
+    animation-delay: calc(var(--build) + 600ms);
+  }
+
+  .js .panel-chat.is-in .mock-chat > .chat-steps {
+    animation-delay: calc(var(--build) + 780ms);
+  }
+
+  /* Panel 3: the progress bar draws, the two done tasks are ticked off (the check pops, the row
+     turns mint, the line goes through), the third task stays open. The flame grows once and
+     the jar fills once. */
+  .js .panel.panel-daily.is-in .meter-fill {
+    transform-origin: left center;
+    transition: none;
+    animation: bar-fill 550ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    animation-delay: calc(var(--build) + 100ms);
+  }
+
+  .js .panel-daily.is-in .task-done {
+    animation: task-turn 300ms var(--ease-out) backwards;
+  }
+
+  .js .panel-daily.is-in .mock-daily > .task-done:nth-child(3) {
+    animation-delay: calc(var(--build) + 180ms);
+  }
+
+  .js .panel-daily.is-in .mock-daily > .task-done:nth-child(4) {
+    animation-delay: calc(var(--build) + 300ms);
+  }
+
+  .js .panel-daily.is-in .task-done .task-check {
+    animation: check-fill 200ms var(--ease-out) backwards;
+    animation-delay: inherit;
+  }
+
+  .js .panel-daily.is-in .task-done .task-check::after {
+    animation: tick-pop 320ms var(--ease-spring) backwards;
+    animation-delay: inherit;
+  }
+
+  .js .panel-daily.is-in .task-done .task-name {
+    animation: strike-in 300ms var(--ease-out) backwards;
+    animation-delay: inherit;
+  }
+
+  .js .panel-daily.is-in .daily-top .flame {
+    transform-origin: 50% 100%;
+    animation: flame-grow 500ms var(--ease-spring) backwards;
+    animation-delay: calc(var(--build) + 400ms);
+  }
+
+  .js .panel-daily.is-in .daily-jar .jar-fill {
+    transform-origin: 50% 100%;
+    animation: jar-fill-up 550ms var(--ease-spring) backwards;
+    animation-delay: calc(var(--build) + 480ms);
+  }
+}
+
+/* A print-out shows every panel complete, also one whose build is still held or running. */
+@media print {
+  .panel *,
+  .panel *::before,
+  .panel *::after {
+    animation: none !important;
+  }
+}
+
+@keyframes bar-fill {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes panel-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes tick-pop {
+  from {
+    scale: 0;
+  }
+}
+
+@keyframes task-turn {
+  from {
+    border-color: var(--green-300);
+    background-color: var(--white);
+  }
+}
+
+@keyframes check-fill {
+  from {
+    border-color: var(--green-300);
+    background-color: var(--white);
+  }
+}
+
+@keyframes strike-in {
+  from {
+    text-decoration-color: transparent;
+  }
+}
+
+@keyframes flame-grow {
+  from {
+    transform: scale(0.4);
+  }
+}
+
+@keyframes jar-fill-up {
+  from {
+    transform: scaleY(0);
+  }
+}
