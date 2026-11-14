@@ -21,3 +21,4 @@
 ## Next / open questions
 - Not tried on a real phone yet: home-screen launch, microphone, keyboard, press-and-hold voice.
 - Compare against the iOS screenshots (`sh ios/scripts/screenshots.sh`) and fix differences (charts are SVG approximations of Swift Charts).
+- (20:45) The desktop QR used the open tab's address; a deployment's own `*.vercel.app` URL is behind a Vercel sign-in, so phones landed on a login. It now always encodes `NEXT_PUBLIC_SISU_PUBLIC_URL` (`https://sisu-demo.vercel.app`) + `/app`; checked by decoding the live QR. Share only https://sisu-demo.vercel.app.
