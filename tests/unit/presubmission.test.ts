@@ -113,3 +113,53 @@ describe("the plan only counts money it can stand behind", () => {
     }
   });
 });
+
+describe("a browser that goes away mid-answer", () => {
+  it("is not logged as a failure, and the work behind the stream is stopped", async () => {
+    const { eventStream } = await import("@/lib/agent/http");
+    let release: () => void = () => {};
+    let cleanedUp = false;
+    async function* slow() {
+      try {
+        yield { type: "one" };
+        await new Promise<void>((resolve) => (release = resolve)); // the model is still thinking when the tab closes
+        yield { type: "two" };
+      } finally {
+        cleanedUp = true;
+      }
+    }
+    const errors: unknown[] = [];
+    const original = console.error;
+    console.error = (...args: unknown[]) => void errors.push(args);
+    try {
+      const reader = eventStream(slow()).body!.getReader();
+      const first = await reader.read();
+      assert.match(new TextDecoder().decode(first.value), /"type":"one"/);
+      const cancelled = reader.cancel();
+      release();
+      await cancelled;
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    } finally {
+      console.error = original;
+    }
+    assert.deepEqual(errors, [], "nothing was logged as an error");
+    assert.ok(cleanedUp, "the generator was told to stop");
+  });
+
+  it("a real failure still reaches the browser as a sentence", async () => {
+    const { eventStream } = await import("@/lib/agent/http");
+    async function* broken(): AsyncGenerator<{ type: string }> {
+      yield { type: "one" };
+      throw new Error("the model server fell over");
+    }
+    const original = console.error;
+    console.error = () => {};
+    try {
+      const text = await new Response(eventStream(broken()).body).text();
+      assert.match(text, /"type":"one"/);
+      assert.match(text, /"type":"error","message":"Sisu could not answer just now\. Please try again\."/);
+    } finally {
+      console.error = original;
+    }
+  });
+});
