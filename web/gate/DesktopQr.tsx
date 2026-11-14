@@ -14,7 +14,10 @@ export default function DesktopQr() {
   const [qr, setQr] = useState<QrState>({ kind: "loading" });
 
   useEffect(() => {
-    const url = `${window.location.origin}/app`;
+    // The public address, not this tab's: a deployment's own *.vercel.app address can sit behind a Vercel
+    // sign-in, and a phone sent there never reaches the demo. NEXT_PUBLIC_SISU_PUBLIC_URL is set at build time.
+    const base = (process.env.NEXT_PUBLIC_SISU_PUBLIC_URL || window.location.origin).replace(/\/+$/, "");
+    const url = `${base}/app`;
     let cancelled = false;
     import("qrcode")
       .then((mod) => {
