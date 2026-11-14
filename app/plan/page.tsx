@@ -9,7 +9,7 @@ import type { DemoCustomer } from "@/lib/types";
 import { PlanCard } from "./PlanCard";
 import { Stage } from "./Stage";
 import "./plan.css";
-import { usePlan } from "./usePlan";
+import { usePlan } from "@/lib/agent/usePlan";
 
 // Says the summary aloud once. A failure here is silent on purpose: the words are on screen either way.
 async function speak(text: string, player: HTMLAudioElement): Promise<void> {
@@ -59,6 +59,8 @@ export default function PlanPage() {
     <main className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col gap-4 px-4 pb-10 pt-4">
       <header className="flex items-center justify-between gap-3">
         <p className="text-lg font-semibold tracking-tight">Sisu</p>
+        {/* Stand-in for the mascot: swap this for Liito's animation, driven by view.activity.liito. */}
+        <p className="min-w-0 flex-1 truncate text-xs text-muted" aria-live="polite">{view.phase === "idle" ? "" : `Liito: ${view.activity.liito} · ${view.activity.label}`}</p>
         <div className="flex items-center gap-2 text-sm">
           <label className="sr-only" htmlFor="plan-customer">
             Customer

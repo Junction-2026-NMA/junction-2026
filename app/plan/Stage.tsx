@@ -4,7 +4,7 @@
 // their account, the web, the sums. Everything drawn here came from the server as it happened.
 import type { BillType } from "@/lib/types";
 import { useCountUp, useTyped } from "./hooks";
-import type { Act, Lane, PageState, PlanView } from "./usePlan";
+import type { Act, Lane, PageState, PlanView } from "@/lib/agent/usePlan";
 
 export const euro = (value: number): string => `€${Math.round(value).toLocaleString("en-US")}`;
 const BILL_LABEL: Record<BillType, string> = { electricity: "Electricity", internet: "Home internet", mobile: "Mobile plan" };

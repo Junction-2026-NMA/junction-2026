@@ -25,7 +25,7 @@ flowchart TB
     routes["Routes<br/>app/api/agent, voice, research,<br/>actions, memory, coach, health"]
     orch["Orchestrator<br/>lib/agent/orchestrator.ts<br/>one turn = a stream of events"]
     verify["Number verifier<br/>lib/agent/grounding.ts"]
-    tools["13 tools<br/>lib/agent/tools/"]
+    tools["14 tools<br/>lib/agent/tools/"]
     guard["Untrusted-text filter<br/>lib/agent/tools/untrusted.ts"]
     fin["Finance engine<br/>lib/finance/<br/>every number, in code"]
     act["Actions and approval<br/>lib/actions/"]
@@ -68,7 +68,7 @@ A customer asks, by voice, "Find me a cheaper electricity deal and prepare the s
 1. **Speech to text.** `POST /api/voice/turn` sends the recording to ElevenLabs (`lib/agent/speech.ts`). Measured: 0.58 s for a three-second question.
 2. **Early start.** Before the model has seen anything, a keyword check (`lib/agent/speculate.ts`, under a millisecond) notices "cheaper electricity deal" and starts the offer research in the background. If the model later decides it does not need it, nothing is lost.
 3. **The prompt.** The orchestrator builds one prompt (`lib/agent/prompt.ts`): fixed rules, then the customer's summary computed by the finance engine (averages, the three baskets, bills, last month by category, the payday outlook), then anything Sisu remembers about them. No customer ID, no postal code, no transaction rows.
-4. **Nemotron decides.** The model receives the prompt and the list of 13 tools and replies with tool calls: here, `search_offers`. Measured on our GPU: first token after 0.26 s.
+4. **Nemotron decides.** The model receives the prompt and the list of 14 tools and replies with tool calls: here, `search_offers`. Measured on our GPU: first token after 0.26 s.
 5. **Tools run.** `search_offers` joins the research already in flight. Exa finds today's comparison pages (0.22 s). Context.dev reads three of them in parallel and returns typed offers: provider, plan, price per kWh, monthly fee, contract length (2.8 to 3.3 s each). Each extracted name passes the untrusted-text filter. Code in `lib/agent/research/compare.ts` then works out each offer's monthly cost and yearly saving against the customer's real bill.
 6. **Nemotron continues.** It sees the result and, because the customer asked for it, calls `prepare_action`. The server builds the action from the offer it already holds (`lib/actions/drafts.ts`), so the model cannot invent a provider or a price. The action is saved as "awaiting approval" and written to the audit log.
 7. **The answer.** Nemotron words the result. As each sentence completes, code checks its numbers against the receipts: a figure said as "euros a year" is checked against yearly euro receipts only, and numbers written as words are checked like digits. A figure copied with a slipped digit, or a provider name misspelled, is replaced by the real one before the sentence is shown or spoken. Sentences go to text to speech one by one, so speaking starts before the answer is finished.
@@ -97,14 +97,14 @@ A turn is a loop of model steps, at most 4 for a question and 9 for an investiga
 
 Nemotron 3.5 Super VL is the only reasoning model. It does four jobs:
 
-1. **Chooses tools.** From a free-text question it picks among 13 tools and fills in their arguments. In the closing live run it chose correctly in 27 of 27 tool-selection checks (25 to 27 across the last five runs).
+1. **Chooses tools.** From a free-text question it picks among 14 tools and fills in their arguments. In the closing live run it chose correctly in 27 of 27 tool-selection checks (25 to 27 across the last five runs).
 2. **Chains tools on its own.** In an investigation it calls five tools across six steps without being asked between them: find what stands out, research it, project the saving, pick a lesson, prepare the action. All three demo customers completed all seven stages in every run, in 4.2 to 5.3 s.
 3. **Explains.** It words the result in plain language, in the customer's language, in one or two sentences for voice.
 4. **Reads bills.** Given a photo of the customer's bill, it copies out the yearly kWh, price, fee, provider and contract end date (about 1.5 s).
 
 Thinking mode is switched off for conversation (`chat_template_kwargs: { enable_thinking: false }`), which the team measured earlier as saving about 2.5 s per turn with the same tool choices.
 
-### The 13 tools
+### The 14 tools
 
 | Tool | What it does | Code |
 |---|---|---|
@@ -119,6 +119,7 @@ Thinking mode is switched off for conversation (`chat_template_kwargs: { enable_
 | `search_offers` | Live offers for a bill with the saving computed in code | `lib/agent/tools/web.ts`, `lib/agent/research/` |
 | `web_search` | Live search for outside facts, with sources | `lib/agent/tools/web.ts` |
 | `calculate` | Arithmetic done in code for estimates about everyday life (a shorter shower, a cheaper commute), so the model never does sums itself | `lib/agent/tools/calc.ts` |
+| `show_chart` | Puts a chart on the customer's screen: the budget ring, them beside people their age, their months, or how safe-to-spend is built. Code builds it from their figures | `lib/agent/tools/chart.ts`, `lib/agent/visuals.ts` |
 | `prepare_action` | Sets up a contract switch, a transfer on every payday, or a one-off transfer to savings or investments, with a warning if it would overdraw the account. Never carries it out | `lib/agent/tools/act.ts`, `lib/actions/drafts.ts` |
 | `remember` | Saves a lasting fact the customer just said | same |
 

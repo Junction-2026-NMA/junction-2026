@@ -334,6 +334,13 @@ Rules for the screen:
 - One tap approves everything: `POST /api/actions/approve-all` with `{ customerId, actionIds, confirm: true }` returns `{ approved, failed }`. Each action is approved, simulated and logged on its own.
 - `fresh: false` reuses a recent search instead of searching now. Context.dev allows our key 10 page reads a minute and a plan uses up to 7, so a page read in the last 10 minutes is reused and marked with its age.
 
+## 9c. Charts and the mascot (new 14 Nov)
+
+Both are covered step by step in `docs/FRONTEND_AGENT_HANDOFF.md`. In short:
+
+- The stream has a new `visual` event holding a `Visual` (a chart built in code, with receipts). `useSisu` collects them in `message.visuals`; `<VisualCard visual={…} />` from `app/visuals/VisualCard.tsx` draws any of them. `GET /api/agent/visuals?customerId=…` returns every chart with no model call.
+- Both hooks return `activity`: `{ state, liito, label, detail }`. `liito` is the pose the mascot should be in right now, driven only by real events.
+
 ## 10. Endpoints that need no model (instant)
 
 | Endpoint | Returns |
@@ -361,6 +368,7 @@ Order in one turn: `start`, (`transcript`), (`speculation`), (`filler`), then an
 | `speculation` | before | research started early for `billType` |
 | `filler` | before | a sentence to say while research runs |
 | `tool_start`, `tool_end` | before | the tool call and its `ToolTrace`. `tool_start` now also has `label`: what Sisu is doing, in plain words |
+| `visual` | **new 14 Nov** | one `Visual`: a chart to draw with the answer (section 9c) |
 | `replace` | **new 14 Nov** | `text`: the answer so far, after a sentence failed a check. Show it instead of the deltas received so far |
 | `research` | before | `ResearchResult` |
 | `delta`, `sentence` | before | text as it arrives; whole sentences for speech |

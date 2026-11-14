@@ -75,6 +75,8 @@ export default function AgentBench() {
         <h1 className="mr-auto text-xl font-semibold tracking-tight">Sisu agent test bench</h1>
         {sisu.server?.mock && <span className="rounded-full bg-amber/20 px-2 py-0.5 text-xs font-semibold text-[#8a5f08]">MOCK DATA</span>}
         <span className="rounded-full border border-line bg-card px-2 py-0.5 text-xs text-muted">{sisu.server ? sisu.server.model.split("/").pop() : "connecting…"}</span>
+        {/* Stand-in for the mascot: the pose Liito should be in, and what Sisu is doing right now. */}
+        <span className="rounded-full bg-green-soft px-2 py-0.5 text-xs font-semibold text-green">Liito: {sisu.activity.liito} · {sisu.activity.label}</span>
       </header>
 
       <div className="flex flex-wrap items-center gap-2 text-sm">

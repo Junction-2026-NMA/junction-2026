@@ -1,5 +1,6 @@
 // Tools that reach the open web: live offer research (Exa + Context.dev) and general web search (Exa).
 // Only a bill type, a city or a cleaned query ever leaves; what comes back is treated as untrusted data.
+import { offersVisual } from "../visuals";
 import { fact } from "@/lib/finance/facts";
 import { round2 } from "@/lib/finance/math";
 import { billFor, billLabel, statedYearlyKwh } from "@/lib/memory";
@@ -104,6 +105,7 @@ export async function searchOffers(args: Record<string, unknown>, ctx: ToolConte
     citations: research.citations,
     facts: offerFacts(research),
     stages: ok ? stages : stages.slice(0, 2),
+    visual: (ok && offersVisual(research)) || undefined,
   });
 }
 

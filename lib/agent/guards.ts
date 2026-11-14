@@ -75,6 +75,11 @@ export const withoutMetaTalk = (text: string): string =>
     .filter((sentence) => !isMetaTalk(sentence))
     .join(" ");
 
+// A plain request for a picture: "show me a pie chart of my budget", "can you visualise my spending".
+const CHART = /\b(pie ?chart|chart|graph|diagram|visuali[sz]e|visuali[sz]ation|visually|draw me|a picture of)\b/i;
+const OVER_TIME = /\b(what if|over time|add up|in \d+ years?|years? from now|if i (save|cut|invest))\b/i;
+export const asksForChart = (text: string): boolean => CHART.test(text) && !OVER_TIME.test(text);
+
 export const BROKEN_TRIP: Trip = { kind: "broken-tool-call", nudge: "Your last reply broke off in the middle of a tool call. Call the tool you meant to call now, with no text before it.", forceTool: true };
 
 export function checkSentence(sentence: string, state: GuardState): Trip | null {

@@ -7,6 +7,7 @@ import { groupBy, round2, sum } from "@/lib/finance/math";
 import { mortgageFor } from "@/lib/finance/mortgage";
 import { findPatterns } from "@/lib/finance/patterns";
 import { FUND_FEE, LIMITS, RETURN_SCENARIOS, cleanInput, runScenario } from "@/lib/finance/scenario";
+import { budgetVisual, futuresVisual } from "../visuals";
 import { CONCEPTS, teachingCard } from "@/lib/finance/teaching";
 import { filterTransactions } from "@/lib/finance/transactions";
 import { billLabel } from "@/lib/memory";
@@ -173,6 +174,7 @@ export function findPatternsTool(ctx: ToolContext): ToolOutcome {
     summary: patterns.length ? `${patterns.length} patterns found; top: ${patterns[0].title}` : "No notable pattern found",
     facts: [...patterns.flatMap((p) => p.facts), ...combinedFact],
     stages: [{ kind: "lead", title: "What Sisu noticed", summary: patterns[0]?.title ?? "Nothing notable", source: "bank-data", data: { kind: "lead", patterns } }],
+    visual: budgetVisual(ctx.overview), // advice comes with the picture of where the money goes
   });
 }
 
@@ -254,6 +256,7 @@ export function runScenarioTool(args: Record<string, unknown>, ctx: ToolContext)
     summary: target === null ? `€${result.freedPerMonth.toFixed(0)} a month freed, projected over ${input.years} years` : `Target €${target.toFixed(0)}: ${reach[0]?.monthsToReachTarget ?? "not reached"} months if nothing changes`,
     facts: [...facts, ...targetFacts],
     stages: [{ kind: "impact", title: `${input.years} years ahead`, summary: impact.summary, source: "calculation", data: { kind: "impact", impact } }],
+    visual: futuresVisual(result, input.years),
   });
 }
 

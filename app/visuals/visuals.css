@@ -1,0 +1,35 @@
+/* Charts the agent puts on screen. Colours are roles, set once here, so the app's theme can replace them.
+   The six category colours are a validated set: colour-blind safe in this order, on a light card. */
+.viz {
+  --viz-1: #2a78d6;
+  --viz-2: #eb6834;
+  --viz-3: #1baf7a;
+  --viz-4: #eda100;
+  --viz-5: #e87ba4;
+  --viz-6: #008300;
+  --viz-other: #a9b0ab;
+  --viz-main: var(--green, #0b5d3b);
+  --viz-quiet: #b4bbb6;
+  --viz-grid: var(--line, #e2ddd0);
+  --viz-surface: var(--card, #fffdf8);
+  --viz-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes viz-arc { from { stroke-dasharray: 0 var(--c); } to { stroke-dasharray: var(--len) var(--c); } }
+.viz-arc { animation: viz-arc 700ms var(--viz-ease) both; transition: opacity 180ms ease, stroke-width 180ms ease; }
+
+@keyframes viz-grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.viz-grow-x { transform-origin: left; animation: viz-grow-x 650ms var(--viz-ease) both; }
+
+@keyframes viz-grow-y { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.viz-grow-y { transform-box: fill-box; transform-origin: bottom; animation: viz-grow-y 600ms var(--viz-ease) both; }
+
+@keyframes viz-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+.viz-draw { stroke-dasharray: 1; animation: viz-draw 1100ms var(--viz-ease) both; }
+
+@keyframes viz-fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.viz-fade { animation: viz-fade 380ms var(--viz-ease) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .viz-arc, .viz-grow-x, .viz-grow-y, .viz-draw, .viz-fade { animation-duration: 1ms; animation-delay: 0ms !important; }
+}

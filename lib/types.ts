@@ -466,6 +466,7 @@ export type AgentExtraEvent =
   | { type: "teaching"; card: TeachingCard }
   | { type: "memory"; item: MemoryItem }
   | { type: "grounding"; grounding: Grounding; facts: Fact[] } // sent just before "done"
+  | { type: "visual"; visual: Visual } // a chart to draw with the answer (see Visual below, and app/visuals/)
   | { type: "replace"; text: string }; // the answer so far, after Sisu threw away a sentence that failed a check. Show this instead of the deltas received so far
 
 export type SisuEvent = AgentEvent | AgentExtraEvent;
@@ -585,3 +586,23 @@ export type PlanEvent =
   | { type: "summary"; text: string; by: "nemotron" | "code"; tookMs: number }
   | { type: "plan_done"; plan: MoneyPlan }
   | { type: "error"; message: string };
+
+// --- Pictures the agent puts on screen. Built in code; every number in one has a receipt in `facts`. ---
+
+// `summary` says in a sentence or two what the picture shows, written by code: use it as alt text or a spoken line.
+type VisualBase = { id: string; title: string; caption: string; summary: string; source: SourceKind; facts: Fact[] };
+
+export type Visual = VisualBase &
+  (
+    | { kind: "budget_donut"; slices: { label: string; value: number; share: number }[]; total: number; centerLabel: string } // share is 0..100
+    | { kind: "peer_bars"; peerGroup: string; rows: { label: string; you: number; peers: number }[] }
+    | { kind: "month_bars"; months: { month: string; label: string; income: number; spending: number }[] }
+    | { kind: "waterfall"; steps: CalcStep[]; resultLabel: string; resultValue: number }
+    | { kind: "futures_lines"; years: number; series: { id: BranchId; label: string; points: { year: number; value: number; low: number; high: number }[] }[] }
+    | { kind: "offer_bars"; currentMonthlyEur: number; offers: { provider: string; plan: string | null; monthlyEur: number; yearlySavingEur: number; url: string }[]; mock: boolean }
+  );
+
+// What Sisu is doing right now, in one value, for a mascot or a status line. See lib/agent/activity.ts.
+export type SisuActivityState = "idle" | "listening" | "thinking" | "reading_account" | "searching_web" | "reading_pages" | "calculating" | "found_something" | "setting_up" | "waiting_for_approval" | "speaking" | "approved" | "declined" | "error";
+export type LiitoPose = "sleepy" | "curious" | "focused" | "gliding" | "found-something" | "cheering" | "proud" | "cosy";
+export type SisuActivity = { state: SisuActivityState; liito: LiitoPose; label: string; detail: string | null };

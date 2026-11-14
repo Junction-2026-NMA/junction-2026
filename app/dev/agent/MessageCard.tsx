@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { SisuMessage } from "@/lib/agent/useSisu";
 import type { AgentAction, TeachingCard } from "@/lib/types";
+import { VisualCard } from "@/app/visuals/VisualCard";
 
 const seconds = (ms: number | null | undefined) => (ms === null || ms === undefined ? "–" : `${(ms / 1000).toFixed(2)} s`);
 const host = (url: string) => new URL(url).hostname.replace(/^www\./, "");
@@ -62,6 +63,8 @@ export function MessageCard({ message, onApprove, onDecline }: { message: SisuMe
       {message.text && <p className="leading-relaxed">{message.text}</p>}
       {message.pending && !message.text && <p className="text-muted">Thinking…</p>}
       {message.error && <p className="rounded-xl bg-coral/10 p-3 text-sm text-coral">{message.error}</p>}
+
+      {message.visuals.map((visual) => <VisualCard key={visual.id} visual={visual} />)}
 
       {message.steps.length > 0 && (
         <div className="border-t border-line pt-2">

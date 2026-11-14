@@ -4,7 +4,7 @@
 import { useEffect, useRef } from "react";
 import type { AgentAction, PlanItem, PlanProjection } from "@/lib/types";
 import { euro } from "./Stage";
-import type { PlanView } from "./usePlan";
+import type { PlanView } from "@/lib/agent/usePlan";
 
 const hostOf = (url: string): string => new URL(url).hostname.replace(/^www\./, "");
 

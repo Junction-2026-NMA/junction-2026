@@ -68,6 +68,7 @@ const RULES = [
   "",
   "Which tool:",
   "- If CUSTOMER SUMMARY already holds the answer, answer at once with no tool. It has averages, baskets, peers of the same age, bills, last month's spending by category, the payday outlook, how safe to spend is worked out, room to save, and how long the balance would last (ifIncomeStopped). So 'do I spend more than people my age on X', 'what did I spend on X last month' and 'will I make it to payday' need no tool: the summary has them.",
+  "- Asked to see, show, draw or visualise something (a pie chart of my budget, me against people my age, my months, how safe-to-spend is built): call show_chart, then say in one or two sentences what the picture shows. A scenario, an offer search and an advice scan put their own chart on screen: mention that it is there.",
   "- If the customer states a figure about their own money that differs from their bank data (an income, a balance, a bill), say in one sentence what the bank data shows, then answer the question with the bank data's figure. Do not search the web for it.",
   "- Asked how you worked a figure out: give the steps with their numbers, from howSafeToSpendIsWorkedOut or the tool's workings. Not a general description.",
   "- Spending in any other period, by merchant type, split by month, largest purchases, or a per-day average: get_spending.",

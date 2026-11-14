@@ -2,6 +2,7 @@
 import { BASKET_ORDER, MCC_LABELS } from "@/lib/finance/baskets";
 import { CONCEPTS } from "@/lib/finance/teaching";
 import { CALC_UNITS } from "./calc";
+import { CHART_KINDS } from "../visuals";
 import type { BillType } from "@/lib/types";
 import type { ToolSchema } from "../model";
 
@@ -68,6 +69,12 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
       unit: { type: "string", enum: CALC_UNITS },
     },
     ["expression", "figures", "what"],
+  ),
+  tool(
+    "show_chart",
+    "Puts a chart on the customer's screen. budget = a ring of where their money goes by category. vs_peers = their categories beside people their age. months = money in and out for each of the last 12 months. safe_to_spend = how safe-to-spend is built up.",
+    { chart: { type: "string", enum: CHART_KINDS } },
+    ["chart"],
   ),
   tool("explain_concept", "A short lesson from the customer's own numbers, ending in one question to ask them. Only for the ideas in the list. Explain any other idea yourself, in plain words, with no tool.", { concept: { type: "string", enum: CONCEPTS } }, ["concept"]),
   tool(

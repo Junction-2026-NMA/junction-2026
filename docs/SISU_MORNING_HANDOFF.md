@@ -29,7 +29,7 @@ The backend can now carry a whole mobile Sisu experience: questions about the cu
 
 | Area | What now works | Where |
 |---|---|---|
-| Tools | 13 tools the model chooses from (was 4): spending, bills, pay cycles, patterns, affordability, scenarios with a target, mortgage, lessons, offers, web search, calculate, prepare an action (switch, standing or one-off transfer), remember | `lib/agent/tools/` |
+| Tools | 14 tools the model chooses from (was 4): spending, bills, pay cycles, patterns, affordability, scenarios with a target, mortgage, lessons, offers, web search, calculate, prepare an action (switch, standing or one-off transfer), remember | `lib/agent/tools/` |
 | Investigation | `POST /api/agent/investigate`: Sisu finds what stands out, researches it live, works out the saving, teaches, and prepares an action. Seven typed stages in 4.2 to 5.3 s | `lib/agent/orchestrator.ts` |
 | Receipts | Every number carries its source. Code checks every number the model says, and fixes a slipped digit or a misspelled provider before it is shown or spoken | `lib/agent/grounding.ts` |
 | Actions | Prepare, approve, decline, expire. The model cannot approve. Hash-chained audit log | `lib/actions/`, `lib/store/` |

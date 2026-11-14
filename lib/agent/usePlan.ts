@@ -5,7 +5,8 @@
 // in a burst, so a small "director" plays them one after another with a short pause each, fast enough to feel
 // quick and slow enough to follow. It never invents a step: everything shown came from the server.
 import { useCallback, useEffect, useReducer, useRef } from "react";
-import type { AgentAction, BillType, CalcStep, MoneyPlan, Offer, PlanEvent, PlanProjection } from "@/lib/types";
+import type { AgentAction, BillType, CalcStep, MoneyPlan, Offer, PlanEvent, PlanProjection, SisuActivity } from "@/lib/types";
+import { IDLE, activity, nextPlanActivity } from "./activity";
 
 export type Act = "idle" | "scan" | "web" | "sums";
 export type PageState = { url: string; host: string; title: string; state: "reading" | "read" | "failed"; offers: number; ageMs: number | null };
@@ -35,15 +36,25 @@ export type PlanView = {
   error: string | null;
   approval: "none" | "sending" | "done" | "declined";
   approvalError: string | null;
+  activity: SisuActivity; // what Sisu is doing right now: drive the mascot from this
 };
 
-const EMPTY: PlanView = { phase: "idle", act: "idle", customerName: null, model: null, mock: false, scan: null, findings: [], lanes: [], calc: null, actions: [], projection: null, summary: null, plan: null, error: null, approval: "none", approvalError: null };
+const EMPTY: PlanView = { phase: "idle", act: "idle", customerName: null, model: null, mock: false, scan: null, findings: [], lanes: [], calc: null, actions: [], projection: null, summary: null, plan: null, error: null, approval: "none", approvalError: null, activity: IDLE };
 
 type Change = PlanEvent | { type: "reset" } | { type: "approving" } | { type: "approved"; actions: AgentAction[]; error: string | null } | { type: "declined" };
 
 const withLane = (lanes: Lane[], billType: BillType, change: (lane: Lane) => Lane): Lane[] => lanes.map((lane) => (lane.billType === billType ? change(lane) : lane));
 
 function reduce(view: PlanView, event: Change): PlanView {
+  const next = step(view, event);
+  if (event.type === "reset") return { ...next, activity: activity("thinking", "Opening your account") };
+  if (event.type === "approving") return next;
+  if (event.type === "approved") return { ...next, activity: event.actions.length ? activity("approved", `${event.actions.length} approved, as a simulation`) : next.activity };
+  if (event.type === "declined") return { ...next, activity: activity("declined") };
+  return { ...next, activity: nextPlanActivity(view.activity, event) };
+}
+
+function step(view: PlanView, event: Change): PlanView {
   switch (event.type) {
     case "reset":
       return { ...EMPTY, phase: "running" };

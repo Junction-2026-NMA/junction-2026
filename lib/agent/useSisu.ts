@@ -3,7 +3,8 @@
 // One hook for the whole conversation: type or hold-to-talk, streamed answers, spoken replies, interruption.
 // Usage is shown in context/frontend-integration.md and app/dev/agent/page.tsx.
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { AgentAction, BillType, ChatTurn, Citation, CustomerMemory, Fact, Grounding, MemoryItem, ResearchResult, Stage, TeachingCard, ToolTrace, TurnTimings } from "@/lib/types";
+import type { AgentAction, BillType, ChatTurn, Citation, CustomerMemory, Fact, Grounding, MemoryItem, ResearchResult, Stage, SisuActivity, TeachingCard, ToolTrace, TurnTimings, Visual } from "@/lib/types";
+import { IDLE, activity as makeActivity, nextActivity } from "./activity";
 import { type Recorder, type Speaker, type VoiceChoice, approveAction, confirmBill as saveBillName, createRecorder, createSpeaker, declineAction, fetchActions, fetchMemory, streamTurn, warmAgent } from "./client";
 
 export type SisuStatus = "idle" | "recording" | "thinking" | "speaking";
@@ -21,6 +22,7 @@ export type SisuMessage = {
   timings: TurnTimings | null;
   error: string | null;
   // Added 14 Nov (all optional to read; older UI code keeps working):
+  visuals: Visual[]; // charts to draw with this answer (see app/visuals/VisualCard.tsx)
   stages: Stage[]; // each step of Sisu's work, typed for drawing as cards (see Stage in lib/types.ts)
   action: AgentAction | null; // an action awaiting approval; show Approve and Decline
   teaching: TeachingCard | null; // ask `question`, show `options`, then reveal `reveal`
@@ -52,6 +54,7 @@ const blank = (role: "user" | "assistant", text = "", pending = true): SisuMessa
   citations: [],
   timings: null,
   error: null,
+  visuals: [],
   stages: [],
   action: null,
   teaching: null,
@@ -66,6 +69,8 @@ export function useSisu({ customerId, focusBill, speakReplies = true, language =
   const [busy, setBusy] = useState(false);
   const [recording, setRecording] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [working, setWorking] = useState<SisuActivity>(IDLE); // the last thing Sisu did in the current turn
+  const [moment, setMoment] = useState<SisuActivity | null>(null); // a short celebration or a quiet "left as it was"
   const [server, setServer] = useState<{ mock: boolean; provider: string; model: string } | null>(null);
   const [micError, setMicError] = useState<string | null>(null);
   const [voiceError, setVoiceError] = useState<string | null>(null);
@@ -147,8 +152,11 @@ export function useSisu({ customerId, focusBill, speakReplies = true, language =
         const chosen = language === "auto" ? null : language;
         speaker.current?.setLanguage(chosen);
         const events = streamTurn({ customerId, ...input, mode: spoken ? "voice" : "text", history: input.investigate ? [] : history.current, focusBill, language, signal: abort.signal });
+        setMoment(null);
+        setWorking(makeActivity("thinking"));
         for await (const event of events) {
           if (abort.signal.aborted) return;
+          setWorking((now) => nextActivity(now, event));
           switch (event.type) {
             case "transcript":
               question = event.text;
@@ -186,6 +194,9 @@ export function useSisu({ customerId, focusBill, speakReplies = true, language =
               break;
             case "research":
               patch(reply.id, (m) => ({ ...m, research: event.result }));
+              break;
+            case "visual":
+              patch(reply.id, (m) => ({ ...m, visuals: [...m.visuals.filter((v) => v.id !== event.visual.id), event.visual] }));
               break;
             case "stage":
               patch(reply.id, (m) => ({ ...m, stages: [...m.stages, event.stage] }));
@@ -241,6 +252,7 @@ export function useSisu({ customerId, focusBill, speakReplies = true, language =
       if (!customerId) return null;
       const { action } = await approveAction(customerId, actionId);
       putAction(action);
+      setMoment(makeActivity("approved", action.confirmation ?? "Done, as a simulation"));
       return action;
     },
     [customerId],
@@ -250,6 +262,7 @@ export function useSisu({ customerId, focusBill, speakReplies = true, language =
       if (!customerId) return null;
       const { action } = await declineAction(customerId, actionId);
       putAction(action);
+      setMoment(makeActivity("declined"));
       return action;
     },
     [customerId],
@@ -325,5 +338,14 @@ export function useSisu({ customerId, focusBill, speakReplies = true, language =
   const status: SisuStatus = recording ? "recording" : busy ? "thinking" : speaking ? "speaking" : "idle";
   // What has been freed so far by approved switches: feed this to the futures chart as the monthly bill saving.
   const approvedMonthlySaving = actions.filter((action) => action.status === "executed_simulated" && action.kind === "switch_contract").reduce((total, action) => total + action.monthlyAmountEur, 0);
-  return { status, messages, server, micError, voiceError, heardLanguage, ask, startTalking, stopTalking, testVoice, setVoice, cancel, reset, investigate, approve, decline, confirmBill, actions, memory, approvedMonthlySaving, refresh };
+  // One value that says what Sisu is doing right now. Map `activity.liito` to the mascot's animation.
+  const waiting = actions.find((action) => action.status === "awaiting_approval");
+  const activity: SisuActivity = recording
+    ? makeActivity("listening")
+    : busy
+      ? working
+      : speaking
+        ? makeActivity("speaking")
+        : (moment ?? (waiting ? makeActivity("waiting_for_approval", waiting.title, waiting.warning ?? null) : IDLE));
+  return { activity, status, messages, server, micError, voiceError, heardLanguage, ask, startTalking, stopTalking, testVoice, setVoice, cancel, reset, investigate, approve, decline, confirmBill, actions, memory, approvedMonthlySaving, refresh };
 }

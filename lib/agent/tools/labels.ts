@@ -26,6 +26,8 @@ export function activityLabel(call: ToolCall): string {
       return `Searching today's ${text("billType") ?? "bill"} offers with Exa and reading the pages with Context.dev`;
     case "web_search":
       return `Searching the web with Exa: ${text("query") ?? "your question"}`;
+    case "show_chart":
+      return "Drawing a chart from your account";
     case "calculate":
       return `Calculating ${text("what") ?? "the figure"}`;
     case "explain_concept":

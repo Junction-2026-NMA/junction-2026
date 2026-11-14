@@ -1,4 +1,4 @@
-import type { AgentAction, CashFlow, Citation, CustomerMemory, Fact, MemoryItem, Overview, ResearchResult, Stage, TeachingCard, ToolTrace } from "@/lib/types";
+import type { AgentAction, CashFlow, Citation, CustomerMemory, Fact, MemoryItem, Overview, ResearchResult, Stage, TeachingCard, ToolTrace, Visual } from "@/lib/types";
 import type { ToolCall } from "../model";
 
 // Everything a tool may use. Built once per turn by the orchestrator.
@@ -29,6 +29,7 @@ export type ToolOutcome = {
   action?: AgentAction;
   teaching?: TeachingCard;
   memory?: MemoryItem;
+  visual?: Visual; // a chart to draw with the answer
 };
 
 export const outcome = (partial: Pick<ToolOutcome, "content" | "summary"> & Partial<ToolOutcome>): ToolOutcome => ({

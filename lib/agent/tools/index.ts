@@ -2,6 +2,7 @@
 import type { ToolCall } from "../model";
 import { prepareAction, rememberTool } from "./act";
 import { calculate } from "./calc";
+import { showChart } from "./chart";
 import { checkAffordabilityTool, explainConcept, findPatternsTool, getCashFlow, getMortgage, getSpending, listBills, runScenarioTool } from "./finance";
 import { type ToolContext, type ToolOutcome, failure, parseArgs } from "./types";
 import { searchOffers, webSearch } from "./web";
@@ -34,6 +35,8 @@ export async function executeTool(call: ToolCall, ctx: ToolContext): Promise<Too
       return webSearch(args, ctx);
     case "calculate":
       return calculate(args, ctx, call.id);
+    case "show_chart":
+      return showChart(args, ctx);
     case "explain_concept":
       return explainConcept(args, ctx);
     case "prepare_action":
