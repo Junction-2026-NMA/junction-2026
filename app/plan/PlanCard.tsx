@@ -14,7 +14,7 @@ function Item({ item, index }: { item: PlanItem; index: number }) {
     <li className="plan-in py-3" style={{ animationDelay: `${index * 90}ms` }}>
       <div className="flex items-baseline justify-between gap-3">
         <p className="min-w-0 font-medium leading-snug">{item.title}</p>
-        <p className="tabular shrink-0 font-mono font-semibold text-green">{euro(item.yearlyEur)}/yr</p>
+        <p className="tabular shrink-0 font-semibold text-green">{euro(item.yearlyEur)}/yr</p>
       </div>
       <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
         <span className={`rounded-full px-2 py-0.5 font-medium ${effortless ? "bg-green-soft text-green" : "bg-amber/15 text-[#8a5f08]"}`}>{effortless ? "Needs nothing from you" : "Needs spending to come down"}</span>
@@ -55,7 +55,9 @@ function FiveYears({ projection }: { projection: PlanProjection }) {
   ];
   // This appears the moment the plan is approved, so it is brought into view: it is the payoff.
   const box = useRef<HTMLDivElement | null>(null);
-  useEffect(() => box.current?.scrollIntoView({ behavior: "smooth", block: "center" }), []);
+  useEffect(() => {
+    void box.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, []);
   return (
     <div ref={box} className="plan-in space-y-3 rounded-2xl bg-green-soft/60 p-4">
       <p className="text-sm font-semibold">
@@ -66,7 +68,7 @@ function FiveYears({ projection }: { projection: PlanProjection }) {
           <li key={bar.label}>
             <p className="flex items-baseline justify-between gap-3 text-[13px]">
               <span>{bar.label}</span>
-              <span className="tabular font-mono font-semibold">{euro(bar.value)}</span>
+              <span className="tabular font-semibold">{euro(bar.value)}</span>
             </p>
             <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-white/70">
               <div className={`plan-grow h-full rounded-full ${bar.tone}`} style={{ width: `${Math.max(2, (Math.max(0, bar.value) / top) * 100)}%`, animationDelay: `${index * 160}ms` }} />

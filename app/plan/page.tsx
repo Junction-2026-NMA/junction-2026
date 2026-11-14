@@ -44,7 +44,7 @@ export default function PlanPage() {
   useEffect(() => {
     if (!plan || spoken.current === plan.id) return;
     spoken.current = plan.id;
-    card.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    void card.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     if (sound && player.current) void speak(plan.summary, player.current);
   }, [plan, sound]);
 

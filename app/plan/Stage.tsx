@@ -82,7 +82,7 @@ function ScanAct({ view }: { view: PlanView }) {
               <span className="mr-2 text-[10px] font-semibold uppercase tracking-wider text-lime/80">{finding.role === "habit" ? "Found" : "Noticed"}</span>
               {finding.title}
             </span>
-            {finding.yearlyEur !== null && <span className="tabular shrink-0 font-mono text-lime">{euro(finding.yearlyEur)}/yr</span>}
+            {finding.yearlyEur !== null && <span className="tabular shrink-0 font-medium text-lime">{euro(finding.yearlyEur)}/yr</span>}
           </li>
         ))}
       </ul>
@@ -134,7 +134,7 @@ function SearchLane({ lane, index }: { lane: Lane; index: number }) {
           {result.best && (result.yearlySavingEur ?? 0) > 0 && !result.note ? (
             <>
               <span className="min-w-0 truncate">{result.best.provider}</span>
-              <span className="tabular shrink-0 font-mono text-lime">saves {euro(result.yearlySavingEur ?? 0)}/yr</span>
+              <span className="tabular shrink-0 font-medium text-lime">saves {euro(result.yearlySavingEur ?? 0)}/yr</span>
             </>
           ) : (
             <span className="text-white/50">{result.note ?? "Nothing cheaper today."}</span>
@@ -170,14 +170,14 @@ function SumsAct({ view }: { view: PlanView }) {
   return (
     <div className="plan-act space-y-4">
       <p className="text-sm text-[var(--stage-dim)]">Adding it up. Every sum is done in code, not by the model.</p>
-      <ul className="space-y-1 font-mono text-[13px]">
+      <ul className="space-y-1 text-[13px]">
         {calc.steps.map((step, index) => (
           <li key={step.label} className="plan-in flex items-baseline justify-between gap-3" style={{ animationDelay: `${index * 150}ms` }}>
-            <span className="min-w-0 truncate font-sans text-white/80">{step.label}</span>
+            <span className="min-w-0 truncate text-white/80">{step.label}</span>
             <span className="tabular shrink-0">{euro(step.amount)}</span>
           </li>
         ))}
-        {calc.steps.length === 0 && <li className="font-sans text-white/60">Nothing found that would clearly save money.</li>}
+        {calc.steps.length === 0 && <li className="text-white/60">Nothing found that would clearly save money.</li>}
       </ul>
       <div className="plan-in border-t border-white/25 pt-3" style={{ animationDelay: `${calc.steps.length * 150 + 100}ms` }}>
         <p className="flex items-baseline gap-2">
