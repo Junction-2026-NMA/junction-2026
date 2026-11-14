@@ -137,7 +137,7 @@ describe("orchestrator: one turn, driven by a scripted model", () => {
   });
 
   it("a transfer amount the customer never said is refused", async () => {
-    const { script } = scriptedModel([[call("prepare_action", { kind: "standing_transfer", monthlyAmountEur: 400 })], "I could not set that up."]);
+    const { script } = scriptedModel([[call("prepare_action", { kind: "standing_transfer", amountEur: 400 })], "That did not work."]);
     setMockScript(script);
     const events = await collect(runTurn(ask("Help me save more")));
     assert.equal(ofType(events, "tool_end")[0].trace.ok, false);
@@ -145,7 +145,7 @@ describe("orchestrator: one turn, driven by a scripted model", () => {
   });
 
   it("a transfer amount the customer did say is prepared, still awaiting approval", async () => {
-    const { script } = scriptedModel([[call("prepare_action", { kind: "standing_transfer", monthlyAmountEur: 40 })], "Prepared."]);
+    const { script } = scriptedModel([[call("prepare_action", { kind: "standing_transfer", amountEur: 40 })], "Tap Approve to carry it out."]);
     setMockScript(script);
     const events = await collect(runTurn(ask("Set up 40 euros a month to savings")));
     assert.equal(ofType(events, "action")[0].action.status, "awaiting_approval");
@@ -201,7 +201,7 @@ describe("orchestrator: one turn, driven by a scripted model", () => {
     const { script, seen } = scriptedModel([[call("list_bills")]]); // would loop forever
     setMockScript(script);
     const events = await collect(runTurn(ask("Loop")));
-    assert.equal(seen.length, 4);
+    assert.equal(seen.length, 6);
     assert.equal(seen.at(-1)!.tools.length, 0);
     assert.equal(events.at(-1)!.type, "done");
   });
@@ -276,11 +276,87 @@ describe("orchestrator: one turn, driven by a scripted model", () => {
   });
 
   it("keeps text from two steps apart instead of running the sentences together", async () => {
-    const { script } = scriptedModel(["Let me check that for you.", [call("get_cash_flow")], "You have about 177 euros before payday."]);
+    const { script } = scriptedModel(["Money is tight before payday.", [call("get_cash_flow")], "You have about 177 euros before payday."]);
     setMockScript(script);
-    const events = await collect(runTurn(ask("Will I make it?")));
-    assert.equal(ofType(events, "done")[0].text, "Let me check that for you. You have about 177 euros before payday.");
-    assert.equal(ofType(events, "delta").map((e) => e.text).join(""), "Let me check that for you. You have about 177 euros before payday.");
+    // "electricity deal" makes the orchestrator push the model on after its first, tool-less reply.
+    const events = await collect(runTurn(ask("Is there a cheaper electricity deal, and will I make it?")));
+    assert.equal(ofType(events, "done")[0].text, "Money is tight before payday. You have about 177 euros before payday.");
+  });
+
+  // Regression: replay of Nicholas's conversation, 14 Nov. In a longer conversation the model said
+  // "I've set up a one-off transfer of 500 euros" without calling any tool.
+  it("a claim that something was set up, with no tool call behind it, is never shown: the model must really do it", async () => {
+    const { script, seen } = scriptedModel(["I've set up a one-off transfer of 500 euros to your savings account. It's waiting for you to tap Approve.", [call("prepare_action", { kind: "one_off_transfer", amountEur: 500 })], "I've set up a one-off transfer of 500 euros to savings. Tap Approve to carry it out."]);
+    setMockScript(script);
+    const events = await collect(runTurn(ask("I need to transfer 500 euros to my savings account.", { mode: "voice" })));
+    const spoken = ofType(events, "sentence").map((e) => e.text);
+    assert.equal(ofType(events, "action").length, 1, "the action really exists");
+    assert.ok(ofType(events, "action")[0].action.kind === "one_off_transfer");
+    // The false claim was never released as a sentence (so never spoken); the true one, after the tool call, was.
+    assert.equal(spoken.filter((s) => /set up a one-off transfer/.test(s)).length, 1);
+    assert.equal(seen[0].forceTool, "prepare_action", "a request to move a named amount must start with the action itself");
+    assert.equal(seen[1].forceTool, "prepare_action", "the retry is required to be the action itself");
+    assert.match(String(seen[1].messages.at(-1)!.content), /did not call prepare_action/);
+    assert.deepEqual(ofType(events, "done")[0].timings.retries, ["claimed-without-doing"]);
+    assert.deepEqual(ofType(events, "replace").map((e) => e.text), [""]);
+    assert.ok(!ofType(events, "done")[0].text.includes("waiting for you to tap Approve. I've"));
+  });
+
+  // Regression: same replay. "Over five years … about 4,600 euros" was the model's own multiplication.
+  it("a sentence with a number that has no source is thrown away and the model is sent to get the figure", async () => {
+    const { script, seen } = scriptedModel(["Your restaurants spending is 64 euros a month above people your age. Over five years that would grow to about 4,600 euros.", [call("run_scenario", { freedPerMonthEur: 64, years: 5 })], "Keeping 64 euros a month adds up to about 3,840 euros over 5 years."]);
+    setMockScript(script);
+    const events = await collect(runTurn(ask("How would cutting restaurants add up over time?", { mode: "voice" })));
+    const spoken = ofType(events, "sentence").map((e) => e.text).join(" ");
+    assert.ok(!spoken.includes("4,600"), "the made-up figure is never spoken");
+    assert.ok(spoken.includes("64 euros a month above") && spoken.includes("3,840"));
+    assert.match(String(seen[1].messages.at(-1)!.content), /You said 4600, but no tool result/);
+    assert.equal(ofType(events, "grounding")[0].grounding.ok, true);
+    assert.deepEqual(ofType(events, "done")[0].timings.retries, ["unsourced-number"]);
+    assert.equal(ofType(events, "done")[0].text, "Your restaurants spending is 64 euros a month above people your age. Keeping 64 euros a month adds up to about 3,840 euros over 5 years.");
+  });
+
+  // Regression: same replay. Raw tool-call markup leaked into the answer and ran on for 2.4 seconds.
+  it("broken tool-call markup never reaches the customer", async () => {
+    const { script, seen } = scriptedModel(["Here is what stands out. <|tool_call_begin|><|tool_call_begin|><|tool_call_begin|>", [call("find_patterns")], "Entertainment is up 65 percent on a year ago."]);
+    setMockScript(script);
+    const events = await collect(runTurn(ask("What should I do with my money?")));
+    const everything = [...ofType(events, "delta").map((e) => e.text), ...ofType(events, "sentence").map((e) => e.text), ofType(events, "done")[0].text].join("");
+    assert.ok(!everything.includes("<|"));
+    assert.equal(seen[1].forceTool, true);
+    assert.equal(ofType(events, "tool_end").length, 1);
+  });
+
+  it("announcing work instead of doing it is cut off and the tool is called", async () => {
+    const { script, seen } = scriptedModel(["I can do that. Let me scan your full history for what stands out.", [call("find_patterns")], "Entertainment is up 65 percent on a year ago."]);
+    setMockScript(script);
+    const events = await collect(runTurn(ask("Give me advice on what to do with my money.", { mode: "voice" })));
+    assert.ok(!ofType(events, "sentence").some((e) => /Let me scan/.test(e.text)));
+    assert.match(String(seen[1].messages.at(-1)!.content), /Do not announce it/);
+    assert.equal(ofType(events, "tool_end")[0].trace.name, "find_patterns");
+  });
+
+  it("a turn is sent back at most twice, then the answer goes out with its unsourced number flagged", async () => {
+    const { script, seen } = scriptedModel(["You could save 4,321 euros.", "You could save 5,432 euros.", "You could save 6,543 euros."]);
+    setMockScript(script);
+    const events = await collect(runTurn(ask("How much could I save?")));
+    assert.equal(seen.length, 3);
+    assert.deepEqual(ofType(events, "grounding")[0].grounding.unverified, [6543]);
+    assert.equal(ofType(events, "done")[0].timings.retries?.length, 2);
+  });
+
+  it("an offer to do something, phrased as a question, is not mistaken for an announcement", async () => {
+    const { script, seen } = scriptedModel(["You can safely spend 164 euros this week. Would you like me to look for a cheaper mobile plan? Let me know."]);
+    setMockScript(script);
+    await collect(runTurn(ask("How much can I spend?")));
+    assert.equal(seen.length, 1);
+  });
+
+  it("every tool call announces what Sisu is doing, in plain words", async () => {
+    const { script } = scriptedModel([[call("find_patterns"), call("web_search", { query: "average rent Helsinki" }), call("check_affordability", { amountEur: 300 })], "Done."]);
+    setMockScript(script);
+    const events = await collect(runTurn(ask("Look at everything")));
+    assert.deepEqual(ofType(events, "tool_start").map((e) => e.label), ["Scanning twelve months of your transactions for what stands out", "Searching the web with Exa: average rent Helsinki", "Checking whether €300 fits before your next payday"]);
   });
 
   // Regression: live evaluation rounds 1 and 2. The model added two findings together itself (once wrongly).

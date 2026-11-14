@@ -102,7 +102,7 @@ describe("what leaves for the web", () => {
 
   const context = (): ToolContext => {
     const overview = buildOverview(AINO)!;
-    return { customerId: AINO, overview, city: "Helsinki", memory: { customerId: AINO, consent: true, items: [] }, cashFlow: () => buildCashFlow(overview), userTexts: [] };
+    return { customerId: AINO, overview, city: "Helsinki", memory: { customerId: AINO, consent: true, items: [] }, cashFlow: () => buildCashFlow(overview), userTexts: [], sisuTexts: [] };
   };
 
   it("sends Exa only the cleaned query, and hands the model a page with its hostile text removed", async () => {

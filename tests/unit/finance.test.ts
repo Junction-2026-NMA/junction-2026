@@ -99,7 +99,7 @@ describe("finance engine: customer isolation", () => {
 describe("finance engine: scenarios and affordability", () => {
   it("rejects values that are not numbers and clamps the rest", () => {
     assert.equal(typeof cleanInput({ billSavingPerMonth: Number.NaN, everydayCutPct: 0, years: 5 }), "string");
-    assert.deepEqual(cleanInput({ billSavingPerMonth: 99_999, everydayCutPct: -5, years: 80 }), { billSavingPerMonth: 500, everydayCutPct: 0, years: 10 });
+    assert.deepEqual(cleanInput({ billSavingPerMonth: 99_999, everydayCutPct: -5, years: 80 }), { billSavingPerMonth: 500, everydayCutPct: 0, years: 10, oneOffEur: 0 });
   });
 
   it("freeing money never makes the future worse, and the invested range brackets its middle", () => {

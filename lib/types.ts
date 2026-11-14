@@ -141,9 +141,10 @@ export type ScenarioBase = {
 };
 
 export type ScenarioInput = {
-  billSavingPerMonth: number; // from switching a contract
+  billSavingPerMonth: number; // euros freed per month by any change: a cheaper contract, spending less on a category
   everydayCutPct: number; // 0..50, share of everyday spending trimmed
   years: number; // 1..10
+  oneOffEur?: number; // optional: a lump sum (a gift, a bonus) that the "invest" branch moves into investments on day one
 };
 
 export type BranchId = "nothing" | "save" | "invest";
@@ -245,13 +246,14 @@ export type TurnTimings = {
   firstSentenceMs: number | null;
   totalMs: number;
   modelSteps: { model: string; provider: string; usedBackup: boolean; firstTokenMs: number | null; totalMs: number }[];
+  retries?: string[]; // why Sisu made the model redo a step: "claimed-without-doing", "unsourced-number", ...
 };
 
 export type AgentEvent =
   | { type: "start"; turnId: string; provider: string; model: string; mock: boolean }
   | { type: "transcript"; text: string; tookMs: number; language?: string | null; languageProbability?: number | null } // language: what was spoken, ISO 639-1, when known
   | { type: "speculation"; billType: BillType; reason: string }
-  | { type: "tool_start"; id: string; name: string; args: Record<string, unknown> }
+  | { type: "tool_start"; id: string; name: string; args: Record<string, unknown>; label?: string } // label: what Sisu is doing right now, in plain words, for the screen
   | { type: "tool_end"; trace: ToolTrace }
   | { type: "filler"; text: string }
   | { type: "research"; result: ResearchResult }
@@ -328,6 +330,15 @@ export type CashFlow = {
   assumptions: string[];
 };
 
+// How much the customer could move to savings without running short, worked out from their own numbers.
+export type SavingRoom = {
+  nowEur: number; // a one-off amount that still leaves a week of everyday spending before payday
+  perMonthEur: number; // what is left over in an average month
+  cushionEur: number;
+  steps: CalcStep[];
+  basis: string;
+};
+
 export type AffordabilityVerdict = "comfortable" | "tight" | "not-yet";
 
 export type Affordability = {
@@ -356,7 +367,7 @@ export type TeachingCard = {
   facts: Fact[];
 };
 
-export type ActionKind = "switch_contract" | "standing_transfer";
+export type ActionKind = "switch_contract" | "standing_transfer" | "one_off_transfer";
 export type ActionStatus = "awaiting_approval" | "executed_simulated" | "declined" | "expired";
 
 export type ActionImpact = {
@@ -390,6 +401,9 @@ export type AgentAction = {
   expiresAt: string;
   decidedAt: string | null;
   impact: ActionImpact | null; // filled in when approved
+  destination?: "savings" | "investments"; // transfers only: where the money goes, within the customer's own accounts
+  warning?: string | null; // show this prominently: what going ahead would do, and the safer amount
+  confirmation?: string | null; // filled in when approved: "Done (simulation). Reference SIM-1A2B3C4D."
 };
 
 export type AuditEventType = "action_prepared" | "action_approved" | "action_executed_simulated" | "action_declined" | "action_expired" | "memory_saved" | "memory_forgotten" | "consent_changed" | "demo_reset";
@@ -451,7 +465,8 @@ export type AgentExtraEvent =
   | { type: "action"; action: AgentAction } // show the approval card; approve with POST /api/actions/:id/approve
   | { type: "teaching"; card: TeachingCard }
   | { type: "memory"; item: MemoryItem }
-  | { type: "grounding"; grounding: Grounding; facts: Fact[] }; // sent just before "done"
+  | { type: "grounding"; grounding: Grounding; facts: Fact[] } // sent just before "done"
+  | { type: "replace"; text: string }; // the answer so far, after Sisu threw away a sentence that failed a check. Show this instead of the deltas received so far
 
 export type SisuEvent = AgentEvent | AgentExtraEvent;
 

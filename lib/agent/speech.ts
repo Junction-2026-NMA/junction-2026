@@ -59,6 +59,8 @@ function releaseWhenDone(body: ReadableStream<Uint8Array>, release: () => void):
 // language: the language Sisu should answer in (ISO 639-1), or null when it could not be told with confidence.
 export type Transcript = { text: string; tookMs: number; mock: boolean; language: string | null; languageProbability: number | null };
 
+const KEYTERMS = ["Sisu", "S-Pankki", "S-mobiili", "S Bank", "Exa", "Kela", "Nemotron", "Verda", "Context.dev", "ElevenLabs"];
+
 // Below this, a detected language is a guess (short clips of similar languages are easy to confuse), so Sisu
 // does not commit to it and lets the model follow the words instead.
 const MIN_LANGUAGE_CONFIDENCE = 0.6;
@@ -76,6 +78,7 @@ export async function transcribe(audio: Blob, language?: string): Promise<Transc
   form.set("model_id", eleven.sttModel);
   form.set("tag_audio_events", "false");
   form.set("numbers_format", "digits"); // "fifty euros" arrives as "50 euros", in every language
+  for (const term of KEYTERMS) form.append("keyterms", term); // names the recogniser would otherwise mishear ("Exa" as "Exxon")
   if (chosen) form.set("language_code", chosen);
   form.set("file", audio, "speech");
 

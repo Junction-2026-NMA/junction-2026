@@ -76,12 +76,32 @@ Call `reset()` when the customer changes. `actions` and `memory` reload on their
 | `tools` | The trace drawer: tool name, one-line `summary`, `tookMs`, `source`, `ok` | before |
 | `research` | The offer table: `offers`, `best`, `citations`, `assumptions`, `mock` | before |
 | `citations`, `timings`, `error`, `startedEarly` | Sources, timings, error sentence, early-research flag | before |
+| `steps` | What Sisu is doing right now, one line per thing it does (section 2a) | **new 14 Nov** |
 | `stages` | One card per step of Sisu's work (section 3) | **new** |
 | `action` | An action awaiting approval (section 5) | **new** |
 | `teaching` | A predict-then-reveal question (section 6) | **new** |
 | `remembered` | Things Sisu saved this turn: show "Sisu will remember…" | **new** |
 | `grounding` | Whether every number in the answer has a source (section 7) | **new** |
 | `facts` | The receipts behind the numbers (section 7) | **new** |
+
+## 2a. Showing what Sisu is doing
+
+A customer should see Sisu act, not only read its answer. Every message carries `steps`, filled in live:
+
+```ts
+type SisuStep = {
+  id: string;
+  label: string;         // plain words: "Searching the web with Exa: average rent one-room apartment Helsinki"
+  done: boolean;         // false while it runs: show a spinner
+  ok: boolean;           // false if it failed
+  tookMs: number | null;
+  result: string | null; // one line on what came back
+};
+```
+
+Show the list while `pending` is true under a heading such as "What Sisu is doing", and keep it under the answer as "What Sisu did". Labels are written in code (`lib/agent/tools/labels.ts`), never by the model. A turn answered from the summary has no steps. `app/dev/agent/MessageCard.tsx` shows one way to draw it.
+
+Sisu also throws a sentence away when it fails a check (for example it said "I've set it up" without setting anything up) and makes the model try again. When that happens the stream sends `replace` with the text that still stands. The hook handles it; `message.text` is always the text to show.
 
 ## 3. Stages: one card per step
 
@@ -136,7 +156,10 @@ Nothing is ever carried out without the user pressing Approve. Even then it is a
 ```ts
 type AgentAction = {
   id: string;
-  kind: "switch_contract" | "standing_transfer";
+  kind: "switch_contract" | "standing_transfer" | "one_off_transfer";
+  destination?: "savings" | "investments"; // transfers only, within the customer's own accounts
+  warning?: string | null;      // SHOW THIS in the card: "Moving €500 today would leave the account about €323 below zero ... About €10 could be moved today without that."
+  confirmation?: string | null; // after Approve: "Done (simulation). Reference SIM-1A2B3C4D."
   status: "awaiting_approval" | "executed_simulated" | "declined" | "expired";
   simulated: true;              // always. Label the card "Simulated, no real switch".
   title: string;                // "Switch electricity contract to Vaasan Sähkö Myynti Oy (Kiinteä Vaikuttaja 24 kk)"
@@ -309,7 +332,8 @@ Order in one turn: `start`, (`transcript`), (`speculation`), (`filler`), then an
 | `transcript` | before | what was heard, `tookMs` |
 | `speculation` | before | research started early for `billType` |
 | `filler` | before | a sentence to say while research runs |
-| `tool_start`, `tool_end` | before | the tool call and its `ToolTrace` |
+| `tool_start`, `tool_end` | before | the tool call and its `ToolTrace`. `tool_start` now also has `label`: what Sisu is doing, in plain words |
+| `replace` | **new 14 Nov** | `text`: the answer so far, after a sentence failed a check. Show it instead of the deltas received so far |
 | `research` | before | `ResearchResult` |
 | `delta`, `sentence` | before | text as it arrives; whole sentences for speech |
 | `stage` | **new** | one `Stage` |

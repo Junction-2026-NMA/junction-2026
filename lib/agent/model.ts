@@ -28,6 +28,7 @@ export type StreamOptions = {
   tools: ToolSchema[];
   maxTokens: number;
   useFastModel?: boolean;
+  forceTool?: boolean | string; // true: the reply must be a tool call. A name: it must be that tool. Used when the model described an action instead of taking it
   signal?: AbortSignal;
 };
 
@@ -36,6 +37,12 @@ const MODEL_TIMEOUT_MS = 25_000;
 // p50 0.26 s, p95 0.34 s alone, and up to about 1.5 s with twelve turns at once. Two seconds leaves room for a
 // busy GPU without making a customer wait long for a dead one. MODEL_FIRST_TOKEN_LIMIT_MS overrides it.
 const firstTokenLimitMs = (): number => Number(process.env.MODEL_FIRST_TOKEN_LIMIT_MS) || 2_000;
+
+// MODEL_FORCE_TOOL=off switches forcing off, for a model server that does not support it.
+function toolChoice(force: StreamOptions["forceTool"]): unknown {
+  if (!force || process.env.MODEL_FORCE_TOOL === "off") return "auto";
+  return typeof force === "string" ? { type: "function", function: { name: force } } : "required";
+}
 
 type Delta = {
   content?: string | null;
@@ -135,7 +142,7 @@ async function* streamFrom(endpoint: ModelEndpoint, options: StreamOptions, oute
       stream: true,
       max_tokens: options.maxTokens,
       temperature: 0.3,
-      ...(options.tools.length ? { tools: options.tools, tool_choice: "auto" } : {}),
+      ...(options.tools.length ? { tools: options.tools, tool_choice: toolChoice(options.forceTool) } : {}),
       ...(endpoint.sendsThinkingFlag ? { chat_template_kwargs: { enable_thinking: thinking } } : {}),
     }),
   });

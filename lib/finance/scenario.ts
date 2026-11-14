@@ -4,7 +4,7 @@ import { round2 } from "./math";
 // Return scenarios are illustrations, not predictions. Yearly, before inflation, after the fund fee.
 export const RETURN_SCENARIOS = { low: 0.01, mid: 0.05, high: 0.08 };
 export const FUND_FEE = 0.002;
-export const LIMITS = { billSavingPerMonth: [0, 500], everydayCutPct: [0, 50], years: [1, 10] } as const;
+export const LIMITS = { billSavingPerMonth: [0, 500], everydayCutPct: [0, 50], years: [1, 10], oneOffEur: [0, 100_000] } as const;
 
 const clamp = (x: number, [lo, hi]: readonly [number, number]) => Math.min(Math.max(x, lo), hi);
 
@@ -15,6 +15,7 @@ export function cleanInput(raw: Partial<ScenarioInput>): ScenarioInput | string 
     billSavingPerMonth: clamp(raw.billSavingPerMonth!, LIMITS.billSavingPerMonth),
     everydayCutPct: clamp(raw.everydayCutPct!, LIMITS.everydayCutPct),
     years: Math.round(clamp(raw.years!, LIMITS.years)),
+    oneOffEur: typeof raw.oneOffEur === "number" && Number.isFinite(raw.oneOffEur) ? round2(clamp(raw.oneOffEur, LIMITS.oneOffEur)) : 0,
   };
 }
 
@@ -30,8 +31,9 @@ function grow(invested: number, deposit: number, yearlyReturn: number): number {
   return (invested + deposit) * (1 + (yearlyReturn - FUND_FEE) / 12);
 }
 
-function project(id: BranchId, base: ScenarioBase, flows: Flows, months: number): Branch {
-  const start = { cash: base.balance, low: 0, mid: 0, high: 0 };
+// `invested` is money already in investments on day one (a lump sum the customer moves there).
+function project(id: BranchId, base: ScenarioBase, flows: Flows, months: number, invested = 0): Branch {
+  const start = { cash: base.balance - invested, low: invested, mid: invested, high: invested };
   const points = Array.from({ length: months }).reduce<{ state: typeof start; points: BranchPoint[] }>(
     (acc, _, i) => {
       const state = {
@@ -50,7 +52,7 @@ function project(id: BranchId, base: ScenarioBase, flows: Flows, months: number)
       };
       return { state, points: [...acc.points, point] };
     },
-    { state: start, points: [{ month: 0, cash: base.balance, invested: 0, total: base.balance, totalLow: base.balance, totalHigh: base.balance }] },
+    { state: start, points: [{ month: 0, cash: start.cash, invested, total: base.balance, totalLow: base.balance, totalHigh: base.balance }] },
   ).points;
 
   const end = points[points.length - 1];
@@ -77,7 +79,7 @@ export function runScenario(base: ScenarioBase, input: ScenarioInput): ScenarioR
     branches: [
       project("nothing", base, { toCash: netToCash, toInvested: base.monthlySaved }, months),
       project("save", base, { toCash: netToCash + freed, toInvested: base.monthlySaved }, months),
-      project("invest", base, { toCash: netToCash, toInvested: base.monthlySaved + freed }, months),
+      project("invest", base, { toCash: netToCash, toInvested: base.monthlySaved + freed }, months, input.oneOffEur ?? 0),
     ],
     assumptions: [
       "Income and spending stay at their last-12-month averages. Real life will differ.",
@@ -85,6 +87,7 @@ export function runScenario(base: ScenarioBase, input: ScenarioInput): ScenarioR
       `A fund fee of ${FUND_FEE * 100}% a year is taken off. Taxes and inflation are not included.`,
       "Investments already held elsewhere are not visible in the bank data, so the invested pot starts at €0.",
       "Cash in the account earns no interest here.",
+      ...(input.oneOffEur ? [`In the "invest it" future, €${input.oneOffEur.toFixed(0)} is moved from the account into investments on day one. In the other two it stays in the account.`] : []),
     ],
   };
 }

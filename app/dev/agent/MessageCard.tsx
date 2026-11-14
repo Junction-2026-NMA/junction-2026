@@ -7,6 +7,8 @@ const host = (url: string) => new URL(url).hostname.replace(/^www\./, "");
 
 const SOURCE_LABEL: Record<string, string> = { "bank-data": "bank data", exa: "Exa", "context.dev": "Context.dev", calculation: "calculated", assumption: "assumption", "customer-stated": "you said", nemotron: "Nemotron" };
 
+const ACTION_STATE = { awaiting_approval: "Set up by Sisu · waiting for your approval", executed_simulated: "Done · simulation, no real money moved", declined: "Declined · nothing was done", expired: "Expired · nothing was done" };
+
 // Predict first, then reveal: the answer stays hidden until an option is tapped.
 function Teaching({ card }: { card: TeachingCard }) {
   const [picked, setPicked] = useState<number | null>(null);
@@ -30,9 +32,10 @@ function ActionCard({ action, onApprove, onDecline }: { action: AgentAction; onA
   const waiting = action.status === "awaiting_approval";
   return (
     <div className="space-y-2 rounded-xl border border-amber/60 bg-amber/10 p-3 text-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a5f08]">Simulated action · {action.status.replace(/_/g, " ")}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a5f08]">{ACTION_STATE[action.status]}</p>
       <p className="font-semibold">{action.title}</p>
       <p className="text-muted">{action.summary}</p>
+      {action.warning && <p className="rounded-lg bg-coral/10 p-2 text-coral">{action.warning}</p>}
       <ol className="list-decimal space-y-1 pl-5 text-xs text-muted">{action.checklist.map((step) => <li key={step}>{step}</li>)}</ol>
       {waiting && (
         <div className="flex gap-2">
@@ -40,7 +43,8 @@ function ActionCard({ action, onApprove, onDecline }: { action: AgentAction; onA
           <button type="button" onClick={() => onDecline?.(action.id)} className="min-h-11 flex-1 rounded-xl border border-line bg-card px-3 font-semibold">Decline</button>
         </div>
       )}
-      {action.impact && <p className="font-semibold text-green">{action.impact.summary}</p>}
+      {action.confirmation && <p className="font-semibold text-green">{action.confirmation}</p>}
+      {action.impact && <p className="text-green">{action.impact.summary}</p>}
     </div>
   );
 }
@@ -59,16 +63,22 @@ export function MessageCard({ message, onApprove, onDecline }: { message: SisuMe
       {message.pending && !message.text && <p className="text-muted">Thinking…</p>}
       {message.error && <p className="rounded-xl bg-coral/10 p-3 text-sm text-coral">{message.error}</p>}
 
-      {message.tools.length > 0 && (
-        <ul className="space-y-1 border-t border-line pt-2 text-xs">
-          {message.tools.map((tool) => (
-            <li key={tool.id} className="flex flex-wrap gap-x-2">
-              <span className={`font-semibold ${tool.ok ? "text-green" : "text-coral"}`}>{tool.name}</span>
-              <span className="tabular text-muted">{seconds(tool.tookMs)} · {tool.source}{tool.joinedPrefetch ? " · reused a run already in flight" : ""}</span>
-              <span className="w-full text-muted">{tool.summary}</span>
-            </li>
-          ))}
-        </ul>
+      {message.steps.length > 0 && (
+        <div className="border-t border-line pt-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">{message.pending ? "What Sisu is doing" : `What Sisu did (${message.steps.length} ${message.steps.length === 1 ? "step" : "steps"})`}</p>
+          <ol className="mt-1 space-y-1 text-sm">
+            {message.steps.map((step) => (
+              <li key={step.id} className="grid grid-cols-[1rem_1fr] items-baseline gap-x-2">
+                <span aria-hidden className={`font-semibold ${!step.done ? "animate-pulse text-amber" : step.ok ? "text-green" : "text-coral"}`}>{!step.done ? "…" : step.ok ? "✓" : "×"}</span>
+                <span>
+                  <span className={step.done ? "" : "font-semibold"}>{step.label}</span>
+                  {step.done && <span className="tabular ml-2 text-xs text-muted">{seconds(step.tookMs)}</span>}
+                  {step.result && <span className="block text-xs text-muted">{step.result}</span>}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
       )}
 
       {message.stages.length > 0 && (
@@ -117,7 +127,7 @@ export function MessageCard({ message, onApprove, onDecline }: { message: SisuMe
 
       {message.grounding && message.grounding.checked > 0 && (
         <p className={`border-t border-line pt-2 text-xs ${message.grounding.ok ? "text-muted" : "text-coral"}`}>
-          {message.grounding.ok ? `All ${message.grounding.checked} numbers have a source` : `No source for: ${message.grounding.unverified.join(", ")}`}
+          {message.grounding.ok ? (message.grounding.checked === 1 ? "The 1 number has a source" : `All ${message.grounding.checked} numbers have a source`) : `No source for: ${message.grounding.unverified.join(", ")}`}
           {message.grounding.corrections.length > 0 && ` · ${message.grounding.corrections.length} slipped digit corrected`}
           {message.facts.length > 0 && ` · ${[...new Set(message.facts.map((f) => SOURCE_LABEL[f.source] ?? f.source))].join(", ")}`}
         </p>

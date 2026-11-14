@@ -166,7 +166,8 @@ export function correctNumbers(text: string, sources: Sources): { text: string; 
   let corrected = text;
   for (const found of findNumbers(text).reverse()) {
     if (classify(found, sources, contextNumbers).status !== "unverified") continue;
-    const near = sources.facts.find((f) => Math.abs(Math.abs(f.value) - found.value) <= Math.max(SLIP_ABSOLUTE, Math.abs(f.value) * SLIP_RELATIVE));
+    // Only a figure of some size can have a "slipped digit": 0.05 is not a slip of 0.
+    const near = sources.facts.find((f) => Math.abs(f.value) >= 1 && Math.abs(Math.abs(f.value) - found.value) <= Math.max(SLIP_ABSOLUTE, Math.abs(f.value) * SLIP_RELATIVE));
     if (!near) continue;
     const decimals = /[.,]\d{1,2}$/.test(found.raw) ? found.raw.split(/[.,]/).pop()!.length : 0;
     const replacement = Math.abs(near.value).toFixed(decimals);
@@ -220,7 +221,12 @@ export function correctNames(text: string, names: string[]): { text: string; cor
 export function checkGrounding(answer: string, facts: Fact[], contextTexts: string[], userTexts: string[], corrections: NumberCorrection[] = []): Grounding {
   const sources = { facts, contextTexts, userTexts };
   const contextNumbers = contextNumbersOf(sources);
-  const numbers = findNumbers(spelledToDigits(answer)).map((found) => classify(found, sources, contextNumbers));
+  const first = findNumbers(spelledToDigits(answer)).map((found) => classify(found, sources, contextNumbers));
+  // "Yours is 662, the typical figure is 730, so you pay 68 less": the 68 is the difference of two sourced figures
+  // in the same answer. Code can check that sum, so it counts as supported. A wrong sum still fails.
+  const sourced = first.filter((n) => n.status === "receipt" || n.status === "context").map((n) => n.value);
+  const fromTwo = (value: number): boolean => sourced.some((a, i) => sourced.some((b, j) => i < j && (sameFigure(value, a + b) || sameFigure(value, Math.abs(a - b)))));
+  const numbers = first.map((n): NumberCheck => (n.status === "unverified" && n.value > TRIVIAL_MAX && fromTwo(n.value) ? { ...n, status: "context" } : n));
   const unverified = numbers.filter((n) => n.status === "unverified").map((n) => n.value);
   return { ok: unverified.length === 0, checked: numbers.length, unverified, numbers, corrections };
 }
@@ -254,6 +260,7 @@ export function overviewFacts(o: Overview): Fact[] {
     fact("overview:safe-week", "Safe to spend per week", o.safeToSpend.perWeek, "EUR", "safe to spend per month divided by weeks in a month", { source: "calculation" }),
     fact("overview:safe-month", "Safe to spend per month", o.safeToSpend.perMonth, "EUR/month", "income minus must-pays, now-and-then costs and savings", { source: "calculation" }),
     fact("overview:safe-gap", "Gap between safe to spend and actual everyday spending", o.safeToSpend.gapPerMonth, "EUR/month", "safe to spend minus actual", { source: "calculation" }),
+    fact("overview:weeks", "Weeks in a month", 52 / 12, "count", "52 weeks divided by 12 months", { source: "calculation" }),
     fact("overview:age", "Age", o.age, "years", "customer record"),
     fact("overview:peers", "Customers in the same age band", o.peerCount, "count", `ages ${o.ageBand}`),
     ...o.baskets.flatMap((b) => [

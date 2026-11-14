@@ -12,8 +12,9 @@ import { looksLikeInstructions } from "./untrusted";
 const digitsOf = (text: string): number[] => [...text.replace(/(\d)[ ,](\d{3})\b/g, "$1$2").matchAll(/\d+(?:\.\d+)?/g)].map((match) => Number(match[0]));
 const wordsOf = (text: string): string[] => text.toLowerCase().match(/[a-zà-öø-ÿ]{4,}/g) ?? [];
 
-// Did the customer actually say this number?
-const userSaidNumber = (ctx: ToolContext, value: number): boolean => ctx.userTexts.some((text) => digitsOf(text).some((n) => Math.abs(n - value) < 0.005));
+// Has this amount come up in the conversation, said by the customer or by Sisu in an answer that passed the number
+// check? "Yes, set that up" after Sisu suggested 60 euros a month is a real instruction for 60.
+const amountWasDiscussed = (ctx: ToolContext, value: number): boolean => [...ctx.userTexts, ...ctx.sisuTexts].some((text) => digitsOf(text).some((n) => Math.abs(n - value) < 0.005));
 // Did the customer say this number as their electricity use? "I pay 800 euros" must not support "800 kWh".
 const userSaidKwh = (ctx: ToolContext, value: number): boolean => ctx.userTexts.some((text) => /kwh|kilowatt/i.test(text) && digitsOf(text).some((n) => Math.abs(n - value) < 0.005));
 // Is this what the customer said, in their words? Every meaningful word of the value must come from ONE of their
@@ -31,14 +32,15 @@ export function prepareAction(args: Record<string, unknown>, ctx: ToolContext): 
   const kind = ACTION_KINDS.includes(args.kind as string) ? (args.kind as string) : null;
   if (!kind) return failure("finance", `prepare_action needs kind: ${ACTION_KINDS.join(" or ")}.`);
 
+  const amount = typeof args.amountEur === "number" ? args.amountEur : typeof args.monthlyAmountEur === "number" ? args.monthlyAmountEur : null;
   const built =
     kind === "switch_contract"
       ? BILL_TYPES.includes(args.billType as BillType)
         ? buildSwitchDraft(ctx.customerId, args.billType as BillType, { provider: typeof args.provider === "string" ? args.provider.slice(0, 60) : undefined, preparedBy: "sisu-agent" })
         : ({ ok: false, status: 400, reason: "switch_contract needs billType: electricity, mobile or internet." } as const)
-      : typeof args.monthlyAmountEur === "number" && userSaidNumber(ctx, args.monthlyAmountEur)
-        ? buildTransferDraft(ctx.customerId, args.monthlyAmountEur, { preparedBy: "sisu-agent" })
-        : ({ ok: false, status: 400, reason: "Ask the customer how much they want to move each month. The amount must be one they said themselves." } as const);
+      : typeof amount === "number" && amountWasDiscussed(ctx, amount)
+        ? buildTransferDraft(ctx.customerId, amount, { preparedBy: "sisu-agent", once: kind === "one_off_transfer", destination: args.destination === "investments" ? "investments" : "savings" })
+        : ({ ok: false, status: 400, reason: "Ask the customer how much they want to move. The amount must be one they said, or one you suggested from their numbers and they agreed to." } as const);
   if (!built.ok) return failure("finance", built.reason);
 
   const saved = saveDraft(ctx.customerId, built.draft);
@@ -46,8 +48,10 @@ export function prepareAction(args: Record<string, unknown>, ctx: ToolContext): 
   const action = saved.action;
   return outcome({
     content: JSON.stringify({
-      status: "PREPARED, NOT DONE. It is waiting for the customer to approve it on screen.",
-      tellTheCustomer: "Say what you prepared and the estimated effect, and ask them to review it and tap Approve or Decline. Never say it has been switched, sent or set up. Even after approval it is a simulation.",
+      status: "SET UP AND WAITING. One tap on Approve carries it out (as a simulation in this demo).",
+      tellTheCustomer: "Say in one sentence what you have set up and what it does, then ask them to tap Approve. Speak as someone who has done the work: 'I've set up…', not 'I can only prepare…'. Do not say it has already gone through.",
+      warning: action.warning ?? undefined,
+      ifThereIsAWarning: action.warning ? "Say the warning plainly, with its figures, and name the safer amount." : undefined,
       prepared: action.title,
       summary: action.summary,
       numbers: factsForModel(action.facts),
@@ -57,7 +61,7 @@ export function prepareAction(args: Record<string, unknown>, ctx: ToolContext): 
     facts: action.facts,
     citations: action.sources,
     action,
-    stages: [{ kind: "action", title: action.title, summary: "Waiting for your approval. Nothing has been done.", source: "calculation", data: { kind: "action", action } }],
+    stages: [{ kind: "action", title: action.title, summary: action.warning ?? "Set up and waiting for your tap on Approve.", source: "calculation", data: { kind: "action", action } }],
   });
 }
 

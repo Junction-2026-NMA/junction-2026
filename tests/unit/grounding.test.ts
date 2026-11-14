@@ -65,6 +65,24 @@ describe("number verifier", () => {
     assert.deepEqual(checkGrounding(invented.text, groceries, [], []).unverified, [333.6]);
   });
 
+  // Regression: replay, 14 Nov. "0.05" was "corrected" to 0 because a receipt happened to be zero.
+  it("does not treat a small figure as a slipped zero", () => {
+    const zero = { facts: [fact("z", "Saved per month", 0, "EUR/month", "test"), fact("w", "Water", 1.85, "EUR", "test")], contextTexts: [], userTexts: [] };
+    assert.deepEqual(correctNumbers("Water costs about 0.05 euros a litre here.", zero).corrections, []);
+    assert.equal(correctNumbers("Water costs 1.86 euros per cubic metre.", zero).text, "Water costs 1.85 euros per cubic metre.");
+  });
+
+  // Regression: same replay. "662 … 730 … so yours is about 68 below" was flagged, though the sum is checkable.
+  it("accepts the difference or sum of two sourced figures in the same answer, and still rejects a wrong sum", () => {
+    const rent = [fact("mine", "Housing payment", 661.7, "EUR/month", "test")];
+    const web = ['{"excerpt":"The median rent for a one-room flat in Helsinki is 730 euros a month."}'];
+    assert.equal(checkGrounding("Your rent is 662 euros a month. A typical one-room flat costs 730 euros, so yours is about 68 euros below that.", rent, web, []).ok, true);
+    assert.deepEqual(checkGrounding("Your rent is 662 euros a month. A typical one-room flat costs 730 euros, so yours is about 98 euros below that.", rent, web, []).unverified, [98]);
+    const findings = [fact("a", "Restaurants gap per year", 768, "EUR/year", "test"), fact("b", "Entertainment extra per year", 746.16, "EUR/year", "test")];
+    assert.equal(checkGrounding("That is 768 euros a year and 746 euros a year, 1,514 euros together.", findings, [], []).ok, true);
+    assert.deepEqual(checkGrounding("That is 768 euros a year and 746 euros a year, 1,536 euros together.", findings, [], []).unverified, [1536]);
+  });
+
   it("keeps the model's own formatting when it corrects a figure", () => {
     const sources = { facts: [fact("x", "Bill", 1932.43, "EUR", "test")], contextTexts: [], userTexts: [] };
     assert.equal(correctNumbers("That is 1,932.45 in all.", sources).text, "That is 1932.43 in all.");

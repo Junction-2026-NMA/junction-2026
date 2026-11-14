@@ -27,7 +27,11 @@ export type SisuMessage = {
   remembered: MemoryItem[]; // things Sisu saved this turn ("Sisu will remember…")
   grounding: Grounding | null; // every number in the answer and whether it has a source
   facts: Fact[]; // the receipts: what each number is, where it came from, how to open its rows
+  steps: SisuStep[]; // what Sisu is doing, one line per tool call, in order. Show these live while `pending` is true
 };
+
+// One thing Sisu did (or is doing right now) in this turn.
+export type SisuStep = { id: string; label: string; done: boolean; ok: boolean; tookMs: number | null; result: string | null };
 
 export type SisuOptions = {
   customerId: string | null;
@@ -54,6 +58,7 @@ const blank = (role: "user" | "assistant", text = "", pending = true): SisuMessa
   remembered: [],
   grounding: null,
   facts: [],
+  steps: [],
 });
 
 export function useSisu({ customerId, focusBill, speakReplies = true, language = "auto" }: SisuOptions) {
@@ -163,11 +168,21 @@ export function useSisu({ customerId, focusBill, speakReplies = true, language =
             case "delta":
               patch(reply.id, (m) => ({ ...m, text: m.text + event.text }));
               break;
+            case "replace": // Sisu threw away a sentence that failed a check; show the answer so far instead
+              patch(reply.id, (m) => ({ ...m, text: event.text }));
+              break;
             case "sentence":
               if (spoken) speaker.current?.say(event.text);
               break;
+            case "tool_start":
+              patch(reply.id, (m) => ({ ...m, steps: [...m.steps, { id: event.id, label: event.label ?? event.name, done: false, ok: true, tookMs: null, result: null }] }));
+              break;
             case "tool_end":
-              patch(reply.id, (m) => ({ ...m, tools: [...m.tools, event.trace] }));
+              patch(reply.id, (m) => ({
+                ...m,
+                tools: [...m.tools, event.trace],
+                steps: m.steps.map((step) => (step.id === event.trace.id ? { ...step, done: true, ok: event.trace.ok, tookMs: event.trace.tookMs, result: event.trace.summary } : step)),
+              }));
               break;
             case "research":
               patch(reply.id, (m) => ({ ...m, research: event.result }));

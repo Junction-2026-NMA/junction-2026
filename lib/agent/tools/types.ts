@@ -9,6 +9,7 @@ export type ToolContext = {
   memory: CustomerMemory;
   cashFlow: () => CashFlow; // worked out on first use
   userTexts: string[]; // what the user has actually said this conversation; used to check "remember" requests
+  sisuTexts: string[]; // what Sisu said earlier in this conversation (answers that already passed the number check)
   signal?: AbortSignal;
 };
 

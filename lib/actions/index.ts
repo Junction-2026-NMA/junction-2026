@@ -14,7 +14,7 @@ export type ActionResult = { ok: true; action: AgentAction } | { ok: false; stat
 
 const isOpen = (action: AgentAction): boolean => action.status === "awaiting_approval";
 const sameAction = (a: AgentAction, draft: ActionDraft): boolean =>
-  a.kind === draft.kind && a.billType === draft.billType && a.offer?.provider === draft.offer?.provider && a.offer?.plan === draft.offer?.plan && a.monthlyAmountEur === draft.monthlyAmountEur;
+  a.kind === draft.kind && a.billType === draft.billType && a.offer?.provider === draft.offer?.provider && a.offer?.plan === draft.offer?.plan && a.monthlyAmountEur === draft.monthlyAmountEur && a.destination === draft.destination;
 
 // Marks unanswered actions that have passed their time as expired, and logs it.
 function expireOld(now: Date): void {
@@ -65,7 +65,7 @@ function decide(customerId: string, actionId: string, approve: boolean, impactOf
   if (!isOpen(action)) return { ok: false, status: 409, reason: `This action was already ${action.status === "declined" ? "declined" : "approved"}.` };
 
   const decided: AgentAction = approve
-    ? { ...action, status: "executed_simulated", decidedAt: now.toISOString(), impact: impactOf(action) }
+    ? { ...action, status: "executed_simulated", decidedAt: now.toISOString(), impact: impactOf(action), confirmation: `Done (simulation). Reference SIM-${action.id.slice(0, 8).toUpperCase()}.` }
     : { ...action, status: "declined", decidedAt: now.toISOString() };
 
   updateState((state) => {

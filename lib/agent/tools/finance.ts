@@ -6,7 +6,7 @@ import { fact } from "@/lib/finance/facts";
 import { groupBy, round2, sum } from "@/lib/finance/math";
 import { mortgageFor } from "@/lib/finance/mortgage";
 import { findPatterns } from "@/lib/finance/patterns";
-import { LIMITS, cleanInput, runScenario } from "@/lib/finance/scenario";
+import { FUND_FEE, LIMITS, RETURN_SCENARIOS, cleanInput, runScenario } from "@/lib/finance/scenario";
 import { CONCEPTS, teachingCard } from "@/lib/finance/teaching";
 import { filterTransactions } from "@/lib/finance/transactions";
 import { billLabel } from "@/lib/memory";
@@ -198,16 +198,28 @@ export function checkAffordabilityTool(args: Record<string, unknown>, ctx: ToolC
 }
 
 export function runScenarioTool(args: Record<string, unknown>, ctx: ToolContext): ToolOutcome {
-  const input = cleanInput({ billSavingPerMonth: Number(args.billSavingPerMonth), everydayCutPct: Number(args.everydayCutPct), years: Number(args.years) });
+  const freed = Number(args.freedPerMonthEur ?? args.billSavingPerMonth ?? 0);
+  const input = cleanInput({ billSavingPerMonth: Number.isFinite(freed) ? freed : 0, everydayCutPct: Number(args.everydayCutPct ?? 0) || 0, years: Number(args.years), oneOffEur: typeof args.oneOffEur === "number" ? args.oneOffEur : 0 });
   if (typeof input === "string") return failure("finance", input);
   const result = runScenario(ctx.overview, input);
   const branches = result.branches.map((b) => ({ future: b.label, endTotalEur: b.endTotal, lowEur: b.endLow, highEur: b.endHigh, monthsOfMustPayCostsCoveredAfterYear1: b.runwayMonthsAtYear1 }));
   const end = (id: string) => result.branches.find((b) => b.id === id)?.endTotal ?? 0;
   const gain = round2(end("save") - end("nothing"));
+  // What the lump sum itself would be worth at the end, in each scenario: the same growth rule the projection uses.
+  const grown = (rate: number): number => round2((input.oneOffEur ?? 0) * (1 + (rate - FUND_FEE) / 12) ** (input.years * 12));
+  const lumpBecomes = { middleScenario: grown(RETURN_SCENARIOS.mid), lowScenario: grown(RETURN_SCENARIOS.low), highScenario: grown(RETURN_SCENARIOS.high) };
   const facts: Fact[] = [
     fact("scenario:freed", "Freed per month", result.freedPerMonth, "EUR/month", "bill saving plus the trimmed share of everyday spending", { source: "calculation" }),
     fact("scenario:years", "Years ahead", input.years, "years", "the horizon asked for", { source: "customer-stated" }),
     fact("scenario:gain", "Extra after the period if the money is kept", gain, "EUR", "'keep the cash' minus 'change nothing'", { source: "calculation" }),
+    ...(input.oneOffEur
+      ? [
+          fact("scenario:one-off", "Lump sum", input.oneOffEur, "EUR", "the amount the customer named", { source: "customer-stated" }),
+          fact("scenario:one-off-mid", "Lump sum after the period, middle scenario", lumpBecomes.middleScenario, "EUR", `${RETURN_SCENARIOS.mid * 100}% a year less the fund fee, compounded monthly`, { source: "calculation" }),
+          fact("scenario:one-off-low", "Lump sum after the period, low scenario", lumpBecomes.lowScenario, "EUR", `${RETURN_SCENARIOS.low * 100}% a year less the fund fee`, { source: "calculation" }),
+          fact("scenario:one-off-high", "Lump sum after the period, high scenario", lumpBecomes.highScenario, "EUR", `${RETURN_SCENARIOS.high * 100}% a year less the fund fee`, { source: "calculation" }),
+        ]
+      : []),
     ...result.branches.flatMap((b) => [
       fact(`scenario:${b.id}:end`, `${b.label}: total at the end`, b.endTotal, "EUR", "projected from 12-month averages", { source: "calculation" }),
       fact(`scenario:${b.id}:low`, `${b.label}: low case`, b.endLow, "EUR", "1% a year scenario", { source: "calculation" }),
@@ -228,6 +240,13 @@ export function runScenarioTool(args: Record<string, unknown>, ctx: ToolContext)
       input,
       freedPerMonthEur: result.freedPerMonth,
       extraAfterPeriodIfKeptEur: gain,
+      ...(input.oneOffEur
+        ? {
+            lumpSumEur: input.oneOffEur,
+            lumpSumCouldBecomeEur: lumpBecomes,
+            forTheLumpSumSay: `The ${input.oneOffEur} euros could become about ${lumpBecomes.middleScenario} after ${input.years} years, between ${lumpBecomes.lowScenario} and ${lumpBecomes.highScenario}. Left in the account it stays ${input.oneOffEur}. These are scenarios, not forecasts, and investments can lose value. Do not quote the branch totals below for the lump sum: they are the whole account.`,
+          }
+        : {}),
       branches,
       ...(target === null ? {} : { targetEur: target, timeToReachTarget: reach.map((r) => ({ future: r.future, months: r.monthsToReachTarget ?? `not within ${LIMITS.years[1]} years` })) }),
       assumptions: result.assumptions,

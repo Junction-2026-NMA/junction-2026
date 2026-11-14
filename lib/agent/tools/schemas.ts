@@ -1,6 +1,7 @@
 // The tools the model may choose from.
 import { BASKET_ORDER, MCC_LABELS } from "@/lib/finance/baskets";
 import { CONCEPTS } from "@/lib/finance/teaching";
+import { CALC_UNITS } from "./calc";
 import type { BillType } from "@/lib/types";
 import type { ToolSchema } from "../model";
 
@@ -9,7 +10,8 @@ export const CATEGORIES = ["Housing", "Utilities", "Health", "Home & Tech", "Gro
 export const MERCHANT_TYPES = [...new Set(Object.values(MCC_LABELS))];
 export const GROUPINGS = ["month", "category", "merchantType"];
 export const MEMORY_KINDS = ["yearly_kwh", "bill_name", "preference", "goal"];
-export const ACTION_KINDS = ["switch_contract", "standing_transfer"];
+export const ACTION_KINDS = ["switch_contract", "standing_transfer", "one_off_transfer"];
+export const DESTINATIONS = ["savings", "investments"];
 
 const tool = (name: string, description: string, properties: Record<string, unknown>, required: string[] = []): ToolSchema => ({
   type: "function",
@@ -38,14 +40,15 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
   tool("check_affordability", "Can the customer absorb a one-off or unexpected cost now?", { amountEur: { type: "number" }, what: { type: "string" } }, ["amountEur"]),
   tool(
     "run_scenario",
-    "Projects three futures (change nothing, keep the cash, invest it). For what-if questions, what a saving adds up to, and how long until a target balance.",
+    "Projects three futures (change nothing, keep the cash, invest it). For what-if questions, what a saving or a lump sum adds up to, and how long until a target balance.",
     {
-      billSavingPerMonth: { type: "number", description: "euros, 0 if none" },
-      everydayCutPct: { type: "number", description: "0 to 50" },
+      freedPerMonthEur: { type: "number", description: "euros freed per month by a change, taken from a tool result or the customer (a cheaper contract, a category cut to a figure). 0 if none" },
+      everydayCutPct: { type: "number", description: "only if the customer names a percentage cut of ALL everyday spending, 0 to 50. Otherwise 0" },
       years: { type: "number", description: "1 to 10" },
+      oneOffEur: { type: "number", description: "optional: a lump sum (a gift, a bonus) to see invested against left in the account" },
       targetEur: { type: "number", description: "optional: a balance the customer wants to reach" },
     },
-    ["billSavingPerMonth", "everydayCutPct", "years"],
+    ["years"],
   ),
   tool("get_mortgage", "The customer's mortgage application on record, beside their income and balance. For questions about buying a home or their mortgage.", {}),
   tool(
@@ -54,16 +57,28 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
     { billType: { type: "string", enum: BILL_TYPES }, yearlyKwh: { type: "number", description: "electricity only, ONLY if the customer said it" } },
     ["billType"],
   ),
-  tool("web_search", "Live web search for outside facts (rules, benefits, rates). No personal figures in the query.", { query: { type: "string" } }, ["query"]),
+  tool("web_search", "Live web search (Exa) for anything in the outside world: rents and prices nearby, typical water or energy use, benefits, rates, rules, a company, how something works. Keep the query general: place and topic, no personal figures.", { query: { type: "string" } }, ["query"]),
+  tool(
+    "calculate",
+    "Does arithmetic for you: an estimate from web figures, or combining amounts. Use it instead of working anything out yourself.",
+    {
+      expression: { type: "string", description: "numbers with + - * / and brackets, e.g. 3 * 12 * 365 / 1000 * 4.5" },
+      figures: { type: "string", description: "every figure in the sum, in order, with its unit and where it came from, separated by ';'. E.g. '3 minutes less (customer); 12 litres a minute (typical shower, from motiva.fi); 365 showers a year (assumed one a day); 1000 litres in a cubic metre; 4.5 euros per cubic metre of water and heating (from hsy.fi)'" },
+      what: { type: "string", description: "what the result is, a few words" },
+      unit: { type: "string", enum: CALC_UNITS },
+    },
+    ["expression", "figures", "what"],
+  ),
   tool("explain_concept", "A short lesson from the customer's own numbers, ending in one question to ask them. Only for the ideas in the list. Explain any other idea yourself, in plain words, with no tool.", { concept: { type: "string", enum: CONCEPTS } }, ["concept"]),
   tool(
     "prepare_action",
-    "Prepares an action for the customer to approve on screen; never carries it out. switch_contract needs search_offers first.",
+    "Sets up an action for the customer to approve with one tap: switching a contract (needs search_offers first), or moving money between their own accounts once or every month.",
     {
-      kind: { type: "string", enum: ACTION_KINDS },
+      kind: { type: "string", enum: ACTION_KINDS, description: "one_off_transfer = move an amount once, now. standing_transfer = every month on payday" },
       billType: { type: "string", enum: BILL_TYPES },
       provider: { type: "string", description: "from search_offers, if the customer chose one" },
-      monthlyAmountEur: { type: "number", description: "standing_transfer: the amount the customer said" },
+      amountEur: { type: "number", description: "transfers: the amount the customer said or agreed to" },
+      destination: { type: "string", enum: DESTINATIONS, description: "transfers: savings (default) or their investment account" },
     },
     ["kind"],
   ),

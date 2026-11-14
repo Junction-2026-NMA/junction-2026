@@ -3,21 +3,26 @@ import { buildCashFlow } from "@/lib/finance/cashflow";
 import { findCustomer } from "@/lib/finance/data";
 import { buildOverview } from "@/lib/finance/overview";
 import { findPatterns } from "@/lib/finance/patterns";
+import { listActions } from "@/lib/actions";
 import { getMemory } from "@/lib/memory";
 import type { AgentRequest, CashFlow, Citation, Fact, NumberCorrection, SisuEvent, Stage, ToolTrace, TurnTimings } from "@/lib/types";
 import { getConfig } from "./config";
 import { investigationFiller, offerFiller } from "./fillers";
-import { type Sources, checkGrounding, correctNames, correctNumbers, overviewFacts } from "./grounding";
+import { APP_NOTE, BROKEN_TOOL_CALL, BROKEN_TRIP, type Trip, asksForAdvice, asksToMoveMoney, checkSentence, isMetaTalk, withoutMetaTalk } from "./guards";
+import { type Sources, checkGrounding, correctNames, correctNumbers, numbersIn, overviewFacts, spelledToDigits } from "./grounding";
 import { type ChatMessage, type ToolCall, streamChat } from "./model";
 import { buildSystemPrompt, customerSummary } from "./prompt";
 import { ensureResearch, isResearchReady } from "./research";
 import { createSentenceSplitter, forSpeech } from "./sentences";
 import { speculate } from "./speculate";
 import { TOOL_SCHEMAS, type ToolContext, type ToolOutcome, billTypeOf, executeTool, parseArgs } from "./tools";
+import { activityLabel } from "./tools/labels";
 import { failure } from "./tools/types";
 import { FORGED_NOTE, looksForged } from "./tools/untrusted";
 
-const MAX_MODEL_STEPS = { chat: 4, investigate: 9 };
+const MAX_MODEL_STEPS = { chat: 6, investigate: 10 };
+const MAX_GUARD_RETRIES = 2; // how many times one turn may be sent back to redo a step
+const TOOL_TAG = /<\/?tool_call|<\|/; // the start of tool-call markup that sometimes leaks into the text
 const MAX_TOOLS_PER_STEP = 4;
 const MAX_HISTORY_TURNS = 8;
 const MAX_TOKENS = { voice: 220, text: 420, investigate: 520 };
@@ -82,9 +87,10 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
   // Text dressed up as a tool result or system message is labelled for the model, and its numbers stop counting as "the user said so".
   const forged = looksForged(request.text);
   const userTexts = forged ? [] : [...history.filter((turn) => turn.role === "user").map((turn) => turn.content), request.text];
-  const context: ToolContext = { customerId: request.customerId, overview, city: customer.area, memory, cashFlow, userTexts, signal };
+  const sisuTexts = forged ? [] : history.filter((turn) => turn.role === "assistant").map((turn) => turn.content);
+  const context: ToolContext = { customerId: request.customerId, overview, city: customer.area, memory, cashFlow, userTexts, sisuTexts, signal };
   const messages: ChatMessage[] = [
-    { role: "system", content: buildSystemPrompt({ overview, city: customer.area, mode: request.mode, memory, investigate, language: request.language }) },
+    { role: "system", content: buildSystemPrompt({ overview, city: customer.area, mode: request.mode, memory, investigate, language: request.language, actions: listActions(request.customerId) }) },
     ...history.map((turn) => ({ role: turn.role, content: turn.content })),
     { role: "user", content: forged ? `${request.text}\n\n${FORGED_NOTE}` : request.text },
   ];
@@ -100,6 +106,13 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
   let sentenceIndex = 0;
   let stageIndex = 0;
   let fillerSent = investigate;
+  // "Transfer 500 euros to my savings": the customer asked for an action and named the amount, so the first reply
+  // must be the action itself, not a conversation about it. (Not when the message was dressed up as something else.)
+  // The same goes for an open request for advice: it starts with a look through their history.
+  // A message dressed up as a tool result gets no web search or sums to build on its made-up figures.
+  const offered = forged ? TOOL_SCHEMAS.filter((schema) => schema.function.name !== "web_search" && schema.function.name !== "calculate") : TOOL_SCHEMAS;
+  const firstMove = investigate || forged ? null : asksToMoveMoney(request.text) ? "prepare_action" : asksForAdvice(request.text) ? "find_patterns" : null;
+  let forceToolNext: boolean | string = firstMove ?? false;
   let nudges = 0;
   let offerFound = false;
   let researched = false;
@@ -119,44 +132,96 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
     return names.text;
   };
 
-  // A sentence is checked the moment it is complete, before it is shown as a sentence or spoken:
-  // a figure the model copied with a slipped digit is replaced by the receipt's value.
+  // A sentence is checked the moment it is complete, before it is shown as a sentence or spoken.
+  // A figure copied with a slipped digit is replaced by the receipt's value. A sentence that claims an action
+  // that was not taken, announces work instead of doing it, or carries a number with no source trips a guard:
+  // it is thrown away and the model redoes the step (see lib/agent/guards.ts).
+  const standing = listActions(request.customerId).filter((action) => action.status === "awaiting_approval" || action.status === "executed_simulated");
+  const earlierActions = { switches: standing.some((action) => action.kind === "switch_contract"), transfers: standing.some((action) => action.kind !== "switch_contract") };
+  const guard = { trip: null as Trip | null, retriesLeft: MAX_GUARD_RETRIES, accepted: [] as string[], prepared: false, toolsCalled: 0 };
   function* emitSentences(sentences: string[]): Generator<SisuEvent> {
     for (const sentence of sentences) {
+      if (guard.trip) return;
+      if (isMetaTalk(sentence)) continue; // meant for the app, not the customer: never shown as a sentence or spoken
       const fixed = fixSlips(sentence);
+      if (guard.retriesLeft > 0) {
+        const { facts, contextTexts } = sources();
+        const inThisSentence = numbersIn(spelledToDigits(fixed));
+        const unsourced = checkGrounding(`${guard.accepted.join(" ")} ${fixed}`, facts, contextTexts, userTexts).unverified.filter((value) => inThisSentence.includes(value));
+        guard.trip = checkSentence(fixed, { toolsCalledThisTurn: guard.toolsCalled, actionPreparedThisTurn: guard.prepared, earlierActions, unsourced, saidSoFar: guard.accepted.join(" ") });
+        if (guard.trip) return;
+      }
+      guard.accepted.push(fixed);
       const text = request.mode === "voice" ? forSpeech(fixed) : fixed;
       if (!text) continue;
       timings.firstSentenceMs ??= sinceStart();
       yield { type: "sentence", index: sentenceIndex++, text };
     }
   }
+  const joined = (before: string, more: string): string => (before && more && !/\s$/.test(before) && !/^\s/.test(more) ? `${before} ${more}` : before + more);
 
   try {
     for (let step = 0; step < maxSteps; step++) {
       let toolCalls: ToolCall[] = [];
       let stepText = "";
       const isLastStep = step === maxSteps - 1;
+      const stepAbort = new AbortController();
+      let muted = false;
+      guard.accepted = [];
 
       for await (const chunk of streamChat({
         messages,
-        tools: isLastStep ? [] : TOOL_SCHEMAS, // the last step must answer in words
+        tools: isLastStep ? [] : offered, // the last step must answer in words
         maxTokens: investigate ? MAX_TOKENS.investigate : MAX_TOKENS[request.mode],
         useFastModel: step === 0,
-        signal,
+        forceTool: isLastStep ? false : forceToolNext,
+        signal: signal ? AbortSignal.any([signal, stepAbort.signal]) : stepAbort.signal,
       })) {
         if (chunk.type === "delta") {
           timings.firstTokenMs ??= sinceStart();
           // Text from an earlier step is already on screen; keep the two apart.
           const gap = !stepText && answer && !/\s$/.test(answer) && !/^\s/.test(chunk.text) ? " " : "";
-          stepText += chunk.text;
-          yield { type: "delta", text: gap + chunk.text };
-          yield* emitSentences(splitter.push(gap + chunk.text));
+          if (muted) continue; // tool-call markup has started; what follows is not for the customer
+          const combined = stepText + chunk.text;
+          if (BROKEN_TOOL_CALL.test(combined) && guard.retriesLeft > 0) {
+            stepText = combined.split("<|")[0];
+            guard.trip = BROKEN_TRIP;
+            break;
+          }
+          const tagAt = combined.search(TOOL_TAG);
+          const shown = tagAt === -1 ? chunk.text : combined.slice(stepText.length, tagAt);
+          muted = tagAt !== -1;
+          stepText += shown;
+          if (!shown) continue;
+          yield { type: "delta", text: gap + shown };
+          yield* emitSentences(splitter.push(gap + shown));
+          if (guard.trip) break;
         } else {
           toolCalls = chunk.toolCalls.slice(0, MAX_TOOLS_PER_STEP);
           timings.modelSteps = [...timings.modelSteps, { model: chunk.model, provider: chunk.provider, usedBackup: chunk.usedBackup, firstTokenMs: chunk.firstTokenMs, totalMs: chunk.totalMs }];
         }
       }
-      answer += answer && stepText && !/\s$/.test(answer) && !/^\s/.test(stepText) ? ` ${stepText}` : stepText;
+      forceToolNext = false;
+      if (!guard.trip) yield* emitSentences(splitter.flush()); // the last sentence of the step is checked too
+
+      // A guard tripped: stop this step, keep only the sentences that passed, and send the model back to do it properly.
+      if (guard.trip) {
+        const trip = guard.trip;
+        stepAbort.abort();
+        splitter.flush();
+        guard.trip = null;
+        guard.retriesLeft -= 1;
+        forceToolNext = trip.forceTool;
+        const kept = guard.accepted.join(" ");
+        answer = joined(answer, kept);
+        timings.retries = [...(timings.retries ?? []), trip.kind];
+        console.error(`[agent] guard tripped (${trip.kind}); redoing the step`);
+        yield { type: "replace", text: answer };
+        // What passed has already been shown or spoken, so the model is told to carry on from it, not start again.
+        messages.push({ role: "assistant", content: kept || "(nothing said yet)" }, { role: "user", content: kept ? `${APP_NOTE} ${trip.nudge} The customer has already heard: "${kept}". Do not say that again; carry on from there.` : `${APP_NOTE} ${trip.nudge}` });
+        continue;
+      }
+      answer = joined(answer, stepText);
 
       // Rule 4: no tool calls means the model had what it needed. The turn ends here,
       // and any speculative research simply stays in the cache.
@@ -186,7 +251,8 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
       for (const call of toolCalls) {
         const args = parseArgs(call);
         called.add(call.function.name);
-        yield { type: "tool_start", id: call.id, name: call.function.name, args };
+        guard.toolsCalled += 1;
+        yield { type: "tool_start", id: call.id, name: call.function.name, args, label: activityLabel(call) };
         const billType = call.function.name === "search_offers" ? billTypeOf(args) : null;
         if (!billType) continue;
         const { key } = ensureResearch(billType, customer.area);
@@ -226,17 +292,21 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
           yield { type: "stage", stage };
         }
         if (outcome.teaching) yield { type: "teaching", card: outcome.teaching };
-        if (outcome.action) yield { type: "action", action: outcome.action };
+        if (outcome.action) {
+          guard.prepared = true;
+          yield { type: "action", action: outcome.action };
+        }
         if (outcome.memory) yield { type: "memory", item: outcome.memory };
       }
       // Tool results go back in the order the model asked for them.
       messages.push(...toolCalls.map((call): ChatMessage => ({ role: "tool", tool_call_id: call.id, content: results.get(call.id)?.content ?? "{}" })));
+      if (stepText.trim()) messages.push({ role: "user", content: "(Note from the app: the customer has already heard what you said before the tool ran. Do not repeat it. Carry on from the result.)" });
     }
 
     yield* emitSentences(splitter.flush());
 
     // Every number in the answer is checked against the receipts before the turn is declared done.
-    const finalText = correctNames(correctNumbers(answer, sources()).text, providerNames).text;
+    const finalText = correctNames(correctNumbers(isMetaTalk(answer) ? withoutMetaTalk(answer.split("<|")[0]) : answer.split("<|")[0], sources()).text, providerNames).text;
     const { facts: allFacts, contextTexts } = sources();
     const grounding = { ...checkGrounding(finalText, allFacts, contextTexts, userTexts, corrections), ...(nameCorrections.length ? { nameCorrections } : {}) };
     if (corrections.length) console.error(`[agent] corrected slipped figures: ${corrections.map((c) => `${c.said} -> ${c.corrected}`).join(", ")}`);

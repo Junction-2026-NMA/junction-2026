@@ -6,7 +6,9 @@ What was tested on the night of 14 November 2026, what passed, what was found an
 
 | Measure | Result |
 |---|---|
-| Deterministic tests (no network, no keys) | **194 of 194 pass**, in 17 seconds |
+| Deterministic tests (no network, no keys) | **229 of 229 pass**, in about 20 seconds |
+| Replay of Nicholas's own spoken test conversation, 12 turns (live) | **12 of 12** (first replay: 5 of 12) |
+| Live evaluation after the "doing" work (Saturday midday) | 53 of 54, 0 of 181 numbers without a source (three runs: 52, 53, 53) |
 | Voice in other languages (live) | 7 of 7: Finnish, Swedish, German, Hindi, Tamil, Arabic, and Finnish with live research |
 | Live evaluation against the real model | **54 of 54 checks pass** on the closing run (first run of the night: 45 of 52; the last five runs: 54, 52, 53, 52, 54) |
 | Numbers said by the model that had no source | **0 of 142** on the closing run (first run: 5 of 126, or 4.0%) |
@@ -109,6 +111,30 @@ Each row is one pass of measure, fix, add a regression test, measure again.
 
 Live evaluation by run, twelve runs in all: 45 of 52, 50 of 52, 51 of 52, 51 of 54, 53 of 54, 53 of 54, 53 of 54, 54 of 54, 52 of 54, 53 of 54, 52 of 54, **54 of 54**. Two checks were added before the fourth run. The model's answers vary from run to run, so a full run lands between 52 and 54. The misses in the last runs were of two kinds: an answer that was right but used a tool it did not strictly need, and a web answer quoting a figure that was not in the page excerpt it had been given (the verifier flagged it).
 
+## Saturday midday: a real conversation broke it, and what was done
+
+Nicholas tested by voice and pasted the conversation back. Seven of twelve turns were wrong: Sisu said "I cannot carry that out myself", refused to set up an investment transfer, turned a 500 € one-off transfer into a monthly one, answered "explain how you worked that out" with a general description, ran the wrong scenario, and refused to look up rents or estimate a shower saving. Speech to text also heard "Exa" as "Exxon".
+
+That conversation is now a test: `node tests/gauntlet/replay.mjs` replays all twelve turns with their history and checks each one.
+
+| Replay round | Turns right | What changed before it |
+|---|---|---|
+| 1 | 5 of 12 | nothing: the baseline |
+| 2 | 8 of 12 | instructions rewritten around "act first"; one-off transfers; `calculate` tool; the summary now carries how safe-to-spend is worked out |
+| 3 | 9 of 12 | every sentence checked before it is shown (`lib/agent/guards.ts`); retries forced to call a tool |
+| 4 | 10 of 12 | a request to move a named amount starts with a forced `prepare_action` |
+| 5 to 8 | 12, 12, 11, 12 of 12 | lump-sum results worded unambiguously; a difference of two sourced figures is accepted when code can check it; open advice starts with `find_patterns` |
+
+Found on the way, each with a regression test in `tests/unit/doing.test.ts`, `grounding.test.ts` or `orchestrator.test.ts`:
+
+- In a long conversation the model wrote "I've set up the transfer" with no tool call, or leaked raw tool-call markup. A sentence guard now stops the step and forces the call.
+- With an older transfer on file, "I've set up the switch" slipped past the guard. The guard now asks whether an action of that kind exists.
+- After a guard note the model once answered the note out loud, in English, inside a Finnish answer. Notes are now framed as coming from the app, and any sentence addressed to the app is dropped.
+- A sum used 4.5 euros per cubic metre while the answer said "4.5 cents per litre". The verifier checks figures, not units. `calculate` now takes each figure with its unit and source, hands them back to the model, and the screen shows them.
+- "0.05" was "corrected" to 0 because one receipt happened to be zero. Slipped-digit correction now needs a figure of at least 1.
+
+Latency after this work (five runs each, p50): answers from the summary 0.38 s, one finance tool 1.3 s, a scenario 1.7 s, warm offer research 1.9 s, a web search 1.8 s. First token is 0.17 s. The instructions grew to about 10,400 characters and the tool list to about 7,000.
+
 ## Speed
 
 Our Verda GPU, 10 runs per row, server clock, milliseconds as p50 / p95. "Before" is the system at the start of the night (6 runs per row).
@@ -195,6 +221,8 @@ Stated plainly, so nobody is surprised at the booth.
 4. **A corrected figure is fixed in the sentence and the final text, but the raw word-by-word stream showed the slipped digit for a moment.** A UI that renders only `delta` events should replace its text with `done.text` at the end. The hook does this.
 5. **Under a burst of load the breaker can send a few seconds of traffic to the backup.** With twelve turns at once, 3 to 4 of them were answered by NVIDIA's hosted copy. That keeps answers fast, but those turns' totals (never transactions) leave our GPU. The turn's timings say when it happened.
 6. **Most answers are 80 to 100 ms slower than at the start of the night.** That is the price of eight more tools and a fuller summary: the instructions and summary are now about 6,600 characters and the tool list about 5,300. The measured lever is prompt length, about 10 ms per 1,000 characters. Trimming the rules is the next step if speed matters more than coverage.
+6b. **Estimates about everyday life depend on what the web search returns.** The same shower question gave 59 € a year on one run (water and heating) and 16 € on another (water only). Each answer states its figures and where they came from, and they show on screen, but the two are not the same estimate.
+6c. **Sisu now errs on the side of acting.** It sometimes runs a tool it did not need (a pattern scan for a simple comparison), which costs about half a second, and it answers "how much will I earn next year" with last year's income and a caveat instead of declining.
 6a. **The model still does small sums when a figure it wants is not provided.** The verifier catches them, and the common ones (buffers, how long the balance lasts, months to a target, per-day averages) are now provided. Others will turn up. The answer is the same each time: give the figure in code.
 7. **The model server's prompt cache is not helping.** If it can be switched on for this model, every step would start faster. That means restarting the GPU server, which was not done unattended.
 8. **Live offer results vary between cold searches.** Exa can return different comparison pages, so the best offer changed during the night (from €67 a year to €48 a year for the same customer). Each result is correct for the pages read and carries their links and time.

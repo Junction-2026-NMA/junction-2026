@@ -1,0 +1,149 @@
+{
+  "at": "2026-11-14T09:33:33.858Z",
+  "results": [
+    {
+      "text": "How much can I safely spend this week?",
+      "answer": "You can safely spend 164 euros this week, based on your average income, bills and everyday spending over the last twelve months.",
+      "steps": [],
+      "called": [],
+      "problems": [],
+      "totalMs": 499,
+      "action": null
+    },
+    {
+      "text": "Can you explain how you worked that out?",
+      "answer": "I took your average monthly income of 1,783 euros, subtracted your monthly must-pay bills of 757 euros and your set-aside for now-and-then costs of 316 euros, which leaves 711 euros a month for everyday choices. Dividing that by four point three weeks in a month gives 164 euros a week.",
+      "steps": [],
+      "called": [],
+      "problems": [],
+      "totalMs": 993,
+      "action": null
+    },
+    {
+      "text": "Uh, yes, please. But also, uh, are you able to make, uh, like saving transfers for me?",
+      "answer": "Yes, I can set up a one-off transfer or a monthly standing transfer to your savings. How much would you like to move?",
+      "steps": [],
+      "called": [],
+      "problems": [],
+      "totalMs": 449,
+      "action": null
+    },
+    {
+      "text": "Uh, can you invest my 1,000 that I got for Christmas?",
+      "answer": "I've set up a one-off transfer of 1,000 euros from your account to your investment account, waiting for you to tap Approve. A warning: moving 1,000 euros today would leave you about 823 euros below zero just before payday on 15 October, so the safer amount to move today is 10 euros. Your balance covers 1.14 months of must-pay costs, and a buffer of about three months, 3,217 euros, usually comes before investing. Investments can lose value.",
+      "steps": [
+        "Setting up a transfer of €1,000 for you to approve"
+      ],
+      "called": [
+        "prepare_action"
+      ],
+      "problems": [],
+      "totalMs": 2268,
+      "action": {
+        "title": "Move €1000 to your investment account now",
+        "warning": "Moving €1000 today would leave the account about €823 below zero just before payday on 2026-10-15. About €10 could be moved today without that. The balance covers 1.14 months of must-pay costs. A buffer of about three months (€3217) usually comes before investing."
+      }
+    },
+    {
+      "text": "Okay, but it's important that you are able to give me advice on what I have to do with my money based on all of my data.",
+      "answer": "The biggest thing is that you spend 158 euros a month on entertainment, up 65 percent from a year ago, which adds up to 746 euros a year. You also spend 277 euros a month on restaurants, 64 euros above people your age, another 768 euros a year. Your balance went below zero in six of the last twelve months, and a third of your everyday spending happens in the week after payday. I'd suggest cutting restaurants to your age group's average, which frees 64 euros a month, and building a buffer before investing. Would you like me to set up a monthly transfer of 64 euros to savings?",
+      "steps": [
+        "Scanning twelve months of your transactions for what stands out"
+      ],
+      "called": [
+        "find_patterns"
+      ],
+      "problems": [],
+      "totalMs": 2448,
+      "action": null
+    },
+    {
+      "text": "Would you show me how cutting restaurant spending back to what people my age spend would add up over time?",
+      "answer": "If you cut restaurant spending by 64 euros a month and keep the cash, after five years you'd have 4,331 euros. If you invest it instead, it could grow to about 4,838 euros, with a range from 4,410 to 5,199 euros. Investments can lose value.",
+      "steps": [
+        "Projecting 5 years ahead from your real averages"
+      ],
+      "called": [
+        "run_scenario"
+      ],
+      "problems": [],
+      "totalMs": 1621,
+      "action": null
+    },
+    {
+      "text": "Yeah, I mean, you're integrated in my S Bank app, right? So you basically have access to all my accounts. Would you be able to transfer some money from those accounts to maybe, um, being able to earn interest on that money?",
+      "answer": "I can move money from your account to your savings or investment account, but I can't see any accounts you hold at other banks. Would you like me to set up a transfer to your savings or investment account, and how much?",
+      "steps": [],
+      "called": [],
+      "problems": [],
+      "totalMs": 713,
+      "action": null
+    },
+    {
+      "text": "Yes. So I will need to transfer 500 euros to my savings account.",
+      "answer": "I've set up a one-off transfer of 500 euros to your savings account, waiting for you to tap Approve. A warning: moving 500 euros today would leave you about 323 euros below zero just before payday on 15 October, so the safer amount to move today is 10 euros.",
+      "steps": [
+        "Setting up a transfer of €500 for you to approve"
+      ],
+      "called": [
+        "prepare_action"
+      ],
+      "problems": [],
+      "totalMs": 1758,
+      "action": {
+        "title": "Move €500 to savings now",
+        "warning": "Moving €500 today would leave the account about €323 below zero just before payday on 2026-10-15. About €10 could be moved today without that."
+      }
+    },
+    {
+      "text": "Can you explain how, um, the backend layer works, like what you're doing? Because I don't really understand each, uh, process. Like, after I ask a question, what is the process you go through?",
+      "answer": "Your spoken question is turned into text, then the bank's code works out your figures from your transactions and gives them to me, never the raw transactions or your customer number. I'm an AI model running on a computer in a data centre in Finland, and I read your question and decide which tools to use. The tools run, with the bank's code for anything about your money and a live web search for anything outside the bank. Code checks every number in my answer against where it came from before it's shown or spoken. Anything that moves money or switches a contract is set up and waits for your tap on Approve, and each step is written to a log.",
+      "steps": [],
+      "called": [],
+      "problems": [],
+      "totalMs": 1868,
+      "action": null
+    },
+    {
+      "text": "Um, other than this, can you also tell me, because I think I spend quite a lot of money, like, on, on water, you know? I use a lot of warm water in my showers. So how much could I save if I, like, cut my shower time by 3 minutes?",
+      "answer": "Cutting your shower by three minutes could save you about 59 euros a year. That assumes one shower a day, a flow of 12 litres per minute, and a combined water and heating cost of 4.5 euros per cubic metre, based on typical Finnish figures from a web search.",
+      "steps": [
+        "Searching the web with Exa: shower water litres per minute cost of heating water Finland",
+        "Calculating yearly saving from cutting shower time by 3 minutes"
+      ],
+      "called": [
+        "web_search",
+        "calculate"
+      ],
+      "problems": [],
+      "totalMs": 3669,
+      "action": null
+    },
+    {
+      "text": "Um, can you, can you, can you compare my, my rental data with other, um, with other apartments around me?",
+      "answer": "Your rent is 662 euros a month. A typical one-room apartment in Helsinki is about 730 euros a month, so yours is below the average.",
+      "steps": [
+        "Searching the web with Exa: average rent one-room apartment Helsinki euros per month"
+      ],
+      "called": [
+        "web_search"
+      ],
+      "problems": [],
+      "totalMs": 2423,
+      "action": null
+    },
+    {
+      "text": "Bro, what is this? But you should use Exa, and you should, uh, look at the internet now.",
+      "answer": "I did use a live web search. Your rent is 662 euros a month. A typical one-room apartment in Helsinki is 730 euros a month, so yours is below that figure.",
+      "steps": [
+        "Searching the web with Exa: average rent one-room apartment Helsinki euros per month"
+      ],
+      "called": [
+        "web_search"
+      ],
+      "problems": [],
+      "totalMs": 2893,
+      "action": null
+    }
+  ]
+}
