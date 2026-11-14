@@ -224,6 +224,7 @@ export type AgentRequest = {
   history?: ChatTurn[];
   focusBill?: BillType; // the bill the user has open on screen, if any
   investigate?: boolean; // true = Sisu works through a whole investigation on its own (see POST /api/agent/investigate)
+  language?: string; // ISO 639-1 code ("fi", "de", "hi") to answer in. Leave out to answer in whatever language the text is in
 };
 
 export type ToolTrace = {
@@ -248,7 +249,7 @@ export type TurnTimings = {
 
 export type AgentEvent =
   | { type: "start"; turnId: string; provider: string; model: string; mock: boolean }
-  | { type: "transcript"; text: string; tookMs: number }
+  | { type: "transcript"; text: string; tookMs: number; language?: string | null; languageProbability?: number | null } // language: what was spoken, ISO 639-1, when known
   | { type: "speculation"; billType: BillType; reason: string }
   | { type: "tool_start"; id: string; name: string; args: Record<string, unknown> }
   | { type: "tool_end"; trace: ToolTrace }

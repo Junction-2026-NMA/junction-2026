@@ -286,7 +286,7 @@ export function explainConcept(args: Record<string, unknown>, ctx: ToolContext):
   const card = teachingCard(concept, ctx.overview);
   return outcome({
     content: JSON.stringify({
-      howToUse: "Explain the idea in one or two sentences, then ask the question exactly as written and STOP. You do not know the answer: the app reveals it after the customer guesses, so do not state or hint at any figure.",
+      howToUse: "Explain the idea in one or two sentences, then ask the question (in the customer's language, same meaning) and STOP. You do not know the answer: the app reveals it after the customer guesses, so do not state or hint at any figure.",
       title: card.title,
       idea: card.explanation,
       questionToAsk: card.question,

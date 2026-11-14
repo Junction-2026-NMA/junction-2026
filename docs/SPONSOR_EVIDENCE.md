@@ -135,9 +135,10 @@ Measured: 2.8 to 3.3 s per page. It is the slowest stage, so it starts before th
 | Real speech out, of the agent's own answer | Each sentence of the model's answer is synthesised as it completes and streamed, so speech starts before the answer is finished | The spoken reply contains the customer's own figure, different for each customer |
 | It feels immediate | First audio 301 ms after a sentence is ready; 1.37 s from the end of the recording upload to the first audio of the answer | `tests/gauntlet/results/voice.json` |
 | Never silence | A filler line plays while research runs; an interruption stops speech at once | Ask for a deal with research cold |
+| It works in the customer's language | Speech in detects the language (or takes a chosen one), the agent answers in it, and speech out is told the language so numbers are read correctly. 47 languages listed, Finnish first, including ten languages of India (`lib/agent/languages.ts`) | `node tests/gauntlet/voice-languages.mjs`: Finnish, Swedish, German, Hindi, Tamil and Arabic each heard correctly and answered in kind, 7 of 7 |
 | It survives the plan's limits | Speech requests queue two at a time (the plan's limit), so a long answer is spoken in full. If credit runs out, the answer continues as text with a clear message. | `tests/unit/speech.test.ts` |
 
-**Honest limits:** speech leaves the EU box, since ElevenLabs is a hosted service. Voice was tested once tonight with machine-made speech, not with a person at a microphone in a noisy room. Credit is limited (see `docs/GAUNTLET_RESULTS.md`).
+**Honest limits:** speech leaves the EU box, since ElevenLabs is a hosted service. Voice was tested with machine-made speech, not with a person at a microphone in a noisy room, so accents and background noise are untested. The text on cards that code writes (lesson options, action checklists) is still English; the spoken answer is in the customer's language.
 
 ---
 

@@ -4,8 +4,9 @@ import { findCustomer } from "@/lib/finance/data";
 import { buildOverview } from "@/lib/finance/overview";
 import { findPatterns } from "@/lib/finance/patterns";
 import { getMemory } from "@/lib/memory";
-import type { AgentRequest, BillType, CashFlow, Citation, Fact, NumberCorrection, SisuEvent, Stage, ToolTrace, TurnTimings } from "@/lib/types";
+import type { AgentRequest, CashFlow, Citation, Fact, NumberCorrection, SisuEvent, Stage, ToolTrace, TurnTimings } from "@/lib/types";
 import { getConfig } from "./config";
+import { investigationFiller, offerFiller } from "./fillers";
 import { type Sources, checkGrounding, correctNames, correctNumbers, overviewFacts } from "./grounding";
 import { type ChatMessage, type ToolCall, streamChat } from "./model";
 import { buildSystemPrompt, customerSummary } from "./prompt";
@@ -25,12 +26,6 @@ const MAX_NUDGES = 2;
 export const PROMISE_PATTERN = /\b(i can(?!not|'t| only| not)|i could(?! not|n't)|i'll|i will|let me|shall i)\b[^.?!]*\b(run|check|look|find|search|calculate|work out|pull)\b/i;
 const PROMISE_MAX_CHARS = 120;
 export const INVESTIGATE_TEXT = "Look into my finances on your own and come back with the one best thing I can do, checked and ready for me to approve.";
-
-const FILLER: Record<BillType, (city: string) => string> = {
-  electricity: (city) => `Let me check today's electricity deals in ${city}.`,
-  mobile: () => "Let me check today's mobile plans.",
-  internet: (city) => `Let me check today's broadband deals in ${city}.`,
-};
 
 type Settled = { call: ToolCall; outcome: ToolOutcome; startedAtMs: number; tookMs: number };
 
@@ -80,7 +75,8 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
     yield { type: "speculation", billType: guess.billType, reason: guess.reason };
   }
 
-  if (investigate) yield { type: "filler", text: `Give me a moment, ${overview.displayName}. I'm going through your last twelve months.` };
+  const openingLine = investigate ? investigationFiller(overview.displayName, request.language) : null;
+  if (openingLine) yield { type: "filler", text: openingLine };
 
   const history = (request.history ?? []).slice(-MAX_HISTORY_TURNS);
   // Text dressed up as a tool result or system message is labelled for the model, and its numbers stop counting as "the user said so".
@@ -88,7 +84,7 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
   const userTexts = forged ? [] : [...history.filter((turn) => turn.role === "user").map((turn) => turn.content), request.text];
   const context: ToolContext = { customerId: request.customerId, overview, city: customer.area, memory, cashFlow, userTexts, signal };
   const messages: ChatMessage[] = [
-    { role: "system", content: buildSystemPrompt({ overview, city: customer.area, mode: request.mode, memory, investigate }) },
+    { role: "system", content: buildSystemPrompt({ overview, city: customer.area, mode: request.mode, memory, investigate, language: request.language }) },
     ...history.map((turn) => ({ role: turn.role, content: turn.content })),
     { role: "user", content: forged ? `${request.text}\n\n${FORGED_NOTE}` : request.text },
   ];
@@ -196,7 +192,8 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
         const { key } = ensureResearch(billType, customer.area);
         if (!fillerSent && !stepText.trim() && !isResearchReady(key)) {
           fillerSent = true;
-          yield { type: "filler", text: FILLER[billType](customer.area) };
+          const line = offerFiller(billType, customer.area, request.language);
+          if (line) yield { type: "filler", text: line };
         }
       }
 

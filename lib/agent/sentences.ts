@@ -1,7 +1,9 @@
 // Cuts a token stream into whole sentences, so each one can go to text to speech the moment it is finished.
 
 const MIN_SENTENCE_CHARS = 16; // avoids speaking fragments like "Yes." on their own audio request
-const BOUNDARY = /[.!?]["')\]]?\s/g;
+// A sentence ends at . ! ? followed by a space, or at the full stops of other scripts: the Devanagari danda (Hindi),
+// the Urdu full stop, the Arabic question mark, and the East Asian marks, which are not followed by a space.
+const BOUNDARY = /[.!?]["')\]]?\s|[\u0964\u06d4\u061f]\s?|[\u3002\uff01\uff1f]/g;
 
 export type SentenceSplitter = { push: (text: string) => string[]; flush: () => string[] };
 

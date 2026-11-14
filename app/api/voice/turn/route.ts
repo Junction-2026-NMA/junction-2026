@@ -1,26 +1,29 @@
 import { TOO_MANY, allowRequest, eventStream, jsonError, parseAgentRequest } from "@/lib/agent/http";
 import { runTurn } from "@/lib/agent/orchestrator";
 import { warmUp } from "@/lib/agent/warm";
+import { AUTO } from "@/lib/agent/languages";
 import { MAX_AUDIO_BYTES, transcribe } from "@/lib/agent/speech";
 import type { AgentRequest, SisuEvent } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-async function* voiceTurn(audio: Blob, base: Omit<AgentRequest, "text">, signal: AbortSignal): AsyncGenerator<SisuEvent> {
+// `spoken` is "auto" (detect the language) or the code the customer chose.
+async function* voiceTurn(audio: Blob, base: Omit<AgentRequest, "text">, spoken: string, signal: AbortSignal): AsyncGenerator<SisuEvent> {
   let transcript;
   try {
-    transcript = await transcribe(audio);
+    transcript = await transcribe(audio, spoken);
   } catch (error) {
     yield { type: "error", message: (error as Error).message };
     return;
   }
-  yield { type: "transcript", text: transcript.text, tookMs: transcript.tookMs };
+  yield { type: "transcript", text: transcript.text, tookMs: transcript.tookMs, language: transcript.language, languageProbability: transcript.languageProbability };
   if (!transcript.text) {
     yield { type: "error", message: "Sisu did not catch any words. Hold the button while you speak." };
     return;
   }
-  yield* runTurn({ ...base, text: transcript.text.slice(0, 500) }, signal, transcript.tookMs);
+  // Sisu answers in the language that was spoken, when that is known.
+  yield* runTurn({ ...base, text: transcript.text.slice(0, 500), language: transcript.language ?? undefined }, signal, transcript.tookMs);
 }
 
 // Recorded speech in, the same event stream as /api/agent/query out, starting with the transcript.
@@ -43,5 +46,6 @@ export async function POST(request: Request) {
   const parsed = parseAgentRequest({ customerId: form?.get("customerId"), text: "voice", history, focusBill: form?.get("focusBill") }, "voice");
   if (typeof parsed === "string") return jsonError(parsed, 400);
   const { customerId, history: turns, focusBill } = parsed;
-  return eventStream(voiceTurn(audio, { customerId, mode: "voice", history: turns, focusBill }, request.signal));
+  const spoken = typeof form?.get("language") === "string" ? String(form?.get("language")) : AUTO;
+  return eventStream(voiceTurn(audio, { customerId, mode: "voice", history: turns, focusBill }, spoken, request.signal));
 }

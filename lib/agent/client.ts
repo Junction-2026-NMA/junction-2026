@@ -1,5 +1,6 @@
 // Browser side of the agent. No React here, so any UI can use it.
 // It does three things: reads the event stream, records the microphone, and plays speech in order.
+import type { VoiceLanguage } from "./languages";
 import type { ActionList, AgentAction, BillPhotoResult, BillType, ChatTurn, CustomerMemory, MemoryKind, ResearchResult, SisuEvent } from "@/lib/types";
 
 export type TurnInput = {
@@ -10,6 +11,7 @@ export type TurnInput = {
   history?: ChatTurn[];
   focusBill?: BillType;
   investigate?: boolean; // true = run a whole investigation instead of answering `text`
+  language?: string; // "auto" (default) or a code such as "fi", "de", "hi": the language to listen for and answer in
   signal?: AbortSignal;
 };
 
@@ -26,7 +28,7 @@ export async function* streamTurn(input: TurnInput): AsyncGenerator<SisuEvent> {
         method: "POST",
         signal: input.signal,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customerId: input.customerId, text: input.text, mode: input.mode ?? "text", history: input.history, focusBill: input.focusBill }),
+        body: JSON.stringify({ customerId: input.customerId, text: input.text, mode: input.mode ?? "text", history: input.history, focusBill: input.focusBill, language: input.language }),
       });
   if (!response.ok || !response.body) {
     yield { type: "error", message: await readError(response) };
@@ -54,6 +56,7 @@ function voiceForm(input: TurnInput): FormData {
   form.set("customerId", input.customerId);
   form.set("history", JSON.stringify(input.history ?? []));
   if (input.focusBill) form.set("focusBill", input.focusBill);
+  form.set("language", input.language ?? "auto");
   return form;
 }
 
@@ -119,6 +122,7 @@ export type Speaker = {
   stop: () => void; // drop everything, used when the user interrupts
   unlock: () => void; // call inside a tap or click so the browser allows sound
   setVoice: (choice: VoiceChoice) => void; // try a different model or voice (test bench)
+  setLanguage: (language: string | null) => void; // the language of what is said next (ISO 639-1), or null to let the voice work it out
   whenQuiet: () => Promise<void>; // resolves when the queue has finished playing
 };
 
@@ -140,6 +144,7 @@ export function createSpeaker(onSpeakingChange?: (speaking: boolean) => void, on
   let running: Promise<void> | null = null;
   let lastSaid = "";
   let voice: VoiceChoice = {};
+  let language: string | null = null;
 
   function audio(): AudioContext | null {
     if (context) return context;
@@ -158,7 +163,7 @@ export function createSpeaker(onSpeakingChange?: (speaking: boolean) => void, on
       method: "POST",
       signal: abort.signal,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, format: "pcm", previousText, ...voice }),
+      body: JSON.stringify({ text, format: "pcm", previousText, ...voice, ...(language ? { language } : {}) }),
     })
       .then(async (res) => {
         if (res.ok && res.body) return res;
@@ -267,11 +272,14 @@ export function createSpeaker(onSpeakingChange?: (speaking: boolean) => void, on
     setVoice(choice) {
       voice = choice;
     },
+    setLanguage(next) {
+      language = next;
+    },
     whenQuiet: () => running ?? Promise.resolve(),
   };
 }
 
-export type VoiceOptions = { voices: { id: string; name: string; accent: string | null; style: string | null }[]; models: string[]; current: { model: string; voiceId: string } };
+export type VoiceOptions = { voices: { id: string; name: string; accent: string | null; style: string | null }[]; models: string[]; current: { model: string; voiceId: string }; languages: VoiceLanguage[] };
 
 export async function fetchVoiceOptions(): Promise<VoiceOptions | null> {
   const response = await fetch("/api/voice/tts").catch(() => null);

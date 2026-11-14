@@ -1,5 +1,6 @@
 // ElevenLabs speech to text and text to speech. In mock mode both work without keys.
 import { getConfig, missingKey } from "./config";
+import { AUTO, LANGUAGES, type VoiceLanguage, languageCode } from "./languages";
 import { mockPcm, mockWav } from "./mock";
 
 const STT_TIMEOUT_MS = 12_000;
@@ -55,18 +56,27 @@ function releaseWhenDone(body: ReadableStream<Uint8Array>, release: () => void):
   });
 }
 
-export type Transcript = { text: string; tookMs: number; mock: boolean };
+// language: the language Sisu should answer in (ISO 639-1), or null when it could not be told with confidence.
+export type Transcript = { text: string; tookMs: number; mock: boolean; language: string | null; languageProbability: number | null };
 
-export async function transcribe(audio: Blob): Promise<Transcript> {
+// Below this, a detected language is a guess (short clips of similar languages are easy to confuse), so Sisu
+// does not commit to it and lets the model follow the words instead.
+const MIN_LANGUAGE_CONFIDENCE = 0.6;
+
+// `language` is "auto" to detect it, or a code such as "fi" when the customer has chosen one. A chosen language
+// is passed to the recogniser as a hint, which makes short clips more accurate.
+export async function transcribe(audio: Blob, language?: string): Promise<Transcript> {
   const { isMock, eleven } = getConfig();
-  if (isMock) return { text: "Can you find me a cheaper electricity deal?", tookMs: 0, mock: true };
+  const chosen = languageCode(language) ?? (language === AUTO ? null : languageCode(eleven.sttLanguage));
+  if (isMock) return { text: "Can you find me a cheaper electricity deal?", tookMs: 0, mock: true, language: chosen, languageProbability: null };
   if (!eleven.apiKey) throw missingKey("Speech to text", "ELEVENLABS_API_KEY");
 
   const started = Date.now();
   const form = new FormData();
   form.set("model_id", eleven.sttModel);
   form.set("tag_audio_events", "false");
-  if (eleven.sttLanguage) form.set("language_code", eleven.sttLanguage);
+  form.set("numbers_format", "digits"); // "fifty euros" arrives as "50 euros", in every language
+  if (chosen) form.set("language_code", chosen);
   form.set("file", audio, "speech");
 
   const response = await fetch("https://api.elevenlabs.io/v1/speech-to-text", {
@@ -79,8 +89,10 @@ export async function transcribe(audio: Blob): Promise<Transcript> {
     console.error(`[agent] speech to text returned ${response.status}: ${(await response.text().catch(() => "")).slice(0, 200)}`);
     throw new Error("Sisu could not hear that. Please try again or type your question.");
   }
-  const body = (await response.json()) as { text?: string };
-  return { text: (body.text ?? "").trim(), tookMs: Date.now() - started, mock: false };
+  const body = (await response.json()) as { text?: string; language_code?: string; language_probability?: number };
+  const probability = typeof body.language_probability === "number" ? body.language_probability : null;
+  const detected = probability !== null && probability < MIN_LANGUAGE_CONFIDENCE ? null : languageCode(body.language_code);
+  return { text: (body.text ?? "").trim(), tookMs: Date.now() - started, mock: false, language: chosen ?? detected, languageProbability: probability };
 }
 
 export type SpeechFormat = "pcm" | "mp3";
@@ -89,6 +101,7 @@ export type SpeechOptions = {
   previousText?: string; // what Sisu said just before, so each sentence continues naturally from the last
   model?: string; // override, for comparing voices by ear on the test bench
   voiceId?: string;
+  language?: string; // ISO 639-1. Tells the voice which language the text is in, so numbers and names are read correctly
 };
 export type Speech = { body: ReadableStream<Uint8Array> | Uint8Array<ArrayBuffer>; contentType: string; cached: boolean };
 
@@ -114,7 +127,8 @@ export async function synthesize(text: string, options: SpeechOptions = {}): Pro
   if (!voiceId) throw missingKey("Text to speech", "ELEVENLABS_VOICE_ID");
   const previousText = SUPPORTS_PREVIOUS_TEXT.includes(model) ? options.previousText?.slice(-300) : undefined;
 
-  const cacheKey = `${format}|${model}|${voiceId}|${previousText ?? ""}|${text}`;
+  const language = languageCode(options.language);
+  const cacheKey = `${format}|${model}|${voiceId}|${language ?? ""}|${previousText ?? ""}|${text}`;
   const cached = ttsCache.get(cacheKey);
   if (cached) return { body: cached, contentType: FORMAT[format].contentType, cached: true };
 
@@ -124,7 +138,7 @@ export async function synthesize(text: string, options: SpeechOptions = {}): Pro
       method: "POST",
       signal: AbortSignal.timeout(TTS_TIMEOUT_MS),
       headers: { "xi-api-key": eleven.apiKey, "Content-Type": "application/json" },
-      body: JSON.stringify({ text, model_id: model, ...(previousText ? { previous_text: previousText } : {}) }),
+      body: JSON.stringify({ text, model_id: model, ...(language ? { language_code: language } : {}), ...(previousText ? { previous_text: previousText } : {}) }),
     });
   let response: Response;
   try {
@@ -163,6 +177,25 @@ export async function synthesize(text: string, options: SpeechOptions = {}): Pro
 }
 
 export type VoiceOption = { id: string; name: string; accent: string | null; style: string | null };
+
+// The languages to offer in a picker. If ElevenLabs lists which languages the current voice model speaks, the list
+// is narrowed to those; otherwise the whole list is offered (an unsupported language simply falls back to auto).
+const languageStore = globalThis as unknown as { __sisuVoiceLanguages?: { model: string; languages: VoiceLanguage[] } };
+export async function listLanguages(): Promise<VoiceLanguage[]> {
+  const { isMock, eleven } = getConfig();
+  if (isMock || !eleven.apiKey) return LANGUAGES;
+  if (languageStore.__sisuVoiceLanguages?.model === eleven.ttsModel) return languageStore.__sisuVoiceLanguages.languages;
+  try {
+    const response = await fetch("https://api.elevenlabs.io/v1/models", { headers: { "xi-api-key": eleven.apiKey }, signal: AbortSignal.timeout(6_000) });
+    const models = response.ok ? ((await response.json()) as { model_id?: string; languages?: { language_id?: string }[] }[]) : [];
+    const spoken = new Set((models.find((model) => model.model_id === eleven.ttsModel)?.languages ?? []).map((language) => languageCode(language.language_id)).filter(Boolean));
+    const languages = spoken.size ? LANGUAGES.filter((language) => spoken.has(language.code)) : LANGUAGES;
+    languageStore.__sisuVoiceLanguages = { model: eleven.ttsModel, languages };
+    return languages;
+  } catch {
+    return LANGUAGES;
+  }
+}
 
 // The voices on the account, for choosing one by ear on the test bench.
 export async function listVoices(): Promise<{ voices: VoiceOption[]; models: string[]; current: { model: string; voiceId: string } }> {

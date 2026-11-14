@@ -63,7 +63,7 @@ export function getConfig(): AgentConfig {
       apiKey: env("ELEVENLABS_API_KEY"),
       ttsModel: env("ELEVENLABS_TTS_MODEL", "eleven_v4_turbo"),
       sttModel: env("ELEVENLABS_STT_MODEL", "scribe_v3"),
-      sttLanguage: env("ELEVENLABS_STT_LANGUAGE", "en"),
+      sttLanguage: env("ELEVENLABS_STT_LANGUAGE"), // empty = detect the language; set a code such as "fi" to always assume one
       voiceId: env("ELEVENLABS_VOICE_ID"),
     },
   };

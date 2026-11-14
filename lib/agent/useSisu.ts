@@ -33,6 +33,7 @@ export type SisuOptions = {
   customerId: string | null;
   focusBill?: BillType; // the bill card the user has open, if any
   speakReplies?: boolean; // default true
+  language?: string; // "auto" (default): Sisu hears which language is spoken and answers in it. Or a code such as "fi", "de", "hi"
 };
 
 const blank = (role: "user" | "assistant", text = "", pending = true): SisuMessage => ({
@@ -55,7 +56,7 @@ const blank = (role: "user" | "assistant", text = "", pending = true): SisuMessa
   facts: [],
 });
 
-export function useSisu({ customerId, focusBill, speakReplies = true }: SisuOptions) {
+export function useSisu({ customerId, focusBill, speakReplies = true, language = "auto" }: SisuOptions) {
   const [messages, setMessages] = useState<SisuMessage[]>([]);
   const [busy, setBusy] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -65,6 +66,7 @@ export function useSisu({ customerId, focusBill, speakReplies = true }: SisuOpti
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [actions, setActions] = useState<AgentAction[]>([]);
   const [memory, setMemory] = useState<CustomerMemory | null>(null);
+  const [heardLanguage, setHeardLanguage] = useState<string | null>(null); // the language of the last spoken question, when it was recognised
 
   const speaker = useRef<Speaker | null>(null);
   const recorder = useRef<Recorder | null>(null);
@@ -135,13 +137,21 @@ export function useSisu({ customerId, focusBill, speakReplies = true }: SisuOpti
 
       let question = input.text ?? "";
       try {
-        const events = streamTurn({ customerId, ...input, mode: spoken ? "voice" : "text", history: input.investigate ? [] : history.current, focusBill, signal: abort.signal });
+        // A chosen language is used for the whole turn. In "auto" the voice works out the language from the text,
+        // until speech to text reports what was spoken.
+        const chosen = language === "auto" ? null : language;
+        speaker.current?.setLanguage(chosen);
+        const events = streamTurn({ customerId, ...input, mode: spoken ? "voice" : "text", history: input.investigate ? [] : history.current, focusBill, language, signal: abort.signal });
         for await (const event of events) {
           if (abort.signal.aborted) return;
           switch (event.type) {
             case "transcript":
               question = event.text;
               patch(user.id, (m) => ({ ...m, text: event.text || "(nothing heard)", pending: false }));
+              if (event.language) {
+                setHeardLanguage(event.language);
+                speaker.current?.setLanguage(event.language); // speak the answer in the language that was spoken
+              }
               break;
             case "speculation":
               patch(reply.id, (m) => ({ ...m, startedEarly: event.billType }));
@@ -199,7 +209,7 @@ export function useSisu({ customerId, focusBill, speakReplies = true }: SisuOpti
         }
       }
     },
-    [customerId, focusBill, speakReplies, cancel, refresh],
+    [customerId, focusBill, speakReplies, language, cancel, refresh],
   );
 
   // Sisu works through a whole case on its own. Watch `stages` on the reply fill in as it goes.
@@ -300,5 +310,5 @@ export function useSisu({ customerId, focusBill, speakReplies = true }: SisuOpti
   const status: SisuStatus = recording ? "recording" : busy ? "thinking" : speaking ? "speaking" : "idle";
   // What has been freed so far by approved switches: feed this to the futures chart as the monthly bill saving.
   const approvedMonthlySaving = actions.filter((action) => action.status === "executed_simulated" && action.kind === "switch_contract").reduce((total, action) => total + action.monthlyAmountEur, 0);
-  return { status, messages, server, micError, voiceError, ask, startTalking, stopTalking, testVoice, setVoice, cancel, reset, investigate, approve, decline, confirmBill, actions, memory, approvedMonthlySaving, refresh };
+  return { status, messages, server, micError, voiceError, heardLanguage, ask, startTalking, stopTalking, testVoice, setVoice, cancel, reset, investigate, approve, decline, confirmBill, actions, memory, approvedMonthlySaving, refresh };
 }

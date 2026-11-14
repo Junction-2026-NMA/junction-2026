@@ -12,7 +12,7 @@ const TRIVIAL_MAX = 12; // small counts ("three offers", "12 months") are not fi
 const NUMBER = /(?<![A-Za-z\d.,])(?:\d{1,3}(?:[  ]\d{3})+(?:[.,]\d{1,2})?|\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+[.,]\d{1,2}|\d+)(?![\d])/g;
 // Dates and clock times are not amounts: 2026-09-30, 21:16, the Finnish 30.9.2026 or 15.10., "September 16",
 // "16 September", "the 15th".
-const MONTH = "(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?|(?:tammi|helmi|maalis|huhti|touko|kesä|heinä|elo|syys|loka|marras|joulu)kuu(?:ta|ssa|n)?)";
+const MONTH = "(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?|(?:tammi|helmi|maalis|huhti|touko|kesä|heinä|elo|syys|loka|marras|joulu)kuu(?:ta|ssa|n)?|januar|februar|märz|mai|juni|juli|oktober|dezember|januari|februari|mars|maj|augusti|oktober)";
 const DATES = new RegExp(
   [
     "\\b\\d{4}-\\d{2}(?:-\\d{2})?\\b",
@@ -63,9 +63,11 @@ function toNumber(raw: string): number {
   return Number(raw.replace(/[  ]/g, "").replace(",", ".")); // 1 932,43 and 139,47
 }
 
-const MONEY_AFTER = /^\s?(€|eur\b|euros?\b|euroa\b)/i;
-const PER_MONTH = /\b(a|per|each|every)\s+month\b|\bmonthly\b|\/\s?(mo|month|kk)\b|kuukaudessa|kuussa/i;
-const PER_YEAR = /\b(a|per|each|every)\s+year\b|\byearly\b|\bannual(ly)?\b|\/\s?(yr|year|v)\b|vuodessa/i;
+// The words that mark a figure as money, per month or per year, in the languages Sisu is most used in. A language
+// not covered here still works: its figures are then checked as exact matches only, which is the stricter rule.
+const MONEY_AFTER = /^\s?(€|eur\b|euros?\b|euroa\b|euron\b|евро|यूरो|يورو)/i;
+const PER_MONTH = /\b(a|per|each|every)\s+month\b|\bmonthly\b|\/\s?(mo|month|kk)\b|kuukaudessa|kuussa|\b(pro|im|je)\s+Monat\b|\bmonatlich\b|\b(per|i)\s+månad(en)?\b/i;
+const PER_YEAR = /\b(a|per|each|every)\s+year\b|\byearly\b|\bannual(ly)?\b|\/\s?(yr|year|v)\b|vuodessa|\b(pro|im|je)\s+Jahr\b|\bjährlich\b|\b(per|om)\s+år(et)?\b/i;
 
 function hintFor(text: string, raw: string, index: number): Hint {
   const after = text.slice(index + raw.length, index + raw.length + 40);

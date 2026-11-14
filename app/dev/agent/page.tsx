@@ -20,7 +20,8 @@ export default function AgentBench() {
   const [prefetched, setPrefetched] = useState<string | null>(null);
   const [voiceOptions, setVoiceOptions] = useState<VoiceOptions | null>(null);
   const [voice, setVoice] = useState<{ model: string; voiceId: string } | null>(null);
-  const sisu = useSisu({ customerId, speakReplies });
+  const [language, setLanguage] = useState("auto");
+  const sisu = useSisu({ customerId, speakReplies, language });
 
   useEffect(() => {
     fetchVoiceOptions().then((options) => {
@@ -86,6 +87,13 @@ export default function AgentBench() {
         <label className="flex min-h-11 items-center gap-2">
           <input id="speak" type="checkbox" checked={speakReplies} onChange={(e) => setSpeakReplies(e.target.checked)} className="h-5 w-5 accent-[var(--green)]" />
           Speak replies
+        </label>
+        <label className="flex items-center gap-2">
+          <span className="text-muted">Language</span>
+          <select id="language" value={language} onChange={(e) => setLanguage(e.target.value)} className="min-h-11 rounded-xl border border-line bg-card px-3 font-semibold">
+            <option value="auto">Auto-detect{sisu.heardLanguage ? ` (heard: ${sisu.heardLanguage})` : ""}</option>
+            {(voiceOptions?.languages ?? []).map((l) => <option key={l.code} value={l.code}>{l.nativeName} · {l.name}</option>)}
+          </select>
         </label>
         <button type="button" onClick={prefetch} className="min-h-11 rounded-xl border border-line bg-card px-3 font-semibold">Prefetch electricity offers</button>
         <button type="button" onClick={sisu.testVoice} className="min-h-11 rounded-xl border border-line bg-card px-3 font-semibold">Test voice</button>

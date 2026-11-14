@@ -159,6 +159,9 @@ The synthetic data has no merchant names and no real subscriptions, so Sisu does
 - **Out:** each finished sentence is sent to ElevenLabs text to speech on its own and streamed as raw audio, so playback starts with the first sentence while the rest is still being written. Short sentences are cached on the server (a repeat plays in 8 ms).
 - **A queue for the plan's limit.** ElevenLabs allows two requests at once on this plan. A long answer used to open six and be rejected, which silenced the voice. Requests now wait their turn; because sentences play in order, the listener hears no difference.
 - Measured: first audio 0.30 s after a sentence is ready (median of 3), and 1.37 s from the end of the recording upload to the first audio of the answer.
+- **Any language.** Speech to text (Scribe v3) detects the language, or takes the customer's chosen one as a hint. The agent is told which language to answer in, and text to speech (Eleven v4 turbo) is told too, so numbers and names are pronounced in that language. 47 languages are listed in `lib/agent/languages.ts`, Finnish first; anything else still works on auto-detect. A detection below 60% confidence is not acted on. Live check: Finnish, Swedish, German, Hindi, Tamil and Arabic were each heard correctly and answered in kind, with every number sourced, and first audio 1.1 to 1.6 s after the recording arrived.
+- Spoken numbers arrive as digits (`numbers_format: digits`), so "viisikymmentä euroa" reaches the agent as "50 euroa".
+- Sentences are cut at the full stops of other scripts as well (Hindi, Urdu, Arabic, Chinese, Japanese), so speech starts early in those languages too.
 
 ## Memory and personalisation
 

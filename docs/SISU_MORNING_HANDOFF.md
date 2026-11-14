@@ -23,7 +23,7 @@ The backend can now carry a whole mobile Sisu experience: questions about the cu
    ```
    Then open a pull request into `main`. Do not merge directly: `lib/types.ts`, `package.json` and `context/build-plan.md` are shared files, and teammates should see the change first.
 2. **The Verda GPU is still running, at €2.58 an hour.** I did not start, stop or change it. Decided on Saturday morning: keep it on through judging. That costs about €100 of the €200 credit by Sunday 16:00. Note that on Verda, shutting an instance down does not stop the charge. Only deleting the instance does (the disk can be kept and a new GPU booted from it), and the RTX PRO 6000 was the only GPU type free when this one was rented.
-3. **ElevenLabs credit is the tightest resource.** Tonight sent roughly 1,600 characters of speech. Check the real balance on the ElevenLabs dashboard before a day of voice demos, and decide whether to redeem the MLH code. Note that every server start speaks three filler lines (about 135 characters) to warm the voice.
+3. **(Resolved: Creator plan, about 127,000 credits, since Saturday morning.)** Before that, ElevenLabs credit was the tightest resource. Tonight sent roughly 1,600 characters of speech. Check the real balance on the ElevenLabs dashboard before a day of voice demos, and decide whether to redeem the MLH code. Note that every server start speaks three filler lines (about 135 characters) to warm the voice.
 
 ## What was built
 

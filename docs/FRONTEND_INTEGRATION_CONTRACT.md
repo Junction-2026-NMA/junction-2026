@@ -44,7 +44,7 @@ That is the whole integration: one hook, and a card for each thing it hands you.
 
 ## 1. The `useSisu` hook
 
-`useSisu({ customerId, focusBill?, speakReplies? })` returns:
+`useSisu({ customerId, focusBill?, speakReplies?, language? })` returns:
 
 | Field | What it is | Since |
 |---|---|---|
@@ -63,6 +63,7 @@ That is the whole integration: one hook, and a card for each thing it hands you.
 | `memory` | `{ consent, items }`: what Sisu remembers about this customer | **new** |
 | `approvedMonthlySaving` | Euros a month freed by approved switches. Feed this to the futures chart | **new** |
 | `refresh()` | Reload `actions` and `memory` from the server | **new** |
+| `heardLanguage` | The language of the last spoken question (`"fi"`, `"de"`, `"hi"`…), when it was recognised | **new** |
 
 Call `reset()` when the customer changes. `actions` and `memory` reload on their own.
 
@@ -260,6 +261,27 @@ await rememberKwh(customerId, result.reading.yearlyKwh);
 ```
 
 `POST /api/agent/bill-photo` takes a multipart form with `image` (PNG, JPEG or WebP, up to 4 MB) and `customerId`. Resize large phone photos to about 1,500 pixels wide before sending. It takes about 1.5 seconds. Fields the model could not see come back `null`; `reading.problems` lists anything dropped as implausible.
+
+## 9a. Languages
+
+Sisu hears and speaks 47 languages, Finnish first: Swedish, English, German, Estonian, Russian, Arabic, Somali, the main languages of India (Hindi, Bengali, Tamil, Telugu, Marathi, Gujarati, Kannada, Malayalam, Punjabi, Urdu) and more. The list is `LANGUAGES` in `lib/agent/languages.ts`.
+
+```tsx
+const [language, setLanguage] = useState("auto");
+const sisu = useSisu({ customerId, language });
+
+<select value={language} onChange={(e) => setLanguage(e.target.value)}>
+  <option value="auto">Auto-detect</option>
+  {languages.map((l) => <option key={l.code} value={l.code}>{l.nativeName}</option>)}
+</select>
+```
+
+- **`"auto"` (the default) needs nothing from you.** The customer speaks, Sisu hears which language it is, answers in it and speaks the answer in it. `sisu.heardLanguage` tells you what was heard. A typed question is answered in the language it was typed in.
+- **A chosen language** (`"fi"`, `"de"`, `"hi"`…) is given to the recogniser as a hint, which makes short clips more accurate, and Sisu answers in it whatever was typed.
+- Get the list for a picker from `GET /api/voice/tts` (`languages: [{ code, name, nativeName }]`), or import `LANGUAGES`.
+- Without the hook: send `language` in the body of `/api/agent/query` and `/api/voice/tts`, and as a form field on `/api/voice/turn` and `/api/voice/stt`. The `transcript` event carries `language` and `languageProbability`.
+- **What stays in English for now:** the text on cards that code writes (teaching card options, action titles and checklists, stage titles, assumptions). The spoken and written answer is in the customer's language, and it puts a lesson's question into that language.
+- The "let me check" filler exists in English, Finnish, Swedish and German. In other languages Sisu says nothing while research runs; show the progress on screen.
 
 ## 10. Endpoints that need no model (instant)
 

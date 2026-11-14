@@ -6,7 +6,8 @@ What was tested on the night of 14 November 2026, what passed, what was found an
 
 | Measure | Result |
 |---|---|
-| Deterministic tests (no network, no keys) | **179 of 179 pass**, in 17 seconds |
+| Deterministic tests (no network, no keys) | **194 of 194 pass**, in 17 seconds |
+| Voice in other languages (live) | 7 of 7: Finnish, Swedish, German, Hindi, Tamil, Arabic, and Finnish with live research |
 | Live evaluation against the real model | **54 of 54 checks pass** on the closing run (first run of the night: 45 of 52; the last five runs: 54, 52, 53, 52, 54) |
 | Numbers said by the model that had no source | **0 of 142** on the closing run (first run: 5 of 126, or 4.0%) |
 | Live turns streamed during the night | more than 1,000, with **0 broken streams** |
@@ -19,7 +20,7 @@ What was tested on the night of 14 November 2026, what passed, what was found an
 ## How to run it
 
 ```bash
-npm test                    # 179 deterministic tests. No server, keys or network needed.
+npm test                    # 194 deterministic tests. No server, keys or network needed.
 npm run dev -- --port 3310  # in another terminal, with the real keys in .env.local
 npm run gauntlet            # the tests, then every live script below, against localhost:3310
 npm run gauntlet -- --quick # the deterministic tests only
@@ -27,13 +28,14 @@ npm run gauntlet -- --quick # the deterministic tests only
 
 | Script | What it does | Cost of one run |
 |---|---|---|
-| `tests/unit/*.test.ts` | The 179 deterministic tests | nothing |
+| `tests/unit/*.test.ts` | The 194 deterministic tests | nothing |
 | `tests/gauntlet/eval.mjs` | 54 live checks against the real model | about 70 model turns, 2 searches |
 | `tests/gauntlet/latency.mjs` | p50 and p95 for 7 kinds of question | about 70 model turns |
 | `tests/gauntlet/stages.mjs` | Each stage on its own: model, Exa, Context.dev, finance | about 80 model calls, 8 searches, 3 page reads |
 | `tests/gauntlet/failover.mjs` | Answers with the main model address broken | 6 turns on the backup |
 | `tests/gauntlet/vision.mjs` | Reads an honest and a hostile test bill | 2 vision calls |
 | `tests/gauntlet/soak.mjs` | 26 unexpected questions, printed for a person to read | 26 model turns |
+| `tests/gauntlet/voice-languages.mjs` | A spoken question in six languages, sent with the language on auto | about 900 characters of speech, 7 transcriptions |
 | `tests/gauntlet/voice.mjs` | One bounded voice test. **Run by hand:** it spends about 300 characters of ElevenLabs credit | 5 speech requests, 1 transcription |
 
 The failover test needs a server started with a broken model address:
@@ -61,6 +63,7 @@ SISU_BASE=http://localhost:3313 node tests/gauntlet/failover.mjs stall
 | `untrusted.test.ts` | 11 | Text written as instructions is recognised and removed; ordinary Finnish offer text is not. Hostile offers are dropped. Nothing personal reaches Exa. |
 | `memory.test.ts` | 10 | Memory survives a restart, is invisible to other customers, obeys consent, and a corrected bill name changes what savings are compared with. |
 | `vision.test.ts` | 8 | Implausible figures and instruction-like text from a photo are dropped. A photo goes only to our own model host, never to the backup. |
+| `languages.test.ts` | 15 | Codes from both speech services are recognised. A chosen language is passed as a hint; auto forces none. An unsure detection is not acted on. Speech out is told the language and cached per language. The reply-language instruction comes last in the prompt. Sentences in Hindi, Urdu, Arabic and Chinese are cut at their own full stops. |
 | `speech.test.ts` | 5 | A six-sentence answer is spoken with at most two requests open. A failed or interrupted request frees its place. |
 
 ## What the live evaluation covers
@@ -156,6 +159,22 @@ No errors in any row. This is the last run of the night, on the final code. Read
 
 Three samples are too few for a percentile; treat them as indicative.
 
+### Voice in other languages (14 Nov, 10:50, one run)
+
+Each question was spoken by text to speech, sent as a recording with the language on auto, and the reply checked.
+
+| Language | Heard as | Detection confidence | Answered in it | Numbers sourced | Speech to text | First audio of the answer |
+|---|---|---|---|---|---|---|
+| Finnish | fi | 99.7% | yes | yes | 705 ms | 1,603 ms |
+| Swedish | sv | 99.7% | yes | yes | 549 ms | 1,410 ms |
+| German | de | 99.9% | yes | yes | 470 ms | 1,123 ms |
+| Hindi | hi | 91.1% | yes | yes | 561 ms | 1,340 ms |
+| Tamil | ta | 100% | yes | yes | 437 ms | 1,217 ms |
+| Arabic | ar | 99.6% | yes | yes | 426 ms | 1,506 ms |
+| Finnish, asking for a cheaper electricity deal | fi | 93.7% | yes | yes | 816 ms | Finnish filler at once; answer after a cold 6 s search |
+
+Sample: asked "Paljonko voin käyttää rahaa tällä viikolla?", Sisu answered "Voit käyttää turvallisesti noin 164 euroa tällä viikolla." The questions were machine-made speech, so real accents and booth noise are not covered. Whether the answers read naturally to a native speaker was not judged; the check is only that the reply is in the right language and its numbers are sourced.
+
 ### Failover
 
 | Situation | Answered | By the backup | First sentence p50 / p95 |
@@ -180,7 +199,7 @@ Stated plainly, so nobody is surprised at the booth.
 7. **The model server's prompt cache is not helping.** If it can be switched on for this model, every step would start faster. That means restarting the GPU server, which was not done unattended.
 8. **Live offer results vary between cold searches.** Exa can return different comparison pages, so the best offer changed during the night (from €67 a year to €48 a year for the same customer). Each result is correct for the pages read and carries their links and time.
 9. **Context.dev extraction takes about 3 seconds a page**, even for a cached page. It is kept out of the conversation by starting early and keeping results warm, but a cold first search still takes about 4 seconds.
-10. **Voice was tested once, with machine-made speech.** The microphone path in a real browser, a noisy room and Finnish speech were not tested tonight.
+10. **Voice was tested with machine-made speech only.** Six languages were heard and answered correctly that way, but a person at a real microphone, accents and a noisy room are untested. The verifier's rounding rules and the hostile-text filters know English and Finnish best; in other languages figures are checked as exact matches, and instruction-like text in a web page is caught by the structural defences rather than by the filter.
 11. **The bill photo was tested on a clean, generated image.** A crumpled paper bill under booth lighting was not.
-12. **ElevenLabs credit is limited, and every server start spends some.** About 2,500 of 10,000 free credits were used before tonight. Tonight sent roughly 1,600 more characters of speech (an estimate from what was sent; check the ElevenLabs dashboard for the real balance). Part of that is the warm-up: each time the server starts it speaks three filler lines, about 135 characters.
+12. **(Resolved on Saturday morning: the account now has the Creator plan with about 127,000 credits.)** Before that: ElevenLabs credit was limited, and every server start spends some. About 2,500 of 10,000 free credits were used before tonight. Tonight sent roughly 1,600 more characters of speech (an estimate from what was sent; check the ElevenLabs dashboard for the real balance). Part of that is the warm-up: each time the server starts it speaks three filler lines, about 135 characters.
 13. **The parallel Codex agent produced nothing to integrate.** Its branch had no commits when checked.

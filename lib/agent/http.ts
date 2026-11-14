@@ -1,5 +1,6 @@
 // Shared helpers for the agent's API routes: request validation, a small rate limit and the event stream.
 import type { AgentRequest, BillType, ChatTurn, SisuEvent } from "@/lib/types";
+import { languageCode } from "./languages";
 
 const MAX_TEXT_CHARS = 500;
 const MAX_HISTORY = 12;
@@ -38,6 +39,7 @@ export function parseAgentRequest(body: unknown, mode: "voice" | "text"): AgentR
     mode: input.mode === "voice" || input.mode === "text" ? input.mode : mode,
     history: parseHistory(input.history),
     focusBill: parseBillType(input.focusBill),
+    language: languageCode(input.language) ?? undefined,
   };
 }
 
