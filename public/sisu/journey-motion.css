@@ -1,0 +1,83 @@
+/* Motion of the bill example. Each step shows cause, then effect: the bill is flagged, the
+   arrow points on, the offers arrive, the lowest is marked, the jar grows. Every figure is
+   in its final, readable state from the moment its card is visible: only backgrounds, bars
+   and positions move, never the digits. All of it ends within 4 s and nothing loops.
+   Without scripts, or with reduced motion, the cards simply stand in their final state. */
+@media (prefers-reduced-motion: no-preference) {
+  .js .step.reveal.is-in {
+    transition-delay: var(--wait);
+  }
+
+  .js .step.is-in + .step::before,
+  .js .step.is-in + .step::after {
+    animation: journey-fade 300ms var(--ease-out) 1 backwards;
+    animation-delay: calc(var(--wait) + 250ms);
+  }
+
+  .js .step.is-in .flag-row,
+  .js .step.is-in .offer-best {
+    animation: journey-mark 500ms var(--ease-out) 1 backwards;
+    animation-delay: calc(var(--wait) + 900ms);
+  }
+
+  .js .step.is-in .flag-tag {
+    animation: journey-pop 400ms var(--ease-spring) 1 backwards;
+    animation-delay: calc(var(--wait) + 900ms);
+  }
+
+  .js .step.is-in .offer-row {
+    animation: journey-slide 400ms var(--ease-out) 1 backwards;
+    animation-delay: calc(var(--wait) + 300ms);
+  }
+
+  .js .step.is-in .offer-row:nth-child(3) {
+    animation-delay: calc(var(--wait) + 420ms);
+  }
+
+  .js .step.is-in .offer-row:nth-child(4) {
+    animation-delay: calc(var(--wait) + 540ms);
+  }
+
+  .js .step.is-in .offer-best {
+    animation-name: journey-slide, journey-mark;
+    animation-duration: 400ms, 500ms;
+    animation-delay: calc(var(--wait) + 300ms), calc(var(--wait) + 900ms);
+  }
+
+  .js .step.is-in .meter-gain {
+    animation: journey-grow 700ms var(--ease-out) 1 backwards;
+    animation-delay: calc(var(--wait) + 900ms);
+  }
+}
+
+@keyframes journey-fade {
+  0% {
+    opacity: 0;
+  }
+}
+
+@keyframes journey-mark {
+  0% {
+    background: var(--white);
+  }
+}
+
+@keyframes journey-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+@keyframes journey-slide {
+  0% {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+}
+
+@keyframes journey-grow {
+  0% {
+    transform: scaleX(0);
+  }
+}

@@ -4,7 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sisu, your money coach in S-mobiili | S-Pankki</title>
-<meta name="description" content="Sisu turns your own transactions into one small win a day. Concept for Junction 2026. Not an official S-Pankki page.">
+<meta name="description" content="Sisu shows what is safe to spend and checks one bill against today's offers. Concept for Junction 2026. Not an official S-Pankki page.">
+<!-- Address of the running Sisu demo. Empty: the demo buttons lead to the example on this page, or to "/" when the app serves this page. -->
+<meta name="sisu-demo-url" content="">
 <meta name="robots" content="noindex">
 <link rel="stylesheet" href="tokens.css">
 <link rel="stylesheet" href="base.css">
@@ -12,6 +14,8 @@
 <link rel="stylesheet" href="header.css">
 <link rel="stylesheet" href="more.css">
 <link rel="stylesheet" href="hero.css">
+<link rel="stylesheet" href="journey.css">
+<link rel="stylesheet" href="journey-motion.css">
 <link rel="stylesheet" href="today.css">
 <link rel="stylesheet" href="sections.css">
 <link rel="stylesheet" href="panels.css">
@@ -20,6 +24,7 @@
 <script src="boot.js"></script>
 <script src="page.js" defer></script>
 <script src="nav.js" defer></script>
+<script src="journey.js" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#sisalto">Siirry suoraan sisältöön</a>
@@ -89,9 +94,9 @@
 
   <section class="hero">
     <div class="hero-copy reveal">
-      <h1 class="hero-title">Small wins with <span class="hero-chip">your own money.</span></h1>
-      <p class="hero-lead">Sisu is a concept for a money coach in <span class="keep">S-mobiili</span> that gives you one small step a day.</p>
-      <a class="demo-button btn-primary" href="/">Open the Sisu demo</a>
+      <h1 class="hero-title">Know what you can spend. <span class="hero-chip">See where to save.</span></h1>
+      <p class="hero-lead">Sisu is a concept for a money coach in <span class="keep">S-mobiili</span>. It reads your own payments, picks one bill worth a look and checks it against today's offers.</p>
+      <a class="demo-button btn-primary" href="#journey">See the example</a>
     </div>
     <figure class="hero-figure reveal">
       <div class="phone">
@@ -114,6 +119,7 @@
             <p class="legend-row"><span class="legend-dot bar-leaks"></span> <span class="legend-name">Leaks</span> <span class="legend-sum">€143</span></p>
             <p class="legend-row"><span class="legend-dot bar-jars"></span> <span class="legend-name">Jars</span> <span class="legend-sum">€40</span></p>
           </div>
+          <p class="today-flag"><span class="flag-tag">1 bill to check</span> <span class="today-flag-name">Electricity</span> <span class="num">€79</span></p>
           <p class="phone-tabs">
             <span class="phone-tab phone-tab-on">Today</span>
             <span class="phone-tab">Chat</span>
@@ -122,18 +128,15 @@
           </p>
         </div>
       </div>
-      <div class="float-card streak-card">
-        <svg class="flame" width="36" height="36" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c0 4 6 6.5 6 12a6 6 0 0 1-12 0c0-2 .8-3.6 2-5 .2 1.6 1 2.6 2 3 0-3.5.5-7 2-10z"/></svg>
-        <p class="streak-count">12</p>
-        <p class="streak-label">days in a row</p>
+      <div class="float-card bill-card">
+        <p class="card-label">Bill to check</p>
+        <p class="card-name">Electricity</p>
+        <p class="card-sum">€79 <span class="per">a month</span></p>
       </div>
-      <div class="float-card jar-card">
-        <p class="jar-card-top">
-          <span class="jar-chip"><svg width="24" height="24" viewBox="0 0 256 256" aria-hidden="true"><path d="M184,48.81V32a16,16,0,0,0-16-16H88A16,16,0,0,0,72,32V48.81A40.05,40.05,0,0,0,40,88V200a40,40,0,0,0,40,40h96a40,40,0,0,0,40-40V88A40.05,40.05,0,0,0,184,48.81ZM120,48V32h16V48Zm48,0H152V32h16ZM104,32V48H88V32Z"/></svg></span>
-          <span class="jar-card-name">Buffer jar</span>
-        </p>
-        <p class="jar-card-sum">€120 of €500</p>
-        <span class="meter meter-buffer"><span class="meter-fill"></span></span>
+      <div class="float-card offer-card">
+        <p class="card-label">Lowest offer today</p>
+        <p class="card-sum">€69 <span class="per">a month</span></p>
+        <p class="card-diff">About €10 less</p>
       </div>
       <img class="sticker" src="img/liito-glide.png" width="96" height="96" alt="Liito, the flying squirrel, gliding">
       <figcaption class="example-note">Example figures</figcaption>
@@ -144,13 +147,75 @@
     <ul class="fact-list reveal">
       <li class="fact">
         <p class="fact-text"><span class="fact-lead">About 2.9 million</span> people use <span class="keep">S-mobiili</span>.</p>
-        <a class="source-link" href="https://www.s-pankki.fi/fi/tiedotteet/2026/s-pankki-oyjn-osavuosikatsaus-1.1.30.9.2026/">S-Pankki interim report, 1 Jan to 30 Sep 2026</a>
+        <a class="source-link" href="https://www.s-pankki.fi/fi/tiedotteet/2026/s-pankki-oyjn-osavuosikatsaus-1.1.30.9.2026/">Source: S-Pankki<span class="vh">, interim report, 1 Jan to 30 Sep 2026</span></a>
       </li>
       <li class="fact">
         <p class="fact-text"><span class="fact-lead">Best bank mobile app</span> in Finland, EPSI Rating 2026.</p>
-        <a class="source-link" href="https://www.sttinfo.fi/tiedote/72337793/epsi-rating-s-pankilla-tyytyvaisimmat-pankkiasiakkaat-ja-paras-mobiilisovellus?lang=fi">EPSI Rating bank study 2026, press release on STT Info</a>
+        <a class="source-link" href="https://www.sttinfo.fi/tiedote/72337793/epsi-rating-s-pankilla-tyytyvaisimmat-pankkiasiakkaat-ja-paras-mobiilisovellus?lang=fi">Source: EPSI Rating<span class="vh">, bank study 2026, press release on STT Info</span></a>
       </li>
     </ul>
+  </section>
+
+  <section class="journey" id="journey">
+    <div class="section-head reveal">
+      <h2>One bill, start to finish.</h2>
+      <p>The same example, in four steps.</p>
+    </div>
+    <figure class="journey-figure">
+      <ol class="journey-steps">
+        <li class="step reveal">
+          <p class="step-kicker"><span class="step-no">1</span> Understand</p>
+          <h3>See where the month goes.</h3>
+          <div class="step-mock">
+            <div class="basket-bar">
+              <span class="bar-part bar-fixed"></span>
+              <span class="bar-part bar-curveballs"></span>
+              <span class="bar-part bar-leaks"></span>
+              <span class="bar-part bar-jars"></span>
+            </div>
+            <p class="mock-row mock-row-head"><span>Fixed</span> <span class="num">€612</span></p>
+            <p class="mock-row sub-row"><span>Rent</span> <span class="num">€480</span></p>
+            <p class="mock-row sub-row flag-row"><span>Electricity <span class="flag-tag">Check</span></span> <span class="num">€79</span></p>
+            <p class="mock-row sub-row"><span>Phone</span> <span class="num">€53</span></p>
+          </div>
+        </li>
+        <li class="step reveal">
+          <p class="step-kicker"><span class="step-no">2</span> Investigate</p>
+          <h3>Look into one bill.</h3>
+          <div class="step-mock">
+            <p class="mock-name">Electricity</p>
+            <p class="big-num">€79 <span class="per">a month</span></p>
+            <p class="mock-row"><span>A year</span> <span class="num">€948</span></p>
+            <p class="mock-source">From your 12 payments, Nov 2025 to Oct 2026</p>
+            <p class="mock-confirm"><span>Looks like electricity. Right?</span> <span class="chat-step">Yes</span></p>
+          </div>
+        </li>
+        <li class="step reveal">
+          <p class="step-kicker"><span class="step-no">3</span> Compare</p>
+          <h3>Compare today's offers.</h3>
+          <div class="step-mock">
+            <p class="mock-row offer-row offer-now"><span>Your contract</span> <span class="num">€79</span></p>
+            <p class="mock-row offer-row offer-best"><span>Offer A <span class="flag-tag">Lowest</span></span> <span class="num">€69</span></p>
+            <p class="mock-row offer-row"><span>Offer B</span> <span class="num">€72</span></p>
+            <p class="mock-row offer-row"><span>Offer C</span> <span class="num">€75</span></p>
+            <p class="mock-source">A month, estimated from your own bill. Each offer links to its source.</p>
+          </div>
+        </li>
+        <li class="step reveal">
+          <p class="step-kicker"><span class="step-no">4</span> See the impact</p>
+          <h3>See what a switch changes.</h3>
+          <div class="step-mock">
+            <p class="big-num">€10 <span class="per">less a month</span></p>
+            <p class="mock-row"><span>A year</span> <span class="num">about €120</span></p>
+            <p class="mock-name mock-name-small">Buffer jar in a year, if the €10 goes there</p>
+            <span class="meter impact-meter"><span class="meter-fill"></span><span class="meter-gain"></span></span>
+            <p class="mock-row"><span class="num">€360 of €500</span> <span class="mock-muted">€240 without</span></p>
+            <p class="mock-source">You decide. Nothing switches without your OK.</p>
+          </div>
+        </li>
+      </ol>
+      <figcaption class="example-note">Example figures. The offers are made up for this picture.</figcaption>
+    </figure>
   </section>
 
   <section class="baskets">
@@ -192,7 +257,6 @@
           <ul class="tick-list">
             <li>Bills still to come are already set aside.</li>
             <li>The number updates with every card payment.</li>
-            <li>The days to payday stay in view.</li>
           </ul>
         </div>
         <figure class="panel-visual">
@@ -214,9 +278,8 @@
       <article class="panel panel-chat reveal">
         <div class="panel-copy">
           <h3>Ask your money a question.</h3>
-          <p>Liito answers in plain words, with your own numbers.</p>
+          <p>Liito answers with your own numbers, and says when it is tight.</p>
           <ul class="tick-list">
-            <li>The answer comes first, in one line.</li>
             <li>Every number names where it comes from.</li>
             <li>Each reply ends with one next step.</li>
           </ul>
@@ -226,16 +289,16 @@
             <p class="chat-name chat-name-user">You</p>
             <p class="bubble bubble-user">€45 for a concert on Friday. Can I afford it?</p>
             <p class="chat-name">Liito</p>
-            <p class="bubble bubble-liito">€64 is safe to spend, so yes. €19 is left for 6 days after the ticket.</p>
+            <p class="bubble bubble-liito">Yes, but it is tight. That leaves €19 for 6 days.</p>
             <div class="bubble bubble-liito">
-              <p>About €30 usually goes to Leaks in that time.</p>
+              <p>That is about €11 below your usual spending. Want to find room?</p>
               <div class="data-card">
                 <p class="data-label">Leaks in a usual 6 days</p>
                 <p class="data-number">€30</p>
                 <p class="data-source">From your card payments, 1 to 31 Oct</p>
               </div>
             </div>
-            <p class="chat-steps"><span class="chat-step">Find €15</span> <span class="chat-step">Show my week</span></p>
+            <p class="chat-steps"><span class="chat-step">Find €11</span> <span class="chat-step">Show my week</span></p>
           </div>
           <figcaption class="example-note">Example figures</figcaption>
         </figure>
@@ -247,7 +310,6 @@
           <p>One tiny action keeps your streak going.</p>
           <ul class="tick-list">
             <li>A check-in takes one tap.</li>
-            <li>Sorting one payment counts too.</li>
             <li>Buying something never breaks your streak.</li>
           </ul>
         </div>
@@ -281,17 +343,17 @@
       <li class="stat-card stat-large reveal">
         <p class="stat-figure js-count">48%</p>
         <p class="stat-text">of under-30s in Finland worry about money at least once a week.</p>
-        <a class="source-link" href="https://www.sttinfo.fi/tiedote/72282300/s-pankin-tutkimus-nuoret-kokevat-arjen-turvalliseksi-vaikka-talous-huolettaakin?lang=fi">S-Pankki study of young adults, press release on STT Info</a>
+        <a class="source-link" href="https://www.sttinfo.fi/tiedote/72282300/s-pankin-tutkimus-nuoret-kokevat-arjen-turvalliseksi-vaikka-talous-huolettaakin?lang=fi">Source: S-Pankki study<span class="vh"> of young adults, press release on STT Info</span></a>
       </li>
       <li class="stat-card reveal">
         <p class="stat-figure js-count">21%</p>
         <p class="stat-text">of under-30s in Finland have no savings at all.</p>
-        <a class="source-link" href="https://www.sttinfo.fi/tiedote/72282300/s-pankin-tutkimus-nuoret-kokevat-arjen-turvalliseksi-vaikka-talous-huolettaakin?lang=fi">S-Pankki study of young adults, press release on STT Info</a>
+        <a class="source-link" href="https://www.sttinfo.fi/tiedote/72282300/s-pankin-tutkimus-nuoret-kokevat-arjen-turvalliseksi-vaikka-talous-huolettaakin?lang=fi">Source: S-Pankki study<span class="vh"> of young adults, press release on STT Info</span></a>
       </li>
       <li class="stat-card reveal">
         <p class="stat-figure js-count">11%</p>
         <p class="stat-text">of the people who use S-Pankki's <span lang="fi">Säästäjä</span> are 18 to 25.</p>
-        <a class="source-link" href="https://dokumentit.s-pankki.fi/tiedostot/s-pankki-saastajien-suomi-032026">S-Pankki report Säästäjien Suomi, March 2026</a>
+        <a class="source-link" href="https://dokumentit.s-pankki.fi/tiedostot/s-pankki-saastajien-suomi-032026">Source: <span lang="fi">Säästäjien Suomi</span><span class="vh">, S-Pankki report, March 2026</span></a>
       </li>
     </ul>
   </section>
@@ -316,7 +378,7 @@
               <span>Streak</span>
               <span class="num receipt-streak"><svg class="flame" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c0 4 6 6.5 6 12a6 6 0 0 1-12 0c0-2 .8-3.6 2-5 .2 1.6 1 2.6 2 3 0-3.5.5-7 2-10z"/></svg> 12 days</span>
             </p>
-            <p class="receipt-liito">Liito: 5 check-ins this week. Day 12 is yours.</p>
+            <p class="receipt-liito">Liito: one bill checked this week. About €10 less a month if you switch.</p>
           </div>
           <figcaption class="example-note">Example figures</figcaption>
         </figure>
@@ -378,9 +440,9 @@
 
   <section class="closing">
     <div class="closing-block reveal">
-      <h2>Start with one small win.</h2>
-      <p class="closing-lead">Try one day with Sisu on synthetic data.</p>
-      <a class="demo-button demo-button-dark btn-primary" href="/">Open the Sisu demo</a>
+      <h2>Start with one bill.</h2>
+      <p class="closing-lead">See what Sisu finds, on synthetic data.</p>
+      <a class="demo-button demo-button-dark btn-primary" href="#journey">See the example</a>
     </div>
   </section>
 

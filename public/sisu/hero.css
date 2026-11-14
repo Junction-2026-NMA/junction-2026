@@ -9,7 +9,7 @@ main > .hero {
 
 .hero-title {
   font-family: var(--font-display);
-  font-size: clamp(2.5rem, 8.5vw, 4.75rem);
+  font-size: clamp(2.125rem, 8vw, 3.5rem);
   font-weight: 800;
   line-height: 1.05;
   letter-spacing: -0.02em;
@@ -35,8 +35,10 @@ main > .hero {
   line-height: 1.45;
 }
 
-/* The figure: phone in the middle, small tilted cards around it. Below 800px the cards sit under the phone. */
+/* The figure: the phone, with the flagged bill and the lowest offer as two tilted cards.
+   Below 1024px the cards sit under the phone; from 1024px they float over its edges. */
 .hero-figure {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   justify-items: center;
@@ -57,76 +59,72 @@ main > .hero {
 }
 
 .float-card {
-  padding: 14px 16px;
+  width: min(100%, 152px);
+  padding: 12px 14px;
   border-radius: var(--radius-lg);
   background: var(--surface);
   text-align: left;
 }
 
-.streak-card {
-  --tilt: -4deg;
-  grid-area: 2 / 1;
+.bill-card {
+  --tilt: -3deg;
   justify-self: end;
-  width: 132px;
-  text-align: center;
 }
 
-.streak-count {
-  font-family: var(--font-display);
-  font-size: 2.5rem;
-  font-weight: 800;
-  line-height: 1;
+.offer-card {
+  --tilt: 3deg;
+  justify-self: start;
+  background: var(--green-200);
 }
 
-.streak-label {
+.card-label {
   color: var(--text-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.offer-card .card-label {
+  color: var(--green-900);
+}
+
+.card-name {
+  font-weight: 700;
+}
+
+.card-sum {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.per {
+  font-family: var(--font-text);
   font-size: 0.875rem;
   font-weight: 600;
 }
 
+.card-diff {
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+/* Liito sits on the phone's top right corner. */
 .sticker {
-  --tilt: 5deg;
-  grid-area: 2 / 2;
-  justify-self: start;
-  align-self: center;
-  width: 104px;
-  height: 104px;
+  --tilt: 6deg;
+  position: absolute;
+  top: -22px;
+  right: calc(50% - 158px);
+  width: 80px;
+  height: 80px;
   border: 4px solid var(--white);
   border-radius: var(--radius-lg);
 }
 
-.jar-card {
-  --tilt: 3deg;
-  grid-area: 3 / 1 / 4 / -1;
-  width: min(100%, 200px);
-}
-
-.jar-card-top {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 700;
-}
-
-.jar-chip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-full);
-  background: var(--green-100);
-  fill: var(--green-900);
-}
-
-.jar-card-sum {
-  margin: 6px 0 8px;
-  font-size: 0.9375rem;
-  font-variant-numeric: tabular-nums;
-}
-
 .hero-figure .example-note {
-  grid-area: 4 / 1 / 5 / -1;
+  grid-column: 1 / -1;
 }
 
 /* On load the hero fades in and rises once, and the cards settle. Never loops.
@@ -151,7 +149,7 @@ main > .hero {
     animation-delay: 360ms;
   }
 
-  .js .hero-figure .jar-card {
+  .js .hero-figure .offer-card {
     animation-delay: 480ms;
   }
 }
@@ -210,43 +208,6 @@ main > .facts {
   font-weight: 700;
 }
 
-@media (min-width: 800px) {
-  .hero-figure {
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-    grid-template-areas:
-      "streak phone jar"
-      "liito phone jar";
-    align-items: center;
-    column-gap: 24px;
-  }
-
-  .phone {
-    grid-area: phone;
-    width: 300px;
-  }
-
-  .streak-card {
-    grid-area: streak;
-    align-self: end;
-  }
-
-  .sticker {
-    grid-area: liito;
-    justify-self: end;
-    align-self: start;
-    margin-right: 40px;
-  }
-
-  .jar-card {
-    grid-area: jar;
-    justify-self: start;
-  }
-
-  .hero-figure .example-note {
-    grid-area: 3 / 1 / 4 / -1;
-  }
-}
-
 @media (min-width: 1024px) {
   .fact-list {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -263,5 +224,65 @@ main > .facts {
 
   .fact:first-child {
     padding-right: 40px;
+  }
+}
+
+/* From 1024px: the promise on the left, the product on the right, both in the first screen. */
+@media (min-width: 1024px) {
+  main > .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 48px;
+    width: min(100% - 2 * var(--gutter), var(--page-max));
+    margin: 0 auto;
+    text-align: left;
+  }
+
+  .hero .hero-copy,
+  .hero .hero-figure {
+    width: auto;
+    margin: 0;
+  }
+
+  .hero-title {
+    font-size: clamp(2.75rem, 4.2vw, 3.5rem);
+  }
+
+  .hero-chip,
+  .hero-lead {
+    margin-left: 0;
+  }
+
+  .hero .hero-figure {
+    display: block;
+    text-align: center;
+  }
+
+  .hero .phone {
+    width: 290px;
+    margin: 0 auto 12px;
+  }
+
+  .hero .float-card {
+    position: absolute;
+    width: 152px;
+  }
+
+  .bill-card {
+    top: 150px;
+    left: calc(50% - 281px);
+  }
+
+  .offer-card {
+    right: calc(50% - 281px);
+    bottom: 110px;
+  }
+
+  .hero .sticker {
+    top: -26px;
+    right: calc(50% - 190px);
+    width: 96px;
+    height: 96px;
   }
 }
