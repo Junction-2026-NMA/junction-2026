@@ -1,0 +1,817 @@
+{
+  "version": 1,
+  "note": "The contract between the Rive files and the Swift app. Artboard, view model, property and enum names are fixed: the Swift app binds to them by name. Visuals may change freely; names, types and meanings may not.",
+  "rules": {
+    "stateMachine": "Every artboard has one state machine named Main, set as the artboard's default.",
+    "viewModel": "Every artboard has its own view model named <Artboard>VM with a default instance, set as the artboard's default view model.",
+    "direction": "in = the app writes it. out = the Rive file fires or writes it and the app listens. inout = both.",
+    "text": "All visible text comes from string properties. No hard-coded copy in the file.",
+    "colors": "Only the palette in ios/BRAND.md. No other hues.",
+    "private": "Properties whose name starts with an underscore (for example _down) belong to the Rive file. The app never reads or writes them."
+  },
+  "enums": {
+    "ButtonStyle": [
+      "primary",
+      "secondary",
+      "onDark",
+      "quiet"
+    ],
+    "Basket": [
+      "fixed",
+      "curveballs",
+      "leaks",
+      "jars"
+    ],
+    "ProgressTone": [
+      "green",
+      "streak"
+    ],
+    "StatKind": [
+      "streak",
+      "berries"
+    ],
+    "ChoiceState": [
+      "idle",
+      "selected",
+      "correct",
+      "wrong"
+    ],
+    "VoiceState": [
+      "idle",
+      "recording",
+      "thinking",
+      "speaking"
+    ],
+    "ResearchStage": [
+      "searching",
+      "reading",
+      "comparing",
+      "done"
+    ],
+    "LiitoMood": [
+      "idle",
+      "cheering",
+      "proud",
+      "gliding",
+      "curious",
+      "found",
+      "focused",
+      "cosy",
+      "sleepy",
+      "thinking"
+    ],
+    "StickerKind": [
+      "firstJar",
+      "leakPlugged",
+      "streak",
+      "lesson"
+    ],
+    "TagTone": [
+      "neutral",
+      "amber",
+      "info"
+    ],
+    "IconKind": [
+      "settings",
+      "close",
+      "back",
+      "forward",
+      "info",
+      "soundOn",
+      "soundOff",
+      "more"
+    ],
+    "IconStyle": [
+      "plain",
+      "tinted",
+      "filled"
+    ],
+    "LessonState": [
+      "upcoming",
+      "current",
+      "done"
+    ]
+  },
+  "files": {
+    "sisu_ui": {
+      "source": "rive/sisu-ui",
+      "output": "ios/Sisu/Resources/Rive/sisu_ui.riv",
+      "scripts": false,
+      "signed": false,
+      "artboards": [
+        {
+          "name": "Button",
+          "size": [
+            350,
+            60
+          ],
+          "sizing": "flexibleWidth",
+          "purpose": "The pressable button. Face moves down 4 and the edge hides while pressed.",
+          "properties": [
+            {
+              "name": "label",
+              "type": "string",
+              "direction": "in",
+              "default": "Continue"
+            },
+            {
+              "name": "style",
+              "type": "enum",
+              "enum": "ButtonStyle",
+              "direction": "in",
+              "default": "primary"
+            },
+            {
+              "name": "enabled",
+              "type": "boolean",
+              "direction": "in",
+              "default": true
+            },
+            {
+              "name": "loading",
+              "type": "boolean",
+              "direction": "in",
+              "default": false
+            },
+            {
+              "name": "pressed",
+              "type": "trigger",
+              "direction": "out",
+              "meaning": "Fired once per completed tap while enabled and not loading."
+            }
+          ]
+        },
+        {
+          "name": "HeroNumber",
+          "size": [
+            350,
+            200
+          ],
+          "sizing": "flexibleWidth",
+          "purpose": "Dark green block with one very large mint figure.",
+          "properties": [
+            {
+              "name": "eyebrow",
+              "type": "string",
+              "direction": "in",
+              "default": "Safe to spend"
+            },
+            {
+              "name": "amount",
+              "type": "string",
+              "direction": "in",
+              "default": "€64"
+            },
+            {
+              "name": "unit",
+              "type": "string",
+              "direction": "in",
+              "default": "a week"
+            },
+            {
+              "name": "context",
+              "type": "string",
+              "direction": "in",
+              "default": "6 days to payday"
+            },
+            {
+              "name": "reveal",
+              "type": "trigger",
+              "direction": "in",
+              "meaning": "Plays the entrance animation again."
+            }
+          ]
+        },
+        {
+          "name": "BasketBar",
+          "size": [
+            350,
+            40
+          ],
+          "sizing": "flexibleWidth",
+          "purpose": "One rounded bar split into the baskets, dark to light green.",
+          "properties": [
+            {
+              "name": "fixed",
+              "type": "number",
+              "direction": "in",
+              "default": 0.5,
+              "range": [
+                0,
+                1
+              ]
+            },
+            {
+              "name": "curveballs",
+              "type": "number",
+              "direction": "in",
+              "default": 0.1,
+              "range": [
+                0,
+                1
+              ]
+            },
+            {
+              "name": "leaks",
+              "type": "number",
+              "direction": "in",
+              "default": 0.3,
+              "range": [
+                0,
+                1
+              ]
+            },
+            {
+              "name": "jars",
+              "type": "number",
+              "direction": "in",
+              "default": 0.1,
+              "range": [
+                0,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "name": "BasketChip",
+          "size": [
+            160,
+            32
+          ],
+          "sizing": "fixed",
+          "purpose": "Pill naming a basket, with its icon in the basket's green.",
+          "properties": [
+            {
+              "name": "basket",
+              "type": "enum",
+              "enum": "Basket",
+              "direction": "in",
+              "default": "fixed"
+            },
+            {
+              "name": "label",
+              "type": "string",
+              "direction": "in",
+              "default": "Fixed"
+            }
+          ]
+        },
+        {
+          "name": "ProgressBar",
+          "size": [
+            350,
+            14
+          ],
+          "sizing": "flexibleWidth",
+          "purpose": "Thick rounded progress bar that animates to its value.",
+          "properties": [
+            {
+              "name": "progress",
+              "type": "number",
+              "direction": "in",
+              "default": 0.66,
+              "range": [
+                0,
+                1
+              ]
+            },
+            {
+              "name": "tone",
+              "type": "enum",
+              "enum": "ProgressTone",
+              "direction": "in",
+              "default": "green"
+            }
+          ]
+        },
+        {
+          "name": "StatPill",
+          "size": [
+            96,
+            36
+          ],
+          "sizing": "fixed",
+          "purpose": "Streak pill (amber flame) or berries pill (pale mint).",
+          "properties": [
+            {
+              "name": "kind",
+              "type": "enum",
+              "enum": "StatKind",
+              "direction": "in",
+              "default": "streak"
+            },
+            {
+              "name": "value",
+              "type": "string",
+              "direction": "in",
+              "default": "12"
+            }
+          ]
+        },
+        {
+          "name": "TabBar",
+          "size": [
+            390,
+            64
+          ],
+          "sizing": "flexibleWidth",
+          "purpose": "Bottom bar with four tabs: Today, Ask, Jars, Path.",
+          "properties": [
+            {
+              "name": "selected",
+              "type": "number",
+              "direction": "in",
+              "default": 0,
+              "range": [
+                0,
+                3
+              ]
+            },
+            {
+              "name": "tap0",
+              "type": "trigger",
+              "direction": "out"
+            },
+            {
+              "name": "tap1",
+              "type": "trigger",
+              "direction": "out"
+            },
+            {
+              "name": "tap2",
+              "type": "trigger",
+              "direction": "out"
+            },
+            {
+              "name": "tap3",
+              "type": "trigger",
+              "direction": "out"
+            },
+            {
+              "name": "label0",
+              "type": "string",
+              "direction": "in",
+              "default": "Today"
+            },
+            {
+              "name": "label1",
+              "type": "string",
+              "direction": "in",
+              "default": "Ask"
+            },
+            {
+              "name": "label2",
+              "type": "string",
+              "direction": "in",
+              "default": "Jars"
+            },
+            {
+              "name": "label3",
+              "type": "string",
+              "direction": "in",
+              "default": "Path"
+            }
+          ]
+        },
+        {
+          "name": "ActionRow",
+          "size": [
+            350,
+            56
+          ],
+          "sizing": "flexibleWidth",
+          "purpose": "One row of the daily checklist. Turns pale mint with a check when done.",
+          "properties": [
+            {
+              "name": "title",
+              "type": "string",
+              "direction": "in",
+              "default": "Check in"
+            },
+            {
+              "name": "reward",
+              "type": "string",
+              "direction": "in",
+              "default": "+10"
+            },
+            {
+              "name": "done",
+              "type": "boolean",
+              "direction": "in",
+              "default": false
+            },
+            {
+              "name": "pressed",
+              "type": "trigger",
+              "direction": "out"
+            }
+          ]
+        },
+        {
+          "name": "ChoiceCard",
+          "size": [
+            350,
+            64
+          ],
+          "sizing": "flexibleWidth",
+          "purpose": "An answer option for a teaching question.",
+          "properties": [
+            {
+              "name": "label",
+              "type": "string",
+              "direction": "in",
+              "default": "Invest it"
+            },
+            {
+              "name": "state",
+              "type": "enum",
+              "enum": "ChoiceState",
+              "direction": "in",
+              "default": "idle"
+            },
+            {
+              "name": "pressed",
+              "type": "trigger",
+              "direction": "out"
+            }
+          ]
+        },
+        {
+          "name": "VoiceButton",
+          "size": [
+            96,
+            96
+          ],
+          "sizing": "fixed",
+          "purpose": "Hold-to-talk button with recording, thinking and speaking states.",
+          "properties": [
+            {
+              "name": "state",
+              "type": "enum",
+              "enum": "VoiceState",
+              "direction": "in",
+              "default": "idle"
+            },
+            {
+              "name": "pressDown",
+              "type": "trigger",
+              "direction": "out"
+            },
+            {
+              "name": "pressUp",
+              "type": "trigger",
+              "direction": "out"
+            }
+          ]
+        },
+        {
+          "name": "StageIndicator",
+          "size": [
+            350,
+            72
+          ],
+          "sizing": "flexibleWidth",
+          "purpose": "Shows the live research stage: searching, reading pages, comparing, done.",
+          "properties": [
+            {
+              "name": "stage",
+              "type": "enum",
+              "enum": "ResearchStage",
+              "direction": "in",
+              "default": "searching"
+            },
+            {
+              "name": "label",
+              "type": "string",
+              "direction": "in",
+              "default": "Searching for current offers"
+            }
+          ]
+        },
+        {
+          "name": "Liito",
+          "size": [
+            240,
+            240
+          ],
+          "sizing": "contain",
+          "purpose": "The mascot. Mood follows the user's effort, never their balance.",
+          "properties": [
+            {
+              "name": "mood",
+              "type": "enum",
+              "enum": "LiitoMood",
+              "direction": "in",
+              "default": "idle"
+            }
+          ]
+        },
+        {
+          "name": "Jar",
+          "size": [
+            160,
+            200
+          ],
+          "sizing": "contain",
+          "purpose": "A savings goal as a jam jar that fills.",
+          "properties": [
+            {
+              "name": "fill",
+              "type": "number",
+              "direction": "in",
+              "default": 0.4,
+              "range": [
+                0,
+                1
+              ]
+            },
+            {
+              "name": "label",
+              "type": "string",
+              "direction": "in",
+              "default": "Buffer"
+            },
+            {
+              "name": "full",
+              "type": "boolean",
+              "direction": "in",
+              "default": false
+            },
+            {
+              "name": "celebrate",
+              "type": "trigger",
+              "direction": "in"
+            }
+          ]
+        },
+        {
+          "name": "Celebration",
+          "size": [
+            390,
+            844
+          ],
+          "sizing": "fill",
+          "purpose": "Full-screen big-win moment with confetti.",
+          "properties": [
+            {
+              "name": "headline",
+              "type": "string",
+              "direction": "in",
+              "default": "Jar full."
+            },
+            {
+              "name": "detail",
+              "type": "string",
+              "direction": "in",
+              "default": "€1,000 that's yours to keep."
+            },
+            {
+              "name": "fire",
+              "type": "trigger",
+              "direction": "in"
+            },
+            {
+              "name": "done",
+              "type": "trigger",
+              "direction": "out",
+              "meaning": "Fired when the animation has finished."
+            }
+          ]
+        },
+        {
+          "name": "Sticker",
+          "size": [
+            120,
+            120
+          ],
+          "sizing": "contain",
+          "purpose": "Die-cut milestone sticker.",
+          "properties": [
+            {
+              "name": "kind",
+              "type": "enum",
+              "enum": "StickerKind",
+              "direction": "in",
+              "default": "firstJar"
+            },
+            {
+              "name": "label",
+              "type": "string",
+              "direction": "in",
+              "default": "First jar"
+            }
+          ]
+        },
+        {
+          "name": "Toggle",
+          "size": [
+            64,
+            36
+          ],
+          "sizing": "fixed",
+          "purpose": "On/off switch.",
+          "properties": [
+            {
+              "name": "on",
+              "type": "boolean",
+              "direction": "in",
+              "default": false
+            },
+            {
+              "name": "toggled",
+              "type": "trigger",
+              "direction": "out"
+            }
+          ]
+        },
+        {
+          "name": "Tag",
+          "size": [
+            200,
+            28
+          ],
+          "sizing": "fixed",
+          "purpose": "Small label such as 'Simulated, no real switch' or 'Sample data'.",
+          "properties": [
+            {
+              "name": "text",
+              "type": "string",
+              "direction": "in",
+              "default": "Simulated, no real switch"
+            },
+            {
+              "name": "tone",
+              "type": "enum",
+              "enum": "TagTone",
+              "direction": "in",
+              "default": "amber"
+            }
+          ]
+        },
+        {
+          "name": "Baskets",
+          "size": [
+            350,
+            220
+          ],
+          "sizing": "flexibleWidth",
+          "purpose": "The three spending baskets and the savings jar as one illustration, each filled to its share, dark to light green. No text inside: the app writes the labels under it.",
+          "properties": [
+            {
+              "name": "fixed",
+              "type": "number",
+              "direction": "in",
+              "default": 0.5,
+              "range": [
+                0,
+                1
+              ]
+            },
+            {
+              "name": "curveballs",
+              "type": "number",
+              "direction": "in",
+              "default": 0.1,
+              "range": [
+                0,
+                1
+              ]
+            },
+            {
+              "name": "leaks",
+              "type": "number",
+              "direction": "in",
+              "default": 0.3,
+              "range": [
+                0,
+                1
+              ]
+            },
+            {
+              "name": "jars",
+              "type": "number",
+              "direction": "in",
+              "default": 0.1,
+              "range": [
+                0,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Berries",
+          "size": [
+            320,
+            200
+          ],
+          "sizing": "contain",
+          "purpose": "A pile of berries in a shallow dish for effort points. Shows up to 20 berries: one per point up to 10, then one more for every 5.",
+          "properties": [
+            {
+              "name": "count",
+              "type": "number",
+              "direction": "in",
+              "default": 12,
+              "range": [
+                0,
+                60
+              ]
+            },
+            {
+              "name": "drop",
+              "type": "trigger",
+              "direction": "in",
+              "meaning": "Drops one more berry onto the pile."
+            }
+          ]
+        },
+        {
+          "name": "IconButton",
+          "size": [
+            48,
+            48
+          ],
+          "sizing": "fixed",
+          "purpose": "Round pressable icon button. Goes down and springs back like Button.",
+          "properties": [
+            {
+              "name": "icon",
+              "type": "enum",
+              "enum": "IconKind",
+              "direction": "in",
+              "default": "settings"
+            },
+            {
+              "name": "style",
+              "type": "enum",
+              "enum": "IconStyle",
+              "direction": "in",
+              "default": "plain"
+            },
+            {
+              "name": "enabled",
+              "type": "boolean",
+              "direction": "in",
+              "default": true
+            },
+            {
+              "name": "pressed",
+              "type": "trigger",
+              "direction": "out",
+              "meaning": "Fired once per completed tap while enabled."
+            }
+          ]
+        },
+        {
+          "name": "LessonNode",
+          "size": [
+            120,
+            120
+          ],
+          "sizing": "contain",
+          "purpose": "One node of the learning path: upcoming, current (a pulsing ring and a small bounce that invite a tap) or done (a check). Presses down like a button; going from current to done plays a small win.",
+          "properties": [
+            {
+              "name": "state",
+              "type": "enum",
+              "enum": "LessonState",
+              "direction": "in",
+              "default": "upcoming"
+            },
+            {
+              "name": "number",
+              "type": "string",
+              "direction": "in",
+              "default": "1"
+            },
+            {
+              "name": "pressed",
+              "type": "trigger",
+              "direction": "out",
+              "meaning": "Fired once per completed tap, in every state."
+            }
+          ]
+        },
+        {
+          "name": "TypingDots",
+          "size": [
+            56,
+            28
+          ],
+          "sizing": "fixed",
+          "purpose": "Three dots that bounce in turn while Sisu is thinking. Dark green on transparent.",
+          "properties": [
+            {
+              "name": "active",
+              "type": "boolean",
+              "direction": "in",
+              "default": true
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

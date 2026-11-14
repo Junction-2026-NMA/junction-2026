@@ -1,0 +1,161 @@
+# XcodeGen spec for the Sisu iOS app (XcodeGen 2.46.0 or newer).
+#
+# Swift files, fonts and .riv files added under Sisu/ or SisuTests/ need NO regeneration: both are synced
+# folders, so Xcode reads them from disk. Regenerate only after changing this file:
+#
+#   cd ios && xcodegen
+#
+# Sisu.xcodeproj is committed, including its Package.resolved (which regeneration keeps).
+name: Sisu
+
+options:
+  bundleIdPrefix: fi.sisu
+  deploymentTarget:
+    iOS: "17.0"
+  developmentLanguage: en
+  xcodeVersion: "26.6"
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+    # Build phases must also run when xcodebuild itself is inside a sandbox (the automated checks are).
+    ENABLE_USER_SCRIPT_SANDBOXING: "NO"
+    # Simulator builds need no signing identity.
+    "CODE_SIGNING_ALLOWED[sdk=iphonesimulator*]": "NO"
+
+packages:
+  # App logic, models and fixtures. No dependencies, tested with `swift test`.
+  SisuCore:
+    path: SisuCore
+  # The Rive Apple runtime (a binary framework). The exact version is pinned in Package.resolved.
+  RiveRuntime:
+    url: https://github.com/rive-app/rive-ios
+    from: 6.24.0
+
+targets:
+  Sisu:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      # Everything in ios/Sisu: Swift sources, Resources/Fonts and Resources/Rive.
+      - path: Sisu
+        type: syncedFolder
+    info:
+      # Generated from the properties below on every `xcodegen` run. Do not edit the plist by hand.
+      path: Sisu/Info.plist
+      properties:
+        CFBundleDisplayName: Sisu
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSRequiresIPhoneOS: true
+        # The launch screen is the pale green screen colour (Resources/Assets.xcassets/LaunchBackground), so the
+        # app never flashes white while it opens.
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        # Light appearance only, for now: sisu_ui.riv has no dark variant, so its dark-green text would vanish
+        # on SisuTheme's dark background. Delete this line once the Rive file follows the appearance.
+        UIUserInterfaceStyle: Light
+        # The five bundled fonts. SisuTheme.Font uses their PostScript names.
+        UIAppFonts:
+          - Figtree-Regular.ttf
+          - Figtree-SemiBold.ttf
+          - Figtree-Bold.ttf
+          - BricolageGrotesque-Bold.ttf
+          - BricolageGrotesque-ExtraBold.ttf
+        # The simulator talks to the team backend at http://localhost:3000.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        NSMicrophoneUsageDescription: Sisu listens only while you hold the talk button.
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: fi.sisu.demo
+        PRODUCT_NAME: Sisu
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        # iPhone only.
+        TARGETED_DEVICE_FAMILY: "1"
+        SUPPORTS_MACCATALYST: "NO"
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: "NO"
+        SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: "NO"
+    dependencies:
+      - package: SisuCore
+        product: SisuCore
+      - package: RiveRuntime
+        product: RiveRuntime
+
+  # Tests that need the app, the simulator or the Rive runtime. Hosted by the app.
+  # They reach SisuCore and RiveRuntime through the app, so they declare no package of their own
+  # (declaring one would link a second copy of SisuCore into the test bundle).
+  SisuTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: SisuTests
+        type: syncedFolder
+      # The one and only contract file, bundled into the tests so they cannot drift from it.
+      - path: ../rive/contract.json
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: fi.sisu.demo.tests
+        GENERATE_INFOPLIST_FILE: "YES"
+        TARGETED_DEVICE_FAMILY: "1"
+    dependencies:
+      - target: Sisu
+
+  # The screenshot harness: launches the app with launch arguments and attaches a screenshot at each named
+  # point. Run it with `sh ios/scripts/screenshots.sh` from the repository root.
+  SisuUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: SisuUITests
+        type: syncedFolder
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: fi.sisu.demo.uitests
+        GENERATE_INFOPLIST_FILE: "YES"
+        TARGETED_DEVICE_FAMILY: "1"
+        TEST_TARGET_NAME: Sisu
+    dependencies:
+      - target: Sisu
+
+schemes:
+  Sisu:
+    build:
+      targets:
+        Sisu: all
+        SisuTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - SisuTests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
+
+  # Only the screenshot harness, so `test-app.sh` (scheme Sisu) does not run it.
+  SisuScreens:
+    build:
+      targets:
+        Sisu: all
+        SisuUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - SisuUITests

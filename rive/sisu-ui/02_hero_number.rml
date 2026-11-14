@@ -1,0 +1,203 @@
+<!-- HeroNumber  (350x200, flexibleWidth)
+     Dark green block with one very large mint figure.
+
+     View model HeroNumberVM  (names and types are fixed by rive/contract.json):
+       eyebrow     string             in     default "Safe to spend"
+       amount      string             in     default "€64"
+       unit        string             in     default "a week"
+       context     string             in     default "6 days to payday"
+       reveal      trigger            in
+
+     How it works
+       Block      one layout column: eyebrow, amount + unit on a shared bottom line, context. It fills the artboard and reflows.
+                  The amount shrinks its font if it would be wider than 74 % of the block, so a long figure is never cut.
+                  The context wraps to two lines; the column stays centred, so a one-line context looks as before.
+       Reveal     plays the entrance once on load (the amount pops in with an overshoot, then the eyebrow, the unit and the
+                  context slide up and fade in), then rests in idle.
+                  `reveal` replays it. Two twin states (A, B) play the same timeline, so firing `reveal` mid-entrance restarts it. -->
+<Rive version="1" kind="fragment">
+    <!-- View model -->
+    <ViewModel defaultInstanceId="2:7" name="HeroNumberVM" id="2:1">
+        <ViewModelPropertyString name="eyebrow" id="2:2"/>
+        <ViewModelPropertyString name="amount" id="2:3"/>
+        <ViewModelPropertyString name="unit" id="2:4"/>
+        <ViewModelPropertyString name="context" id="2:5"/>
+        <ViewModelPropertyTrigger name="reveal" id="2:6"/>
+        <ViewModelInstance exports="true" name="Default" id="2:7">
+            <ViewModelInstanceString propertyValue="Safe to spend" viewModelPropertyId="2:2" id="2:8"/>  <!-- eyebrow -->
+            <ViewModelInstanceString propertyValue="€64" viewModelPropertyId="2:3" id="2:9"/>  <!-- amount -->
+            <ViewModelInstanceString propertyValue="a week" viewModelPropertyId="2:4" id="2:10"/>  <!-- unit -->
+            <ViewModelInstanceString propertyValue="6 days to payday" viewModelPropertyId="2:5" id="2:11"/>  <!-- context -->
+            <ViewModelInstanceTrigger viewModelPropertyId="2:6" id="2:12"/>  <!-- reveal -->
+        </ViewModelInstance>
+    </ViewModel>
+
+    <Artboard defaultStateMachineId="2:31" viewModelId="2:1" viewModelInstanceId="2:7" clip="true" width="350" height="200"
+            x="520" y="0" styleId="2:14" name="HeroNumber" id="2:13">
+        <LayoutComponentStyle name="Artboard Style" id="2:14"/>
+
+        <!-- Scene. The first sibling draws on top. -->
+        <!-- Dark green block, radius 32. Amount Pop wraps the big number so the entrance can scale it from its lower left corner. -->
+        <LayoutComponent clip="true" styleId="2:16" name="Block" id="2:15">
+            <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" flexDirectionValue="column"
+                    layoutAlignmentType="centerLeft" cornerRadiusTL="32" paddingLeft="24" paddingLeftUnitsValue="points"
+                    paddingRight="24" paddingRightUnitsValue="points" paddingTop="20" paddingTopUnitsValue="points"
+                    paddingBottom="20" paddingBottomUnitsValue="points" gapVertical="2" gapVerticalUnitsValue="points"
+                    name="Block Style" id="2:16"/>
+            <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+            <!-- Eyebrow Box and Context Box only exist so the reveal can slide the lines: keying y on a layout box offsets it from its laid-out place. -->
+            <LayoutComponent clip="false" styleId="2:42" name="Eyebrow Box" id="2:41">
+                <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="Eyebrow Box Style" id="2:42"/>
+                <Text wrapValue="noWrap" overflowValue="ellipsis" sizingValue="autoHeight" name="Eyebrow" id="2:17">
+                    <SemanticData role="text" name="Semantics"><DataBindContext sourcePathIds="2:1-2:2" propertyKey="983"/></SemanticData>  <!-- for VoiceOver: role, label <- the component's text -->
+                    <LayoutParticipant layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="Layout"/>
+                    <TextStylePaint fontSize="14" fontAssetId="0:11" familyName="Figtree" styleName="SemiBold" name="Eyebrow Style" id="2:18">
+                        <Fill name="Fill"><SolidColor colorValue="FF99D59F" name="Color"/></Fill>
+                    </TextStylePaint>
+                    <TextValueRun styleId="2:18" text="" name="Run"><DataBindContext sourcePathIds="2:1-2:2" propertyKey="268"/></TextValueRun>  <!-- text <- eyebrow -->
+                </Text>
+            </LayoutComponent>
+            <LayoutComponent clip="false" styleId="2:20" name="Amount Row" id="2:19">
+                <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="hug" flexDirectionValue="row"
+                        layoutAlignmentType="bottomLeft" gapHorizontal="8" gapHorizontalUnitsValue="points"
+                        name="Amount Row Style" id="2:20"/>
+                <LayoutComponent clip="false" styleId="2:22" name="Amount Pop" id="2:21">
+                    <LayoutComponentStyle layoutWidthScaleType="hug" layoutHeightScaleType="hug" maxWidth="74"
+                            maxWidthUnitsValue="percent" name="Amount Pop Style" id="2:22"/>
+                    <ComponentOrigin originX="0" originY="0.75" name="Origin"/>
+                    <Text wrapValue="noWrap" overflowValue="fitFontSize" verticalAlignValue="bottom" name="Amount" id="2:23">
+                        <SemanticData role="text" name="Semantics"><DataBindContext sourcePathIds="2:1-2:3" propertyKey="983"/></SemanticData>  <!-- for VoiceOver: role, label <- the component's text -->
+                        <LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" maxWidth="100"
+                                maxWidthUnitsValue="percent" name="Layout"/>
+                        <TextStylePaint fontSize="64" fontAssetId="0:13" familyName="Bricolage Grotesque" styleName="ExtraBold"
+                                name="Amount Style" id="2:24">
+                            <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+                        </TextStylePaint>
+                        <TextValueRun styleId="2:24" text="" name="Run"><DataBindContext sourcePathIds="2:1-2:3" propertyKey="268"/></TextValueRun>  <!-- text <- amount -->
+                    </Text>
+                </LayoutComponent>
+                <LayoutComponent clip="false" styleId="2:26" name="Unit Box" id="2:25">
+                    <LayoutComponentStyle layoutWidthScaleType="hug" layoutHeightScaleType="hug" paddingBottom="11"
+                            paddingBottomUnitsValue="points" name="Unit Box Style" id="2:26"/>
+                    <Text wrapValue="noWrap" name="Unit" id="2:27">
+                        <SemanticData role="text" name="Semantics"><DataBindContext sourcePathIds="2:1-2:4" propertyKey="983"/></SemanticData>  <!-- for VoiceOver: role, label <- the component's text -->
+                        <LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" name="Layout"/>
+                        <TextStylePaint fontSize="18" fontAssetId="0:11" familyName="Figtree" styleName="SemiBold" name="Unit Style" id="2:28">
+                            <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill>
+                        </TextStylePaint>
+                        <TextValueRun styleId="2:28" text="" name="Run"><DataBindContext sourcePathIds="2:1-2:4" propertyKey="268"/></TextValueRun>  <!-- text <- unit -->
+                    </Text>
+                </LayoutComponent>
+            </LayoutComponent>
+            <!-- Context wraps to two lines (line height 21, so at most 42 pt); a third line is cut with an ellipsis. -->
+            <LayoutComponent clip="false" styleId="2:44" name="Context Box" id="2:43">
+                <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="hug" name="Context Box Style" id="2:44"/>
+                <Text wrapValue="wrap" overflowValue="ellipsis" sizingValue="autoHeight" name="Context" id="2:29">
+                    <SemanticData role="text" name="Semantics"><DataBindContext sourcePathIds="2:1-2:5" propertyKey="983"/></SemanticData>  <!-- for VoiceOver: role, label <- the component's text -->
+                    <LayoutParticipant layoutWidthScaleType="fill" layoutHeightScaleType="hug" maxHeight="42" maxHeightUnitsValue="points" name="Layout"/>
+                    <TextStylePaint fontSize="16" lineHeight="21" fontAssetId="0:10" familyName="Figtree" styleName="Regular" name="Context Style" id="2:30">
+                        <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill>
+                    </TextStylePaint>
+                    <TextValueRun styleId="2:30" text="" name="Run"><DataBindContext sourcePathIds="2:1-2:5" propertyKey="268"/></TextValueRun>  <!-- text <- context -->
+                </Text>
+            </LayoutComponent>
+        </LayoutComponent>
+
+        <!-- State machine. Declared before the timelines so the editor opens it first. -->
+        <StateMachine name="Main" id="2:31">
+            <StateMachineLayer name="Reveal" id="2:32">
+                <AnyState x="0" y="-140" id="2:33"/>
+                <ExitState x="0" y="-280" id="2:34"/>
+                <EntryState x="0" y="0" id="2:35">
+                    <StateTransition stateToId="2:37"/>  <!-- starts in reveal A -->
+                </EntryState>
+                <AnimationState animationId="2:39" stateName="idle" x="240" y="0" id="2:36">
+                    <StateTransition stateToId="2:37">  <!-- to reveal A -->
+                        <TransitionViewModelCondition>  <!-- reveal fired -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyTrigger><DataBindContext sourcePathIds="2:1-2:6" propertyKey="686"/></BindablePropertyTrigger></TransitionPropertyViewModelComparator>
+                            <TransitionValueTriggerComparator/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState animationId="2:40" stateName="reveal A" x="480" y="-110" id="2:37">
+                    <StateTransition stateToId="2:38">  <!-- to reveal B -->
+                        <TransitionViewModelCondition>  <!-- reveal fired -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyTrigger><DataBindContext sourcePathIds="2:1-2:6" propertyKey="686"/></BindablePropertyTrigger></TransitionPropertyViewModelComparator>
+                            <TransitionValueTriggerComparator/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="2:36" enableExitTime="true" exitTimeIsPercetange="true" exitTime="100"/>  <!-- to idle -->
+                </AnimationState>
+                <AnimationState animationId="2:40" stateName="reveal B" x="480" y="110" id="2:38">
+                    <StateTransition stateToId="2:37">  <!-- to reveal A -->
+                        <TransitionViewModelCondition>  <!-- reveal fired -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyTrigger><DataBindContext sourcePathIds="2:1-2:6" propertyKey="686"/></BindablePropertyTrigger></TransitionPropertyViewModelComparator>
+                            <TransitionValueTriggerComparator/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="2:36" enableExitTime="true" exitTimeIsPercetange="true" exitTime="100"/>  <!-- to idle -->
+                </AnimationState>
+            </StateMachineLayer>
+        </StateMachine>
+
+        <!-- Timelines. Most are one-key poses: the state transitions do the blending. -->
+        <LinearAnimation duration="1" name="reveal: idle" id="2:39">
+            <KeyedObject objectId="2:21"><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Amount Pop -->
+            <KeyedObject objectId="2:41"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Eyebrow Box -->
+            <KeyedObject objectId="2:25"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Unit Box -->
+            <KeyedObject objectId="2:43"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Context Box -->
+        </LinearAnimation>
+        <!-- 0.6 s: the figure pops in from 55 % with an overshoot and a small settle; the eyebrow, then the unit, then the context slide up 12 pt and fade in just after it. -->
+        <LinearAnimation duration="36" name="reveal: play" id="2:40">
+            <KeyedObject objectId="2:21">  <!-- Amount Pop -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0.55" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.2" y1="0" x2="0.4" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.1" frame="12" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.975" frame="20" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="28" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="0.55" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.2" y1="0" x2="0.4" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.1" frame="12" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.975" frame="20" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="28" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="6" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="2:41">  <!-- Eyebrow Box -->
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="8" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="18" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="12" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="12" frame="8" interpolationType="cubic"><CubicEaseInterpolator x1="0.2" y1="0.9" x2="0.3" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="24" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="2:25">  <!-- Unit Box -->
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="16" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="26" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="2:43">  <!-- Context Box -->
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="14" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="24" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="12" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="12" frame="14" interpolationType="cubic"><CubicEaseInterpolator x1="0.2" y1="0.9" x2="0.3" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="30" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+    </Artboard>
+</Rive>

@@ -1,0 +1,232 @@
+/* The Today screen, twice: the phone mock-up in the hero and the safe-to-spend card of panel 1.
+   Both are pictures built from HTML and CSS. Nothing in them can be focused or clicked.
+   The hero phone is drawn in em: hero-layout.css gives it a width and a font-size per breakpoint,
+   and every size inside the phone follows that font-size. Small lines never go under 12px. */
+.phone {
+  padding: 0.5em;
+  border-radius: 2.25em;
+  background: var(--green-900);
+  text-align: left;
+}
+
+/* The screen is dark like the bezel; the lower parts bring their own white. */
+.phone-screen {
+  overflow: hidden;
+  border-radius: 1.75em;
+  background: var(--hero-bg);
+}
+
+.today-hero {
+  padding: 1.25em 1.5em 1.5em;
+  background: var(--hero-bg);
+  color: var(--hero-text);
+}
+
+.today-date {
+  margin-bottom: 0.875em;
+  color: var(--green-300);
+  font-size: max(12px, 0.8125em);
+  font-weight: 600;
+}
+
+.today-label {
+  color: var(--green-200);
+  font-size: max(12px, 0.875em);
+  font-weight: 600;
+}
+
+/* The amount has a line of its own that clips it, so the figure can rise into view as it counts. */
+.today-amount {
+  overflow: hidden;
+  color: var(--hero-number);
+  font-family: var(--font-display);
+  font-size: 4em;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.today-figure {
+  display: block;
+  position: relative;
+}
+
+.today-context {
+  font-size: 0.9375em;
+}
+
+.today-baskets {
+  display: grid;
+  gap: 0.5em;
+  padding: 1em 1.5em 0.875em;
+  background: var(--white);
+}
+
+.today-heading {
+  color: var(--text-muted);
+  font-size: max(12px, 0.875em);
+  font-weight: 600;
+}
+
+/* Basket bar: four parts, 2px white gaps, the darker the green the more fixed the money. */
+.basket-bar {
+  display: flex;
+  gap: 2px;
+  height: 0.875em;
+  margin-bottom: 0.25em;
+}
+
+.bar-part {
+  min-width: 0.875em;
+}
+
+.bar-part:first-child {
+  border-radius: var(--radius-full) 0 0 var(--radius-full);
+}
+
+.bar-part:last-child {
+  border-radius: 0 var(--radius-full) var(--radius-full) 0;
+}
+
+.bar-fixed {
+  flex: 612;
+  background: var(--basket-fixed);
+}
+
+.bar-curveballs {
+  flex: 85;
+  background: var(--basket-curveballs);
+}
+
+.bar-leaks {
+  flex: 143;
+  background: var(--basket-leaks);
+}
+
+.bar-jars {
+  flex: 40;
+  border: 2px solid var(--green-500);
+  background: var(--basket-jars);
+}
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font-size: max(12px, 0.875em);
+}
+
+.legend-dot {
+  flex: none;
+  width: 0.875em;
+  height: 0.875em;
+  border-radius: var(--radius-full);
+}
+
+.legend-sum {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+/* The tab bar ends in an empty strip, like a phone's home area. Only that strip may be cut off. */
+.phone .phone-tab {
+  padding: 0.5em 0.875em;
+  font-size: 0.75em;
+}
+
+.phone-tabs {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5em 0.75em 2.25em;
+  border-top: 2px solid var(--green-50);
+  background: var(--white);
+}
+
+.phone-tab {
+  padding: 6px 10px;
+  border-radius: var(--radius-full);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.phone-tab-on {
+  background: var(--green-100);
+  color: var(--green-900);
+}
+
+/* Panel 1: the safe-to-spend number is the one big figure. Under it, the three rows it comes
+   from: 402 − 298 − 40 = 64. On desktop the card is as tall as the chat card, so it grows. */
+.safe-block {
+  padding: 20px 24px 24px;
+  border-radius: var(--radius-xl);
+  background: var(--hero-bg);
+  color: var(--hero-text);
+}
+
+.safe-label {
+  color: var(--green-200);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.safe-amount {
+  color: var(--hero-number);
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 12vw, 4rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.period-bar {
+  display: block;
+  height: 14px;
+  margin-top: 16px;
+  border-radius: var(--radius-full);
+  background: var(--green-700);
+}
+
+.period-fill {
+  display: block;
+  width: 80%;
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--green-200);
+}
+
+.safe-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 6px 8px;
+}
+
+@media (min-width: 1024px) {
+  .safe-block {
+    padding: 24px 28px 28px;
+  }
+
+  .safe-label {
+    font-size: 1rem;
+  }
+
+  .safe-amount {
+    font-size: 4.5rem;
+  }
+
+  .period-bar {
+    margin-top: 20px;
+  }
+
+  .safe-row {
+    padding: 10px 8px;
+    font-size: 1.0625rem;
+  }
+
+  .safe-row + .safe-row {
+    border-top: 2px solid var(--green-50);
+  }
+}

@@ -1,0 +1,86 @@
+import XCTest
+@testable import SisuCore
+
+/// `ScenarioEngine` reproduces the bundled answers of `POST /api/scenarios` to within 0.01.
+final class ScenarioEngineTests: XCTestCase {
+    func testCleanClampsToTheServerLimits() {
+        XCTAssertEqual(ScenarioEngine.clean(ScenarioInput(billSavingPerMonth: 900, everydayCutPct: -4, years: 40)),
+                       ScenarioInput(billSavingPerMonth: 500, everydayCutPct: 0, years: 10))
+        XCTAssertEqual(ScenarioEngine.clean(ScenarioInput(billSavingPerMonth: .nan, everydayCutPct: 75, years: 0)),
+                       ScenarioInput(billSavingPerMonth: 0, everydayCutPct: 50, years: 1))
+        XCTAssertEqual(ScenarioEngine.clean(ScenarioInput(billSavingPerMonth: 15, everydayCutPct: 10, years: 5)),
+                       ScenarioInput(billSavingPerMonth: 15, everydayCutPct: 10, years: 5))
+    }
+
+    func testMatchesEveryBundledScenario() throws {
+        for id in FixtureAPI.customerIds {
+            let overview = try FixtureAPI.load("overview-\(id)", as: Overview.self)
+            for name in ["default", "nothing"] {
+                let expected = try FixtureAPI.load("scenario-\(id)-\(name)", as: ScenarioResponse.self)
+                let actual = ScenarioEngine.run(overview: overview, input: expected.input)
+                let tag = "\(id) \(name)"
+                XCTAssertEqual(actual.customerId, expected.customerId, tag)
+                XCTAssertEqual(actual.dataTimestamp, expected.dataTimestamp, tag)
+                XCTAssertEqual(actual.currency, expected.currency, tag)
+                XCTAssertEqual(actual.input, expected.input, tag)
+                XCTAssertEqual(actual.freedPerMonth, expected.freedPerMonth, accuracy: 0.01, tag)
+                XCTAssertEqual(actual.assumptions, expected.assumptions, tag)
+                XCTAssertEqual(actual.branches.map(\.id), expected.branches.map(\.id), tag)
+                XCTAssertEqual(actual.branches.map(\.label), expected.branches.map(\.label), tag)
+                for (a, e) in zip(actual.branches, expected.branches) {
+                    XCTAssertEqual(a.endTotal, e.endTotal, accuracy: 0.01, tag)
+                    XCTAssertEqual(a.endLow, e.endLow, accuracy: 0.01, tag)
+                    XCTAssertEqual(a.endHigh, e.endHigh, accuracy: 0.01, tag)
+                    XCTAssertEqual(a.runwayMonthsAtYear1, e.runwayMonthsAtYear1, accuracy: 0.01, tag)
+                    XCTAssertEqual(a.points.count, e.points.count, tag)
+                    for (p, q) in zip(a.points, e.points) {
+                        XCTAssertEqual(p.month, q.month, tag)
+                        XCTAssertEqual(p.cash, q.cash, accuracy: 0.01, tag)
+                        XCTAssertEqual(p.invested, q.invested, accuracy: 0.01, tag)
+                        XCTAssertEqual(p.total, q.total, accuracy: 0.01, tag)
+                        XCTAssertEqual(p.totalLow, q.totalLow, accuracy: 0.01, tag)
+                        XCTAssertEqual(p.totalHigh, q.totalHigh, accuracy: 0.01, tag)
+                    }
+                }
+            }
+        }
+    }
+
+    func testALumpSumGoesIntoInvestmentsOnDayOneInTheInvestFutureOnly() throws {
+        let overview = try FixtureAPI.load("overview-CUST04974", as: Overview.self)
+        let plain = ScenarioEngine.run(overview: overview, input: ScenarioInput(billSavingPerMonth: 100, everydayCutPct: 0, years: 5))
+        let lump = ScenarioEngine.run(overview: overview, input: ScenarioInput(billSavingPerMonth: 100, everydayCutPct: 0, years: 5, oneOffEur: 1000))
+        XCTAssertEqual(plain.input.oneOffEur, 0)
+        XCTAssertEqual(plain.assumptions.count, 5)
+        XCTAssertEqual(lump.assumptions.count, 6)
+        XCTAssertEqual(lump.assumptions.last, "In the \"invest it\" future, €1000 is moved from the account into investments on day one. In the other two it stays in the account.")
+        XCTAssertEqual(lump.branches[0], plain.branches[0])
+        XCTAssertEqual(lump.branches[1], plain.branches[1])
+        let start = lump.branches[2].points[0]
+        XCTAssertEqual(start.cash, overview.balance - 1000, accuracy: 0.001)
+        XCTAssertEqual(start.invested, 1000)
+        XCTAssertEqual(start.total, overview.balance)
+        XCTAssertGreaterThan(lump.branches[2].endTotal, plain.branches[2].endTotal)
+        XCTAssertEqual(ScenarioEngine.clean(ScenarioInput(billSavingPerMonth: 1, everydayCutPct: 1, years: 1, oneOffEur: 250_000.555)).oneOffEur, 100_000)
+        XCTAssertEqual(ScenarioEngine.clean(ScenarioInput(billSavingPerMonth: 1, everydayCutPct: 1, years: 1, oneOffEur: -5)).oneOffEur, 0)
+        let body = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(Endpoints.scenario(baseURL: URL(string: "http://localhost:3000")!, customerId: "C",
+                                                                                             input: ScenarioInput(billSavingPerMonth: 1, everydayCutPct: 1, years: 1, oneOffEur: 300)).httpBody)) as? [String: Any])
+        XCTAssertEqual(body["oneOffEur"] as? Double, 300)
+        XCTAssertEqual(try JSONDecoder().decode(ScenarioInput.self, from: Data(#"{"billSavingPerMonth":1,"everydayCutPct":2,"years":3}"#.utf8)).oneOffEur, 0)
+    }
+
+    func testFixtureAPIComputesScenariosOffline() async throws {
+        let api = FixtureAPI()
+        XCTAssertEqual(api.kind, .bundledSample)
+        let result = try await api.scenario(customerId: "CUST04974", input: ScenarioInput(billSavingPerMonth: 15, everydayCutPct: 10, years: 5))
+        XCTAssertEqual(result.freedPerMonth, 87.32, accuracy: 0.01)
+        XCTAssertEqual(result.branches.count, 3)
+        XCTAssertEqual(result.branches[0].points.count, 61)
+        do {
+            _ = try await api.overview(customerId: "NOPE")
+            XCTFail("expected an error")
+        } catch {
+            XCTAssertEqual(error as? SisuError, .unknownCustomer("NOPE"))
+        }
+    }
+}

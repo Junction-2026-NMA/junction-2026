@@ -1,0 +1,173 @@
+/* Section 3, three baskets: the rules sections.css does not hold. The colour key under the
+   supporting line, the examples line, the hand-over line, the cards from 720px and the entrance. */
+
+/* Each card: what the basket is on one line, everyday examples on the next. */
+.basket-text {
+  text-wrap: balance;
+}
+
+.basket-eg {
+  display: block;
+}
+
+/* The colour key: three dots from dark to light, then the rule in words. */
+.baskets .section-head p {
+  max-width: 40rem;
+  text-wrap: balance;
+}
+
+.baskets .basket-key {
+  margin-top: 14px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.key-dots {
+  display: inline-flex;
+  gap: 4px;
+  margin-right: 10px;
+  vertical-align: -1px;
+}
+
+.key-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-full);
+  background: var(--basket-fixed);
+}
+
+.key-curveballs {
+  background: var(--basket-curveballs);
+}
+
+.key-leaks {
+  background: var(--basket-leaks);
+}
+
+/* One line under the cards that hands over to the next section. */
+.basket-next {
+  width: min(100% - 2 * var(--gutter), var(--page-max));
+  margin: 24px auto 0;
+  font-size: 1.0625rem;
+  text-align: center;
+}
+
+.basket-next strong {
+  font-weight: 700;
+}
+
+/* From 720px the cards stand in a row (sections.css), each with its chip on top. */
+@media (min-width: 720px) {
+  .basket-card {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    gap: 0;
+    padding: 24px 24px 28px;
+  }
+
+  .icon-chip {
+    grid-row: auto;
+    margin-bottom: 24px;
+  }
+
+  .basket-name,
+  .basket-fi {
+    align-self: auto;
+  }
+
+  .basket-fi {
+    margin-top: 2px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .basket-grid {
+    gap: 24px;
+  }
+
+  .basket-card {
+    padding: 32px clamp(24px, 2.5vw, 32px) 36px;
+  }
+
+  .icon-chip {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 32px;
+  }
+
+  .icon-chip svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .basket-name {
+    font-size: 1.75rem;
+  }
+
+  .basket-text {
+    margin-top: 14px;
+    font-size: 1.0625rem;
+  }
+
+  .basket-next {
+    margin-top: 40px;
+  }
+}
+
+/* Entrance, once, when the section scrolls into view: the heading first, then Fixed, Curveballs
+   and Leaks, each chip popping in with its card. The keyframes start hidden and end on the normal
+   styles, so nothing stays hidden if an animation does not run. base.css fades revealed blocks
+   with a transition; a running transition would override these delayed keyframes, so it is off. */
+@media (prefers-reduced-motion: no-preference) {
+  .basket-card,
+  .basket-next {
+    --basket-delay: 100ms;
+  }
+
+  .js .baskets .reveal.is-in {
+    transition: none;
+    animation: baskets-rise 350ms cubic-bezier(0.22, 1, 0.36, 1) var(--basket-delay, 0ms) backwards;
+  }
+
+  .js .baskets .section-head.is-in {
+    animation-duration: 300ms;
+  }
+
+  .js .baskets .basket-card.is-in .icon-chip {
+    animation: baskets-pop 450ms var(--ease-spring) calc(var(--basket-delay, 0ms) + 60ms) backwards;
+  }
+}
+
+/* In a row the three cards enter the view together, so they take turns from left to right,
+   100ms apart from 150ms. Stacked, each card starts as it scrolls in. */
+@media (prefers-reduced-motion: no-preference) and (min-width: 720px) {
+  .basket-fixed {
+    --basket-delay: 150ms;
+  }
+
+  .basket-curveballs {
+    --basket-delay: 250ms;
+  }
+
+  .basket-leaks {
+    --basket-delay: 350ms;
+  }
+
+  .basket-next {
+    --basket-delay: 400ms;
+  }
+}
+
+@keyframes baskets-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@keyframes baskets-pop {
+  from {
+    transform: scale(0.6);
+  }
+}

@@ -1,0 +1,265 @@
+<!-- ActionRow  (350x56, flexibleWidth)
+     One row of the daily checklist. Turns pale mint with a check when done.
+
+     View model ActionRowVM  (names and types are fixed by rive/contract.json):
+       title       string             in     default "Check in"
+       reward      string             in     default "+10"
+       done        boolean            in     default false
+       pressed     trigger            out
+       _down       boolean            private  default false
+
+     How it works
+       Hit        transparent box over the artboard; the listeners target it.
+       Done       to do <-> done on `done`. `done` turns the row pale mint, fills the check deep green with a white tick,
+                  shows the strike line across the title and tints the title deep green.
+       Done pop   a second layer on `done`: the check pops once (dips, 140 %, settles) when the row becomes done.
+                  A row that is already done when it appears does not pop.
+       Press      up <-> down on the private boolean _down: the row shrinks to 97 % around its centre while held.
+       pressed    fired by the click listener, once per completed tap. -->
+<Rive version="1" kind="fragment">
+    <!-- View model -->
+    <ViewModel defaultInstanceId="8:7" name="ActionRowVM" id="8:1">
+        <ViewModelPropertyString name="title" id="8:2"/>
+        <ViewModelPropertyString name="reward" id="8:3"/>
+        <ViewModelPropertyBoolean name="done" id="8:4"/>
+        <ViewModelPropertyTrigger name="pressed" id="8:5"/>
+        <!-- private: written by the listeners, read by the state machine. The app does not touch these. -->
+        <ViewModelPropertyBoolean name="_down" id="8:6"/>
+        <ViewModelInstance exports="true" name="Default" id="8:7">
+            <ViewModelInstanceString propertyValue="Check in" viewModelPropertyId="8:2" id="8:8"/>  <!-- title -->
+            <ViewModelInstanceString propertyValue="+10" viewModelPropertyId="8:3" id="8:9"/>  <!-- reward -->
+            <ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="8:4" id="8:10"/>  <!-- done -->
+            <ViewModelInstanceTrigger viewModelPropertyId="8:5" id="8:11"/>  <!-- pressed -->
+            <ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="8:6" id="8:12"/>  <!-- _down -->
+        </ViewModelInstance>
+    </ViewModel>
+
+    <Artboard defaultStateMachineId="8:37" viewModelId="8:1" viewModelInstanceId="8:7" clip="true" width="350" height="56" x="520"
+            y="374" styleId="8:14" name="ActionRow" id="8:13">
+        <LayoutComponentStyle name="Artboard Style" id="8:14"/>
+
+        <!-- Scene. The first sibling draws on top. -->
+        <!-- Transparent hit area over the whole row. -->
+        <LayoutComponent clip="false" styleId="8:16" name="Hit" id="8:15">
+            <LayoutComponentStyle positionTypeValue="absolute" widthUnitsValue="auto" heightUnitsValue="auto" positionLeft="0"
+                    positionLeftUnitsValue="points" positionRight="0" positionRightUnitsValue="points" positionTop="0"
+                    positionTopUnitsValue="points" positionBottom="0" positionBottomUnitsValue="points" name="Hit Style" id="8:16"/>
+            <Fill name="Fill"><SolidColor colorValue="00FFFFFF" name="Color"/></Fill>
+        </LayoutComponent>
+        <!-- The row. Title And Strike hugs the title, and the strike line is pinned across it, so it is exactly as wide as the text.
+             A title wider than Title Slot shrinks its font to fit (both boxes have a 100 % max width). -->
+        <LayoutComponent clip="false" styleId="8:18" name="Card" id="8:17">
+            <SemanticData role="button" name="Semantics"><DataBindContext sourcePathIds="8:1-8:2" propertyKey="983"/><DataBindContext sourcePathIds="8:1-8:3" propertyKey="984"/></SemanticData>  <!-- for VoiceOver: role, label <- the component's text -->
+            <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" flexDirectionValue="row"
+                    layoutAlignmentType="centerLeft" cornerRadiusTL="18" paddingLeft="16" paddingLeftUnitsValue="points"
+                    paddingRight="16" paddingRightUnitsValue="points" gapHorizontal="12" gapHorizontalUnitsValue="points"
+                    name="Card Style" id="8:18"/>
+            <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+            <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color" id="8:19"/></Fill>
+            <LayoutComponent width="24" height="24" clip="false" styleId="8:21" name="Check" id="8:20">
+                <LayoutComponentStyle cornerRadiusTL="12" name="Check Style" id="8:21"/>
+                <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+                <Fill name="Fill"><SolidColor colorValue="00007841" name="Color" id="8:22"/></Fill>
+                <Stroke thickness="2" position="inside" name="Ring"><SolidColor colorValue="FF99D59F" name="Color" id="8:23"/></Stroke>
+                <Node x="12" y="12" name="Tick Holder">
+                    <Shape opacity="0" name="Tick" id="8:24">
+                        <PointsPath isClosed="false" name="Path">
+                            <StraightVertex x="-4.5" y="0.4"/>
+                            <StraightVertex x="-1.4" y="3.6"/>
+                            <StraightVertex x="4.8" y="-3.4"/>
+                        </PointsPath>
+                        <Stroke thickness="2.4" cap="round" join="round" name="Stroke"><SolidColor colorValue="FFFFFFFF" name="Color"/></Stroke>
+                    </Shape>
+                </Node>
+            </LayoutComponent>
+            <LayoutComponent clip="true" styleId="8:26" name="Title Slot" id="8:25">
+                <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="hug" flexDirectionValue="row"
+                        layoutAlignmentType="centerLeft" name="Title Slot Style" id="8:26"/>
+                <LayoutComponent clip="false" styleId="8:28" name="Title And Strike" id="8:27">
+                    <LayoutComponentStyle layoutWidthScaleType="hug" layoutHeightScaleType="hug"
+                            layoutAlignmentType="centerLeft" maxWidth="100" maxWidthUnitsValue="percent"
+                            name="Title And Strike Style" id="8:28"/>
+                    <LayoutComponent height="2" opacity="0" clip="false" styleId="8:30" name="Strike" id="8:29">
+                        <LayoutComponentStyle positionTypeValue="absolute" widthUnitsValue="auto" positionLeft="0"
+                                positionLeftUnitsValue="points" positionRight="0" positionRightUnitsValue="points" positionTop="9.5"
+                                positionTopUnitsValue="points" cornerRadiusTL="1" name="Strike Style" id="8:30"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF007841" name="Color"/></Fill>
+                    </LayoutComponent>
+                    <!-- A title that is too long shrinks its font to fit the slot (it used to be cut off without a sign). -->
+                    <Text wrapValue="noWrap" overflowValue="fitFontSize" name="Title" id="8:31">
+                        <LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" maxWidth="100"
+                                maxWidthUnitsValue="percent" name="Layout"/>
+                        <TextStylePaint fontSize="16" fontAssetId="0:11" familyName="Figtree" styleName="SemiBold" name="Title Style" id="8:32">
+                            <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color" id="8:33"/></Fill>
+                        </TextStylePaint>
+                        <TextValueRun styleId="8:32" text="" name="Run"><DataBindContext sourcePathIds="8:1-8:2" propertyKey="268"/></TextValueRun>  <!-- text <- title -->
+                    </Text>
+                </LayoutComponent>
+            </LayoutComponent>
+            <Text wrapValue="noWrap" name="Reward" id="8:34">
+                <LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" name="Layout"/>
+                <TextStylePaint fontSize="16" fontAssetId="0:12" familyName="Figtree" styleName="Bold" name="Reward Style" id="8:35">
+                    <Fill name="Fill"><SolidColor colorValue="FF007841" name="Color" id="8:36"/></Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="8:35" text="" name="Run"><DataBindContext sourcePathIds="8:1-8:3" propertyKey="268"/></TextValueRun>  <!-- text <- reward -->
+            </Text>
+        </LayoutComponent>
+
+        <!-- State machine. Declared before the timelines so the editor opens it first. -->
+        <StateMachine name="Main" id="8:37">
+            <StateMachineListenerSingle targetId="8:15" listenerTypeValue="down" name="Pointer down" id="8:38">  <!-- on Hit -->
+                <ListenerViewModelChange><BindablePropertyBoolean propertyValue="true"><DataBindContext sourcePathIds="8:1-8:6" propertyKey="634" direction="true"/></BindablePropertyBoolean></ListenerViewModelChange>  <!-- _down = true -->
+            </StateMachineListenerSingle>
+            <StateMachineListenerSingle targetId="8:15" listenerTypeValue="up" name="Pointer up" id="8:39">  <!-- on Hit -->
+                <ListenerViewModelChange><BindablePropertyBoolean propertyValue="false"><DataBindContext sourcePathIds="8:1-8:6" propertyKey="634" direction="true"/></BindablePropertyBoolean></ListenerViewModelChange>  <!-- _down = false -->
+            </StateMachineListenerSingle>
+            <StateMachineListenerSingle targetId="8:15" listenerTypeValue="exit" name="Pointer exit" id="8:40">  <!-- on Hit -->
+                <ListenerViewModelChange><BindablePropertyBoolean propertyValue="false"><DataBindContext sourcePathIds="8:1-8:6" propertyKey="634" direction="true"/></BindablePropertyBoolean></ListenerViewModelChange>  <!-- _down = false -->
+            </StateMachineListenerSingle>
+            <StateMachineListenerSingle targetId="8:15" listenerTypeValue="click" name="Tap" id="8:41">  <!-- on Hit -->
+                <ListenerViewModelChange><BindablePropertyTrigger propertyValue="1"><DataBindContext sourcePathIds="8:1-8:5" propertyKey="686" direction="true"/></BindablePropertyTrigger></ListenerViewModelChange>  <!-- fires pressed -->
+            </StateMachineListenerSingle>
+            <StateMachineLayer name="Done" id="8:42">
+                <AnyState x="0" y="-140" id="8:43"/>
+                <ExitState x="0" y="-280" id="8:44"/>
+                <EntryState x="0" y="0" id="8:45">
+                    <StateTransition stateToId="8:47">  <!-- starts in done if the condition holds -->
+                        <TransitionViewModelCondition>  <!-- done is true -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="8:1-8:4" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="8:46"/>  <!-- otherwise starts in to do -->
+                </EntryState>
+                <AnimationState animationId="8:54" stateName="to do" x="240" y="0" id="8:46">
+                    <StateTransition stateToId="8:47" duration="220" interpolationType="cubic">  <!-- to done -->
+                        <CubicEaseInterpolator x1="0.34" y1="1.56" x2="0.64" y2="1"/>
+                        <TransitionViewModelCondition>  <!-- done is true -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="8:1-8:4" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState animationId="8:55" stateName="done" x="480" y="0" id="8:47">
+                    <StateTransition stateToId="8:46" duration="160">  <!-- to to do -->
+                        <TransitionViewModelCondition>  <!-- done is false -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="8:1-8:4" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="false"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+            </StateMachineLayer>
+            <StateMachineLayer name="Press" id="8:48">
+                <AnyState x="0" y="-140" id="8:49"/>
+                <ExitState x="0" y="-280" id="8:50"/>
+                <EntryState x="0" y="0" id="8:51">
+                    <StateTransition stateToId="8:52"/>  <!-- starts in up -->
+                </EntryState>
+                <AnimationState animationId="8:56" stateName="up" x="240" y="0" id="8:52">
+                    <StateTransition stateToId="8:53" duration="60">  <!-- to down -->
+                        <TransitionViewModelCondition>  <!-- _down is true -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="8:1-8:6" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState animationId="8:57" stateName="down" x="480" y="0" id="8:53">
+                    <StateTransition stateToId="8:52" duration="220" interpolationType="elastic">  <!-- to up -->
+                        <ElasticInterpolator easingValue="easeOut" amplitude="1" period="0.5"/>
+                        <TransitionViewModelCondition>  <!-- _down is false -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="8:1-8:6" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="false"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+            </StateMachineLayer>
+            <!-- Done pop: the check pops once when the row becomes done. A row that is already done when it appears starts in
+                 `done at start` and does not pop. The colours are the Done layer's job; this layer only moves the check. -->
+            <StateMachineLayer name="Done pop" id="8:60">
+                <AnyState x="0" y="-140" id="8:61"/>
+                <ExitState x="0" y="-280" id="8:62"/>
+                <EntryState x="0" y="0" id="8:63">
+                    <StateTransition stateToId="8:66">  <!-- starts in done at start if the condition holds -->
+                        <TransitionViewModelCondition>  <!-- done is true -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="8:1-8:4" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="8:64"/>  <!-- otherwise starts in to do -->
+                </EntryState>
+                <AnimationState animationId="8:67" stateName="to do" x="240" y="0" id="8:64">
+                    <StateTransition stateToId="8:65">  <!-- to pop -->
+                        <TransitionViewModelCondition>  <!-- done is true -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="8:1-8:4" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState animationId="8:68" stateName="pop" x="480" y="0" id="8:65">
+                    <StateTransition stateToId="8:64">  <!-- to to do -->
+                        <TransitionViewModelCondition>  <!-- done is false -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="8:1-8:4" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="false"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState animationId="8:67" stateName="done at start" x="480" y="110" id="8:66">
+                    <StateTransition stateToId="8:64">  <!-- to to do -->
+                        <TransitionViewModelCondition>  <!-- done is false -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="8:1-8:4" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="false"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+            </StateMachineLayer>
+        </StateMachine>
+
+        <!-- Timelines. Most are one-key poses: the state transitions do the blending. -->
+        <LinearAnimation duration="1" name="done: no" id="8:54">
+            <KeyedObject objectId="8:19"><KeyedProperty property="colorValue"><KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Card Color -->
+            <KeyedObject objectId="8:22"><KeyedProperty property="colorValue"><KeyFrameColor value="00007841" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Check Fill -->
+            <KeyedObject objectId="8:23"><KeyedProperty property="colorValue"><KeyFrameColor value="FF99D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Check Ring -->
+            <KeyedObject objectId="8:24"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="0.4" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="0.4" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Tick -->
+            <KeyedObject objectId="8:29"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Strike -->
+            <KeyedObject objectId="8:33"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Title Color -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="done: yes" id="8:55">
+            <KeyedObject objectId="8:19"><KeyedProperty property="colorValue"><KeyFrameColor value="FFD2FCD5" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Card Color -->
+            <KeyedObject objectId="8:22"><KeyedProperty property="colorValue"><KeyFrameColor value="FF007841" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Check Fill -->
+            <KeyedObject objectId="8:23"><KeyedProperty property="colorValue"><KeyFrameColor value="00007841" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Check Ring -->
+            <KeyedObject objectId="8:24"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Tick -->
+            <KeyedObject objectId="8:29"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Strike -->
+            <KeyedObject objectId="8:33"><KeyedProperty property="colorValue"><KeyFrameColor value="FF007841" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Title Color -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="press: up" id="8:56">
+            <KeyedObject objectId="8:17"><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Card -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="press: down" id="8:57">
+            <KeyedObject objectId="8:17"><KeyedProperty property="scaleX"><KeyFrameDouble value="0.97" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="0.97" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Card -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="done pop: rest" id="8:67">
+            <KeyedObject objectId="8:20"><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Check -->
+        </LinearAnimation>
+        <!-- 0.45 s: the check dips, pops to 140 % and settles. -->
+        <LinearAnimation duration="28" name="done pop: pop" id="8:68">
+            <KeyedObject objectId="8:20">  <!-- Check -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.7" frame="3" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.4" frame="11" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.92" frame="17" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.04" frame="22" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="27" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.7" frame="3" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.4" frame="11" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.92" frame="17" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.04" frame="22" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="27" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+    </Artboard>
+</Rive>

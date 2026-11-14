@@ -1,0 +1,621 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		264D2FD14663BF602C11C85A /* contract.json in Resources */ = {isa = PBXBuildFile; fileRef = E946DD6DCDA11154D5A22115 /* contract.json */; };
+		C072517F557E35465C4A4B16 /* SisuCore in Frameworks */ = {isa = PBXBuildFile; productRef = DBAA55CCB8E8DECFBE3A788E /* SisuCore */; };
+		E152E68A8FF7F014DF82BE02 /* RiveRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = B98BBBADB3522ACAB5C4EF42 /* RiveRuntime */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		0C3A7FE082A9B8984EE6C817 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ECBF7EF7EE170963C5D4B9EC /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1718DBE74DAEAFA08E2FE144;
+			remoteInfo = Sisu;
+		};
+		6376676B745D16B739FB0AF9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ECBF7EF7EE170963C5D4B9EC /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1718DBE74DAEAFA08E2FE144;
+			remoteInfo = Sisu;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		66E577543C5929F5FB374001 /* SisuUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SisuUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		72AEE472B80283C658A0D5A9 /* SisuTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SisuTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		86479A4369DB05E0E224A55F /* SisuCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SisuCore; path = SisuCore; sourceTree = SOURCE_ROOT; };
+		C1D2288F83ADF0159C7FE8CF /* Sisu.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Sisu.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E946DD6DCDA11154D5A22115 /* contract.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = contract.json; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		04C85944D3D15E65C046CFF4 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 1718DBE74DAEAFA08E2FE144 /* Sisu */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		7025C2ED5180315F291D7027 /* SisuTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = SisuTests;
+			sourceTree = "<group>";
+		};
+		A6F158BD65611C7003A5E57D /* Sisu */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				04C85944D3D15E65C046CFF4 /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = Sisu;
+			sourceTree = "<group>";
+		};
+		C2724C45EA5CB56F85CF6023 /* SisuUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = SisuUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		3B00EFF2691F2B917B3CE2B8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C072517F557E35465C4A4B16 /* SisuCore in Frameworks */,
+				E152E68A8FF7F014DF82BE02 /* RiveRuntime in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		03523B7A53096D8ED3A39FDA /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				C1D2288F83ADF0159C7FE8CF /* Sisu.app */,
+				72AEE472B80283C658A0D5A9 /* SisuTests.xctest */,
+				66E577543C5929F5FB374001 /* SisuUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		0DB6DB69A816480F27B6D718 /* rive */ = {
+			isa = PBXGroup;
+			children = (
+				E946DD6DCDA11154D5A22115 /* contract.json */,
+			);
+			name = rive;
+			path = ../rive;
+			sourceTree = "<group>";
+		};
+		87B2563CF445557B03B823F9 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				86479A4369DB05E0E224A55F /* SisuCore */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+		FB489D569BC95BADF86FFBED = {
+			isa = PBXGroup;
+			children = (
+				87B2563CF445557B03B823F9 /* Packages */,
+				0DB6DB69A816480F27B6D718 /* rive */,
+				A6F158BD65611C7003A5E57D /* Sisu */,
+				7025C2ED5180315F291D7027 /* SisuTests */,
+				C2724C45EA5CB56F85CF6023 /* SisuUITests */,
+				03523B7A53096D8ED3A39FDA /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		1718DBE74DAEAFA08E2FE144 /* Sisu */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B52CF97DE84B878DF00EF437 /* Build configuration list for PBXNativeTarget "Sisu" */;
+			buildPhases = (
+				EC96D4E85D1CF17BF9C417F0 /* Sources */,
+				5F22B1311053FC151D4307CF /* Resources */,
+				3B00EFF2691F2B917B3CE2B8 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A6F158BD65611C7003A5E57D /* Sisu */,
+			);
+			name = Sisu;
+			packageProductDependencies = (
+				DBAA55CCB8E8DECFBE3A788E /* SisuCore */,
+				B98BBBADB3522ACAB5C4EF42 /* RiveRuntime */,
+			);
+			productName = Sisu;
+			productReference = C1D2288F83ADF0159C7FE8CF /* Sisu.app */;
+			productType = "com.apple.product-type.application";
+		};
+		77EC595EB75A41F1D49ABB71 /* SisuUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9A21CB8A45AE89816FE98C68 /* Build configuration list for PBXNativeTarget "SisuUITests" */;
+			buildPhases = (
+				F41A62F48292DF1912368561 /* Sources */,
+				4FB90297CEEB821DA3C39A1E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				085182082886C3539B926D17 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				C2724C45EA5CB56F85CF6023 /* SisuUITests */,
+			);
+			name = SisuUITests;
+			packageProductDependencies = (
+			);
+			productName = SisuUITests;
+			productReference = 66E577543C5929F5FB374001 /* SisuUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		BC4C15B2A529A80A77A0F762 /* SisuTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0BE696CFCCA13CB568FB8EA6 /* Build configuration list for PBXNativeTarget "SisuTests" */;
+			buildPhases = (
+				75547B8EBBDD8C3B42E5531D /* Sources */,
+				60BAF779B31FB5343089517F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C025B1ACB1C9B6302DB94ED2 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				7025C2ED5180315F291D7027 /* SisuTests */,
+			);
+			name = SisuTests;
+			packageProductDependencies = (
+			);
+			productName = SisuTests;
+			productReference = 72AEE472B80283C658A0D5A9 /* SisuTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		ECBF7EF7EE170963C5D4B9EC /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 2660;
+				TargetAttributes = {
+					77EC595EB75A41F1D49ABB71 = {
+						TestTargetID = 1718DBE74DAEAFA08E2FE144;
+					};
+				};
+			};
+			buildConfigurationList = 5FC9C55915CF8FCF6483DACF /* Build configuration list for PBXProject "Sisu" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = FB489D569BC95BADF86FFBED;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				2982B10C8A5834C523FE0EA9 /* XCRemoteSwiftPackageReference "rive-ios" */,
+				DC36385D347621732076EF0C /* XCLocalSwiftPackageReference "SisuCore" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 03523B7A53096D8ED3A39FDA /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				1718DBE74DAEAFA08E2FE144 /* Sisu */,
+				BC4C15B2A529A80A77A0F762 /* SisuTests */,
+				77EC595EB75A41F1D49ABB71 /* SisuUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		4FB90297CEEB821DA3C39A1E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5F22B1311053FC151D4307CF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		60BAF779B31FB5343089517F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				264D2FD14663BF602C11C85A /* contract.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		75547B8EBBDD8C3B42E5531D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EC96D4E85D1CF17BF9C417F0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F41A62F48292DF1912368561 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		085182082886C3539B926D17 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1718DBE74DAEAFA08E2FE144 /* Sisu */;
+			targetProxy = 6376676B745D16B739FB0AF9 /* PBXContainerItemProxy */;
+		};
+		C025B1ACB1C9B6302DB94ED2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1718DBE74DAEAFA08E2FE144 /* Sisu */;
+			targetProxy = 0C3A7FE082A9B8984EE6C817 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		29ABC8327BFF59D4C64BCB8B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				INFOPLIST_FILE = Sisu/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = fi.sisu.demo;
+				PRODUCT_NAME = Sisu;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		2FFAD145251BAA2B24E57766 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = fi.sisu.demo.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = Sisu;
+			};
+			name = Release;
+		};
+		31BAC1441D6E6D46415E6742 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				INFOPLIST_FILE = Sisu/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = fi.sisu.demo;
+				PRODUCT_NAME = Sisu;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		39CA3D0A0CC359E9D2571EDC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGNING_ALLOWED[sdk=iphonesimulator*]" = NO;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		46225CFC0FDDD615E0F226AF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = fi.sisu.demo.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = Sisu;
+			};
+			name = Debug;
+		};
+		51B469D5178F78F0EDD7CC7F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = fi.sisu.demo.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Sisu.app/Sisu";
+			};
+			name = Debug;
+		};
+		C52E8576E97570B54A33C45F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = fi.sisu.demo.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Sisu.app/Sisu";
+			};
+			name = Release;
+		};
+		E9C293722B3BCD963EBD94A5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGNING_ALLOWED[sdk=iphonesimulator*]" = NO;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0BE696CFCCA13CB568FB8EA6 /* Build configuration list for PBXNativeTarget "SisuTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				51B469D5178F78F0EDD7CC7F /* Debug */,
+				C52E8576E97570B54A33C45F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		5FC9C55915CF8FCF6483DACF /* Build configuration list for PBXProject "Sisu" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E9C293722B3BCD963EBD94A5 /* Debug */,
+				39CA3D0A0CC359E9D2571EDC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		9A21CB8A45AE89816FE98C68 /* Build configuration list for PBXNativeTarget "SisuUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				46225CFC0FDDD615E0F226AF /* Debug */,
+				2FFAD145251BAA2B24E57766 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B52CF97DE84B878DF00EF437 /* Build configuration list for PBXNativeTarget "Sisu" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				29ABC8327BFF59D4C64BCB8B /* Debug */,
+				31BAC1441D6E6D46415E6742 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		DC36385D347621732076EF0C /* XCLocalSwiftPackageReference "SisuCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = SisuCore;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		2982B10C8A5834C523FE0EA9 /* XCRemoteSwiftPackageReference "rive-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/rive-app/rive-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 6.24.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		B98BBBADB3522ACAB5C4EF42 /* RiveRuntime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2982B10C8A5834C523FE0EA9 /* XCRemoteSwiftPackageReference "rive-ios" */;
+			productName = RiveRuntime;
+		};
+		DBAA55CCB8E8DECFBE3A788E /* SisuCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SisuCore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = ECBF7EF7EE170963C5D4B9EC /* Project object */;
+}

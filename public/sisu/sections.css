@@ -1,0 +1,310 @@
+/* Section 3 (baskets), section 5 (figures), section 7 (questions) and section 8 (closing block). */
+
+/* Three baskets: white cards, each icon chip filled with its basket's green (the darker, the more fixed).
+   The row layout, the colour key, the hand-over line and the entrance are in baskets.css. */
+.basket-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.basket-card {
+  --basket: var(--basket-fixed);
+  --basket-icon: var(--green-200);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 4px 16px;
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.basket-curveballs {
+  --basket: var(--basket-curveballs);
+  --basket-icon: var(--white);
+}
+
+.basket-leaks {
+  --basket: var(--basket-leaks);
+  --basket-icon: var(--white);
+}
+
+.icon-chip {
+  grid-row: span 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-full);
+  background: var(--basket);
+  fill: var(--basket-icon);
+}
+
+.basket-name {
+  align-self: end;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.basket-fi {
+  align-self: start;
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.basket-text {
+  grid-column: 1 / -1;
+  margin-top: 12px;
+}
+
+/* Sourced figures: one large card, two smaller ones. Each card: its role line, the figure, a row of
+   dots (week-motion.css), the sentence and the source. */
+.stat-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 24px 20px 16px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.stat-large {
+  background: var(--green-100);
+}
+
+.stat-role {
+  color: var(--green-700);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.stat-figure {
+  font-family: var(--font-display);
+  font-size: clamp(3.5rem, 9vw, 5rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+/* The counting number fills its paragraph, so the paragraph (the scroll trigger of the card) and the
+   count start at the same scroll position. */
+.stat-figure .js-count {
+  display: block;
+}
+
+.stat-large .stat-figure {
+  font-size: clamp(4.5rem, 13vw, 9rem);
+}
+
+.stat-text {
+  max-width: 30rem;
+  font-size: 1.125rem;
+  line-height: 1.4;
+}
+
+.stat-card .source-link {
+  margin-top: auto;
+}
+
+/* Questions: five native details on white cards, stacked under the heading; two columns from
+   1024px (closing.css). The sign is a pale mint chip with a plus drawn from two bars. While its
+   question is open the chip turns dark green and the plus turns into a cross. The closing block,
+   the phone and the entrance motion of both sections are in closing.css. */
+.faq-layout {
+  width: min(100% - 2 * var(--gutter), var(--page-max));
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.faq .section-head,
+.faq .faq-list {
+  width: auto;
+}
+
+.faq-list {
+  display: grid;
+  gap: 12px;
+  max-width: 820px;
+}
+
+.faq-item {
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.faq-item summary {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 64px;
+  padding: 12px 68px 12px 20px;
+  border-radius: var(--radius-lg);
+  color: var(--green-900);
+  font-family: var(--font-text);
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.3;
+  list-style: none;
+  cursor: pointer;
+}
+
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-sign {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  width: 40px;
+  height: 40px;
+  margin-top: -20px;
+  border-radius: var(--radius-full);
+  background: var(--green-100);
+}
+
+.faq-sign::before,
+.faq-sign::after {
+  content: "";
+  position: absolute;
+  top: 18px;
+  left: 11px;
+  width: 18px;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--green-900);
+}
+
+.faq-sign::after {
+  transform: rotate(90deg);
+}
+
+@media (hover: hover) {
+  .faq-item summary:hover .faq-sign {
+    background: var(--green-200);
+  }
+}
+
+/* faq.js adds is-closing while a question folds shut, so the sign turns back at the first tap. */
+.faq-item[open]:not(.is-closing) .faq-sign {
+  background: var(--green-900);
+  transform: rotate(45deg);
+}
+
+.faq-item[open]:not(.is-closing) .faq-sign::before,
+.faq-item[open]:not(.is-closing) .faq-sign::after {
+  background: var(--white);
+}
+
+.faq-answer {
+  max-width: 44rem;
+  padding: 0 20px 20px;
+  color: var(--green-900);
+  font-family: var(--font-text);
+}
+
+/* Entrance of the questions (page.js adds is-in; faq.js holds it, closing.css): the rows rise 80ms
+   apart. The first question is open in the HTML: once its row is in, its answer fades up and its
+   plus turns into the cross. The first tap on any question ends this (is-settled, faq.js). */
+@media (prefers-reduced-motion: no-preference) {
+  .js .faq-list.is-in .faq-item {
+    animation: closing-rise 300ms var(--ease-out) backwards;
+  }
+
+  .js .faq-list.is-in .faq-item:nth-child(2) { animation-delay: 80ms; }
+  .js .faq-list.is-in .faq-item:nth-child(3) { animation-delay: 160ms; }
+  .js .faq-list.is-in .faq-item:nth-child(4) { animation-delay: 240ms; }
+  .js .faq-list.is-in .faq-item:nth-child(5) { animation-delay: 320ms; }
+
+  .js .faq-list.is-in:not(.is-settled) .faq-item[open] .faq-answer {
+    animation: closing-rise 250ms var(--ease-out) 300ms backwards;
+  }
+
+  .js .faq-list.is-in:not(.is-settled) .faq-item[open] .faq-sign {
+    animation: faq-sign-turn 250ms var(--ease-out) 300ms backwards;
+  }
+
+  .js .faq-list.is-in:not(.is-settled) .faq-item[open] .faq-sign::before,
+  .js .faq-list.is-in:not(.is-settled) .faq-item[open] .faq-sign::after {
+    animation: faq-sign-bar 250ms var(--ease-out) 300ms backwards;
+  }
+
+  /* The sign turns as its question opens or closes; faq.js animates the height. */
+  .js .faq-sign,
+  .js .faq-sign::before,
+  .js .faq-sign::after {
+    transition: transform 160ms var(--ease-out), background-color 160ms var(--ease-out);
+  }
+}
+
+@keyframes faq-sign-turn {
+  0% {
+    background-color: var(--green-100);
+    transform: none;
+  }
+}
+
+@keyframes faq-sign-bar {
+  0% {
+    background-color: var(--green-900);
+  }
+}
+
+@media (min-width: 600px) {
+  .stat-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .stat-large {
+    grid-column: 1 / -1;
+  }
+
+  .stat-card {
+    padding: 28px 28px 20px;
+  }
+}
+
+@media (min-width: 720px) {
+  .basket-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .basket-card {
+    padding: 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  /* Three in a row, the large card first and widest. The role lines and the figures start on one line,
+     so the three cards take their turns from one scroll position. */
+  .stat-grid {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr);
+    gap: 24px;
+  }
+
+  .stat-large {
+    grid-column: auto;
+    padding-right: 36px;
+    padding-left: 36px;
+  }
+
+  .stat-large .stat-figure {
+    font-size: clamp(4.5rem, 11vw, 9rem);
+  }
+
+  .closing-block {
+    padding: 80px 40px 84px;
+  }
+}

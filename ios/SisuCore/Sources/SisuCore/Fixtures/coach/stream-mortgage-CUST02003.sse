@@ -1,0 +1,52 @@
+data: {"type":"start","turnId":"15c10898-07a5-4d82-b92c-41ec7674cbb1","provider":"mock","model":"mock","mock":true}
+
+data: {"type":"tool_start","id":"mock_get_mortgage_ircvyw","name":"get_mortgage","args":{},"label":"Opening your mortgage application"}
+
+data: {"type":"tool_end","trace":{"id":"mock_get_mortgage_ircvyw","name":"get_mortgage","args":{},"source":"finance","startedAtMs":254,"tookMs":0,"ok":true,"summary":"Mortgage application approved: €144,500 loan on a €178,000 apartment","joinedPrefetch":false}}
+
+data: {"type":"stage","stage":{"kind":"calculation","title":"Mortgage application: approved","summary":"Loan €144,500, own money €33,500","source":"bank-data","data":{"kind":"calculation","steps":[{"label":"Property price","amount":178000,"basis":"final figure in the mortgage application"},{"label":"Loan","amount":-144500,"basis":"final requested loan"},{"label":"Your own money in the application","amount":33500,"basis":"property price minus the loan"},{"label":"Balance in this account","amount":-27161.81,"basis":"account balance on 2026-09-30"},{"label":"Own money not covered by this account","amount":6338.19,"basis":"own money minus the balance, never below zero"}],"resultLabel":"Own money not covered by this account","resultValue":6338.19,"unit":"EUR","assumptions":["Figures come from the bank's mortgage application record and this account's balance.","Only this account is visible. Savings or investments held elsewhere may cover the own-money part.","This describes the application on record. It is not advice on whether to buy."]},"id":"15c10898-07a5-4d82-b92c-41ec7674cbb1:0","toolCallId":"mock_get_mortgage_ircvyw","atMs":254,"facts":[{"id":"mortgage:price","label":"Property price","value":178000,"unit":"EUR","source":"bank-data","basis":"mortgage application"},{"id":"mortgage:loan","label":"Loan","value":144500,"unit":"EUR","source":"bank-data","basis":"mortgage application"},{"id":"mortgage:own-money","label":"Own money in the application","value":33500,"unit":"EUR","source":"bank-data","basis":"property price minus the loan"},{"id":"mortgage:collateral","label":"Collateral value","value":138000,"unit":"EUR","source":"bank-data","basis":"bank's valuation in the application"},{"id":"mortgage:ltv","label":"Loan to value","value":81.18,"unit":"percent","source":"bank-data","basis":"loan divided by property price"},{"id":"mortgage:required-income","label":"Monthly income the application required","value":2660.04,"unit":"EUR/month","source":"bank-data","basis":"mortgage application"},{"id":"mortgage:income","label":"Your monthly income","value":2658.07,"unit":"EUR/month","source":"bank-data","basis":"12-month average from the bank data"},{"id":"mortgage:income-margin","label":"Income above what was required","value":-1.97,"unit":"EUR/month","source":"calculation","basis":"your income minus the required income"},{"id":"mortgage:still-needed","label":"Own money not covered by this account","value":6338.19,"unit":"EUR","source":"calculation","basis":"own money minus this account's balance"},{"id":"mortgage:fee:0","label":"Fee: valuation fee","value":300,"unit":"EUR","source":"bank-data","basis":"recorded on 2026-05-19"},{"id":"mortgage:fee:1","label":"Fee: maintenance fee","value":480,"unit":"EUR","source":"bank-data","basis":"recorded on 2026-05-21"}]}}
+
+data: {"type":"delta","text":"Mock "}
+
+data: {"type":"delta","text":"answer. "}
+
+data: {"type":"delta","text":"Your "}
+
+data: {"type":"delta","text":"mortgage "}
+
+data: {"type":"delta","text":"application "}
+
+data: {"type":"delta","text":"was "}
+
+data: {"type":"delta","text":"approved: "}
+
+data: {"type":"delta","text":"a "}
+
+data: {"type":"delta","text":"loan "}
+
+data: {"type":"delta","text":"of "}
+
+data: {"type":"delta","text":"144500 "}
+
+data: {"type":"delta","text":"euros "}
+
+data: {"type":"delta","text":"on "}
+
+data: {"type":"delta","text":"a "}
+
+data: {"type":"delta","text":"home "}
+
+data: {"type":"delta","text":"priced "}
+
+data: {"type":"delta","text":"at "}
+
+data: {"type":"delta","text":"178000 "}
+
+data: {"type":"delta","text":"euros. "}
+
+data: {"type":"sentence","index":0,"text":"Mock answer. Your mortgage application was approved: a loan of 144500 euros on a home priced at 178000 euros."}
+
+data: {"type":"grounding","grounding":{"ok":true,"checked":2,"unverified":[],"numbers":[{"value":144500,"status":"receipt","factId":"mortgage:loan"},{"value":178000,"status":"receipt","factId":"mortgage:price"}],"corrections":[]},"facts":[{"id":"mortgage:price","label":"Property price","value":178000,"unit":"EUR","source":"bank-data","basis":"mortgage application"},{"id":"mortgage:loan","label":"Loan","value":144500,"unit":"EUR","source":"bank-data","basis":"mortgage application"},{"id":"mortgage:own-money","label":"Own money in the application","value":33500,"unit":"EUR","source":"bank-data","basis":"property price minus the loan"},{"id":"mortgage:collateral","label":"Collateral value","value":138000,"unit":"EUR","source":"bank-data","basis":"bank's valuation in the application"},{"id":"mortgage:ltv","label":"Loan to value","value":81.18,"unit":"percent","source":"bank-data","basis":"loan divided by property price"},{"id":"mortgage:required-income","label":"Monthly income the application required","value":2660.04,"unit":"EUR/month","source":"bank-data","basis":"mortgage application"},{"id":"mortgage:income","label":"Your monthly income","value":2658.07,"unit":"EUR/month","source":"bank-data","basis":"12-month average from the bank data"},{"id":"mortgage:income-margin","label":"Income above what was required","value":-1.97,"unit":"EUR/month","source":"calculation","basis":"your income minus the required income"},{"id":"mortgage:still-needed","label":"Own money not covered by this account","value":6338.19,"unit":"EUR","source":"calculation","basis":"own money minus this account's balance"},{"id":"mortgage:fee:0","label":"Fee: valuation fee","value":300,"unit":"EUR","source":"bank-data","basis":"recorded on 2026-05-19"},{"id":"mortgage:fee:1","label":"Fee: maintenance fee","value":480,"unit":"EUR","source":"bank-data","basis":"recorded on 2026-05-21"}]}
+
+data: {"type":"done","text":"Mock answer. Your mortgage application was approved: a loan of 144500 euros on a home priced at 178000 euros.","citations":[],"timings":{"sttMs":null,"firstTokenMs":280,"firstSentenceMs":750,"totalMs":750,"modelSteps":[{"model":"mock","provider":"mock","usedBackup":false,"firstTokenMs":250,"totalMs":250},{"model":"mock","provider":"mock","usedBackup":false,"firstTokenMs":26,"totalMs":496}]}}
+
