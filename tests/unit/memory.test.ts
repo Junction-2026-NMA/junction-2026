@@ -94,3 +94,21 @@ describe("memory: remembered only when allowed, and only for its own customer", 
     }
   });
 });
+
+// Found by an automated QA pass: Eetu's rent (housing-1, €622.21) confirmed as "electricity" was then researched
+// as an electricity bill of 30,000 kWh, and a switch "saving about €1541 a year" was prepared.
+describe("memory: a bill type only fits a utility bill", () => {
+  beforeEach(() => void freshState());
+
+  it("the rent cannot be confirmed as the electricity, mobile or internet bill; naming it is fine", () => {
+    for (const billType of ["electricity", "mobile", "internet"] as const) {
+      const refused = remember(EETU, { kind: "bill_name", key: "housing-1", value: "Helen electricity", billType, source: "user-confirmed-in-app" });
+      assert.deepEqual(refused, { ok: false, reason: `That bill is a housing payment, so it cannot be confirmed as the ${billType} bill. Nothing was saved.` });
+    }
+    assert.deepEqual(getMemory(EETU).items, []);
+    assert.ok(remember(EETU, { kind: "bill_name", key: "housing-1", value: "Landlord Oy", billType: null, source: "user-confirmed-in-app" }).ok);
+    assert.ok(remember(EETU, { kind: "bill_name", key: "utilities-1", value: "Helen", billType: "electricity", source: "user-confirmed-in-app" }).ok);
+    const match = billFor(buildOverview(EETU)!, getMemory(EETU), "electricity");
+    assert.equal(match?.bill.id, "utilities-1", "the electricity bill is still the utility one");
+  });
+});

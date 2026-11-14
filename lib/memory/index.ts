@@ -1,6 +1,7 @@
 // What Sisu remembers about a customer between sessions: confirmed bill names, their yearly kWh, preferences and goals.
 // Nothing is saved unless the customer allows it (consent), and every save or removal is written to the audit log.
 import { findCustomer } from "@/lib/finance/data";
+import { buildOverview } from "@/lib/finance/overview";
 import { withAudit } from "@/lib/store/audit";
 import { readState, updateState } from "@/lib/store/state";
 import type { BillType, CustomerMemory, MemoryItem, MemoryKind, Overview, RecurringBill } from "@/lib/types";
@@ -35,6 +36,10 @@ export function remember(customerId: string, input: RememberInput, now: Date = n
     return { ok: false, reason: "A yearly electricity use between 500 and 30,000 kWh is needed." };
   }
   const billType = input.kind === "bill_name" && BILL_TYPES.includes(input.billType as BillType) ? (input.billType as BillType) : null;
+  // Every bill type is a utility bill. The rent confirmed as "electricity" would be compared with electricity offers
+  // as if it were the electricity bill (a "saving" of over €1,500 a year on a rent). Naming the rent is still fine.
+  const bill = billType ? buildOverview(customerId)?.recurringBills.find((candidate) => candidate.id === key) : undefined;
+  if (bill && bill.category !== "Utilities") return { ok: false, reason: `That bill is a ${bill.category.toLowerCase()} payment, so it cannot be confirmed as the ${billType} bill. Nothing was saved.` };
 
   const item: MemoryItem = { id: crypto.randomUUID(), kind: input.kind, key, value, billType, source: input.source, savedAt: now.toISOString() };
   // One value per kind and key: a new answer replaces the old one. A bill type can also belong to only one bill.
