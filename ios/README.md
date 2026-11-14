@@ -24,7 +24,10 @@ A native SwiftUI app whose interface is drawn by Rive. iPhone, portrait, iOS 17 
 1. Open `ios/Sisu.xcodeproj` in Xcode 26. The first time, Xcode fetches the Rive runtime.
 2. Choose the `Sisu` scheme and an iPhone simulator, then Run.
 
-The simulator reaches the team backend at `http://localhost:3000` (`npm run dev` in the repository root).
+The app talks to the hosted team backend at `https://sisu-api.vercel.app` unless told otherwise. For a backend on this Mac
+(`npm run dev` in the repository root), launch with `-sisu.baseURL http://localhost:3000` or set the address in
+Settings. Each device gets its own session from the backend (a cookie `URLSession` keeps), so two phones never
+see each other's approvals. If the backend does not answer, the app shows its bundled sample and says so.
 A component whose Rive file or artboard is missing shows as a pale-mint block with the component's name.
 The app is light-only for now, because `sisu_ui.riv` has no dark variant (`UIUserInterfaceStyle` in `project.yml`).
 

@@ -127,12 +127,12 @@ public enum Endpoints {
 ///   (an `ApiError`), or an empty string when the body has none.
 /// - A transport failure (no connection, timeout) throws `.offline`.
 /// - `kind` is `.live`.
-/// - Every request times out after `timeout` seconds (5 by default).
+/// - Every request times out after `timeout` seconds (10 by default).
 public struct LiveAPI: SisuAPI {
     public let baseURL: URL
     public let session: URLSession
-    /// Seconds before a request counts as offline.
-    public var timeout: TimeInterval = 5
+    /// Seconds before a request counts as offline. Ten, because a hosted server that has been idle wakes up slowly.
+    public var timeout: TimeInterval = 10
 
     public init(baseURL: URL, session: URLSession = .shared) {
         self.baseURL = baseURL
