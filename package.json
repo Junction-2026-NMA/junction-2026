@@ -11,13 +11,16 @@
     "gauntlet": "node tests/gauntlet/run.mjs"
   },
   "dependencies": {
+    "@rive-app/react-canvas": "4.37.1",
     "next": "16.4.6",
+    "qrcode": "1.5.4",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "4.3.3",
     "@types/node": "^20",
+    "@types/qrcode": "1.5.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
