@@ -4,6 +4,7 @@
 // Usage is shown in context/frontend-integration.md and app/dev/agent/page.tsx.
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AgentAction, BillType, ChatTurn, Citation, CustomerMemory, Fact, Grounding, MemoryItem, ResearchResult, Stage, SisuActivity, TeachingCard, ToolTrace, TurnTimings, Visual } from "@/lib/types";
+import { freedByApprovedSwitches } from "@/lib/actions/freed";
 import { IDLE, activity as makeActivity, nextActivity } from "./activity";
 import { type Recorder, type Speaker, type VoiceChoice, approveAction, confirmBill as saveBillName, createRecorder, createSpeaker, declineAction, fetchActions, fetchMemory, streamTurn, warmAgent } from "./client";
 
@@ -337,7 +338,7 @@ export function useSisu({ customerId, focusBill, speakReplies = true, language =
 
   const status: SisuStatus = recording ? "recording" : busy ? "thinking" : speaking ? "speaking" : "idle";
   // What has been freed so far by approved switches: feed this to the futures chart as the monthly bill saving.
-  const approvedMonthlySaving = actions.filter((action) => action.status === "executed_simulated" && action.kind === "switch_contract").reduce((total, action) => total + action.monthlyAmountEur, 0);
+  const approvedMonthlySaving = freedByApprovedSwitches(actions);
   // One value that says what Sisu is doing right now. Map `activity.liito` to the mascot's animation.
   const waiting = actions.find((action) => action.status === "awaiting_approval");
   const activity: SisuActivity = recording

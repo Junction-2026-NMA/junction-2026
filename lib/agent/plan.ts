@@ -6,7 +6,7 @@
 // Who does what: code finds the patterns and does every sum, Exa searches, Context.dev reads the pages, and
 // Nemotron words the summary. The summary's numbers are checked against the receipts like any other answer; if
 // one does not match, a sentence written by code is used instead. Nothing is approved here: actions wait.
-import { saveDraft } from "@/lib/actions";
+import { saveDraftOnce } from "@/lib/actions";
 import { buildSwitchDraft, buildTransferDraft } from "@/lib/actions/drafts";
 import { buildCashFlow } from "@/lib/finance/cashflow";
 import { findCustomer, transactionsFor } from "@/lib/finance/data";
@@ -42,6 +42,7 @@ const SUMMARY_MAX_TOKENS = 180;
 const PAGES_PER_BILL: Record<BillType, number> = { electricity: 3, internet: 3, mobile: 3 };
 const BILL_NOUN: Record<BillType, string> = { electricity: "electricity", internet: "home internet", mobile: "mobile plan" };
 
+const isDone = (action: AgentAction): boolean => action.status === "executed_simulated";
 const hostOf = (url: string): string => new URL(url).hostname.replace(/^www\./, "");
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const euros = (value: number): string => Math.round(value).toLocaleString("en-US");
@@ -86,6 +87,10 @@ function switchItem(billType: BillType, research: ResearchResult, action: AgentA
   const best = research.best;
   const yearly = best?.estimatedYearlySavingEur ?? 0;
   if (!best || yearly < MIN_SWITCH_SAVING_EUR) return null;
+  // Approved on an earlier run: the item is what was approved, at the figures approved then, and counts once.
+  if (action && isDone(action)) {
+    return { id: `switch:${billType}`, kind: "switch", title: `Already approved: ${action.title}`, detail: `You approved this on ${(action.decidedAt ?? action.createdAt).slice(0, 10)}, as a simulation. Sisu did not set it up again.`, yearlyEur: round2(action.monthlyAmountEur * 12), monthlyEur: action.monthlyAmountEur, needs: billType === "electricity" ? "nothing" : "check-plan", actionId: action.id, sources: action.sources.slice(0, 3), facts: action.facts };
+  }
   return {
     id: `switch:${billType}`,
     kind: "switch",
@@ -139,8 +144,11 @@ const codeSummary = (plan: Pick<MoneyPlan, "totalYearlyEur" | "effortlessYearlyE
     habits > 0 ? `€${euros(habits)} needs your spending to come down` : null,
   ].filter((part): part is string => part !== null);
   const split = parts.length ? ` Of that, ${parts.join("; ")}.` : "";
-  const waiting = plan.actions.length ? ` ${plan.actions.length === 1 ? "One thing is" : `${plan.actions.length} things are`} set up and waiting for your approval.` : "";
-  return `I found about €${euros(plan.totalYearlyEur)} a year.${split}${waiting}`;
+  const open = plan.actions.filter((action) => !isDone(action)).length;
+  const done = plan.actions.length - open;
+  const waiting = open ? ` ${open === 1 ? "One thing is" : `${open} things are`} set up and waiting for your approval.` : "";
+  const already = done ? ` You have already approved ${done === 1 ? "one of these" : `${done} of these`}${open ? "" : ", so nothing new is waiting"}.` : "";
+  return `I found about €${euros(plan.totalYearlyEur)} a year.${split}${waiting}${already}`;
 };
 
 // Nemotron words the result in the customer's language. Its figures are checked against the plan's receipts.
@@ -152,14 +160,15 @@ async function modelSummary(plan: Pick<MoneyPlan, "totalYearlyEur" | "effortless
     needsNothingFromCustomerPerYearEur: Math.round(plan.effortlessYearlyEur),
     fromCheaperInternetAndMobilePlansIfTheyMatchWhatTheyHaveNowPerYearEur: Math.round(plan.checkPlanYearlyEur),
     needsSpendingToComeDownPerYearEur: Math.round(plan.totalYearlyEur - plan.effortlessYearlyEur - plan.checkPlanYearlyEur),
-    thingsSetUpAndWaitingForApproval: plan.actions.length,
+    thingsSetUpAndWaitingForApproval: plan.actions.filter((action) => !isDone(action)).length,
+    thingsTheCustomerAlreadyApprovedEarlier: plan.actions.filter(isDone).length,
     findings: plan.items.map((item) => ({ what: item.title, perYearEur: Math.round(item.yearlyEur) })),
   };
   let text = "";
   try {
     const chunks = streamChat({
       messages: [
-        { role: "system", content: `You are Sisu, the money coach in the S-Pankki app. You have just gone through this customer's last twelve months and today's offers. Tell them what you found in two or three short sentences, to be spoken aloud, in ${spoken}. Use only the figures given, copied exactly, and no other numbers. Say the yearly total first. Then split it honestly, leaving out any part that is 0: how much needs nothing from them, how much comes from cheaper internet and mobile plans if those match what they have now, and how much needs their spending to come down. Then say that everything is set up and waits for their approval. No lists, no greeting.` },
+        { role: "system", content: `You are Sisu, the money coach in the S-Pankki app. You have just gone through this customer's last twelve months and today's offers. Tell them what you found in two or three short sentences, to be spoken aloud, in ${spoken}. Use only the figures given, copied exactly, and no other numbers. Say the yearly total first. Then split it honestly, leaving out any part that is 0: how much needs nothing from them, how much comes from cheaper internet and mobile plans if those match what they have now, and how much needs their spending to come down. ${plan.actions.some(isDone) ? "Then say how many things they have already approved earlier and how many, if any, are set up and wait for their approval." : "Then say that everything is set up and waits for their approval."} No lists, no greeting.` },
         { role: "user", content: JSON.stringify(figures) },
       ],
       tools: [],
@@ -279,7 +288,7 @@ export async function* runPlan(customerId: string, options: PlanOptions = {}, si
     let action: AgentAction | null = null;
     if (research && best && (saving ?? 0) >= MIN_SWITCH_SAVING_EUR) {
       const draft = buildSwitchDraft(customerId, search.billType, { preparedBy: "sisu-agent" });
-      const saved = draft.ok ? saveDraft(customerId, draft.draft) : null;
+      const saved = draft.ok ? saveDraftOnce(customerId, draft.draft) : null;
       action = saved?.ok ? saved.action : null;
       const item = switchItem(search.billType, research, action, outcome.facts);
       if (item) items.push(item);
@@ -295,7 +304,7 @@ export async function* runPlan(customerId: string, options: PlanOptions = {}, si
   let habitAction: AgentAction | null = null;
   if (habitMonthly >= 5) {
     const draft = buildTransferDraft(customerId, habitMonthly, { preparedBy: "sisu-agent" });
-    const saved = draft.ok ? saveDraft(customerId, draft.draft) : null;
+    const saved = draft.ok ? saveDraftOnce(customerId, draft.draft) : null;
     habitAction = saved?.ok ? saved.action : null;
     if (habitAction) actions.push(habitAction);
   }
@@ -311,7 +320,8 @@ export async function* runPlan(customerId: string, options: PlanOptions = {}, si
     fact("plan:effortless", "Needs nothing from you, per year", effortlessYearlyEur, "EUR/year", "the contract switches", { source: "calculation" }),
     fact("plan:check-plan", "Cheaper internet and mobile plans, if they match yours, per year", checkPlanYearlyEur, "EUR/year", "the internet and mobile switches", { source: "calculation" }),
     fact("plan:effort", "Needs spending to come down, per year", round2(totalYearlyEur - effortlessYearlyEur - checkPlanYearlyEur), "EUR/year", "the spending habits", { source: "calculation" }),
-    fact("plan:actions", "Things set up", actions.length, "count", "actions waiting for approval", { source: "calculation" }),
+    fact("plan:actions", "Things set up and waiting", actions.filter((action) => !isDone(action)).length, "count", "actions waiting for approval", { source: "calculation" }),
+    fact("plan:approved", "Things already approved earlier", actions.filter(isDone).length, "count", "actions the customer approved on an earlier run", { source: "calculation" }),
     ...checkFacts(checks),
   );
   yield { type: "calc", steps, totalYearlyEur, effortlessYearlyEur, checkPlanYearlyEur };

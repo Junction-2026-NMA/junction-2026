@@ -475,7 +475,9 @@ export type SisuEvent = AgentEvent | AgentExtraEvent;
 
 export type InvestigateRequest = { customerId: string; mode?: "voice" | "text"; focus?: PatternKind | BillType };
 
-export type ActionList = { customerId: string; actions: AgentAction[]; audit: AuditEvent[]; auditChainValid: boolean };
+// approvedMonthlySavingEur: euros a month freed by approved switches, one switch per bill. Use it for the futures
+// chart instead of adding the actions up on the client.
+export type ActionList = { customerId: string; actions: AgentAction[]; audit: AuditEvent[]; auditChainValid: boolean; approvedMonthlySavingEur: number };
 
 export type HealthReport = {
   ok: boolean;
