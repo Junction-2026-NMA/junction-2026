@@ -13,6 +13,7 @@ import { SampleEvidence } from "@/web/core/AppLogic/SampleEvidence";
 import { Dates } from "@/web/core/Presentation";
 import { type AppState, type AppStored, Keys, billKey, derive, stringDictionary } from "./AppState";
 import { type AppTab, type Celebration, EvidenceRequest, LoadState, type TodaySheet } from "./AppTypes";
+import { TalkLaunch } from "@/web/features/Talk/TalkLaunch";
 import { CoachStore } from "./CoachStore";
 import { LaunchOptions } from "./LaunchOptions";
 
@@ -47,7 +48,8 @@ export class AppModel extends Store<AppState> {
       customer: null,
       overview: null,
       overviewState: LoadState.idle,
-      tab: launch.tab ?? "today",
+      tab: launch.tab ?? "talk",
+      conversationShown: TalkLaunch.current().opensConversation,
       onboarding: OnboardingFlow.atLaunch(storedFlow, launch.onboarding, LaunchOptions.skipsOnboardingByDefault(launch)),
       evidence: null,
       todaySheet: null,
@@ -104,6 +106,10 @@ export class AppModel extends Store<AppState> {
   // MARK: Navigation
 
   setTab(tab: AppTab): void { if (tab !== this.state.tab) this.set({ tab }); }
+  /** Swift `model.conversationShown = …`: the written conversation as a sheet over Talk. */
+  setConversationShown(conversationShown: boolean): void {
+    if (conversationShown !== this.state.conversationShown) this.set({ conversationShown });
+  }
   /** Swift `model.evidence = …` (null closes the sheet). */
   setEvidence(evidence: EvidenceRequest | null): void { this.set({ evidence }); }
   /** `model.evidence = EvidenceRequest(title:filter:)`. */
@@ -225,7 +231,7 @@ export class AppModel extends Store<AppState> {
   switchCustomer(): void {
     this.coach.clear();
     this.defaults.remove(Keys.customer);
-    this.set({ customer: null, overview: null, overviewState: LoadState.idle, tab: "today" });
+    this.set({ customer: null, overview: null, overviewState: LoadState.idle, conversationShown: false, tab: "talk" });
   }
 
   // MARK: Progress
@@ -271,8 +277,11 @@ export class AppModel extends Store<AppState> {
     }
   }
 
+  /** "Look into my finances" on Today, or the third daily action: Talk with the written conversation open, where the
+   *  investigation's stage cards are. A hands-free conversation in progress ends first. */
   startInvestigation(): void {
-    this.set({ tab: "ask", investigationRequests: this.state.investigationRequests + 1 });
+    this.coach.conversation?.end();
+    this.set({ tab: "talk", conversationShown: true, investigationRequests: this.state.investigationRequests + 1 });
     this.coach.investigate();
     this.complete("investigate");
   }
@@ -319,9 +328,10 @@ export class AppModel extends Store<AppState> {
     this.switchCustomer();
   }
 
-  /** The overview is read and the user goes on: Today, with the first insight highlighted. */
+  /** The overview is read and the user goes on: Talk, the main page, where Liito says the first insight. Today still
+   *  highlights it until it is tapped away. */
   finishOnboarding(): void {
-    this.set({ tab: "today" });
+    this.set({ tab: "talk" });
     this.saveOnboarding(OnboardingFlow.finish(this.state.onboarding));
   }
 

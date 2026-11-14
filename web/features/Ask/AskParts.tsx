@@ -7,7 +7,7 @@ import type { CoachSession } from "@/web/core/CoachSession";
 import { RiveBindings } from "@/web/core/RiveContract";
 import { RiveComponent } from "@/web/rive/RiveComponent";
 import { TransientNotice } from "@/web/shared/Notice";
-import { Eyebrow, SisuButton, riveAccessible } from "@/web/shared/SisuStyle";
+import { Eyebrow, SisuButton, SisuIconButton, riveAccessible } from "@/web/shared/SisuStyle";
 
 const suggestions = [
   "How much do I spend on everyday things?",
@@ -15,12 +15,19 @@ const suggestions = [
   "Can I afford a €200 trip?",
 ];
 
-export function AskHeader({ mood }: { mood: RiveBindings.LiitoMood }) {
+export function AskHeader({ mood, title = "Ask Sisu", onClose }: { mood: RiveBindings.LiitoMood; title?: string; onClose?: () => void }) {
   return (
     <header className="sisu-ask-header">
-      <h1 className="sisu-ask-title">Ask Sisu</h1>
-      <RiveComponent component="Liito" values={RiveBindings.liito(mood)} sizing="contain" style={{ width: 72, height: 72 }}
-        {...riveAccessible("Liito the flying squirrel", { value: mood })} />
+      <h1 className="sisu-ask-title">{title}</h1>
+      <span className="sisu-ask-liito" data-mood={mood} data-testid="ask.liito">
+        <RiveComponent component="Liito" values={RiveBindings.liito(mood)} sizing="contain" style={{ width: 72, height: 72 }}
+          {...riveAccessible("Liito the flying squirrel", { value: mood })} />
+      </span>
+      {onClose ? (
+        <span className="sisu-ask-close" data-testid="conversation.close">
+          <SisuIconButton icon="close" label="Close the conversation" action={onClose} />
+        </span>
+      ) : null}
     </header>
   );
 }

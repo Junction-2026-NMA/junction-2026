@@ -1,5 +1,6 @@
-// The tab icons: drawn stand-ins for the SF Symbols sun.max, bubble.left and flag (outline when idle, filled
-// when selected), and the drawn jar for Jars (JarGlyph in GlassTabBar.swift: the brand's own savings picture).
+// The tab icons: drawn stand-ins for the SF Symbols sun.max, waveform.circle and flag (outline when idle, filled
+// when selected). The drawn jar (JarGlyph in GlassTabBar.swift: the brand's own savings picture) and the bubble of
+// the old Ask tab are kept for when Jars comes back to the bar.
 // Each sits in a 28 x 26 frame like TabItem's, drawn at the 20 pt semibold symbol weight.
 
 const STROKE = 1.9;
@@ -9,12 +10,35 @@ export function TabIcon({ index, selected }: { index: number; selected: boolean 
     case 0:
       return <SunIcon filled={selected} />;
     case 1:
-      return <BubbleIcon filled={selected} />;
-    case 2:
-      return <JarGlyph filled={selected} />;
+      return <WaveformCircleIcon filled={selected} />;
     default:
       return <FlagIcon filled={selected} />;
   }
+}
+
+/** waveform.circle: five bars in a circle. Filled: a solid disc with the bars cut out of it. */
+function WaveformCircleIcon({ filled }: { filled: boolean }) {
+  const bars = [{ x: 9.2, h: 4.2 }, { x: 11.6, h: 8.4 }, { x: 14, h: 11.4 }, { x: 16.4, h: 7.2 }, { x: 18.8, h: 3.6 }];
+  const lines = bars.map((bar) => (
+    <line key={bar.x} x1={bar.x} y1={13 - bar.h / 2} x2={bar.x} y2={13 + bar.h / 2} strokeLinecap="round" strokeWidth={1.8} />
+  ));
+  if (!filled) {
+    return (
+      <Frame>
+        <circle cx="14" cy="13" r="9.4" fill="none" stroke="currentColor" strokeWidth={STROKE} />
+        <g stroke="currentColor">{lines}</g>
+      </Frame>
+    );
+  }
+  return (
+    <Frame>
+      <mask id="sisu-tab-waveform-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="28" height="26">
+        <rect x="0" y="0" width="28" height="26" fill="white" />
+        <g stroke="black">{lines}</g>
+      </mask>
+      <circle cx="14" cy="13" r="10.35" fill="currentColor" mask="url(#sisu-tab-waveform-cut)" />
+    </Frame>
+  );
 }
 
 function Frame({ children }: { children: React.ReactNode }) {
@@ -41,7 +65,7 @@ function SunIcon({ filled }: { filled: boolean }) {
   );
 }
 
-function BubbleIcon({ filled }: { filled: boolean }) {
+export function BubbleIcon({ filled }: { filled: boolean }) {
   return (
     <Frame>
       <path
@@ -71,7 +95,7 @@ function FlagIcon({ filled }: { filled: boolean }) {
 }
 
 /** A jar with a lid (18 x 21 inside the frame), drawn to sit with the other icons at the same weight. */
-function JarGlyph({ filled }: { filled: boolean }) {
+export function JarGlyph({ filled }: { filled: boolean }) {
   const w = 18;
   const h = 21;
   const x = (28 - w) / 2;

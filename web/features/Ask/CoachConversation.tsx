@@ -26,7 +26,13 @@ function waitingAction(message: CoachMessage): boolean {
   return action?.status === ActionStatus.awaitingApproval;
 }
 
-export function CoachConversation({ session, store }: { session: CoachSession; store: CoachStore }) {
+export function CoachConversation({ session, store, title = "Ask Sisu", onClose }: {
+  session: CoachSession;
+  store: CoachStore;
+  title?: string;
+  /** Set when shown as the sheet over Talk: the header gets a close button. */
+  onClose?: () => void;
+}) {
   const model = useAppModel();
   const state = useCoachSessionState(session);
   const coach = useCoach();
@@ -120,12 +126,19 @@ export function CoachConversation({ session, store }: { session: CoachSession; s
     else store.ask(question);
   };
 
-  const mood = CoachMood.liito(isThinking, stageJustLanded, coach.cheering);
+  // While Sisu works, Liito does what the backend is doing (searching, calculating, writing…, LiitoTask); a stage
+  // that lands while it only thinks still shows the find.
+  const busy = isThinking || (state?.isRecording ?? false) || (state?.isSpeaking ?? false);
+  const taskMood = session.liitoMood;
+  const mood = coach.cheering ? "cheering"
+    : busy ? (stageJustLanded && taskMood === "thinking" ? "found" : taskMood)
+      : CoachMood.liito(false, stageJustLanded, false);
   const keyboardStyle = { "--sisu-ask-kb": `${keyboard.bottom}px`, "--sisu-ask-vv-top": `${keyboard.top}px` } as CSSProperties;
 
   return (
-    <div className="sisu-ask" style={keyboardStyle} data-testid="screen.ask" data-keyboard={keyboard.bottom > 0 ? "true" : "false"}>
-      <AskHeader mood={mood} />
+    <div className="sisu-ask" style={keyboardStyle} data-testid="screen.ask" data-keyboard={keyboard.bottom > 0 ? "true" : "false"}
+      data-sheet={onClose ? "true" : "false"}>
+      <AskHeader mood={mood} title={title} onClose={onClose} />
       <FallbackNotice session={session} notice={state?.fallbackNotice ?? null} fellBackToSample={coach.fellBackToSample} />
       <div className="sisu-ask-scroll" ref={scroller}>
         <div className="sisu-ask-stack">

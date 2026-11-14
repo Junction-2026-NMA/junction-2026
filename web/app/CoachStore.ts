@@ -11,18 +11,24 @@
 //   voiceState        what the Rive VoiceButton shows (`useVoiceState()` in a component)
 //   voiceDown()       the VoiceButton's `pressDown`: start recording here.
 //   voiceUp()         the VoiceButton's `pressUp`: stop recording and send it here.
+// `conversation` is the hands-free conversation of the Talk screen for the same session (web/voice/
+// ConversationController.ts). It shares the voice controller's speech player, so "Speak replies" applies to it too.
 import { CoachErrors, CoachSession, Store } from "@/web/core/CoachSession";
 import { ActionStatus, type AgentAction, type TeachingCard } from "@/web/core/CoachModels";
 import { CoachText, TeachingQuiz } from "@/web/core/CoachPresentation";
 import type { RiveBindings } from "@/web/core/RiveContract";
+import { ConversationController } from "@/web/voice/ConversationController";
 import { VoiceController, fixtureRecording } from "@/web/voice/VoiceController";
 import { VoiceLaunch } from "@/web/voice/VoiceLaunch";
+import { TalkLaunch } from "@/web/features/Talk/TalkLaunch";
 
 export interface CoachStoreState {
   /** The conversation for the chosen customer. Null before a customer is chosen. */
   readonly session: CoachSession | null;
   /** Push to talk for the current session. Null with no session. */
   readonly voice: VoiceController | null;
+  /** The hands-free conversation of the Talk screen for the current session. Null with no session. */
+  readonly conversation: ConversationController | null;
   /** True when the session answers from the bundled sample because the backend could not be reached. */
   readonly fellBackToSample: boolean;
   // Screen state that outlives a tab switch.
@@ -44,11 +50,12 @@ export class CoachStore extends Store<CoachStoreState> {
   private watcher: (() => void) | null = null;
 
   constructor() {
-    super({ session: null, voice: null, fellBackToSample: false, quizChoices: {}, deciding: [], decisionNotices: {}, cheering: false });
+    super({ session: null, voice: null, conversation: null, fellBackToSample: false, quizChoices: {}, deciding: [], decisionNotices: {}, cheering: false });
   }
 
   get session(): CoachSession | null { return this.state.session; }
   get voice(): VoiceController | null { return this.state.voice; }
+  get conversation(): ConversationController | null { return this.state.conversation; }
   get fellBackToSample(): boolean { return this.state.fellBackToSample; }
 
   /** The "Mock data" / "Sample data" tag, null when live. Reads the session now (use `useCoachDataTag()` in React). */
@@ -156,12 +163,13 @@ export class CoachStore extends Store<CoachStoreState> {
 
   /** Forgets the session (the customer was cleared). */
   clear(): void {
+    this.state.conversation?.shutDown();
     this.state.session?.cancel();
     this.state.voice?.dispose();
     this.watcher?.();
     this.watcher = null;
     this.key = null;
-    this.update({ session: null, voice: null });
+    this.update({ session: null, voice: null, conversation: null });
     this.onApprovedSaving?.(0);
   }
 
@@ -176,11 +184,16 @@ export class CoachStore extends Store<CoachStoreState> {
   }
 
   private use(next: CoachSession): void {
+    this.state.conversation?.shutDown();
     this.state.session?.cancel();
     this.state.voice?.dispose();
     this.watcher?.();
-    const voice = new VoiceController(next, VoiceLaunch.current().voiceFixture ? fixtureRecording() : null);
-    this.update({ session: next, voice, quizChoices: {}, decisionNotices: {}, cheering: false });
+    const fixture = VoiceLaunch.current().voiceFixture;
+    const voice = new VoiceController(next, fixture ? fixtureRecording() : null);
+    const conversation = new ConversationController(next, voice.player, fixture ? fixtureRecording() : null);
+    conversation.repliesMuted = () => voice.isMuted;
+    conversation.fixtureDelay = TalkLaunch.current().fixtureDelay;
+    this.update({ session: next, voice, conversation, quizChoices: {}, decisionNotices: {}, cheering: false });
     // Swift watches `$actions`; here every change of the session is checked for a new actions array.
     let actions = next.getSnapshot().actions;
     this.watcher = next.subscribe(() => {

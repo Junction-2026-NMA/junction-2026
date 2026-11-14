@@ -28,6 +28,9 @@ export interface AppStored {
   readonly overviewState: LoadState;
   // Navigation
   readonly tab: AppTab;
+  /** The written conversation (the Ask screen) as a sheet over Talk: the cards, approvals, quizzes and typing.
+   *  While it is up, the hands-free conversation holds its microphone. */
+  readonly conversationShown: boolean;
   /** The first-run flow. Complete after the first visit; "Start the demo over" restarts it. */
   readonly onboarding: OnboardingFlow;
   /** The transactions sheet MainScreen shows, or null. */

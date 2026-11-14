@@ -5,7 +5,8 @@ import type { PlanEvent } from "./PlanModels";
 
 /** The Rive moods of the Liito mascot (`RiveBindings.LiitoMood` in RiveContract.swift). Kept here as a string
  * union so this file does not depend on the Rive contract port; the values are the contract's enum cases. */
-export type LiitoMood = "idle" | "cheering" | "proud" | "gliding" | "curious" | "found" | "focused" | "cosy" | "sleepy" | "thinking";
+export type LiitoMood = "idle" | "cheering" | "proud" | "gliding" | "curious" | "found" | "focused" | "cosy" | "sleepy" | "thinking"
+  | "listening" | "writing" | "searching" | "calculating" | "comparing" | "presenting";
 
 /** The eight poses of the brand kit, as the backend names them. */
 export type LiitoPose = "sleepy" | "curious" | "focused" | "gliding" | "found-something" | "cheering" | "proud" | "cosy";

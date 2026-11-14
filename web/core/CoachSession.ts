@@ -2,7 +2,8 @@
 // customer. Swift's `ObservableObject` becomes a store: `subscribe(listener)` + `getSnapshot()` (an immutable
 // `CoachSessionState`, replaced on every change), ready for React's `useSyncExternalStore`.
 import { type FixtureSource, FixtureAPI, SisuError, isCancellation } from "./API";
-import { Activity, SisuActivity } from "./Activity";
+import { Activity, SisuActivity, type LiitoMood } from "./Activity";
+import { LiitoTask } from "./LiitoTask";
 import { CoachClient } from "./CoachClient";
 import {
   type AgentAction,
@@ -216,6 +217,8 @@ export interface CoachSessionState {
   fallbackNotice: string | null;
   working: SisuActivity;
   moment: SisuActivity | null;
+  /** What Liito is visibly doing in the running turn (LiitoTask.next over its events). Null between turns. */
+  task: LiitoTask | null;
 }
 
 let idCounter = 0;
@@ -264,7 +267,7 @@ export class CoachSession extends Store<CoachSessionState> {
 
   constructor(readonly customerId: string, readonly client: CoachClient, options: CoachSessionOptions = {}) {
     super({ messages: [], server: null, actions: [], memory: null, isThinking: false, isRecording: false, isSpeaking: false,
-      heardLanguage: null, notice: null, fallbackNotice: null, working: SisuActivity.idle, moment: null });
+      heardLanguage: null, notice: null, fallbackNotice: null, working: SisuActivity.idle, moment: null, task: null });
     this.speech = options.speech ?? null;
     this.speakReplies = options.speakReplies ?? this.speech !== null;
     this.language = options.language ?? "auto";
@@ -315,6 +318,11 @@ export class CoachSession extends Store<CoachSessionState> {
     return waiting ? SisuActivity.make("waiting_for_approval", waiting.title, waiting.warning) : SisuActivity.idle;
   }
 
+  /** The Rive mood for what Sisu is doing right now, with the task animations (LiitoTask.mood). */
+  get liitoMood(): LiitoMood {
+    return LiitoTask.mood(this.activity, this.state.task, this.state.isRecording);
+  }
+
   /** Euros a month freed by approved switches. Feed it to the futures chart as the monthly bill saving. */
   get approvedMonthlySaving(): number {
     return this.state.actions
@@ -357,7 +365,9 @@ export class CoachSession extends Store<CoachSessionState> {
     this.speech?.stop();
     const s = this.state;
     if (s.isThinking || s.messages.some((m) => m.pending)) {
-      this.update({ isThinking: false, messages: s.messages.map((m) => (m.pending ? { ...m, pending: false } : m)) });
+      this.update({ isThinking: false, task: null, messages: s.messages.map((m) => (m.pending ? { ...m, pending: false } : m)) });
+    } else if (s.task !== null) {
+      this.update({ task: null });
     }
   }
 
@@ -404,6 +414,7 @@ export class CoachSession extends Store<CoachSessionState> {
       messages: [...this.state.messages, CoachMessage.make(userId, "user", { text: userText, pending: userText === "" }), CoachMessage.make(replyId, "assistant", { pending: true })],
       moment: null,
       working: SisuActivity.make("thinking"),
+      task: null,
       isThinking: true,
     });
 
@@ -423,7 +434,7 @@ export class CoachSession extends Store<CoachSessionState> {
       if (this.turnToken !== token) return;
       this.turnTask = null;
       this.turnAbort = null;
-      this.update({ isThinking: false, messages: this.state.messages.map((m) => (m.pending ? { ...m, pending: false } : m)) });
+      this.update({ isThinking: false, task: null, messages: this.state.messages.map((m) => (m.pending ? { ...m, pending: false } : m)) });
     })();
     this.turnTask = task;
     return task;
@@ -448,6 +459,8 @@ export class CoachSession extends Store<CoachSessionState> {
     this.patch(replyId, (m) => CoachMessage.apply(m, event));
     const next = Activity.nextActivity(this.state.working, event);
     if (!SisuActivity.equals(next, this.state.working)) this.update({ working: next });
+    const task = LiitoTask.next(this.state.task, event);
+    if (task !== this.state.task) this.update({ task });
     this.noteFallback();
     // What concerns the session.
     switch (event.kind) {

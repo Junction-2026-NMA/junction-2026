@@ -2,17 +2,19 @@
 // The React side of AppModel: the provider (SwiftUI `.environment(model)`) and the hooks screens use.
 // Every store here is subscribe/getSnapshot with immutable snapshots, read through useSyncExternalStore.
 //
-//   const model = useAppModel();               // the AppModel: call its methods (model.setTab("ask"))
+//   const model = useAppModel();               // the AppModel: call its methods (model.setTab("talk"))
 //   const app = useApp();                      // the whole AppState snapshot (re-renders on every change)
 //   const tab = useAppSelector((s) => s.tab);  // one value (re-renders only when it changes)
 //   const coach = useCoach();                  // CoachStoreState: session, voice, quizChoices, deciding…
 //   const session = useCoachSession();         // the CoachSession or null; its state: useCoachSessionState()
 //   const voice = useVoice();                  // VoiceControllerState or null; the controller: useVoiceController()
+//   const talk = useConversation();            // ConversationControllerState or null; the controller: useConversationController()
 import { createContext, useContext, useRef, useSyncExternalStore, type ReactNode } from "react";
 import type { CoachSession, CoachSessionState } from "@/web/core/CoachSession";
 import { CoachText } from "@/web/core/CoachPresentation";
 import type { RiveBindings } from "@/web/core/RiveContract";
 import type { VoiceController, VoiceControllerState } from "@/web/voice/VoiceController";
+import type { ConversationController, ConversationControllerState } from "@/web/voice/ConversationController";
 import type { AppModel } from "./AppModel";
 import type { AppState } from "./AppState";
 import type { CoachStore, CoachStoreState } from "./CoachStore";
@@ -87,6 +89,24 @@ export function useVoice(controller?: VoiceController | null): VoiceControllerSt
   const current = useVoiceController();
   const watched = controller === undefined ? current : controller;
   return useSyncExternalStore(watched?.subscribe ?? noSubscribe, watched?.getSnapshot ?? nothing, watched?.getSnapshot ?? nothing);
+}
+
+/** The hands-free conversation of the Talk screen (Swift `model.coach.conversation`), or null. */
+export function useConversationController(): ConversationController | null {
+  return useCoach().conversation;
+}
+
+/** The conversation's state (flow, level, starts, ends), null without a session. Pass a controller to watch that one. */
+export function useConversation(controller?: ConversationController | null): ConversationControllerState | null {
+  const current = useConversationController();
+  const watched = controller === undefined ? current : controller;
+  return useSyncExternalStore(watched?.subscribe ?? noSubscribe, watched?.getSnapshot ?? nothing, watched?.getSnapshot ?? nothing);
+}
+
+/** Only the microphone level of a conversation (0…1): re-renders the ring, not the whole screen. */
+export function useConversationLevel(controller: ConversationController | null): number {
+  const read = () => controller?.getSnapshot().level ?? 0;
+  return useSyncExternalStore(controller?.subscribe ?? noSubscribe, read, read);
 }
 
 /** Swift `store.voiceState`: what the Rive VoiceButton shows ("idle" without a session). */

@@ -2,21 +2,28 @@
 import type { EvidenceFilter } from "@/web/core/Models";
 import { makeUUID } from "@/web/core/CoachSession";
 
-/** Swift `enum AppTab: Int`. The web uses the case names; `AppTab.index(tab)` is the Swift rawValue. */
-export type AppTab = "today" | "ask" | "jars" | "path";
+/** Swift `enum AppTab: Int`: the three pages in the floating tab bar, in order. Talk (Liito and the hands-free
+ *  conversation) is the main page and sits in the middle. The Ask conversation is a sheet on Talk; the Jars screen
+ *  is not in the bar. The web uses the case names; `AppTab.index(tab)` is the Swift rawValue. */
+export type AppTab = "today" | "talk" | "path";
 
-const tabs: readonly AppTab[] = ["today", "ask", "jars", "path"];
+const tabs: readonly AppTab[] = ["today", "talk", "path"];
 
 export const AppTab = {
   allCases: tabs,
 
-  /** Swift `AppTab(argument:)`: case-insensitive; null for anything else. */
+  /** Swift `AppTab(argument:)`, `tab=`: `today`, `talk` (or `ask`, which also opens the conversation sheet,
+   *  web/features/Talk/TalkLaunch.ts) or `path`; case-insensitive; null for anything else (`jars` too). */
   fromArgument(argument: string | null | undefined): AppTab | null {
-    const value = argument?.toLowerCase();
-    return (tabs as readonly string[]).includes(value ?? "") ? (value as AppTab) : null;
+    switch (argument?.toLowerCase()) {
+      case "today": return "today";
+      case "talk": case "ask": return "talk";
+      case "path": return "path";
+      default: return null;
+    }
   },
 
-  /** The Swift rawValue (0 for Today ... 3 for Path), e.g. for `RiveBindings.tabBar(index)`. */
+  /** The Swift rawValue (0 for Today ... 2 for Path). */
   index(tab: AppTab): number { return tabs.indexOf(tab); },
 
   fromIndex(index: number): AppTab | null { return tabs[index] ?? null; },

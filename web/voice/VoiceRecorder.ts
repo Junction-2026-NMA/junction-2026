@@ -6,7 +6,13 @@
 //
 // Differences from AVAudioRecorder: opening the microphone is async (`prepare()`, which also asks for
 // permission), and so is `stop()` (MediaRecorder hands the last chunk over in an event).
+//
+// Metering (`start(true)`, `level()`), for the hands-free conversation (web/voice/ConversationController.ts): an
+// AnalyserNode on the app's shared AudioContext reads the microphone (it is never connected to the speakers), and
+// `level()` is 20·log10 of the RMS of its latest samples, in dBFS like AVAudioRecorder.averagePower (0 is loudest,
+// -160 silence).
 import { VoicePressRule } from "@/web/core/AppLogic/VoiceLogic";
+import { audioContext } from "./AudioUnlock";
 
 /** One finished recording. */
 export interface VoiceRecording {
@@ -50,9 +56,20 @@ function supportedType(): string | null {
   return null;
 }
 
+/** The microphone's level meter: a source and an analyser on the shared AudioContext. */
+interface Meter {
+  readonly source: MediaStreamAudioSourceNode;
+  readonly analyser: AnalyserNode;
+  readonly samples: Float32Array<ArrayBuffer>;
+}
+
+/** The quietest level `level()` reports, in dBFS (AVAudioRecorder's floor). */
+export const silenceLevel = -160;
+
 export class VoiceRecorder {
   private stream: MediaStream | null = null;
   private recorder: MediaRecorder | null = null;
+  private meter: Meter | null = null;
   private chunks: Blob[] = [];
   private startedAt: number | null = null;
   private limitTimer: ReturnType<typeof setTimeout> | null = null;
@@ -65,9 +82,17 @@ export class VoiceRecorder {
 
   get isRecording(): boolean { return this.recorder?.state === "recording"; }
 
-  /** Opens the microphone (asking the first time). Swift `VoiceAudioSession.requestMicrophone()`. */
-  async prepare(): Promise<MicrophoneProblem | null> {
-    if (this.stream) return null;
+  /** Opens the microphone (asking the first time). Swift `VoiceAudioSession.requestMicrophone()`. Calls made while
+   *  one is still asking share its answer, so two quick opens never leave a second microphone stream running. */
+  prepare(): Promise<MicrophoneProblem | null> {
+    if (this.stream) return Promise.resolve(null);
+    this.preparing ??= this.openStream().finally(() => { this.preparing = null; });
+    return this.preparing;
+  }
+
+  private preparing: Promise<MicrophoneProblem | null> | null = null;
+
+  private async openStream(): Promise<MicrophoneProblem | null> {
     const devices = typeof navigator === "undefined" ? undefined : navigator.mediaDevices;
     // No microphone API (an old browser, or a plain-http page, where browsers hide it) or no MediaRecorder.
     if (!devices?.getUserMedia || typeof MediaRecorder === "undefined") return "failed";
@@ -80,8 +105,11 @@ export class VoiceRecorder {
     }
   }
 
-  /** Starts recording on the opened microphone. Throws when it cannot. Call `prepare()` first. */
-  start(): void {
+  /**
+   * Starts recording on the opened microphone. Throws when it cannot. Call `prepare()` first.
+   * @param metering also measure the level, for `level()` (the hands-free conversation needs it).
+   */
+  start(metering = false): void {
     const stream = this.stream;
     if (!stream) throw new Error("microphone not open");
     const mimeType = supportedType();
@@ -100,6 +128,7 @@ export class VoiceRecorder {
     });
     recorder.start();
     this.recorder = recorder;
+    this.meter = metering ? VoiceRecorder.makeMeter(stream) : null;
     this.startedAt = Date.now();
     this.limitTimer = setTimeout(() => {
       if (this.recorder === recorder) this.onAutoStop?.(false);
@@ -107,22 +136,41 @@ export class VoiceRecorder {
     document.addEventListener("visibilitychange", this.onHidden);
   }
 
+  /** The microphone's level right now in dBFS (0 is loudest, -160 silence). Null when not recording or not metering. */
+  level(): number | null {
+    const meter = this.meter;
+    if (!meter || !this.isRecording) return null;
+    const samples = meter.samples;
+    meter.analyser.getFloatTimeDomainData(samples);
+    let sum = 0;
+    for (let index = 0; index < samples.length; index += 1) sum += samples[index] * samples[index];
+    const rms = Math.sqrt(sum / Math.max(samples.length, 1));
+    return rms > 0 ? Math.max(20 * Math.log10(rms), silenceLevel) : silenceLevel;
+  }
+
   /** Stops and returns what was recorded (null when nothing was). Always closes the microphone. */
   stop(): Promise<VoiceRecording | null> {
     const recorder = this.recorder;
     const startedAt = this.startedAt;
+    // This recording's microphone and meter are let go of here and now, so a new `prepare()` right after (the
+    // conversation reopens the microphone at once after a false start) gets its own stream, which the end of this
+    // stop never closes.
+    const stream = this.stream;
+    this.stream = null;
     this.recorder = null;
     this.startedAt = null;
+    VoiceRecorder.closeMeter(this.meter);
+    this.meter = null;
     if (this.limitTimer !== null) clearTimeout(this.limitTimer);
     this.limitTimer = null;
     if (typeof document !== "undefined") document.removeEventListener("visibilitychange", this.onHidden);
     if (!recorder || recorder.state === "inactive") {
-      this.release();
+      VoiceRecorder.closeStream(stream);
       return Promise.resolve(null);
     }
     return new Promise((resolve) => {
       const finish = () => {
-        this.release();
+        VoiceRecorder.closeStream(stream);
         const seconds = startedAt === null ? 0 : (Date.now() - startedAt) / 1000;
         const type = recorder.mimeType || this.chunks[0]?.type || "audio/webm";
         const data = this.chunks.length > 0 ? new Blob(this.chunks, { type }) : null;
@@ -145,10 +193,43 @@ export class VoiceRecorder {
 
   /** Closes the microphone (the browser's recording indicator goes away). */
   release(): void {
-    this.stream?.getTracks().forEach((track) => {
+    VoiceRecorder.closeMeter(this.meter);
+    this.meter = null;
+    VoiceRecorder.closeStream(this.stream);
+    this.stream = null;
+  }
+
+  private static closeStream(stream: MediaStream | null): void {
+    stream?.getTracks().forEach((track) => {
       track.onended = null;
       track.stop();
     });
-    this.stream = null;
+  }
+
+  /** A level meter on the shared AudioContext, or null where Web Audio is missing. Not connected to the speakers. */
+  private static makeMeter(stream: MediaStream): Meter | null {
+    const ctx = audioContext();
+    if (!ctx) return null;
+    try {
+      if (ctx.state !== "running") void ctx.resume().catch(() => undefined);
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 1024;
+      analyser.smoothingTimeConstant = 0;
+      source.connect(analyser);
+      return { source, analyser, samples: new Float32Array(new ArrayBuffer(analyser.fftSize * 4)) };
+    } catch {
+      return null;
+    }
+  }
+
+  private static closeMeter(meter: Meter | null): void {
+    if (!meter) return;
+    try {
+      meter.source.disconnect();
+      meter.analyser.disconnect();
+    } catch {
+      // Already disconnected.
+    }
   }
 }

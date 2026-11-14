@@ -34,6 +34,29 @@
   padding-top: calc(var(--sisu-space-grid) * 2);
 }
 
+/* As the sheet over Talk: no tab bar under it and no status bar over it. */
+.sisu-ask[data-sheet="true"] {
+  --sisu-tabbar-room: 0px;
+}
+
+.sisu-ask[data-sheet="true"] .sisu-ask-header {
+  padding-top: calc(var(--sisu-space-grid) * 2);
+}
+
+.sisu-ask-liito {
+  flex: none;
+  display: block;
+  width: 72px;
+  height: 72px;
+}
+
+.sisu-ask-close {
+  flex: none;
+  display: block;
+  width: 48px;
+  height: 48px;
+}
+
 .sisu-ask-title {
   flex: 1 1 auto;
   min-width: 0;

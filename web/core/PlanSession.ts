@@ -4,6 +4,7 @@
 // `subscribe(listener)` + `getSnapshot()` gives `{ view, fallbackNotice }`.
 import { SisuError } from "./API";
 import { Activity, SisuActivity } from "./Activity";
+import { LiitoTask } from "./LiitoTask";
 import { CoachClient } from "./CoachClient";
 import type { CoachDataLabel } from "./CoachSession";
 import { Store } from "./CoachSession";
@@ -60,6 +61,8 @@ export interface PlanView {
   approvalError: string | null;
   /** What Sisu is doing right now: drive the mascot from this. */
   activity: SisuActivity;
+  /** What Liito is visibly doing (LiitoTask.nextPlan over the events): mascot mood `LiitoTask.mood(activity, task, false)`. */
+  task: LiitoTask | null;
 }
 
 /** A change to the view: an event from the server, or something the customer did. */
@@ -75,7 +78,7 @@ const clampCount = (value: number) => (Number.isFinite(value) ? Math.trunc(Math.
 function makeView(): PlanView {
   return { phase: "idle", act: "idle", customerName: null, model: null, mock: false, scan: null, findings: [], lanes: [], checks: [],
     calc: null, actions: [], projection: null, summary: null, plan: null, error: null, approval: "none", approvalError: null,
-    activity: SisuActivity.idle };
+    activity: SisuActivity.idle, task: null };
 }
 
 function withLane(lanes: PlanLane[], billType: BillType, change: (lane: PlanLane) => PlanLane): PlanLane[] {
@@ -136,16 +139,16 @@ export const PlanView = {
   applying(view: PlanView, change: PlanViewChange): PlanView {
     const next = stepped(view, change);
     switch (change.kind) {
-      case "reset": return { ...next, activity: SisuActivity.make("thinking", "Opening your account") };
+      case "reset": return { ...next, activity: SisuActivity.make("thinking", "Opening your account"), task: null };
       case "approving": return next;
       case "approved": {
         if (change.actions.length === 0) return next;
         // A whole plan approved is `proud`; a part of it is `cheering` (the backend's handoff table).
         const whole = change.error === null && PlanView.waitingActions(next).length === 0;
-        return { ...next, activity: SisuActivity.posed(SisuActivity.make("approved", `${change.actions.length} approved, as a simulation`), whole ? "proud" : "cheering") };
+        return { ...next, activity: SisuActivity.posed(SisuActivity.make("approved", `${change.actions.length} approved, as a simulation`), whole ? "proud" : "cheering"), task: null };
       }
-      case "declined": return { ...next, activity: SisuActivity.make("declined") };
-      case "event": return { ...next, activity: Activity.nextPlanActivity(view.activity, change.event) };
+      case "declined": return { ...next, activity: SisuActivity.make("declined"), task: null };
+      case "event": return { ...next, activity: Activity.nextPlanActivity(view.activity, change.event), task: LiitoTask.nextPlan(view.task, change.event) };
     }
   },
 };
@@ -285,7 +288,7 @@ export class PlanSession extends Store<PlanSessionState> {
   /** Stops a running plan. What has been shown stays on screen. */
   cancel(): void {
     this.stop();
-    if (this.state.view.phase === "running") this.setView({ ...this.state.view, phase: "idle", activity: SisuActivity.idle });
+    if (this.state.view.phase === "running") this.setView({ ...this.state.view, phase: "idle", activity: SisuActivity.idle, task: null });
   }
 
   /** Stops and clears everything. */

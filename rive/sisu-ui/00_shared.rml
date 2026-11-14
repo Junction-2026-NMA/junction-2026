@@ -58,6 +58,12 @@
         <DataEnumValue key="cosy" value="cosy" id="0:248"/>
         <DataEnumValue key="sleepy" value="sleepy" id="0:249"/>
         <DataEnumValue key="thinking" value="thinking" id="0:250"/>
+        <DataEnumValue key="listening" value="listening" id="0:251"/>
+        <DataEnumValue key="writing" value="writing" id="0:252"/>
+        <DataEnumValue key="searching" value="searching" id="0:253"/>
+        <DataEnumValue key="calculating" value="calculating" id="0:254"/>
+        <DataEnumValue key="comparing" value="comparing" id="0:255"/>
+        <DataEnumValue key="presenting" value="presenting" id="0:256"/>
     </DataEnumCustom>
     <DataEnumCustom name="StickerKind" id="0:260">
         <DataEnumValue key="firstJar" value="firstJar" id="0:261"/>

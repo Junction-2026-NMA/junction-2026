@@ -105,7 +105,28 @@ Known from the CLI docs or the runtime source, and designed around:
 
 ## Liito
 
-`12_liito.rml` is the mascot: one rig, ten moods, and a tap reaction. The contract is unchanged (artboard `Liito`, view model `LiitoVM`, state machine `Main`, enum property `mood` with the ten `LiitoMood` values). One private trigger was added to the view model: `_tap` (a pointer went down on Liito). The app does not read or write it.
+`12_liito.rml` is the mascot: one rig, sixteen moods (ten moods and six task moods), and a tap reaction. Artboard `Liito`, view model `LiitoVM`, state machine `Main`, enum property `mood` with the sixteen `LiitoMood` values. One private trigger is on the view model: `_tap` (a pointer went down on Liito). The app does not read or write it.
+
+**The file is written by `rive/tools/liito-gen.py`; change Liito there, never in the `.rml`.** `python3 rive/tools/liito-gen.py rive/sisu-ui/12_liito.rml`, then `sh rive/build.sh` and copy `ios/Sisu/Resources/Rive/sisu_ui.riv` to `public/rive/sisu_ui.riv` for the web app. A mood is one short function in it. `--bg` adds a pale background (scratch renders only); `--test=<mood>` adds a click on Liito that sets that mood, `--test=a,b,c` one 12 x 12 click target per mood along the top edge (x = 10 + 16 i, y = 10) for chains of transitions (scratch copies only).
+
+### Task moods (enum values 0:251 to 0:256)
+
+In a live conversation the app sets these from what the agent is really doing (never from a timer). Each has its own props, hidden by scale and opacity in every other mood.
+
+| Mood | What Liito does | Props |
+|---|---|---|
+| `listening` | head tilted toward the sound, right ear perked and twitching, eyes wide, paws together; three arcs arrive at the ear, outer first (an arc never goes out completely, so any single frame shows the sound) | `Waves` (three S-green arcs) |
+| `writing` | holds a notepad in front of the belly with the left paw, writes with a pencil in the right; three lines appear as they are written, then the page clears | `Notepad` (lines), `Pencil` |
+| `searching` | an empty lens with a glint sweeps from above the head to beside it and back, the eyes and head follow, a scanning ring leaves the lens; arrives through a one-shot (`mood: searching, arriving`) in which the arm comes up first and the lens appears only once it is high | the magnifier, with its `Drop` hidden, `Glint`, `Ping` |
+| `calculating` | holds a calculator with the left paw and taps keys with the right; the pressed key lights, the screen's digits change, `+`, `-`, `=` float up beside the head | `Calculator`, `Sums` |
+| `comparing` | an offer card in each raised paw, weighed like a balance; the eyes go from one card to the other; the better one gets a green check | `Card L`, `Card R` (with `Check`) |
+| `presenting` | stands beside a chart on an easel, points at it and talks while its three bars grow; glances at the chart, then back at you; the tail is tucked away so the pointing arm reads | `Board` (root space, on the ground line, under Liito) |
+
+How some of it works:
+- The **pencil lives in body space**, not on the arm: writing keys its position to the paw and its angle per key, choosing the angle that keeps the arm closest to its own length, so the arm can stretch a little without skewing the pencil. It draws over the paws so it reads at 64 px.
+- The arm scale is **one channel per arm** (`armL.sy`, `armR.sy`); the old moods keep the values they had (gliding 1.4, the rest 1).
+- Props that ride an arm (the cards, the magnifier) are children of the arm; a card is counter-rotated by the arm's mid angle, so it stands upright and tilts with the weighing.
+- Checked on the built file: `--verify` and `inspect` clean; the ten old moods render pixel-identical to the previous file (80 renders); every mood, sampled every 7 frames across its loop, keeps at least 5 px from the artboard edge (presenting 5, the rest 6 to 9); all sixteen values read back through `--data-dump`; transitions from idle into each task mood and the chain listening, searching, calculating, comparing, presenting, writing, listening look clean frame by frame.
 
 ### The rig
 
@@ -133,12 +154,11 @@ Parts, front to back, each with its own pivot: thinking dots and sleeping z; mug
 
 ### Adding a mood
 
-1. Add the value to `LiitoMood` in `00_shared.rml` and to `contract.json` (a contract change: agree it with the app first).
-2. Copy the timeline `mood: idle` as `mood: <new>`. Keep every frame-0 key (change values, never delete one), then add the motion. Make the last key of each property equal its first.
-3. Add an `AnimationState` for it with a transition to each of the other moods, add a transition to it in each of the other states, and add its conditioned transition to the `EntryState`.
-4. Render it: `--data=mood=<new>` at `--advance=1` (first frame), at several times across the loop, and at `--viewport=64x64 --fit=contain`.
+1. Add the value to `LiitoMood` in `00_shared.rml` (the next free id after 0:256) and to `contract.json` (a contract change: agree it with the app first; the Swift `RiveBindings.LiitoMood` and its test list in `ios/SisuCore` must match).
+2. In `rive/tools/liito-gen.py`: add it to `MOODS`, write its function (start from `idle()`; the rest pose is filled in for you; every key list must end on its first value), add it to `STATES` and `BLENDS`. New props go in `SCENE`, `CH` and, hidden, in `DEFAULT`; what moves inside a prop goes in `FX`.
+3. Generate, build, and render it: `--data=mood=<new>` at `--advance=1` (first frame), at several times across the loop, and at `--viewport=64x64 --fit=contain`.
 
-The file was written with a small Python authoring aid that keeps these rules by itself (it fills in the rest pose, works the membrane points out from the arm and leg keys, splits eases at the loop seam, checks every seam and writes the transition matrix). A copy is in `.handoff/rive-liito-gen.py`: a mood there is one short function. The `.rml` is the source of truth; if you edit it by hand, the aid is out of date.
+The aid checks every loop seam, that each arrival ends on its loop's first frame, writes the full transition matrix and the entry transitions, and works the membrane points out from the arm and leg keys.
 
 ### Gotchas
 
@@ -147,7 +167,7 @@ The file was written with a small Python authoring aid that keeps these rules by
 - **Upper lids read as annoyed.** A lid coming down from the top made Liito look grumpy in every test, so the rig only has lower lids.
 - **A mood change during a blend waits for the blend** (see the first list of gotchas). Two quick changes play one after the other, never a pop.
 - **Keyed points move in straight lines.** The membrane's paw point is keyed to where the paw is at each arm key; between two moods it cuts the corner of the paw's arc for a few frames. It is behind the body and fading, so it does not show.
-- **The magnifier passes the left edge for about three frames** when `found` is entered from a mood with the arm down (the arm sweeps through horizontal). Every held pose and loop stays inside the artboard.
+- **The magnifier passes the left edge for about three frames** when `found` is entered, or `searching` is left, from or to a mood with the arm down (the arm sweeps through horizontal while the lens scales). `searching` is entered through its arrival, which keeps the lens hidden until the arm is high. Every held pose and loop stays inside the artboard.
 - **To look at a transition**, add to a scratch copy a `click` listener with `ListenerViewModelChange > BindablePropertyEnum propertyValue="<enum value id>"` bound to `mood` with `direction="true"`, then render `--data=mood=<from> --advance=47 --pointer=click@112,140 --advance=<n>`.
 - **Renders on a pale background** need a temporary background shape in a scratch copy; the artboard itself must stay transparent.
 - **Reduce motion** is the app's side: show the mood's first frame (advance once, then pause the view).

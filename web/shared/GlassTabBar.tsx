@@ -1,5 +1,5 @@
 "use client";
-// The floating tab bar: one translucent capsule for Today, Ask, Jars and Path, with a softly green-tinted pill
+// The floating tab bar: one translucent capsule for Today, Talk and Path, with a softly green-tinted pill
 // under the selected tab that springs to the new tab. Port of ios/Sisu/Shared/GlassTabBar.swift.
 // "Liquid glass" is a backdrop-filter capsule; a solid near-white capsule with a hairline when
 // prefers-reduced-transparency is on (or the browser has no backdrop-filter, or `solid` is set); with
@@ -10,15 +10,15 @@ import { useKeyboardShown } from "./keyboard";
 import { TabIcon } from "./TabIcons";
 import "./tabbar.css";
 
-/** The four tabs in order, like AppTab.allCases. */
-export const defaultTabs = ["today", "ask", "jars", "path"] as const;
+/** The three tabs in order, like AppTab.allCases. */
+export const defaultTabs = ["today", "talk", "path"] as const;
 
-export const GlassTabBarTitles = ["Today", "Ask", "Jars", "Path"] as const;
+export const GlassTabBarTitles = ["Today", "Talk", "Path"] as const;
 
 export interface GlassTabBarProps<Tab extends string | number> {
   selection: Tab;
   onSelect: (tab: Tab) => void;
-  /** The tabs in order (Today, Ask, Jars, Path). Defaults to "today" | "ask" | "jars" | "path". */
+  /** The tabs in order (Today, Talk, Path). Defaults to "today" | "talk" | "path". */
   tabs?: readonly Tab[];
   /** Hides the bar (it steps aside). Undefined: hidden while the on-screen keyboard is up. */
   hidden?: boolean;
@@ -27,7 +27,7 @@ export interface GlassTabBarProps<Tab extends string | number> {
 }
 
 export function GlassTabBar<Tab extends string | number>(props: GlassTabBarProps<Tab>) {
-  const tabs = (props.tabs ?? (defaultTabs as unknown as readonly Tab[])).slice(0, 4);
+  const tabs = (props.tabs ?? (defaultTabs as unknown as readonly Tab[])).slice(0, GlassTabBarTitles.length);
   const reduceMotion = useReducedMotion();
   const reduceTransparency = useReducedTransparency();
   const keyboardShown = useKeyboardShown();
@@ -54,7 +54,7 @@ export function GlassTabBar<Tab extends string | number>(props: GlassTabBarProps
     >
       <div className="sisu-tabbar-surface">
         <div className="sisu-tabbar-track" aria-hidden="true">
-          <div className="sisu-tabbar-pill" style={{ transform: `translateX(${index * 100}%)` }} />
+          <div className="sisu-tabbar-pill" style={{ width: `${100 / Math.max(tabs.length, 1)}%`, transform: `translateX(${index * 100}%)` }} />
         </div>
         <div className="sisu-tabbar-items" role="tablist">
           {tabs.map((tab, position) => {

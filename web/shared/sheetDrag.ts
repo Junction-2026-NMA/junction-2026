@@ -30,6 +30,16 @@ function track(tracker: Tracker, y: number): Tracker {
   return { ...tracker, lastY: y, lastTime: now, velocity: tracker.velocity * 0.6 + instant * 0.4 };
 }
 
+/** True when the touch began inside a scroller (between `target` and `root`) that is not at its top. */
+function scrolledInside(target: EventTarget | null, root: HTMLElement): boolean {
+  let node = target instanceof Element ? target : null;
+  while (node && node !== root) {
+    if (node instanceof HTMLElement && node.scrollTop > 0 && node.scrollHeight > node.clientHeight) return true;
+    node = node.parentElement;
+  }
+  return false;
+}
+
 /** Wires pointer drags on `grab` and touch drags on `scroll` (at its top) to the handlers. */
 export function useSheetDrag(
   grab: RefObject<HTMLElement | null>,
@@ -77,16 +87,19 @@ export function useSheetDrag(
     if (!enabled || !scrollElement) return;
     let startY = 0;
     let tracker: Tracker | null = null;
+    let nestedScrolled = false;
 
     const start = (event: TouchEvent) => {
       startY = event.touches[0]?.clientY ?? 0;
       tracker = null;
+      nestedScrolled = scrolledInside(event.target, scrollElement);
     };
     const move = (event: TouchEvent) => {
       const y = event.touches[0]?.clientY ?? 0;
       if (!tracker) {
-        // Take over only a downward drag that starts at the top of the content.
-        if (scrollElement.scrollTop > 0 || y - startY <= 4) return;
+        // Take over only a downward drag that starts at the top of the content: of the body, and of any scroller
+        // inside it (a sheet whose content scrolls itself, like the conversation over Talk).
+        if (scrollElement.scrollTop > 0 || nestedScrolled || y - startY <= 4) return;
         tracker = begin(y);
       }
       event.preventDefault();

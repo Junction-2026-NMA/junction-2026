@@ -1,11 +1,11 @@
 // Launch options the app understands: port of ios/Sisu/App/LaunchOptions.swift. iOS reads launch arguments
 // (`-sisu.tab ask`); the web reads the same names, minus the `-sisu.` prefix, from the URL query
-// (`/app?tab=ask`), so tests can deep-link like the iOS screenshot harness.
+// (`/app?tab=talk`), so tests can deep-link like the iOS screenshot harness.
 //
 //   sample=1                  bundled sample data only, no network
 //   baseURL=<url>             the backend address (default "": this site's own /api routes)
 //   customer=<id>             skip the picker and open this customer (CUST04974, CUST04414, CUST02003)
-//   tab=today|ask|jars|path
+//   tab=today|talk|path       (ask: Talk with the conversation sheet up, web/features/Talk/TalkLaunch.ts)
 //   onboarding=reset|done     reset: the first-run flow from its first screen, as on a clean install
 //                             (progress, names and the chosen customer are cleared); done: skip it. Without it,
 //                             customer=… or screenshots=1 count as done, so those launches land on their

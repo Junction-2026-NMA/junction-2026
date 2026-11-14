@@ -173,7 +173,9 @@ export namespace RiveBindings {
   export type ButtonStyle = "primary" | "secondary" | "onDark" | "quiet";
   export type ChoiceState = "idle" | "selected" | "correct" | "wrong";
   export type VoiceState = "idle" | "recording" | "thinking" | "speaking";
-  export type LiitoMood = "idle" | "cheering" | "proud" | "gliding" | "curious" | "found" | "focused" | "cosy" | "sleepy" | "thinking";
+  export type LiitoMood = "idle" | "cheering" | "proud" | "gliding" | "curious" | "found" | "focused" | "cosy" | "sleepy" | "thinking"
+    // The six task moods (2026-11-14): Liito visibly does what the backend is doing (web/core/LiitoTask.ts).
+    | "listening" | "writing" | "searching" | "calculating" | "comparing" | "presenting";
   export type StatKind = "streak" | "berries";
   export type TagTone = "neutral" | "amber" | "info";
   export type StickerKind = "firstJar" | "leakPlugged" | "streak" | "lesson";
@@ -185,7 +187,8 @@ export namespace RiveBindings {
   export const ButtonStyleCases: readonly ButtonStyle[] = ["primary", "secondary", "onDark", "quiet"];
   export const ChoiceStateCases: readonly ChoiceState[] = ["idle", "selected", "correct", "wrong"];
   export const VoiceStateCases: readonly VoiceState[] = ["idle", "recording", "thinking", "speaking"];
-  export const LiitoMoodCases: readonly LiitoMood[] = ["idle", "cheering", "proud", "gliding", "curious", "found", "focused", "cosy", "sleepy", "thinking"];
+  export const LiitoMoodCases: readonly LiitoMood[] = ["idle", "cheering", "proud", "gliding", "curious", "found", "focused", "cosy", "sleepy", "thinking",
+    "listening", "writing", "searching", "calculating", "comparing", "presenting"];
   export const StatKindCases: readonly StatKind[] = ["streak", "berries"];
   export const TagToneCases: readonly TagTone[] = ["neutral", "amber", "info"];
   export const StickerKindCases: readonly StickerKind[] = ["firstJar", "leakPlugged", "streak", "lesson"];

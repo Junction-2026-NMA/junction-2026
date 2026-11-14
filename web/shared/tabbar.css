@@ -49,7 +49,7 @@
 }
 
 .sisu-tabbar-pill {
-  width: 25%;
+  width: 33.333%;
   height: 100%;
   border-radius: var(--sisu-radius-pill);
   transition: transform var(--sisu-motion-tab-duration) var(--sisu-motion-tab-easing);

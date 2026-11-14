@@ -28,12 +28,20 @@ export class SpeechPlayer implements SpeechOutput {
   /** Counts clips that started playing, for the voice lab and its tests. */
   clipsPlayed = 0;
   onClipStarted: ((count: number) => void) | null = null;
+  /** Called when the last queued sentence has finished playing and nothing is downloading (the hands-free
+   *  conversation waits for it before it listens again). */
+  onDrained: (() => void) | null = null;
+
+  /** Nothing is playing and no sentence is still downloading. */
+  get isIdle(): boolean { return this.current === null && !this.starting && this.pending === 0; }
 
   private queue = new VoiceClipQueue<SpeechClip>();
   private downloads: AbortController[] = [];
   private current: AudioBufferSourceNode | null = null;
   private starting = false;
   private previousText: string | null = null;
+  /** Sentences asked for and not yet delivered to the queue. */
+  private pending = 0;
   private readonly watched: AudioContext | null;
   private readonly onStateChange = () => {
     // Safari's "interrupted": a call or another app took the audio. Stop and drop the rest of this answer.
@@ -62,6 +70,7 @@ export class SpeechPlayer implements SpeechOutput {
     this.previousText = text;
     const abort = new AbortController();
     this.downloads = [...this.downloads, abort];
+    this.pending += 1;
     void (async () => {
       let clip: SpeechClip | null = null;
       try {
@@ -70,9 +79,11 @@ export class SpeechPlayer implements SpeechOutput {
         clip = null;
       }
       this.downloads = this.downloads.filter((d) => d !== abort);
-      if (abort.signal.aborted) return;
+      if (abort.signal.aborted || generation !== this.queue.generation) return;
+      this.pending = Math.max(0, this.pending - 1);
       if (clip === null) this.onFailure?.(VoiceText.speechFailed);
-      if (this.queue.deliver(clip, order, generation)) void this.playNextIfIdle();
+      if (this.queue.deliver(clip, order, generation)) await this.playNextIfIdle();
+      if (this.isIdle) this.onDrained?.();
     })();
   }
 
@@ -80,6 +91,7 @@ export class SpeechPlayer implements SpeechOutput {
     this.queue.stop();
     this.downloads.forEach((d) => d.abort());
     this.downloads = [];
+    this.pending = 0;
     this.previousText = null;
     const player = this.current;
     this.current = null;
@@ -150,6 +162,8 @@ export class SpeechPlayer implements SpeechOutput {
   private finished(source: AudioBufferSourceNode): void {
     if (this.current !== source) return;
     this.current = null;
-    void this.playNextIfIdle();
+    void this.playNextIfIdle().then(() => {
+      if (this.isIdle) this.onDrained?.();
+    });
   }
 }
