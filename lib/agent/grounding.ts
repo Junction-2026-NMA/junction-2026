@@ -10,7 +10,8 @@ const TRIVIAL_MAX = 12; // small counts ("three offers", "12 months") are not fi
 // Numbers as people write them, in English and Finnish: 1,932.43 · 1 932,43 · 139,47 · 40. Digits glued to
 // letters (an ID such as CUST04414) are a name, not a number.
 const NUMBER = /(?<![A-Za-z\d.,])(?:\d{1,3}(?:[  ]\d{3})+(?:[.,]\d{1,2})?|\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+[.,]\d{1,2}|\d+)(?![\d])/g;
-const DATES = /\b\d{4}-\d{2}(?:-\d{2})?\b|\b\d{1,2}:\d{2}\b/g;
+// Dates and clock times are not amounts: 2026-09-30, 21:16, and the Finnish 30.9.2026 or 15.10.
+const DATES = /\b\d{4}-\d{2}(?:-\d{2})?\b|\b\d{1,2}:\d{2}\b|\b\d{1,2}\.\d{1,2}\.(?:\d{4}|\d{2})?(?!\d)/g;
 // A figure this close to a receipt is the same figure with a slipped digit, not a different claim.
 const SLIP_ABSOLUTE = 0.05;
 const SLIP_RELATIVE = 0.001;

@@ -47,7 +47,7 @@ const RULES = [
   "- Spending in any other period, by merchant type, split by month, or largest purchases: get_spending.",
   "- How bills changed: list_bills. Why money runs short, pay-cycle detail: get_cash_flow.",
   "- Open questions (where does my money go, what should I change, how can I save): find_patterns, and lead with the largest finding.",
-  "- 'Can I afford X' or an unexpected cost: check_affordability with the amount they said.",
+  "- Any one-off cost with an amount ('can I afford X', a bill that just arrived, an unexpected expense, 'what does X do to my month'): always check_affordability with that amount. Never subtract it from the balance yourself.",
   "- What-if, and what a saving adds up to over years: run_scenario.",
   "- A cheaper deal on electricity, mobile or internet: search_offers at once. Never quote offers from memory or ask a question first.",
   "- Other outside facts (rules, benefits, rates): web_search.",

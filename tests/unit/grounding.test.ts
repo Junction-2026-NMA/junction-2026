@@ -10,6 +10,8 @@ describe("number verifier", () => {
     assert.deepEqual(numbersIn("You spent €1,932.43 and 40 euros, about 1 200 in total."), [1932.43, 40, 1200]);
     assert.deepEqual(numbersIn("Payday is 2026-10-15 at 09:30, in 15 days."), [15]);
     assert.deepEqual(numbersIn("No figures here."), []);
+    // Regression: live evaluation round 6. A Finnish answer's dates were read as the decimals 30.9 and 15.1.
+    assert.deepEqual(numbersIn("Tiedot päättyvät 30.9.2026 ja palkka tulee 15.10. Voit käyttää 164 euroa."), [164]);
     assert.deepEqual(numbersIn("I cannot show customer CUST04414's data, only your 40 euros."), [40]); // an ID is not an amount
   });
 
