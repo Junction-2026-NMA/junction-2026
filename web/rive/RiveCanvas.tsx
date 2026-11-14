@@ -1,7 +1,7 @@
 "use client";
 // One loaded artboard on a canvas. RiveComponent remounts it (by key) when the component or its listened
 // triggers change; a sizing change only switches the Layout, like RiveComponentModel.load(_:from:).
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useRive, type Rive, type RiveFile } from "@rive-app/react-canvas";
 import type { RiveSizing } from "./contract";
 import type { RiveComponentModel } from "./RiveComponentModel";
@@ -50,6 +50,23 @@ export function RiveCanvas({ file, artboard, sizing, outTriggers, model, request
     { useOffscreenRenderer: true, shouldResizeCanvasToContainer: true, useDevicePixelRatio: true },
   );
 
+  // After a tap the browser also sends compatibility mouse events (mousedown, mouseup, click) to whatever is
+  // under the finger by then. Rive handles the touch itself, and if the layout moved in between (a button that
+  // starts loading, a list that follows its bottom) those mouse events would press the component that slid
+  // under the finger, e.g. Decline right after Approve. Cancelling touchend stops them; scrolling is unaffected.
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const attachCanvas = useCallback((canvas: HTMLCanvasElement | null) => {
+    canvasRef.current = canvas;
+    setCanvasRef(canvas);
+  }, [setCanvasRef]);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const swallow = (event: TouchEvent) => { if (event.cancelable) event.preventDefault(); };
+    canvas.addEventListener("touchend", swallow);
+    return () => canvas.removeEventListener("touchend", swallow);
+  }, [rive]);
+
   const appliedSizing = useRef(sizing);
   useEffect(() => {
     if (!rive || appliedSizing.current === sizing) return;
@@ -59,7 +76,7 @@ export function RiveCanvas({ file, artboard, sizing, outTriggers, model, request
 
   return (
     <div ref={setContainerRef} className="sisu-rive-canvas">
-      <canvas ref={setCanvasRef} aria-hidden="true" />
+      <canvas ref={attachCanvas} aria-hidden="true" />
     </div>
   );
 }

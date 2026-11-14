@@ -2,6 +2,7 @@
 // sample mode (it answers from the recordings under public/sisu-fixtures/coach), `FallbackTransport` for live
 // with a switch to the sample. Port of SisuCore/Transport.swift. Cancel with an `AbortSignal` (Swift cancels
 // the task); a stream is closed by stopping its `for await` loop or by aborting the signal.
+import { sisuFetch } from "./VisitorSession";
 import {
   type DataSourceKind,
   type FixtureSource,
@@ -51,7 +52,7 @@ const textDecoder = new TextDecoder();
 export class FetchTransport implements SisuTransport {
   readonly kind: DataSourceKind = "live";
 
-  constructor(private readonly fetchImpl: typeof fetch = (...args) => fetch(...args)) {}
+  constructor(private readonly fetchImpl: typeof fetch = sisuFetch) {}
 
   async send(request: SisuRequest, signal?: AbortSignal | null): Promise<TransportResponse> {
     const call = new FetchCall(request.timeoutInterval, signal);

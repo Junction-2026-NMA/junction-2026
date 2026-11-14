@@ -1,5 +1,6 @@
 // The live API of the team backend (lib/types.ts), plus the bundled-sample implementation. Port of
 // SisuCore/API.swift. On the web the base URL defaults to "" (same origin: `/api/customers/demo`).
+import { sisuFetch } from "./VisitorSession";
 import {
   type BranchId,
   type Branch,
@@ -270,7 +271,7 @@ export class LiveAPI implements SisuAPI {
   readonly kind: DataSourceKind = "live";
   timeout = 5;
 
-  constructor(readonly baseURL = "", private readonly fetchImpl: typeof fetch = (...args) => fetch(...args)) {}
+  constructor(readonly baseURL = "", private readonly fetchImpl: typeof fetch = sisuFetch) {}
 
   async send<T>(request: SisuRequest, decode: (json: unknown) => T): Promise<T> {
     const call = new FetchCall(this.timeout);

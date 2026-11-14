@@ -1,6 +1,7 @@
 "use client";
 // The approval card of a simulated action: the "Simulated, no real switch" tag, what it does, the sources, what a
 // real switch takes, Approve / Decline, and the futures once approved. Port of ActionCard in AskCards.swift.
+import { useRef } from "react";
 import { useAppModel, useCoach, useCoachStore } from "@/web/app/AppProvider";
 import type { AgentAction } from "@/web/core/CoachModels";
 import { ActionPresenter, CoachText, FuturesPresenter } from "@/web/core/CoachPresentation";
@@ -20,7 +21,14 @@ export function ActionCard({ action }: { action: AgentAction }) {
   const card = ActionPresenter.card(action, language);
   const busy = coach.deciding.includes(action.id);
   const notice = coach.decisionNotices[action.id];
-  const decide = (approve: boolean) => { void decideAction(action, approve, store, model); };
+  // One decision per card at a time: a second press (a stray tap on the other button while the first one is on
+  // its way) is ignored until the server has answered.
+  const inFlight = useRef(false);
+  const decide = (approve: boolean) => {
+    if (inFlight.current || busy) return;
+    inFlight.current = true;
+    void decideAction(action, approve, store, model).finally(() => { inFlight.current = false; });
+  };
 
   return (
     <SisuCard>
