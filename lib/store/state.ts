@@ -10,7 +10,7 @@
 // as it is made; a route waits for that before it answers (settleSession).
 //
 // State is kept per session (lib/store/session.ts). Without a session it is the one shared state, as before.
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import type { AgentAction, AuditEvent, CustomerMemory, PropertyWatch, WatchNotification } from "@/lib/types";
 import { SHARED, currentSession } from "./session";
@@ -124,6 +124,21 @@ function saveFile(slot: Slot, file: string): void {
     if (slot.persistent) console.error("[store] cannot write state to disk; keeping it in memory only:", (error as Error).message);
     slot.persistent = false;
   }
+}
+
+// The visitor sessions stored as files, with their states (the scheduled watch check, lib/watch/cron.ts, uses this
+// when there is no Supabase). The shared state is listed as SHARED.
+function visitorFileIds(): string[] {
+  try {
+    return readdirSync(`${statePath()}.sessions`).filter((name) => name.endsWith(".json")).map((name) => name.slice(0, -5));
+  } catch {
+    return []; // no visitor has saved anything yet
+  }
+}
+
+export function fileSessions(): { sessionId: string; state: SisuState }[] {
+  const ids = [SHARED, ...(storeConfig().perVisitor ? visitorFileIds() : [])];
+  return ids.map((sessionId) => ({ sessionId, state: fileSlot(sessionId).slot.state }));
 }
 
 // ---- Supabase store

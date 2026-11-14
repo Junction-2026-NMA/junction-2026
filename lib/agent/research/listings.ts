@@ -16,6 +16,8 @@ export const MAX_PAGES = 3; // Context.dev allows our key ten page reads a minut
 export const RENT_LIMITS: [number, number] = [100, 20_000];
 const ROOM_LIMITS: [number, number] = [1, 12];
 const AREA_LIMITS: [number, number] = [5, 500];
+const DEPOSIT_LIMITS: [number, number] = [0, 60_000];
+const CHARGES_LIMITS: [number, number] = [0, 1_000];
 // Sites that publish Finnish rental listings as ordinary pages. Asking Exa for these keeps blog posts out.
 export const LISTING_SITES = ["vuokraovi.com", "asunnot.oikotie.fi", "lumo.fi", "sato.fi", "etuovi.com", "qasa.com", "rentola.fi"];
 
@@ -37,6 +39,8 @@ export const LISTING_SCHEMA = {
           city: { type: ["string", "null"], description: "City or municipality the flat is in" },
           availableFrom: { type: ["string", "null"], description: "When the flat is free, as the page states it" },
           url: { type: ["string", "null"], description: "Link to this listing's own page, if the page gives one" },
+          depositEur: { type: ["number", "null"], description: "Deposit in euros, only if the page states it" },
+          utilitiesPerMonthEur: { type: ["number", "null"], description: "Water and other monthly charges on top of the rent in euros, only if the page states them" },
         },
       },
     },
@@ -75,6 +79,9 @@ export function cleanListings(extracted: RawListing[], pageUrl: string): { listi
     const title = safeName(raw?.title, 90);
     const price = inRange(raw?.priceEur, RENT_LIMITS);
     if (!title || price === null) return [];
+    // Optional and only when the page states them: absent keys stay absent, so a listing without them reads as before.
+    const deposit = inRange(raw.depositEur, DEPOSIT_LIMITS);
+    const charges = inRange(raw.utilitiesPerMonthEur, CHARGES_LIMITS);
     return [
       {
         title,
@@ -86,6 +93,8 @@ export function cleanListings(extracted: RawListing[], pageUrl: string): { listi
         availableFrom: safeName(raw.availableFrom, 30),
         url: ownLink(raw.url, pageUrl),
         pageUrl,
+        ...(deposit === null ? {} : { depositEur: deposit }),
+        ...(charges === null ? {} : { utilitiesPerMonthEur: charges }),
       },
     ];
   });

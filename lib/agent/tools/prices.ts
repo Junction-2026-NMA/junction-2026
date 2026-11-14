@@ -7,6 +7,8 @@ import { saveDraft } from "@/lib/actions";
 import { buildWatchDraft } from "@/lib/actions/watch";
 import { fact } from "@/lib/finance/facts";
 import { fits, ruleFor } from "@/lib/watch/detect";
+import { cleanGoal } from "@/lib/watch/requirements";
+import { monitoringSentence } from "@/lib/watch/scheduler";
 import type { Citation, Fact, Listing } from "@/lib/types";
 import type { ListingSearch } from "../research/listings";
 import { PRICE_LIMITS, cleanTopic, searchPrices } from "../research/prices";
@@ -68,7 +70,7 @@ export async function searchPricesTool(args: Record<string, unknown>, ctx: ToolC
 
   if (fitting.length && args.watch !== true) {
     return outcome({
-      content: JSON.stringify({ ...base, withinPrice: fitting.slice(0, SHOWN).map(forModel), withinPriceCount: fitting.length, tellTheCustomer: "Name the two or three cheapest with price and seller, and say they should check the offer's own page. Then offer to keep watching for a lower price.", next: "If they want you to keep watching, call search_prices again with the same price and watch: true." }),
+      content: JSON.stringify({ ...base, withinPrice: fitting.slice(0, SHOWN).map(forModel), withinPriceCount: fitting.length, tellTheCustomer: "Name the two or three cheapest with price and seller, and say they should check the offer's own page. If continued checking would help, ask: 'Would you like me to keep checking for offers at this price?'", next: "If they want you to keep watching, call search_prices again with the same price and watch: true." }),
       summary: `${fitting.length} of ${all.length} offers for ${topic} are €${limit} or less`,
       source: SOURCE,
       citations,
@@ -77,7 +79,7 @@ export async function searchPricesTool(args: Record<string, unknown>, ctx: ToolC
     });
   }
 
-  const built = buildWatchDraft(ctx.customerId, { city: null, topic, budgetEur: limit, minRooms: null, search, preparedBy: "sisu-agent" });
+  const built = buildWatchDraft(ctx.customerId, { city: null, topic, budgetEur: limit, minRooms: null, search, preparedBy: "sisu-agent", goal: cleanGoal(args.goal) });
   const saved = built.ok ? saveDraft(ctx.customerId, built.draft) : built;
   if (!saved.ok) {
     return outcome({ content: JSON.stringify({ ...base, withinPrice: fitting.slice(0, SHOWN).map(forModel), nearestAbovePrice: nearest.map(forModel), watch: `Not set up: ${saved.reason}`, tellTheCustomer: "Say what the search found and why no watch was set up." }), summary: `${fitting.length} of ${all.length} offers fit; no watch set up (${saved.reason})`, source: SOURCE, citations, facts, stages });
@@ -89,8 +91,8 @@ export async function searchPricesTool(args: Record<string, unknown>, ctx: ToolC
       withinPrice: fitting.slice(0, SHOWN).map(forModel),
       nothingFits: fitting.length === 0,
       nearestAbovePrice: nearest.map(forModel),
-      watch: "SET UP AND WAITING. One tap on Approve starts it: Context.dev then checks the pages every 6 hours and Sisu tells them when an offer fits.",
-      tellTheCustomer: fitting.length ? "Say you have set up the watch and ask them to tap Approve." : "Say in one sentence that nothing is at their price today and name the nearest offer with its price. Then ask: 'Shall I watch prices and tell you when one fits?' and tell them one tap on Approve starts it. Do not say it is already running.",
+      watch: `PREPARED, NOT RUNNING. It starts only if they tap Approve. What would run: ${monitoringSentence(search.pages.length, !search.mock)}`,
+      tellTheCustomer: `${fitting.length ? "Say how many are at their price." : "Say in one sentence that nothing is at their price today and name the nearest offer with its price."} Then ask: 'Would you like me to keep checking for offers at this price?' and say one tap on Approve starts it. Say what would run in the words of 'watch' above; never promise to tell them the moment the price drops. Do not say it is already running.`,
       warning: action.warning ?? undefined,
       numbers: factsForModel(action.facts),
     }),

@@ -3,14 +3,19 @@ import { withVisitor } from "@/lib/agent/visitor";
 import { findCustomer } from "@/lib/finance/data";
 import type { WatchList } from "@/lib/types";
 import { listNotifications, listWatches } from "@/lib/watch";
+import { asProject, noteVisitor } from "@/lib/watch/project";
+import { watchScheduler } from "@/lib/watch/scheduler";
 
 export const runtime = "nodejs";
 
-// This visitor's property watches and what they have found, newest first. Reads only: it asks Context.dev nothing.
-// To look for changes, call POST /api/watch/check.
+// This visitor's property watches (Projects) and what they have found, newest first. Asks Context.dev nothing.
+// To look for changes, call POST /api/watch/check. One Project in detail: GET /api/watch/:id.
+// Since 15 Nov each watch carries the Project fields (projectStatus, goal, requirements, lastSuccessAt,
+// nextCheckAt...), each notification readAt, and the list says which scheduler runs (scheduler).
 export const GET = withVisitor(async function GET(request: Request) {
   const customerId = parseCustomerId(new URL(request.url).searchParams.get("customerId"));
   if (!customerId || !findCustomer(customerId)) return jsonError("Choose a customer first.", 400);
-  const body: WatchList = { customerId, watches: listWatches(customerId), notifications: listNotifications(customerId) };
+  noteVisitor(customerId);
+  const body: WatchList = { customerId, watches: listWatches(customerId).map(asProject), notifications: listNotifications(customerId).map((note) => ({ ...note, readAt: note.readAt ?? null })), scheduler: watchScheduler() };
   return Response.json(body);
 });

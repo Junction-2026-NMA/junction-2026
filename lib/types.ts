@@ -441,7 +441,7 @@ export type AgentAction = {
   watch?: WatchPlan | null; // property_watch and price_watch: what would be watched once approved
 };
 
-export type AuditEventType = "action_prepared" | "action_approved" | "action_executed_simulated" | "action_declined" | "action_expired" | "memory_saved" | "memory_forgotten" | "consent_changed" | "demo_reset" | "watch_started" | "watch_checked" | "watch_notified" | "watch_stopped";
+export type AuditEventType = "action_prepared" | "action_approved" | "action_executed_simulated" | "action_declined" | "action_expired" | "memory_saved" | "memory_forgotten" | "consent_changed" | "demo_reset" | "watch_started" | "watch_checked" | "watch_notified" | "watch_stopped" | "watch_paused" | "watch_resumed" | "watch_updated";
 
 // Tamper-evident log: each event carries the hash of the one before it.
 export type AuditEvent = {
@@ -521,6 +521,7 @@ export type HealthReport = {
   dataBoundary: string[];
   store: { persistent: boolean; path: string | null; kind?: "file" | "supabase"; perVisitor?: boolean }; // kind and perVisitor: where state lives and whether each visitor has their own
   checkedAt: string;
+  watchScheduler?: WatchScheduler; // added 15 Nov: whether Sisu reviews watched pages on its own once a day ("cron") or only when the app checks in
 };
 
 // --- Reading a photographed bill with the model's vision (added 14 Nov) ---
@@ -680,6 +681,8 @@ export type Listing = {
   details?: string | null; // price watch: a few words that tell this offer apart (model, year, seller)
   url: string; // the listing's own page if the page links to one, otherwise the page it was read from
   pageUrl: string; // the page Context.dev read it from
+  depositEur?: number | null; // added 15 Nov: the deposit, only when the page states it
+  utilitiesPerMonthEur?: number | null; // added 15 Nov: water and other monthly charges on top of the rent, only when the page states them
 };
 
 export type PriceUnit = "EUR/month" | "EUR"; // a rent, or a price paid once
@@ -687,7 +690,37 @@ export type PriceUnit = "EUR/month" | "EUR"; // a rent, or a price paid once
 // What a watch action would watch: the city (flats), the topic (anything else; null for flats), the price limit the
 // customer said, the pages, and the listings read from them when the watch was prepared (the starting point later
 // readings are compared with).
-export type WatchPlan = { city: string | null; topic: string | null; priceUnit: PriceUnit; budgetEur: number; minRooms: number | null; urls: string[]; seen: Listing[] };
+export type WatchPlan = { city: string | null; topic: string | null; priceUnit: PriceUnit; budgetEur: number; minRooms: number | null; urls: string[]; seen: Listing[]; goal?: string | null; requirements?: WatchRequirements | null; titles?: Record<string, string> };
+
+// --- Projects (added 15 Nov). A watch is shown as a Project: a goal in the customer's words, requirements they can
+// edit, the sources, when it was last read successfully and when Context.dev runs next, and its findings.
+// Every field is optional so a watch stored before this still reads. Money figures are ones the customer said.
+export type WatchRequirements = {
+  districts?: string[]; // flats: only these districts (a listing whose district is not stated is kept and flagged)
+  moveBy?: string | null; // YYYY-MM-DD: the flat must be free by then (a date the page does not state is kept and flagged)
+  maxCommuteMinutes?: number | null; // never computed by Sisu: always listed as missing, with background reading if any
+  commuteTo?: string | null; // a public place name (a campus, a district), only used for background reading
+  maxDepositEur?: number | null;
+  movingCostEur?: number | null; // the customer's own estimate
+  bufferToKeepEur?: number | null; // money they want to keep in the account after moving
+  savingsGoalEur?: number | null; // a savings target they named
+};
+export type ProjectStatus = "active" | "paused" | "stopped" | "failing"; // failing: active, but no page could be read or watched on the last check
+export type WatchScheduler = "cron" | "on-open"; // cron: Sisu also reviews changes once a day on its own; on-open: only when the app checks in
+
+// The total effect of moving into a listed flat, worked out in code (lib/finance/housing.ts). Recurring vs upfront.
+// A figure nobody knows is null and named in `missing`; an assumption is named in `assumptions`. Nothing is invented.
+export type HousingEffect = {
+  rentEur: number;
+  recurring: { currentHousingEur: number; rentChangeEur: number; utilitiesChangeEur: number | null; transportChangeEur: number | null; knownChangeEur: number; leftOverNowEur: number; leftOverAfterEur: number };
+  upfront: { depositEur: number | null; depositAssumedEur: { low: number; high: number } | null; movingCostEur: number | null; knownEur: number; rangeEur: { low: number; high: number } };
+  buffer: { balanceNowEur: number; afterUpfrontEur: { low: number; high: number }; keepEur: number | null; keeps: "yes" | "no" | "depends" | null };
+  savingsGoal: { goalEur: number; monthsNow: number | null; monthsAfter: number | null } | null;
+  missing: string[];
+  assumptions: string[];
+  sentence: string; // one plain sentence for a card
+  facts: Fact[];
+};
 
 export type WatchedPage = {
   url: string;
@@ -696,6 +729,9 @@ export type WatchedPage = {
   lastReadAt: string;
   lastChangeAt: string | null; // when Context.dev last reported a change on the page
   lastError: string | null;
+  title?: string | null; // added 15 Nov: the page's title when it was found
+  monitorLastRunAt?: string | null; // added 15 Nov: when Context.dev last ran the monitor (from getMonitor)
+  monitorNextRunAt?: string | null; // added 15 Nov: when Context.dev will run it next (from getMonitor)
 };
 
 export type PropertyWatch = {
@@ -707,13 +743,23 @@ export type PropertyWatch = {
   priceUnit: PriceUnit;
   budgetEur: number; // the limit the customer said: rent per month, or a full price
   minRooms: number | null;
-  status: "active" | "stopped";
+  status: "active" | "paused" | "stopped"; // "paused" added 15 Nov: its monitors are removed and nothing is checked until resumed
   mode: "monitor" | "reread"; // monitor: Context.dev watches and Sisu polls its changes. reread: Sisu re-reads the pages itself
-  pages: WatchedPage[];
+  pages: WatchedPage[]; // the sources monitored
   searchMonitorId: string | null; // a Context.dev search monitor for listings that appear elsewhere
   createdAt: string;
-  lastCheckedAt: string | null;
+  lastCheckedAt: string | null; // the last check, even one where every page failed
   problems: string[];
+  // Added 15 Nov (Projects), all optional:
+  goal?: string | null; // the decision, in the customer's words
+  requirements?: WatchRequirements;
+  projectStatus?: ProjectStatus; // derived from status and the pages' errors; always set in API answers
+  lastSuccessAt?: string | null; // the last time at least one page was read (by Sisu or by its Context.dev monitor)
+  nextCheckAt?: string | null; // the earliest next run Context.dev reported for a monitor; null when there is no monitor
+  visitorSeenAt?: string | null; // the last time the visitor's own app checked in; after 14 days without it the watch stops itself
+  pausedAt?: string | null;
+  stoppedAt?: string | null;
+  stoppedBecause?: "user" | "inactive" | "demo-reset" | null;
 };
 
 export type WatchNotification = {
@@ -733,7 +779,13 @@ export type WatchNotification = {
   detectedBy: "context.dev monitor" | "context.dev re-read" | "simulation";
   simulated: boolean; // true when the change was made up by the demo's "simulate a price drop" button
   facts: Fact[];
+  readAt?: string | null; // added 15 Nov: when the visitor marked it read (POST /api/watch/:id/read); null or absent = unread
+  housing?: HousingEffect | null; // added 15 Nov: flats only, the total effect of moving in
+  research?: Citation[]; // added 15 Nov: background reading from Exa (district, commute), links only, no figures taken from it
 };
 
-export type WatchList = { customerId: string; watches: PropertyWatch[]; notifications: WatchNotification[] };
+// GET /api/watch/:id. `currentMatches`: the listings last read that meet the requirements now, each with its housing effect.
+export type WatchProject = { customerId: string; watch: PropertyWatch; notifications: WatchNotification[]; unread: number; currentMatches: { listing: Listing; housing: HousingEffect | null }[]; scheduler: WatchScheduler };
+
+export type WatchList = { customerId: string; watches: PropertyWatch[]; notifications: WatchNotification[]; scheduler?: WatchScheduler };
 export type WatchCheck = { customerId: string; checked: number; changesSeen: number; pagesReread: number; notifications: WatchNotification[]; problems: string[] };

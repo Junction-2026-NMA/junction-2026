@@ -62,14 +62,25 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
   ),
   tool(
     "search_flats",
-    "Live search for flats to rent in a city within a monthly budget the customer said. If nothing fits it sets up a price watch for them to approve.",
-    { city: { type: "string", description: "the city they named; leave out for where they live" }, budgetEur: { type: "number", description: "the monthly rent they said" }, minRooms: { type: "number", description: "only if they asked for a number of rooms" }, watch: { type: "boolean", description: "true if they asked you to keep watching even though some flats fit" } },
+    "Live search for flats to rent in a city within a monthly budget the customer said. If nothing fits, or they said yes to more checking, it prepares a Project for them to approve.",
+    {
+      city: { type: "string", description: "the city they named; leave out for where they live" },
+      budgetEur: { type: "number", description: "the monthly rent they said" },
+      minRooms: { type: "number", description: "only if they asked for a number of rooms" },
+      goal: { type: "string", description: "the decision in their words, e.g. 'move to Espoo to save for a deposit'" },
+      requirements: {
+        type: "object",
+        description: "only what they said: districts, moveBy (YYYY-MM-DD), maxCommuteMinutes, commuteTo (a place), maxDepositEur, movingCostEur, bufferToKeepEur, savingsGoalEur",
+        properties: { districts: { type: "array", items: { type: "string" } }, moveBy: { type: "string" }, maxCommuteMinutes: { type: "number" }, commuteTo: { type: "string" }, maxDepositEur: { type: "number" }, movingCostEur: { type: "number" }, bufferToKeepEur: { type: "number" }, savingsGoalEur: { type: "number" } },
+      },
+      watch: { type: "boolean", description: "true if they said yes to you keeping on checking even though some flats fit" },
+    },
     ["budgetEur"],
   ),
   tool(
     "search_prices",
     "Live search for what something costs today (a phone, a used car, a bike, anything sold online) against a price the customer said. If nothing is at that price it sets up a price watch for them to approve. Not for flats (search_flats) or their bills (search_offers).",
-    { what: { type: "string", description: "the thing, in a few plain words: 'iPhone 15', 'used Toyota Corolla'. No amounts" }, maxPriceEur: { type: "number", description: "the most they said they would pay" }, watch: { type: "boolean", description: "true if they asked you to keep watching even though some offers fit" } },
+    { what: { type: "string", description: "the thing, in a few plain words: 'iPhone 15', 'used Toyota Corolla'. No amounts" }, maxPriceEur: { type: "number", description: "the most they said they would pay" }, goal: { type: "string", description: "why they want it, in their words, if they said" }, watch: { type: "boolean", description: "true if they said yes to you keeping on checking even though some offers fit" } },
     ["what", "maxPriceEur"],
   ),
   tool("web_search", "Live web search (Exa) for anything in the outside world: rents and prices nearby, typical water or energy use, benefits, rates, rules, a company, how something works. Keep the query general: place and topic, no personal figures.", { query: { type: "string" }, deep: { type: "boolean", description: "true for an open question that needs several sources put together (who can get a benefit, what changes next year, how a rule works for someone like them). Takes a few seconds longer. Leave out for a single fact or price." } }, ["query"]),
