@@ -79,8 +79,12 @@
   gap: calc(var(--sisu-space-grid) * 2);
 }
 
+/* A figure never breaks: "−€22.88" once wrapped between the minus and the number on a phone. */
 .sisu-ask-result-value {
+  flex: none;
   text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .sisu-ask-divider {
