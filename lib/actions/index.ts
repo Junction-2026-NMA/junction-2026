@@ -4,7 +4,8 @@
 import { findCustomer } from "@/lib/finance/data";
 import { withAudit } from "@/lib/store/audit";
 import { readState, updateState } from "@/lib/store/state";
-import type { ActionStatus, AgentAction } from "@/lib/types";
+import type { ActionStatus, AgentAction, BillType } from "@/lib/types";
+import { freedByApprovedSwitches } from "./freed";
 
 const TTL_MS = 30 * 60_000; // offers go stale, so an unanswered action expires and must be prepared again
 const MAX_OPEN_PER_CUSTOMER = 5;
@@ -28,9 +29,22 @@ function expireOld(now: Date): void {
   );
 }
 
+const newestFirst = (a: AgentAction, b: AgentAction): number => (b.decidedAt ?? "").localeCompare(a.decidedAt ?? "");
+const approvedFor = (customerId: string): AgentAction[] => readState().actions.filter((action) => action.customerId === customerId && action.status === "executed_simulated").sort(newestFirst);
+
+// The switch this customer has already approved for a bill, if there is one. A bill can be switched once:
+// a second switch would be measured against the same old bill, and its saving counted on top of the first.
+export function approvedSwitch(customerId: string, billType: BillType | null): AgentAction | null {
+  if (!billType) return null;
+  return approvedFor(customerId).find((action) => action.kind === "switch_contract" && action.billType === billType) ?? null;
+}
+
 export function saveDraft(customerId: string, draft: ActionDraft, now: Date = new Date()): ActionResult {
   if (!findCustomer(customerId)) return { ok: false, status: 404, reason: "We could not find that customer." };
   expireOld(now);
+  // Already switched: hand back the approved action, whatever today's cheapest offer is. Callers see its status.
+  const switched = draft.kind === "switch_contract" ? approvedSwitch(customerId, draft.billType) : null;
+  if (switched) return { ok: true, action: switched };
   const open = readState().actions.filter((action) => action.customerId === customerId && isOpen(action));
   // Asking for the same thing twice returns the action already waiting, so the user never sees duplicates.
   const existing = open.find((action) => sameAction(action, draft));
@@ -50,6 +64,14 @@ export function saveDraft(customerId: string, draft: ActionDraft, now: Date = ne
   };
   updateState((state) => withAudit({ ...state, actions: [...state.actions, action] }, { customerId, type: "action_prepared", actor: draft.preparedBy, actionId: action.id, detail: `Prepared, awaiting approval: ${action.title}` }, now));
   return { ok: true, action };
+}
+
+// For work Sisu repeats on its own, like the money plan run a second time: an identical action the customer has
+// already approved is handed back as it is, instead of being set up, approved and counted again. A person who asks
+// for the same transfer twice still gets two (use saveDraft).
+export function saveDraftOnce(customerId: string, draft: ActionDraft, now: Date = new Date()): ActionResult {
+  const approved = approvedFor(customerId).find((action) => sameAction(action, draft));
+  return approved ? { ok: true, action: approved } : saveDraft(customerId, draft, now);
 }
 
 // Finds an action only if it belongs to this customer. Someone else's action looks exactly like a missing one.
@@ -93,10 +115,9 @@ export function listActions(customerId: string, now: Date = new Date()): AgentAc
 }
 
 // Monthly amounts from approved switches. The futures chart and the agent use this as "what has already been freed".
+// One switch per bill counts (see ./freed).
 export function approvedMonthlySaving(customerId: string): number {
-  return readState()
-    .actions.filter((action) => action.customerId === customerId && action.status === "executed_simulated" && action.kind === "switch_contract")
-    .reduce((total, action) => total + action.monthlyAmountEur, 0);
+  return freedByApprovedSwitches(readState().actions.filter((action) => action.customerId === customerId));
 }
 
 // Booth reset: removes every action, remembered item and audit entry for the given customers, then logs the reset.

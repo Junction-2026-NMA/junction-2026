@@ -413,3 +413,38 @@ Type the stream as `SisuEvent` (`AgentEvent` plus the new events). A client that
 ## 14. Where the types are
 
 All in `lib/types.ts`. The additions are at the bottom, under "Receipts, investigation stages, teaching, actions and memory". If you need a field that is missing, ask Nicholas rather than editing `lib/agent/`.
+
+## 15. Added on 14 Nov, afternoon (pre-submission gauntlet)
+
+Nothing existing changed shape. Three additions, all optional to adopt, and one behaviour to know about.
+
+**a. Is the demo ready? `GET /api/health/ready`** (type `ReadinessReport`)
+
+One real call to each service, at most once a minute (`?fresh=1` checks again now). Always answers 200.
+
+| Field | Use it for |
+|---|---|
+| `ready` | A green or red light. False only when the flagship flow cannot run. |
+| `voiceReady` | Hide or grey out the talk button when false. Typed questions still work. |
+| `headline` | One sentence to show as it is, for example "Ready, with a stand-in for Context.dev." |
+| `checks[]` | One row per service: `sponsor`, `role`, `status` (`ok`, `down`, `not-configured`, `mock`), `latencyMs`, `detail`, `standIn`, `blocksDemo`. |
+| `mock` | True on a server with no keys: show the "example data" label. |
+
+A working example is the page `/dev/ready`.
+
+**b. The freed amount comes from the server: `approvedMonthlySavingEur` on `GET /api/actions`**
+
+Feed this to the futures chart instead of adding up approved actions on the client. It counts one switch per bill. `useSisu().approvedMonthlySaving` already uses the same rule. The iOS `CoachSession.approvedMonthlySaving` adds every approved switch; with the rule below the two now agree, but the server field is the one to trust.
+
+**c. A bill is switched once**
+
+After a switch for a bill is approved, asking for it again (the money plan run a second time, "prepare the switch" by voice, `POST /api/actions/prepare`) hands back the action already approved, with `status: "executed_simulated"`. Nothing new is stored.
+
+- In a second plan, `plan.actions` can therefore hold approved actions. Keep filtering on `status === "awaiting_approval"` for the Approve button, as `/plan` and `PlanSession.waitingActions` already do. When none is waiting, show the actions as done and no button.
+- Those plan items are titled "Already approved: …" and the summary says so.
+- `POST /api/actions/prepare` answers 200 (not 201) in that case.
+- **Call `POST /api/demo/reset` when a new visitor starts** (changing customer is a good moment). Otherwise the next visitor sees the last one's approvals as done and has nothing to approve.
+
+**d. Small purchases are a notice, not a saving**
+
+The money plan no longer counts "purchases under €10" as money found. It appears in `plan.notices`. A habit item is now always a gap against people the same age or against last year.

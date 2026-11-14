@@ -46,6 +46,23 @@ export function prepareAction(args: Record<string, unknown>, ctx: ToolContext): 
   const saved = saveDraft(ctx.customerId, built.draft);
   if (!saved.ok) return failure("finance", saved.reason);
   const action = saved.action;
+  // The bill was switched on an earlier turn or visit: say so, and set nothing up a second time.
+  if (action.status === "executed_simulated") {
+    return outcome({
+      content: JSON.stringify({
+        status: "ALREADY APPROVED EARLIER. Nothing new was set up: a bill can be switched once.",
+        tellTheCustomer: "Say in one sentence that they have already approved this switch (as a simulation), name it, and that its saving is already counted. Do not ask them to tap Approve.",
+        alreadyApproved: action.title,
+        approvedOn: (action.decidedAt ?? action.createdAt).slice(0, 10),
+        summary: action.summary,
+        numbers: factsForModel(action.facts),
+      }),
+      summary: `Already approved earlier: ${action.title}`,
+      facts: action.facts,
+      citations: action.sources,
+      action,
+    });
+  }
   return outcome({
     content: JSON.stringify({
       status: "SET UP AND WAITING. One tap on Approve carries it out (as a simulation in this demo).",

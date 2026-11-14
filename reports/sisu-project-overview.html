@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sisu · Project overview</title>
+<style>
+:root{
+  --bg:#0a0e13; --panel:#111720; --panel2:#151d28; --line:#212c3a; --line2:#2c3a4c;
+  --text:#e8eef5; --muted:#8c9aab; --dim:#5f6d7e;
+  --green:#3ddc97; --green-ink:#06281b; --amber:#f4b740; --coral:#ff7a6b; --blue:#74b9ff;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:var(--green);text-decoration:none} a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:.86em;background:#0d131b;border:1px solid var(--line);border-radius:6px;padding:.08em .38em;color:#c9d6e4;word-break:break-word}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.muted{color:var(--muted)} .small{font-size:13px}
+
+/* nav */
+nav{position:sticky;top:0;z-index:20;background:rgba(10,14,19,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;gap:6px;align-items:center;overflow-x:auto;padding-top:10px;padding-bottom:10px;scrollbar-width:none}
+nav .brand{font-weight:700;letter-spacing:.02em;margin-right:10px;white-space:nowrap}
+nav .brand i{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--green);margin-right:8px;box-shadow:0 0 12px var(--green)}
+nav a{color:var(--muted);font-size:13px;padding:6px 10px;border-radius:999px;white-space:nowrap}
+nav a:hover{color:var(--text);background:var(--panel2);text-decoration:none}
+
+/* hero */
+header.hero{padding:56px 0 28px;background:radial-gradient(900px 380px at 12% -10%,rgba(61,220,151,.13),transparent 60%),radial-gradient(700px 300px at 95% 0%,rgba(116,185,255,.08),transparent 60%)}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--green);font-weight:600}
+h1{font-size:clamp(34px,6vw,60px);line-height:1.02;margin:12px 0 14px;letter-spacing:-.025em;font-weight:750}
+h1 em{font-style:normal;color:var(--green)}
+.lede{font-size:clamp(17px,2.2vw,20px);color:#c4d0dd;max-width:720px;margin:0}
+.verdict{margin-top:28px;display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center;background:linear-gradient(180deg,rgba(61,220,151,.10),rgba(61,220,151,.04));border:1px solid rgba(61,220,151,.35);border-radius:18px;padding:18px 20px}
+.verdict .big{width:46px;height:46px;border-radius:50%;background:var(--green);color:var(--green-ink);display:grid;place-items:center;font-weight:800;font-size:22px}
+.verdict b{font-size:18px} .verdict p{margin:2px 0 0;color:#c4d0dd;font-size:14.5px}
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-top:16px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+.kpi .v{font-family:var(--mono);font-size:24px;font-weight:650;letter-spacing:-.02em}
+.kpi .v small{font-size:13px;color:var(--muted);font-weight:500}
+.kpi .l{font-size:12.5px;color:var(--muted);margin-top:2px;line-height:1.35}
+
+/* sections */
+section{padding:44px 0;border-top:1px solid var(--line)}
+.tag{font-family:var(--mono);font-size:12px;color:var(--green);letter-spacing:.08em}
+h2{font-size:clamp(24px,3.4vw,32px);margin:6px 0 6px;letter-spacing:-.02em}
+h3{font-size:16px;margin:0 0 6px}
+.sub{color:var(--muted);max-width:760px;margin:0 0 22px}
+.grid{display:grid;gap:12px} .g2{grid-template-columns:repeat(2,1fr)} .g3{grid-template-columns:repeat(3,1fr)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
+.card p{margin:0;color:#c4d0dd;font-size:14.5px}
+.card ul{margin:8px 0 0;padding-left:18px;color:#c4d0dd;font-size:14px} .card li{margin:3px 0}
+
+/* journey timeline */
+.timeline{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;counter-reset:s}
+.step{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 12px 14px}
+.step:not(:last-child)::after{content:"→";position:absolute;right:-9px;top:14px;color:var(--dim);font-size:13px;z-index:1}
+.step .t{font-family:var(--mono);font-size:11.5px;color:var(--green)}
+.step b{display:block;font-size:13.5px;margin:4px 0 3px;line-height:1.25}
+.step span{font-size:12.5px;color:var(--muted);line-height:1.35;display:block}
+.step .who{margin-top:8px;font-size:11px;color:var(--blue);font-family:var(--mono)}
+
+/* architecture */
+.arch{display:grid;grid-template-columns:1fr;gap:14px;align-items:start}
+.map{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px}
+.map svg{display:block;width:100%;height:auto}
+.node rect{fill:#161f2b;stroke:var(--line2);stroke-width:1.2;transition:all .2s}
+.node text{fill:var(--text);font-family:var(--sans);font-size:14px;font-weight:600;pointer-events:none}
+.node text.s{fill:var(--muted);font-size:11.5px;font-weight:400}
+.node{cursor:pointer} .node:hover rect{stroke:var(--green)}
+.node.on rect{fill:#12362a;stroke:var(--green);stroke-width:2}
+.node.sel rect{stroke:#fff;stroke-width:2}
+.edge{stroke:#33455a;stroke-width:1.6;fill:none;stroke-linejoin:round;transition:all .2s}
+.edge.on{stroke:var(--green);stroke-width:2.6;stroke-dasharray:6 6;animation:dash 1s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-24}}
+.chips{display:none;flex-wrap:wrap;gap:8px}
+.chip{background:var(--panel2);border:1px solid var(--line2);color:var(--text);border-radius:12px;padding:10px 12px;font:600 13.5px var(--sans);cursor:pointer;text-align:left}
+.chip.on{background:#12362a;border-color:var(--green)} .chip.sel{border-color:#fff}
+.side{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+.player{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
+.player .bar{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+button.btn{background:var(--green);color:var(--green-ink);border:0;border-radius:10px;padding:8px 12px;font:700 13px var(--sans);cursor:pointer}
+button.ghost{background:transparent;color:var(--text);border:1px solid var(--line2)}
+.player .count{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.player p{margin:0;font-size:14.5px;color:#d5dfe9;min-height:66px}
+.dots{display:flex;gap:5px;margin-top:10px}.dots i{flex:1;height:3px;border-radius:2px;background:var(--line2)}.dots i.on{background:var(--green)}
+.detail h3{font-size:18px}.detail .role{color:var(--green);font-size:12px;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.detail dl{margin:10px 0 0;display:grid;grid-template-columns:86px 1fr;gap:6px 10px;font-size:13.5px}
+.detail dt{color:var(--muted)} .detail dd{margin:0;color:#d5dfe9}
+
+/* scorecard */
+.score{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.sc{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:10px}
+.sc header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.sc h3{font-size:19px;margin:0}.sc .role{font-size:13px;color:var(--muted);margin:2px 0 0}
+.pill{font:700 11.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:4px 9px;white-space:nowrap}
+.pill.ready{background:rgba(61,220,151,.14);color:var(--green);border:1px solid rgba(61,220,151,.4)}
+.pill.partial{background:rgba(244,183,64,.13);color:var(--amber);border:1px solid rgba(244,183,64,.4)}
+.pill.blocked{background:rgba(255,122,107,.13);color:var(--coral);border:1px solid rgba(255,122,107,.4)}
+.sc .lbl{font:600 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:3px}
+.sc ul{margin:0;padding-left:17px;font-size:13.5px;color:#c9d5e1}.sc li{margin:3px 0}
+.sc .left{border-top:1px dashed var(--line2);padding-top:10px;margin-top:auto}
+.sc .left ul{color:#e6c88a}
+
+/* health */
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--dim);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+td{padding:9px 10px;border-bottom:1px solid var(--line);color:#d5dfe9;vertical-align:top}
+tr:last-child td{border-bottom:0}
+.tablebox{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:6px 8px;overflow-x:auto}
+.ok{color:var(--green)} .warn{color:var(--amber)} .bad{color:var(--coral)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:7px}
+.dot.a{background:var(--amber)} .dot.r{background:var(--coral)}
+.lat{display:grid;grid-template-columns:minmax(150px,220px) 1fr 108px;gap:10px;align-items:center;font-size:13.5px;padding:7px 4px}
+.lat .track{height:10px;background:#0d131b;border-radius:6px;position:relative;overflow:hidden;border:1px solid var(--line)}
+.lat .p95{position:absolute;inset:0 auto 0 0;background:#23405a;border-radius:6px}
+.lat .p50{position:absolute;inset:0 auto 0 0;background:var(--green);border-radius:6px}
+.lat .n{font-family:var(--mono);font-size:12.5px;text-align:right;color:#d5dfe9}
+.fix{display:grid;grid-template-columns:auto 1fr;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.fix:last-child{border-bottom:0}.fix .h{font-family:var(--mono);font-size:12px;color:var(--green);padding-top:2px}
+.fix b{display:block;font-size:14.5px}.fix span{font-size:13.5px;color:var(--muted)}
+.incident{border-color:rgba(244,183,64,.4);background:linear-gradient(180deg,rgba(244,183,64,.07),transparent)}
+
+/* priorities */
+.prio{display:grid;gap:10px}
+.p{display:grid;grid-template-columns:44px 1fr auto;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;align-items:start}
+.p .n{font:700 22px var(--mono);color:var(--dim)}
+.p b{font-size:15.5px}.p p{margin:4px 0 0;font-size:14px;color:#c4d0dd}
+.p .meta{display:flex;flex-direction:column;gap:6px;align-items:flex-end;min-width:150px}
+.p .own{font-size:12px;color:var(--muted);text-align:right}
+footer{padding:30px 0 60px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+
+@media (max-width:980px){.kpis{grid-template-columns:repeat(3,1fr)}.timeline{grid-template-columns:repeat(4,1fr)}.step::after{display:none}.score{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(2,1fr)}.arch{grid-template-columns:1fr}}
+@media (max-width:760px){.map{display:none}.chips{display:flex}}
+@media (max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}.timeline{grid-template-columns:repeat(2,1fr)}.score,.g2,.g3,.side{grid-template-columns:1fr}.p{grid-template-columns:32px 1fr}.p .meta{grid-column:2;align-items:flex-start;flex-direction:row;flex-wrap:wrap}.p .own{text-align:left}.lat{grid-template-columns:1fr 96px}.lat .track{grid-column:1/-1;order:3}.verdict{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<nav><div class="wrap">
+  <span class="brand"><i></i>Sisu</span>
+  <a href="#overview">A · Overview</a><a href="#architecture">B · Architecture</a><a href="#scorecard">C · Six challenges</a><a href="#health">D · Backend health</a><a href="#integration">E · Integration</a><a href="#priorities">F · What is left</a>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+  <div class="eyebrow">Junction 2026 · submission Sunday 15 November, 10:00 Helsinki</div>
+  <h1>Sisu finds the money,<br>shows its work, and <em>waits for your yes.</em></h1>
+  <p class="lede">A money coach inside the S-Pankki app. It reads a customer's own transactions, searches today's real offers, works out every saving in code, teaches one idea, and sets up an action that only the customer can approve.</p>
+
+  <div class="verdict">
+    <div class="big">✓</div>
+    <div><b>The backend is demo-ready.</b>
+    <p>Every check below was run on Saturday 14 November between 14:05 and 15:05 Helsinki time, against the real model on our Verda GPU and the live sponsor services. What is not finished is on the screen side and at the venue: see <a href="#priorities">section F</a>.</p></div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="v">264<small>/264</small></div><div class="l">unit tests pass, no network or keys needed</div></div>
+    <div class="kpi"><div class="v">54<small>/54</small></div><div class="l">live checks against the real model</div></div>
+    <div class="kpi"><div class="v">0<small>/170</small></div><div class="l">numbers said by the model without a source</div></div>
+    <div class="kpi"><div class="v">3<small>/3</small></div><div class="l">customers through the whole journey, live</div></div>
+    <div class="kpi"><div class="v">0.4–1.5<small> s</small></div><div class="l">to the first sentence of an answer (median)</div></div>
+    <div class="kpi"><div class="v">3–7<small> s</small></div><div class="l">for a full money plan with live research</div></div>
+  </div>
+</div></header>
+
+<!-- A -->
+<section id="overview"><div class="wrap">
+  <div class="tag">A · PROJECT OVERVIEW</div>
+  <h2>What Sisu is, in one screen</h2>
+  <p class="sub">Built for young Finnish adults who have a bank app full of numbers and nobody to tell them what the numbers mean.</p>
+  <div class="grid g3">
+    <div class="card"><h3>The problem</h3><p>A bank statement shows what happened. It does not say which bill is too high, what a habit costs in a year, or whether Friday's plan is safe. Advice apps guess, and chatbots invent figures.</p></div>
+    <div class="card"><h3>What Sisu does</h3><p>It sorts spending into S-Pankki's three baskets, finds the costly pattern, checks today's real prices on the web, and shows the saving with the transactions and pages behind it.</p></div>
+    <div class="card"><h3>Why it can be trusted</h3><p>Every number comes from code, never from the model. Code checks each figure the model says before it is shown or spoken. Actions are simulations that need an Approve tap and are logged.</p></div>
+  </div>
+
+  <h3 style="margin:30px 0 4px">The flagship 90-second judge experience</h3>
+  <p class="sub small" style="margin-bottom:14px">Times are suggested pacing for the presenter. The work itself is faster: a full plan took 3.4 to 6.7 seconds in today's final run.</p>
+  <div class="timeline">
+    <div class="step"><div class="t">0:00</div><b>Pick a customer</b><span>Eetu, 25, Espoo. His real figures load.</span><div class="who">finance engine</div></div>
+    <div class="step"><div class="t">0:10</div><b>Financial X-ray</b><span>Three baskets, safe to spend, what stands out.</span><div class="who">finance engine</div></div>
+    <div class="step"><div class="t">0:20</div><b>"Sort out my money"</b><span>One tap or one spoken sentence.</span><div class="who">ElevenLabs</div></div>
+    <div class="step"><div class="t">0:25</div><b>Live search</b><span>Today's electricity, internet and mobile offers.</span><div class="who">Exa</div></div>
+    <div class="step"><div class="t">0:35</div><b>Pages become prices</b><span>Each offer page read into typed figures.</span><div class="who">Context.dev</div></div>
+    <div class="step"><div class="t">0:45</div><b>Verified saving</b><span>Code does the sums; Nemotron words it; code checks it.</span><div class="who">Nemotron on Verda</div></div>
+    <div class="step"><div class="t">0:60</div><b>Teaching moment</b><span>Guess first, then see the answer in your own numbers.</span><div class="who">finance engine</div></div>
+    <div class="step"><div class="t">0:75</div><b>Approve, then the future</b><span>One tap, a simulation, a five-year projection.</span><div class="who">actions · audit</div></div>
+  </div>
+</div></section>
+
+<!-- B -->
+<section id="architecture"><div class="wrap">
+  <div class="tag">B · INTERACTIVE ARCHITECTURE MAP</div>
+  <h2>How the pieces talk to each other</h2>
+  <p class="sub">Tap any part to see what it does and what crosses its border. Press <b>Play the journey</b> to watch one request travel through the system.</p>
+  <div class="arch">
+    <div>
+      <div class="map"><svg viewBox="0 0 1000 510" role="img" aria-label="Architecture map">
+        <g id="edges"></g><g id="nodes"></g>
+      </svg></div>
+      <div class="chips" id="chips"></div>
+    </div>
+    <div class="side">
+      <div class="player">
+        <div class="bar"><button class="btn" id="play">▶ Play the journey</button><button class="btn ghost" id="prev" aria-label="Previous step">←</button><button class="btn ghost" id="next" aria-label="Next step">→</button><span class="count" id="count">step 0 of 9</span></div>
+        <p id="caption">Nine steps, from picking a customer to the updated projection. Each one is a real call in the running app.</p>
+        <div class="dots" id="dots"></div>
+      </div>
+      <div class="card detail" id="detail"></div>
+    </div>
+  </div>
+</div></section>
+
+<!-- C -->
+<section id="scorecard"><div class="wrap">
+  <div class="tag">C · SIX-CHALLENGE SCORECARD</div>
+  <h2>Each sponsor has a real job</h2>
+  <p class="sub">"Ready" means the role works in the running app and was exercised today. "Partial" means it works but something a judge would see is unfinished or was not re-checked today. Nothing is blocked.</p>
+  <div class="score" id="score"></div>
+</div></section>
+
+<!-- D -->
+<section id="health"><div class="wrap">
+  <div class="tag">D · BACKEND HEALTH</div>
+  <h2>What was tested, and what it measured</h2>
+  <p class="sub">All figures are from this afternoon's run on branch <code>gauntlet/pre-submission</code>. Nothing here is estimated.</p>
+
+  <div class="grid g2">
+    <div class="tablebox"><table>
+      <tr><th>Test</th><th>Result</th><th>What it proves</th></tr>
+      <tr><td>Unit tests</td><td class="ok num">264 / 264</td><td>Sums, approvals, audit log, safety filters, failover. 22 seconds.</td></tr>
+      <tr><td>Live evaluation</td><td class="ok num">54 / 54</td><td>Right tool for the question, refusals, injection attempts, three investigations.</td></tr>
+      <tr><td>Numbers with a source</td><td class="ok num">170 / 170</td><td>Every figure the model said matched a receipt.</td></tr>
+      <tr><td>Whole journey, live</td><td class="ok num">3 / 3</td><td>Plan, live research, sums, approval, audit, second run, for each customer.</td></tr>
+      <tr><td>Booth failures, live</td><td class="ok num">13 / 13</td><td>Two taps at once, approval race, closed tab, reset mid-plan, bad input.</td></tr>
+      <tr><td>Type check · lint · production build</td><td class="ok">clean</td><td>All three pass on the final commit.</td></tr>
+      <tr><td>Together with open PR #4</td><td class="ok num">270 / 270</td><td>Merges cleanly; tried locally, nothing merged.</td></tr>
+    </table></div>
+
+    <div class="tablebox"><table>
+      <tr><th>Service</th><th>Answered</th><th>Role, and who stands in</th></tr>
+      <tr><td><span class="dot"></span>Nemotron on Verda</td><td class="num">154 ms</td><td>Reasoning and wording. Backup: NVIDIA's hosted copy, by itself.</td></tr>
+      <tr><td><span class="dot"></span>NVIDIA Build (backup)</td><td class="num">773 ms</td><td>Same model, used only if our GPU fails or stalls.</td></tr>
+      <tr><td><span class="dot"></span>Exa</td><td class="num">257 ms</td><td>Search, research, second page reader.</td></tr>
+      <tr><td><span class="dot"></span>Context.dev</td><td class="num">1,933 ms</td><td>Reads offer pages. Stand-in: Exa reads the page.</td></tr>
+      <tr><td><span class="dot"></span>ElevenLabs</td><td class="num">409 ms</td><td>Voice. Stand-in: typed questions, written answers.</td></tr>
+      <tr><td><span class="dot"></span>Finance data · action store</td><td class="num">local</td><td>3 customers load; audit log verifies.</td></tr>
+      <tr><td colspan="3" class="muted small">One real call each at 14:57, from the new <code>GET /api/health/ready</code>. Open <code>/dev/ready</code> before a judge arrives.</td></tr>
+    </table></div>
+  </div>
+
+  <h3 style="margin:28px 0 4px">Measured latency</h3>
+  <p class="sub small" style="margin-bottom:10px">Time to the first full sentence of an answer. Five runs per row on our Verda GPU, 0 errors in 35 turns. Green is the median, blue is the slowest of the five.</p>
+  <div class="card" id="lat"></div>
+  <p class="small muted" style="margin-top:10px">Money plan, start to finish, with live research: Aino 6.7 s, Eetu 5.1 s, Sanna 3.4 s (final run). The first plan of the afternoon, with nothing warm, took 19.3 s for Aino; a repeat with pages in memory takes about 3 s.</p>
+
+  <div class="grid g2" style="margin-top:22px">
+    <div class="card">
+      <h3>Fixed in this gauntlet</h3>
+      <div class="fix"><div class="h">536a557</div><div><b>Savings were counted twice</b><span>Running the plan twice and approving twice set up the same switches and transfer again; "freed per month" doubled. A bill is now switched once, and the server reports the freed amount.</span></div></div>
+      <div class="fix"><div class="h">ff8f91c</div><div><b>A saving nobody could stand behind</b><span>Sanna's plan counted every purchase under €10 as money found: €173 a year, with a transfer set up for it. It is now a notice with no euro figure. Her plan went from €590 to about €445 a year.</span></div></div>
+      <div class="fix"><div class="h">66f25ab</div><div><b>No way to know if the demo is ready</b><span>The old health page said which keys exist. The new check makes one real call to every service and says what stands in for anything that is down.</span></div></div>
+      <div class="fix"><div class="h">0554451</div><div><b>The GPU tunnel did not come back</b><span>After a network drop the tunnel to Verda stayed down. A new script reopens it within seconds. A closed browser tab is no longer logged as a failure.</span></div></div>
+    </div>
+    <div class="card incident">
+      <h3>What happened at about 14:40: the network dropped</h3>
+      <p>During the latency run the laptop lost its connection for a few minutes. This was not planned, and it is the most useful thing the gauntlet found.</p>
+      <ul>
+        <li><b>Worked:</b> when the Verda GPU stopped answering, NVIDIA's hosted copy took over by itself and turns kept completing.</li>
+        <li><b>Did not work:</b> while name lookups failed entirely, turns failed. Nothing can answer with no network.</li>
+        <li><b>Did not heal:</b> the tunnel to the GPU stayed down until it was reopened by hand. The readiness check showed it at once.</li>
+        <li><b>After recovery:</b> the re-run was clean: 0 errors, 1 turn of 35 on the backup.</li>
+      </ul>
+    </div>
+  </div>
+</div></section>
+
+<!-- E -->
+<section id="integration"><div class="wrap">
+  <div class="tag">E · INTEGRATION READINESS</div>
+  <h2>What the screens can plug into today</h2>
+  <p class="sub">Everything below works with no keys in mock mode, so a teammate's agent can build against it on any laptop. No existing type or event changed shape this afternoon.</p>
+  <div class="grid g3">
+    <div class="card"><h3><span class="dot"></span>Use immediately</h3><ul>
+      <li><code>useSisu</code>: ask, talk, investigate, approve, decline, memory, charts, mascot activity</li>
+      <li><code>usePlan</code> and <code>POST /api/agent/plan</code>: the money plan as live events</li>
+      <li><code>POST /api/actions/approve-all</code>: one tap for a whole plan</li>
+      <li><code>GET /api/health/ready</code>: a status light (<code>ready</code>, <code>voiceReady</code>, <code>headline</code>) <b>new</b></li>
+      <li><code>approvedMonthlySavingEur</code> on <code>GET /api/actions</code> for the futures chart <b>new</b></li>
+      <li>Working examples to copy: <code>/plan</code>, <code>/dev/agent</code>, <code>/visuals</code>, <code>/dev/ready</code></li>
+    </ul></div>
+    <div class="card"><h3><span class="dot a"></span>Gaps and mismatches</h3><ul>
+      <li>The web home page shows the X-ray only. It does not yet call the agent, the plan or voice.</li>
+      <li>The iOS app speaks the whole contract, but its own log says it was tested in mock mode, and the microphone with a test clip only.</li>
+      <li>iOS adds up approved switches on the phone. It agrees with the server now; the server field is the one to trust.</li>
+      <li>A second plan can return actions that are already approved. Both clients already filter on "waiting", so nothing breaks.</li>
+      <li>Nobody calls the demo reset when a new visitor starts.</li>
+    </ul></div>
+    <div class="card"><h3>Who owns what is left</h3><ul>
+      <li><b>Frontend (Aristé and agents):</b> put the plan, the ask box and voice on the real screens; Liito's animation from <code>activity</code>; reset on "new visitor"; optional status light.</li>
+      <li><b>Backend (Nicholas):</b> merge PR #4 and this branch; keep the tunnel up; warm the research before judging; sponsor texts.</li>
+      <li><b>Shared:</b> one rehearsal on the real phone over the venue network; the backup video.</li>
+    </ul></div>
+  </div>
+  <p class="small muted" style="margin-top:12px">The full guide for the frontend is <code>docs/FRONTEND_INTEGRATION_CONTRACT.md</code> (section 15 is new today). The team note is <code>context/log/2026-11-14-1456-nicholas-pre-submission-gauntlet.md</code>.</p>
+</div></section>
+
+<!-- F -->
+<section id="priorities"><div class="wrap">
+  <div class="tag">F · REMAINING PRIORITIES</div>
+  <h2>The five things that matter before 10:00</h2>
+  <p class="sub">In order. None of them is a backend defect that stops the demo; two of them can spoil it if left alone.</p>
+  <div class="prio">
+    <div class="p"><div class="n">1</div><div><b>The flagship flow is not on the main screen yet</b><p>The web home page stops at the X-ray. The plan, the ask box and voice live on <code>/plan</code> and <code>/dev/agent</code>, and in the iOS app (verified in mock mode). <b>Fix:</b> lift <code>/plan</code> into the real screens, or decide now to demo from the iOS app or <code>/plan</code>, and rehearse that path against the live server.</p></div><div class="meta"><span class="pill blocked">High</span><span class="own">Owner: frontend<br>Blocks the polished demo. <code>/plan</code> is the fallback.</span></div></div>
+    <div class="p"><div class="n">2</div><div><b>The venue network can take the demo down</b><p>It dropped once today. Our GPU is reached through a tunnel that died with it. <b>Fix:</b> start the server with <code>deploy/verda/dev-with-tunnel.sh</code> or run <code>keep-tunnel.sh</code> beside it; keep a phone hotspot ready; open <code>/dev/ready</code> before each judge; record the backup video.</p></div><div class="meta"><span class="pill blocked">High</span><span class="own">Owner: Nicholas<br>Blocks only if left alone.</span></div></div>
+    <div class="p"><div class="n">3</div><div><b>Two backend pull requests are waiting</b><p>PR #4 (setup fees in offer ranking, one upstream call for many readers, cancelled plans) and this branch. They merge cleanly together and 270 tests pass with both. <b>Fix:</b> review and merge both, then restart the demo server.</p></div><div class="meta"><span class="pill partial">Medium</span><span class="own">Owner: Nicholas<br>Does not block. The demo server needs the merge to have today's fixes.</span></div></div>
+    <div class="p"><div class="n">4</div><div><b>The next visitor sees the last visitor's approvals</b><p>A bill is switched once, which is right, so a second visitor on the same customer has nothing left to approve until the demo is reset. <b>Fix:</b> call <code>POST /api/demo/reset</code> when a new visitor starts. Until that is wired, press "Reset demo" on <code>/dev/ready</code>.</p></div><div class="meta"><span class="pill partial">Medium</span><span class="own">Owner: frontend, presenter<br>Does not block.</span></div></div>
+    <div class="p"><div class="n">5</div><div><b>Live prices move, and voice is unproven on a real phone</b><p>Eetu's electricity saving was €23 a year in one search and €142 in another today, because the web returned different pages; each is real and sourced. Internet and mobile bills are guesses the customer confirms. Voice was not re-tested today. <b>Fix:</b> run the plan once before judging so the pages are warm, say "an estimate from today's prices" out loud, and test the microphone once on the phone over HTTPS.</p></div><div class="meta"><span class="pill partial">Medium</span><span class="own">Owner: Nicholas<br>Does not block. Typed questions work without voice.</span></div></div>
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  <p><b style="color:var(--text)">How to reproduce every figure on this page</b></p>
+  <p><code>npm test</code> · <code>node tests/gauntlet/eval.mjs</code> · <code>node tests/gauntlet/journey.mjs</code> · <code>node tests/gauntlet/reliability.mjs</code> · <code>node tests/gauntlet/latency.mjs 5</code> · <code>GET /api/health/ready?fresh=1</code>, with <code>SISU_BASE</code> set to a running server.</p>
+  <p>Branch <code>gauntlet/pre-submission</code>, based on <code>main</code> at <code>9750ce3</code>. Measured Saturday 14 November 2026, 14:05 to 15:05 Helsinki time. Not measured today: the bill photo (vision), speech in other languages, and a real microphone; their earlier results are in <code>docs/GAUNTLET_RESULTS.md</code>.</p>
+</div></footer>
+
+<script>
+// ---------- B. architecture ----------
+const NODES = {
+  user:{x:20,y:40,w:220,h:66,t:"Customer",s:"taps, types or speaks",role:"Person",what:"A young adult with the S-Pankki app. The only one who can approve anything.",files:"—",crosses:"A question in, an answer with sources out. An Approve tap."},
+  front:{x:20,y:160,w:220,h:90,t:"Frontend",s:"iOS app · web · two hooks",role:"Screens",what:"Shows Sisu working, step by step, as events arrive. Draws the charts and the approval card.",files:"useSisu, usePlan, ios/SisuCore",crosses:"A stream of typed events from the server. No keys ever reach the phone."},
+  voice:{x:350,y:20,w:300,h:66,t:"ElevenLabs",s:"speech in · Sisu's voice out",role:"Voice",what:"Turns a spoken question into text and speaks each sentence of the answer as soon as it is checked. 47 languages.",files:"lib/agent/speech.ts, /api/voice/*",crosses:"The recording, and the answer's text. Never transactions."},
+  orch:{x:350,y:130,w:300,h:100,t:"Orchestrator",s:"runs the turn and the money plan",role:"Conductor",what:"Decides the order of work, runs tools side by side, streams every real step to the screen, and stops anything the model claims but did not do.",files:"lib/agent/orchestrator.ts, plan.ts, guards.ts",crosses:"Events to the screen; computed totals to the model; a bill type and a city to the web."},
+  ground:{x:350,y:280,w:260,h:72,t:"Number checker",s:"every figure against a receipt",role:"Trust",what:"Checks each sentence the model writes. A figure with no receipt is flagged; a slipped digit is corrected before it is shown or spoken.",files:"lib/agent/grounding.ts",crosses:"Nothing leaves. Today: 170 of 170 numbers had a source."},
+  act:{x:350,y:400,w:300,h:90,t:"Actions · memory · audit",s:"approve to act, everything logged",role:"Safety",what:"Sisu can only prepare an action. An Approve tap carries it out as a simulation. Each step is written to a log that detects tampering. A bill can be switched once.",files:"lib/actions, lib/memory, lib/store",crosses:"Stored on the demo laptop only (.sisu/state.json)."},
+  nemo:{x:750,y:20,w:230,h:62,t:"Nemotron 3.5 Super VL",s:"chooses tools, words answers",role:"NVIDIA",what:"Picks among 14 tools, fills in their arguments from free text, and words the result. It never does arithmetic. Reads a photographed bill with its vision.",files:"lib/agent/model.ts, vision.ts",crosses:"It receives totals and selected facts. Never raw rows or a customer ID."},
+  verda:{x:750,y:100,w:230,h:66,t:"Verda GPU, Finland",s:"our own · NVIDIA Build as backup",role:"Verda",what:"The model runs on one RTX PRO 6000 (96 GB) in FIN-02. If it fails or stalls, a circuit breaker sends the same request to NVIDIA's hosted copy and switches back by itself.",files:"deploy/verda, lib/agent/breaker.ts",crosses:"Reached through a private tunnel. Bill photos go only here, never to the backup."},
+  fin:{x:750,y:200,w:230,h:72,t:"Finance engine",s:"every number comes from here",role:"S-Pankki data",what:"Three baskets, safe to spend, bills, pay cycles, nine kinds of pattern, scenarios, affordability, lessons, the mortgage application. Plain code over the bank's dataset.",files:"lib/finance/*",crosses:"Transactions never leave it. Each figure carries a receipt that opens its rows."},
+  exa:{x:750,y:310,w:230,h:72,t:"Exa",s:"search · research · second reader",role:"Exa",what:"Finds today's offers, researches open questions across sources (Kela rules, rents), and reads a page when Context.dev cannot.",files:"lib/agent/research/exa.ts",crosses:"Only a bill type and a city, or a query stripped of names, IDs and amounts."},
+  ctx:{x:750,y:410,w:230,h:72,t:"Context.dev",s:"offer page → typed prices",role:"Context.dev",what:"Reads each offer page into a fixed shape: provider, plan, price per kWh, monthly fee. Those figures are the inputs to the saving.",files:"lib/agent/research/contextdev.ts",crosses:"A public page address. Ten reads a minute on our key; Exa stands in beyond that."}
+};
+const EDGES = { // right-angled routes, laid out so that no two lines cross
+  "user-front":[[130,106],[130,160]], "front-orch":[[240,195],[350,195]], "voice-orch":[[500,86],[500,130]],
+  "orch-nemo":[[650,150],[720,150],[720,50],[750,50]], "nemo-verda":[[865,82],[865,100]],
+  "orch-fin":[[650,175],[735,175],[735,235],[750,235]], "orch-exa":[[650,200],[705,200],[705,345],[750,345]],
+  "exa-ctx":[[865,382],[865,410]], "ctx-orch":[[750,445],[685,445],[685,220],[650,220]],
+  "orch-ground":[[480,230],[480,280]], "ground-front":[[350,316],[300,316],[300,225],[240,225]],
+  "orch-act":[[630,230],[630,400]], "front-act":[[130,250],[130,445],[350,445]]
+};
+const STEPS = [
+  {n:["user","front","orch","fin"],e:["user-front","front-orch","orch-fin"],c:"Pick a customer. The X-ray loads straight from the finance engine: three baskets, safe to spend, what stands out. No model is involved yet."},
+  {n:["user","front","voice","orch"],e:["user-front","front-orch","voice-orch"],c:"\"Sort out my money\", by tap or by voice. The server sends the recording to ElevenLabs, which turns speech into text, and the turn begins."},
+  {n:["orch","fin"],e:["orch-fin"],c:"The orchestrator scans twelve months in the finance engine. Patterns and every sum are plain code, with a receipt for each figure."},
+  {n:["orch","exa"],e:["orch-exa"],c:"Exa searches today's offers for each bill at once. Only a bill type and a city leave the building."},
+  {n:["orch","exa","ctx"],e:["orch-exa","exa-ctx","ctx-orch"],c:"Context.dev reads each offer page into typed prices. When it is at its limit, Exa reads the page into the same shape. In today's final run: 8 pages by Context.dev and 1 by Exa, for each customer."},
+  {n:["orch","fin","nemo","verda"],e:["orch-fin","orch-nemo","nemo-verda"],c:"Code compares each offer with the customer's own bill. Nemotron on our Verda GPU words the result. If the GPU stalls, NVIDIA's hosted copy answers instead."},
+  {n:["orch","ground","front","voice"],e:["orch-ground","ground-front","voice-orch"],c:"Before anything is shown or spoken, the number checker tests every figure in the sentence against its receipt."},
+  {n:["act","orch","front","user"],e:["orch-act","front-act","user-front"],c:"Sisu sets the actions up. Only the customer's Approve tap carries them out, as a simulation, written to a tamper-evident log."},
+  {n:["fin","orch","front","user"],e:["orch-fin","front-orch","user-front"],c:"The five-year projection updates from the same scenario engine: change nothing, keep the saving, or invest it, with a range."}
+];
+const svgNS="http://www.w3.org/2000/svg", $=(id)=>document.getElementById(id);
+const el=(tag,attrs={},parent)=>{const n=document.createElementNS(svgNS,tag);for(const k in attrs)n.setAttribute(k,attrs[k]);parent&&parent.appendChild(n);return n};
+for(const id in EDGES) el("polyline",{class:"edge",id:"e-"+id,points:EDGES[id].map((p)=>p.join(",")).join(" ")},$("edges"));
+for(const k in NODES){const n=NODES[k];
+  const g=el("g",{class:"node",id:"n-"+k,tabindex:0,role:"button","aria-label":n.t},$("nodes"));
+  el("rect",{x:n.x,y:n.y,width:n.w,height:n.h,rx:14},g);
+  el("text",{x:n.x+16,y:n.y+29},g).textContent=n.t;
+  el("text",{class:"s",x:n.x+16,y:n.y+49},g).textContent=n.s;
+  g.addEventListener("click",()=>select(k)); g.addEventListener("keydown",(ev)=>{if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();select(k)}});
+  const chip=document.createElement("button");chip.className="chip";chip.id="c-"+k;chip.textContent=n.t;chip.onclick=()=>select(k);$("chips").appendChild(chip);
+}
+function select(k){
+  document.querySelectorAll(".node.sel,.chip.sel").forEach((x)=>x.classList.remove("sel"));
+  $("n-"+k).classList.add("sel"); $("c-"+k).classList.add("sel");
+  const n=NODES[k];
+  $("detail").innerHTML='<div class="role">'+n.role+'</div><h3>'+n.t+'</h3><p>'+n.what+'</p><dl><dt>Code</dt><dd><code>'+n.files+'</code></dd><dt>What crosses</dt><dd>'+n.crosses+'</dd></dl>';
+}
+let step=-1,timer=null;
+STEPS.forEach(()=>$("dots").appendChild(document.createElement("i")));
+function show(i){
+  step=(i+STEPS.length)%STEPS.length; const s=STEPS[step];
+  document.querySelectorAll(".node.on,.chip.on,.edge.on").forEach((x)=>x.classList.remove("on"));
+  s.n.forEach((k)=>{$("n-"+k).classList.add("on");$("c-"+k).classList.add("on")});
+  s.e.forEach((id)=>{const line=$("e-"+id);line&&line.classList.add("on")});
+  $("caption").textContent=s.c; $("count").textContent="step "+(step+1)+" of "+STEPS.length;
+  [...$("dots").children].forEach((d,j)=>d.classList.toggle("on",j<=step));
+}
+function stop(){clearInterval(timer);timer=null;$("play").textContent="▶ Play the journey"}
+$("play").onclick=()=>{ if(timer){stop();return} show(step>=STEPS.length-1?0:step+1); $("play").textContent="❚❚ Pause";
+  timer=setInterval(()=>{ if(step>=STEPS.length-1){stop();return} show(step+1) },3600) };
+$("next").onclick=()=>{stop();show(step+1)}; $("prev").onclick=()=>{stop();show(step<=0?STEPS.length-1:step-1)};
+select("orch");
+
+// ---------- C. scorecard ----------
+const SCORE=[
+ {s:"S-Pankki",st:"partial",role:"Financial education and personal coaching on the bank's own data",
+  ev:["Three baskets from raw rows; 14 tools over the customer's transactions","The brief's example questions answered live today: taxis last month €207.65 (3 trips); cut dining out 20% frees €55.30 a month","Seven predict-first lessons built from the customer's own numbers","Both datasets used: Sanna's mortgage application"],
+  left:["The coaching flow is not on the main web screen yet (section F, item 1)","Show the teaching moment in the demo path, not only the saving"]},
+ {s:"Exa",st:"ready",role:"Live internet research and useful agentic action",
+  ev:["Three jobs in the running app: search, research across sources, second page reader","Each plan today ran three live searches and one or two researched checks, with sources","A web question answered with citations in 1.5 s to the first sentence (median)","Research ends in a prepared switch that waits for Approve"],
+  left:["The best offer changes between searches: say it is today's estimate","Keep the Exa badge visible on the plan screen"]},
+ {s:"Context.dev",st:"ready",role:"Structured extraction of real web data",
+  ev:["<code>POST /v1/web/scrape</code> with a JSON schema, once per offer page","Read 8 of 9 offer pages for each customer in the final run; Exa read the ninth","The extracted price per kWh and monthly fee are the inputs to the saving","Honest about limits: a 429 was seen today and Exa stood in"],
+  left:["Submit the repo, the demo and the \"which endpoint and why\" paragraph","PR #4 adds setup fees to the ranking: merge it"]},
+ {s:"NVIDIA",st:"ready",role:"Nemotron 3.5 Super VL: reasoning and tool use",
+  ev:["Super VL is the model on both the main host and the backup","54 of 54 live checks today: tool selection 27 of 27, multi-step 3 of 3, injection 6 of 6","0 of 170 spoken numbers without a source","Vision reads a photographed bill (12 of 12 on the night of 14 Nov; not re-run today)"],
+  left:["Paste the model-and-role text into the submission (drafted in <code>docs/SPONSOR_EVIDENCE.md</code>)","In the money plan Nemotron words the result; the choices there are made by code"]},
+ {s:"Verda",st:"ready",role:"European GPU infrastructure for the model",
+  ev:["One RTX PRO 6000 (96 GB) in FIN-02, Finland, serving the 120-billion-parameter model","First token 0.19 s at the median for answers that need no tool; a one-word reply in 154 ms","Bank data stays in Europe: bill photos go only to this GPU","Failover proved itself in a real network drop this afternoon"],
+  left:["Start the server with the reconnecting tunnel (section F, item 2)","Post the summary link in Verda's Discord","The GPU bills by the hour until the instance is deleted"]},
+ {s:"ElevenLabs",st:"partial",role:"Natural two-way voice",
+  ev:["Push to talk goes to speech to text, then into the same agent as typed text","Each sentence is spoken as soon as code has checked it; 47 languages","The service accepted our key at 14:57 (409 ms)","Voice results on file from the night of 14 Nov: first audio 0.3 s after a sentence is ready"],
+  left:["Not re-tested in this gauntlet","A real microphone on a real phone is still unverified","Check the credit balance before a day of demos"]}
+];
+const WORD={ready:"Ready",partial:"Partial",blocked:"Blocked"};
+$("score").innerHTML=SCORE.map((c)=>'<article class="sc"><header><div><h3>'+c.s+'</h3><p class="role">'+c.role+'</p></div><span class="pill '+c.st+'">'+WORD[c.st]+'</span></header><div><div class="lbl">Evidence from working code</div><ul>'+c.ev.map((x)=>"<li>"+x+"</li>").join("")+'</ul></div><div class="left"><div class="lbl">Still to do</div><ul>'+c.left.map((x)=>"<li>"+x+"</li>").join("")+"</ul></div></article>").join("");
+
+// ---------- D. latency (milliseconds, first sentence: median, slowest of five) ----------
+const LAT=[["Last month, or making it to payday",380,397],["Answered from the summary",397,795],["Open question (finds patterns)",522,958],["Offers, research already warm",821,941],["One finance tool",1318,1407],["A scenario",1330,1518],["An outside fact, searched live with Exa",1539,1897]];
+const MAX=2000;
+$("lat").innerHTML=LAT.map(([name,p50,p95])=>'<div class="lat"><div>'+name+'</div><div class="track"><div class="p95" style="width:'+(p95/MAX*100)+'%"></div><div class="p50" style="width:'+(p50/MAX*100)+'%"></div></div><div class="n">'+(p50/1000).toFixed(2)+" s · "+(p95/1000).toFixed(2)+" s</div></div>").join("");
+</script>
+</body>
+</html>
