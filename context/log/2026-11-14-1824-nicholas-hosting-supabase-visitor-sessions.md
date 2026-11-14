@@ -16,14 +16,14 @@
 ## Decisions
 - No type, event or endpoint changed shape. `HealthReport.store` gained `kind` and `perVisitor`. Affects: nobody has to change code.
 - Web pages served by this server and the iOS app need no change: the cookie does it. A page on another address must send the `X-Sisu-Session` header, because iPhones block cookies between sites. Affects: frontend, only if hosted apart from the backend.
-- The server uses the publishable key unless `SUPABASE_SECRET_KEY` is set. With the publishable key, anyone who had the project address and that key could create rows, but could not read or change a session without its id (32 random characters). Affects: agent lane; switch to the secret key and remove `anon` from the grants to close it fully.
+- The publishable key is public by design, so the key alone is not enough: the two database functions also ask for `SISU_STORE_TOKEN`, which only the server holds (sent as the `X-Sisu-Store-Token` header; the database keeps its hash in `sisu_store_guard`). Applied to the live project on 14 Nov, 19:40: a call with the key alone is refused. Affects: nobody; a frontend never connects to Supabase, it calls the server's API.
 
 ## Learned / gotchas
 - A hosted server cannot reach the model on our GPU: it is only reachable through the SSH tunnel on a laptop. A deploy needs a `VERDA_BASE_URL` the host can reach, or `MODEL_PROVIDER=nvidia`, and NVIDIA's hosted model was unreliable on 14 Nov.
 - Only one `next dev` can run in a checkout. Search results and page reads live in the server's memory, so fresh instances look them up again.
 - From the venue Wi-Fi a Supabase round trip took 40 to 230 ms. Each request to a state route makes one before it starts.
-- Nothing is deployed. No Vercel setting, key or domain was touched.
+- Deployed later the same evening: https://sisu-api.vercel.app (Vercel project `sisu-api`, Stockholm), with the model on our GPU reachable at a public HTTPS address (`deploy/verda/public-https.sh`). `scripts/vercel-keys.sh` copies the model, search and voice keys from a local settings file and redeploys.
 
 ## Next / open questions
-- Decide how the hosted server reaches the model, then deploy (needs Nicholas's OK).
+- Frontends point at https://sisu-api.vercel.app. A project made with `vercel project add` needs `"framework": "nextjs"` in `vercel.json`, or every path answers 404.
 - iOS: nothing to change for sessions; `basket_bar` charts and the plan screen are still open (see the 17:55 entry).
