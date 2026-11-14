@@ -533,3 +533,55 @@ export type MortgageApplication = {
   steps: CalcStep[];
   assumptions: string[];
 };
+
+// --- The money plan: Sisu goes through everything in one go and sets up what would save money (POST /api/agent/plan) ---
+
+export type PlanItem = {
+  id: string;
+  kind: "switch" | "habit";
+  title: string; // "Switch electricity to Vaasan Sähkö Myynti Oy"
+  detail: string;
+  yearlyEur: number;
+  monthlyEur: number;
+  needs: "nothing" | "spending-change"; // a switch saves money as it is; a habit saves only if the spending really comes down
+  actionId: string | null; // the action set up for it, if one could be
+  sources: Citation[];
+  facts: Fact[];
+};
+
+export type PlanSearch = { billType: BillType; query: string; pagesRead: number; pagesFound: number; offersFound: number; tookMs: number; retrievedAt: string | null; live: boolean; mock: boolean };
+
+export type PlanProjection = { years: number; freedPerMonthEur: number; nothingEur: number; keptEur: number; investedEur: number; investedLowEur: number; investedHighEur: number; gainKeptEur: number; assumptions: string[] };
+
+export type MoneyPlan = {
+  id: string;
+  customerId: string;
+  createdAt: string;
+  scanned: { transactions: number; months: number };
+  items: PlanItem[];
+  notices: { title: string; detail: string }[]; // worth knowing, with no honest euro figure
+  actions: AgentAction[]; // set up and waiting for approval
+  totalYearlyEur: number;
+  effortlessYearlyEur: number; // the part that needs nothing from the customer
+  projection: PlanProjection | null;
+  searches: PlanSearch[];
+  summary: string;
+  summaryBy: "nemotron" | "code"; // who worded the summary. Its numbers are checked either way
+  facts: Fact[];
+  tookMs: number; // real time on the server, start to finish
+};
+
+export type PlanEvent =
+  | { type: "plan_start"; planId: string; customerName: string; provider: string; model: string; mock: boolean }
+  | { type: "scan"; transactions: number; months: number; from: string; to: string; rows: { date: string; category: string; amount: number }[]; categories: { category: string; monthlyEur: number }[]; tookMs: number }
+  | { type: "finding"; id: string; role: "habit" | "bill" | "notice"; title: string; detail: string; yearlyEur: number | null }
+  | { type: "search_start"; billType: BillType; query: string; engine: "exa" }
+  | { type: "search_pages"; billType: BillType; pages: { url: string; host: string; title: string }[]; tookMs: number }
+  | { type: "page_read"; billType: BillType; url: string; host: string; ok: boolean; offers: number; reader: "context.dev"; ageMs: number | null; tookMs: number } // ageMs: how old the copy of the page was, when it was not read this second
+  | { type: "offers"; billType: BillType; ok: boolean; best: Offer | null; yearlySavingEur: number | null; currentMonthlyEur: number | null; offersFound: number; live: boolean; note: string | null }
+  | { type: "calc"; steps: CalcStep[]; totalYearlyEur: number; effortlessYearlyEur: number }
+  | { type: "action"; action: AgentAction }
+  | { type: "projection"; projection: PlanProjection }
+  | { type: "summary"; text: string; by: "nemotron" | "code"; tookMs: number }
+  | { type: "plan_done"; plan: MoneyPlan }
+  | { type: "error"; message: string };

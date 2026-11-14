@@ -132,6 +132,20 @@ A first real test by voice showed the model talking about what it could do inste
 
 The screen shows each step as it happens in plain words (`lib/agent/tools/labels.ts`), for example "Searching the web with Exa: …" or "Setting up a transfer of €500 for you to approve".
 
+### The money plan: all of it in one go (added 14 November)
+
+`POST /api/agent/plan` (`lib/agent/plan.ts`) is the whole product in one request, built to be watched. In order:
+
+1. **The account.** Code reads the last twelve months and finds what stands out (the same pattern finder the agent uses).
+2. **The web.** One Exa search per bill (electricity, home internet, mobile), all at once. Context.dev reads up to seven pages. Each page is reported the moment it is read.
+3. **The sums.** Code compares each offer with the customer's own bill and adds the findings up. Two patterns about the same category are counted once, at the smaller figure.
+4. **The actions.** A switch for each bill with a real saving, and one payday transfer for the spending habits, each waiting for approval. The transfer carries a warning when the month has no room for it.
+5. **The words.** Nemotron says what was found in the customer's language. Code checks its numbers against the receipts and falls back to a code-written sentence if one does not match.
+
+Measured live: 5.7 to 7.6 s from tap to plan with fresh searches, 0.6 s when the searches are recent. For the three demo customers the plan found €1,622, €5,608 and €485 a year, of which €108, €853 and €312 need nothing from the customer.
+
+What is honest about it: the part that "needs spending to come down" is not a saving until the customer spends less, and every screen says so. For internet and mobile Sisu cannot see the customer's current speed or data, so the cheapest plan may be a smaller one; the item says that too.
+
 ## Financial data processing
 
 **Files:** `lib/finance/`. Pure functions on the customer's rows. Each takes under a millisecond (measured: overview 0.36 ms, cash flow 0.25 ms, patterns 0.13 ms, scenario 0.04 ms).

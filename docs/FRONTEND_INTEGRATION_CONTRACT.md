@@ -306,6 +306,34 @@ const sisu = useSisu({ customerId, language });
 - **What stays in English for now:** the text on cards that code writes (teaching card options, action titles and checklists, stage titles, assumptions). The spoken and written answer is in the customer's language, and it puts a lesson's question into that language.
 - The "let me check" filler exists in English, Finnish, Swedish and German. In other languages Sisu says nothing while research runs; show the progress on screen.
 
+## 9b. The money plan: watch Sisu work, approve once (new 14 Nov)
+
+A working page is at `/plan` (`app/plan/`). It is self-contained: lift `Stage`, `PlanCard` and `usePlan` into the main app, or restyle them. The motion is in `app/plan/plan.css` (transform and opacity only, reduced motion respected).
+
+`POST /api/agent/plan` with `{ customerId, fresh?: boolean, language? }` streams `PlanEvent` objects (same `data: <json>` format as section 11), one per real step:
+
+| Event | When | Draw it as |
+|---|---|---|
+| `plan_start` | at once | the customer's name, `mock` flag |
+| `scan` | the account is read | `transactions`, `months`, 48 real `rows` (date, category, amount) to run past, top `categories` |
+| `finding` | one per pattern | `role` is `habit` (has `yearlyEur`), `notice` (no euro figure) or `bill` (a search follows) |
+| `search_start` | one per bill, all at once | the `query` typing itself, the Exa badge |
+| `search_pages` | Exa answered | the `pages` found (host, title) |
+| `page_read` | Context.dev finished one page | tick and `offers` count, or "could not be read" when `ok` is false. `ageMs` is set when the page was read earlier |
+| `offers` | the saving is worked out | `best`, `yearlySavingEur`, or a `note` when nothing is cheaper |
+| `calc` | everything is added up | `steps` and `totalYearlyEur`, `effortlessYearlyEur` |
+| `action` | each action set up | an `AgentAction` awaiting approval (section 5) |
+| `projection` | five years ahead | change nothing, kept as cash, invested with its range |
+| `summary` | Nemotron has worded it | `text`, and `by`: `nemotron` or `code` |
+| `plan_done` | the end | the whole `MoneyPlan` |
+
+Rules for the screen:
+
+- `usePlan` plays events one after another with a short pause each, so a burst is still readable. It never shows a step the server did not send.
+- An item with `needs: "spending-change"` saves money only if the customer really spends less. Say so next to it, and show `action.warning` on its transfer.
+- One tap approves everything: `POST /api/actions/approve-all` with `{ customerId, actionIds, confirm: true }` returns `{ approved, failed }`. Each action is approved, simulated and logged on its own.
+- `fresh: false` reuses a recent search instead of searching now. Context.dev allows our key 10 page reads a minute and a plan uses up to 7, so a page read in the last 10 minutes is reused and marked with its age.
+
 ## 10. Endpoints that need no model (instant)
 
 | Endpoint | Returns |

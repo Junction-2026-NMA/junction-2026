@@ -32,7 +32,7 @@ const FALLBACK_PAGES: Partial<Record<BillType, string[]>> = {
   ],
 };
 
-type Entry = { snapshot: RawResearch; lastChangeAt: number };
+type Entry = { snapshot: RawResearch; lastChangeAt: number; pagesToRead?: number };
 
 // Kept on globalThis so the dev server's hot reload does not drop runs that are in flight.
 const globalStore = globalThis as unknown as { __sisuResearch?: Map<string, Entry> };
@@ -91,17 +91,18 @@ function distinctHosts(urls: string[], limit: number): string[] {
 async function findPages(entry: Entry): Promise<{ url: string; title: string }[]> {
   try {
     const results = await exaSearch(entry.snapshot.query, { numResults: 8, highlights: false });
-    const urls = distinctHosts(results.map((r) => r.url), PAGES_TO_READ);
+    const urls = distinctHosts(results.map((r) => r.url), entry.pagesToRead ?? PAGES_TO_READ);
     if (urls.length) return urls.map((url) => ({ url, title: results.find((r) => r.url === url)?.title ?? url }));
     update(entry, { errors: [...entry.snapshot.errors, "Exa returned no pages for this search."] });
   } catch (error) {
     update(entry, { errors: [...entry.snapshot.errors, (error as Error).message] });
   }
-  return (FALLBACK_PAGES[entry.snapshot.billType] ?? []).map((url) => ({ url, title: new URL(url).hostname }));
+  return (FALLBACK_PAGES[entry.snapshot.billType] ?? []).slice(0, entry.pagesToRead ?? PAGES_TO_READ).map((url) => ({ url, title: new URL(url).hostname }));
 }
 
 async function run(entry: Entry): Promise<void> {
   if (entry.snapshot.mock) {
+    update(entry, { pagesTotal: 1, found: [{ url: "https://example.com/mock-offers", title: "Mock offers (example data)" }] });
     await sleep(MOCK_DELAY_MS);
     update(entry, {
       status: "done",
@@ -115,7 +116,7 @@ async function run(entry: Entry): Promise<void> {
   }
 
   const pages = await findPages(entry);
-  update(entry, { pagesTotal: pages.length });
+  update(entry, { pagesTotal: pages.length, found: pages.map((page) => ({ url: page.url, title: safeTitle(page.title, new URL(page.url).hostname) })) });
 
   await Promise.all(
     pages.map(async (page) => {
@@ -210,6 +211,26 @@ export function ensureResearch(billType: BillType, city: string): { key: string;
     update(entry, { status: "failed", finishedAt: Date.now(), errors: [...entry.snapshot.errors, "Research stopped unexpectedly."] });
   });
   return { key, reused: false };
+}
+
+// A brand-new search that can be watched while it runs: the plan screen shows each page as it is found and read.
+// It replaces the stored result only if it succeeds, so a failed live search never throws away a good earlier one.
+export function startWatchedResearch(billType: BillType, city: string, pagesToRead: number = PAGES_TO_READ): { peek: () => RawResearch; finished: Promise<RawResearch> } {
+  restoreSaved();
+  const entry: Entry = { ...newEntry(billType, city), pagesToRead };
+  const finished = run(entry)
+    .catch((error) => {
+      console.error("[agent] watched research failed", error);
+      update(entry, { status: "failed", finishedAt: Date.now(), errors: [...entry.snapshot.errors, "Research stopped unexpectedly."] });
+    })
+    .then(() => {
+      if (entry.snapshot.status === "done") {
+        store.set(entry.snapshot.key, entry);
+        if (!entry.snapshot.mock) saveFinished();
+      }
+      return entry.snapshot;
+    });
+  return { peek: () => entry.snapshot, finished };
 }
 
 export function peekResearch(key: string): RawResearch | null {

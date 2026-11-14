@@ -75,9 +75,23 @@ export function cleanOffers(extracted: Partial<RawOffer>[], url: string): { offe
 
 // Turns one offer page into typed offers. This is the slowest step in the whole agent (3 to 6 s),
 // so callers start it early and share the result; see research/index.ts.
+// Context.dev allows this key 10 page reads a minute. A page read in the last ten minutes is served from here
+// instead, with its real age, so a second search soon after the first does not run into that limit.
+const PAGE_REUSE_MS = 10 * 60_000;
+const recentPages: Map<string, { at: number; extraction: PageExtraction }> = ((globalThis as unknown as { __sisuPages?: Map<string, { at: number; extraction: PageExtraction }> }).__sisuPages ??= new Map());
+
+// For tests: start with no remembered pages.
+export const forgetRecentPages = (): void => recentPages.clear();
+
 export async function extractOffers(url: string, billType: BillType): Promise<PageExtraction> {
   const { contextDev } = getConfig();
   if (!contextDev.apiKey) throw missingKey("Context.dev", "CONTEXT_DEV_API_KEY");
+
+  const recent = recentPages.get(`${billType}:${url}`);
+  if (recent && Date.now() - recent.at < PAGE_REUSE_MS) {
+    const ageMs = Date.now() - recent.at;
+    return { ...recent.extraction, cacheAgeMs: (recent.extraction.cacheAgeMs ?? 0) + ageMs, tookMs: 0 };
+  }
 
   const started = Date.now();
   const response = await fetch("https://api.context.dev/v1/web/scrape", {
@@ -94,7 +108,7 @@ export async function extractOffers(url: string, billType: BillType): Promise<Pa
   });
   if (!response.ok) {
     console.error(`[agent] Context.dev returned ${response.status}: ${(await response.text().catch(() => "")).slice(0, 200)}`);
-    throw new Error(`Context.dev could not read the page (${response.status}).`);
+    throw new Error(response.status === 429 ? "Context.dev is at its limit of page reads for this minute." : `Context.dev could not read the page (${response.status}).`);
   }
 
   const body = (await response.json()) as ScrapeResponse;
@@ -102,5 +116,7 @@ export async function extractOffers(url: string, billType: BillType): Promise<Pa
   if (body.json?.success !== true) throw new Error(body.json?.message ?? "Context.dev found no offers on the page.");
 
   const { offers, dropped } = cleanOffers(body.json.data?.offers ?? [], url);
-  return { url, offers, dropped, cacheAgeMs: numberOrNull(body.cache_metadata?.age_ms), tookMs: Date.now() - started };
+  const extraction: PageExtraction = { url, offers, dropped, cacheAgeMs: numberOrNull(body.cache_metadata?.age_ms), tookMs: Date.now() - started };
+  if (offers.length) recentPages.set(`${billType}:${url}`, { at: Date.now(), extraction });
+  return extraction;
 }

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import { stubFetch } from "./helpers";
 import { toResult } from "@/lib/agent/research/compare";
 import { ensureResearch, waitForUsable } from "@/lib/agent/research";
+import { extractOffers, forgetRecentPages } from "@/lib/agent/research/contextdev";
 import type { RawOffer, RawResearch } from "@/lib/agent/research/types";
 
 const offer = (o: Partial<RawOffer>): RawOffer => ({ provider: "P", plan: null, contractType: "fixed", contractMonths: 12, monthlyPriceEur: 4, energyPriceCentsPerKwh: 9, setupFeeEur: null, sourceUrl: "https://example.com/a", ...o });
@@ -76,6 +77,7 @@ describe("live research pipeline, with the network replaced", () => {
   let exaCalls: string[] = [];
   let pageCalls: string[] = [];
   beforeEach(() => {
+    forgetRecentPages();
     Object.assign(process.env, { MODEL_PROVIDER: "nvidia", EXA_API_KEY: "test", CONTEXT_DEV_API_KEY: "test" });
     exaCalls = [];
     pageCalls = [];
@@ -105,6 +107,19 @@ describe("live research pipeline, with the network replaced", () => {
     assert.deepEqual([result?.status, result?.offers.length, result?.citations.length], ["done", 3, 3]);
     assert.deepEqual(pageCalls.map((u) => new URL(u).hostname).sort(), ["a.fi", "b.fi", "c.fi"]);
     assert.ok(result?.citations.every((c) => !Number.isNaN(Date.parse(c.retrievedAt)) && c.cacheAgeMs === 1200));
+  });
+
+  // Context.dev allows this key 10 page reads a minute; one plan needs up to 7.
+  it("a page read in the last ten minutes is not fetched again, and its age is reported; a failed read is not kept", async () => {
+    restore = network(() => pages([]), (url) => (url.includes("down") ? new Response("{}", { status: 429 }) : extraction("A")));
+    const first = await extractOffers("https://a.fi/offers", "electricity");
+    const again = await extractOffers("https://a.fi/offers", "electricity");
+    assert.equal(pageCalls.length, 1);
+    assert.deepEqual(again.offers, first.offers);
+    assert.ok((again.cacheAgeMs ?? 0) >= (first.cacheAgeMs ?? 0));
+    await assert.rejects(extractOffers("https://down.fi/offers", "electricity"), /limit of page reads/);
+    await assert.rejects(extractOffers("https://down.fi/offers", "electricity"));
+    assert.equal(pageCalls.length, 3, "a failed page is tried again next time");
   });
 
   it("the search query holds only the bill type and the city", async () => {

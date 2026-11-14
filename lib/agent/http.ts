@@ -64,7 +64,7 @@ export function allowRequest(request: Request, bucket: string, limitPerMinute: n
 export const TOO_MANY = () => jsonError("Sisu is getting a lot of questions. Please wait a moment and try again.", 429);
 
 // Sends agent events to the browser as server-sent events, one JSON object per message.
-export function eventStream(events: AsyncGenerator<SisuEvent>): Response {
+export function eventStream<T = SisuEvent>(events: AsyncGenerator<T>): Response {
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async pull(controller) {
