@@ -27,8 +27,11 @@ import type { RawResearch } from "./research/types";
 import { type ToolContext } from "./tools";
 import { searchOffers } from "./tools/web";
 
-const HABIT_KINDS: Pattern["kind"][] = ["peer-gap", "category-drift", "small-purchases"];
-const NOTICE_KINDS: Pattern["kind"][] = ["overdraft-risk", "idle-cash", "payday-spike"];
+// A habit is counted as money found only when it is a gap against a reference level: people the same age, or the
+// customer's own last year. Small purchases have no such level (their figure is all of them, and nobody stops
+// buying everything under €10), so they are a notice: worth knowing, with no euro figure added to the total.
+const HABIT_KINDS: Pattern["kind"][] = ["peer-gap", "category-drift"];
+const NOTICE_KINDS: Pattern["kind"][] = ["overdraft-risk", "idle-cash", "payday-spike", "small-purchases"];
 const MAX_HABITS = 2;
 const MAX_NOTICES = 2;
 const MAX_BILLS = 3;

@@ -1,7 +1,7 @@
 // Pre-submission gauntlet (14 Nov, afternoon). Each test here failed before its fix. Mock mode: no network, no keys.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { AINO, ALL, EETU, freshState } from "./helpers";
+import { AINO, ALL, EETU, SANNA, freshState } from "./helpers";
 import { GET as listRoute } from "@/app/api/actions/route";
 import { POST as approveAll } from "@/app/api/actions/approve-all/route";
 import { POST as prepareRoute } from "@/app/api/actions/prepare/route";
@@ -96,5 +96,20 @@ describe("the same saving is never set up, approved and counted twice", () => {
     const expected = Math.round(first.actions.filter((a) => a.kind === "switch_contract").reduce((total, a) => total + a.monthlyAmountEur, 0) * 100) / 100;
     assert.equal(list.approvedMonthlySavingEur, expected);
     assert.ok(list.approvedMonthlySavingEur > 0);
+  });
+});
+
+describe("the plan only counts money it can stand behind", () => {
+  it("small purchases are a notice, not a saving: nobody stops buying everything under ten euros", async () => {
+    freshState();
+    const sanna = await plan(SANNA);
+    assert.ok(!sanna.items.some((item) => item.id.includes("small-purchases")), "small purchases are not counted as found money");
+    assert.ok(sanna.notices.some((notice) => /purchases under/.test(notice.title)), "they are still mentioned");
+    assert.equal(sanna.totalYearlyEur, Math.round(sanna.items.filter((item) => item.kind === "switch").reduce((total, item) => total + item.yearlyEur, 0) * 100) / 100, "Sanna's total is her switches only");
+    assert.ok(!sanna.actions.some((action) => action.kind === "standing_transfer"), "no transfer is set up for a saving that was never claimed");
+    for (const customerId of ALL) {
+      const result = customerId === SANNA ? sanna : await plan(customerId);
+      assert.ok(result.items.filter((item) => item.kind === "habit").every((item) => /^habit:(peer-gap|category-drift):/.test(item.id)), "every habit is a gap against peers or last year");
+    }
   });
 });
