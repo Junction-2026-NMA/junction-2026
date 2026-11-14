@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="header.css">
 <link rel="stylesheet" href="more.css">
 <link rel="stylesheet" href="hero.css">
+<link rel="stylesheet" href="hero-motion.css">
 <link rel="stylesheet" href="today.css">
 <link rel="stylesheet" href="sections.css">
 <link rel="stylesheet" href="panels.css">
@@ -90,15 +91,17 @@
   <section class="hero">
     <div class="hero-copy reveal">
       <h1 class="hero-title">Small wins with <span class="hero-chip">your own money.</span></h1>
-      <p class="hero-lead">Sisu is a concept for a money coach in <span class="keep">S-mobiili</span> that gives you one small step a day.</p>
+      <p class="hero-lead"><span class="lead-line">Know what is safe to spend until payday.</span> <span class="lead-line">Then take one small step a day.</span></p>
+      <p class="hero-note">A money coach concept for <span class="keep">S-mobiili</span>.</p>
       <a class="demo-button btn-primary" href="/">Open the Sisu demo</a>
     </div>
     <figure class="hero-figure reveal">
       <div class="phone">
         <div class="phone-screen">
           <div class="today-hero">
+            <p class="today-date">Monday 9 Nov</p>
             <p class="today-label">Safe to spend</p>
-            <p class="today-amount">€64</p>
+            <p class="today-amount"><span class="today-figure js-count" data-count-ms="900">€64</span></p>
             <p class="today-context">6 days to payday</p>
           </div>
           <div class="today-baskets">
@@ -124,7 +127,7 @@
       </div>
       <div class="float-card streak-card">
         <svg class="flame" width="36" height="36" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c0 4 6 6.5 6 12a6 6 0 0 1-12 0c0-2 .8-3.6 2-5 .2 1.6 1 2.6 2 3 0-3.5.5-7 2-10z"/></svg>
-        <p class="streak-count">12</p>
+        <p class="streak-count"><span class="streak-figure js-count" data-count-ms="700">12</span></p>
         <p class="streak-label">days in a row</p>
       </div>
       <div class="float-card jar-card">
