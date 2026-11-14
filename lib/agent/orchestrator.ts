@@ -19,6 +19,8 @@ import { TOOL_SCHEMAS, type ToolContext, type ToolOutcome, billTypeOf, executeTo
 import { activityLabel } from "./tools/labels";
 import { failure } from "./tools/types";
 import { FORGED_NOTE, looksForged } from "./tools/untrusted";
+import { listNotifications, listWatches, watchSubject } from "@/lib/watch";
+import { fact } from "@/lib/finance/facts";
 
 const MAX_MODEL_STEPS = { chat: 6, investigate: 10 };
 const MAX_GUARD_RETRIES = 2; // how many times one turn may be sent back to redo a step
@@ -89,10 +91,13 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
   const userTexts = forged ? [] : [...history.filter((turn) => turn.role === "user").map((turn) => turn.content), request.text];
   const sisuTexts = forged ? [] : history.filter((turn) => turn.role === "assistant").map((turn) => turn.content);
   const context: ToolContext = { customerId: request.customerId, overview, city: customer.area, memory, cashFlow, userTexts, sisuTexts, signal };
+  // The customer's watches and what they found. The figures in a finding are receipts, and its words are context.
+  const watches = listWatches(request.customerId);
+  const watchNotes = listNotifications(request.customerId).slice(0, 4);
   // The demo bank's balances after what the customer approved. Their figures are receipts like any other.
   const accounts = accountsFor(request.customerId);
   const messages: ChatMessage[] = [
-    { role: "system", content: buildSystemPrompt({ overview, city: customer.area, mode: request.mode, memory, investigate, language: request.language, actions: listActions(request.customerId), accounts }) },
+    { role: "system", content: buildSystemPrompt({ overview, city: customer.area, mode: request.mode, memory, investigate, language: request.language, actions: listActions(request.customerId), accounts, watches, notifications: watchNotes }) },
     ...history.map((turn) => ({ role: turn.role, content: turn.content })),
     { role: "user", content: forged ? `${request.text}\n\n${FORGED_NOTE}` : request.text },
   ];
@@ -120,9 +125,14 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
   let researched = false;
 
   // Everything the answer's numbers may be checked against. Tool results are added as they arrive.
-  const summaryFacts = [...overviewFacts(overview), ...(accounts?.facts ?? [])];
+  const summaryFacts = [
+    ...overviewFacts(overview),
+    ...(accounts?.facts ?? []),
+    ...watchNotes.flatMap((note) => note.facts),
+    ...watches.map((watch) => fact(`watch:${watch.id}:limit`, `Price limit of the watch on ${watchSubject(watch)}`, watch.budgetEur, watch.priceUnit, "the limit the customer said", { source: "customer-stated" })),
+  ];
   const summaryText = customerSummary(overview, customer.area);
-  const sources = (): Sources => ({ facts: [...toolFacts, ...summaryFacts], contextTexts: [summaryText, ...toolContents, ...memory.items.map((item) => item.value)], userTexts });
+  const sources = (): Sources => ({ facts: [...toolFacts, ...summaryFacts], contextTexts: [summaryText, ...watchNotes.map((note) => `${note.title}. ${note.summary}`), ...toolContents, ...memory.items.map((item) => item.value)], userTexts });
   const corrections: NumberCorrection[] = [];
   const providerNames: string[] = []; // every provider the offer research returned this turn
   const nameCorrections: { said: string; corrected: string }[] = [];
