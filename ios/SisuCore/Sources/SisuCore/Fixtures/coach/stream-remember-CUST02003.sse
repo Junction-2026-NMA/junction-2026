@@ -1,0 +1,50 @@
+data: {"type":"start","turnId":"8032121a-1848-4622-a9eb-9cf9cca2ef55","provider":"mock","model":"mock","mock":true}
+
+data: {"type":"tool_start","id":"mock_remember_ebvvzm","name":"remember","args":{"kind":"yearly_kwh","value":"3500"}}
+
+data: {"type":"tool_end","trace":{"id":"mock_remember_ebvvzm","name":"remember","args":{"kind":"yearly_kwh","value":"3500"},"source":"finance","startedAtMs":254,"tookMs":1,"ok":true,"summary":"Remembered yearly_kwh: 3500","joinedPrefetch":false}}
+
+data: {"type":"stage","stage":{"kind":"memory","title":"Remembered","summary":"yearly kwh: 3500","source":"customer-stated","data":{"kind":"memory","item":{"id":"28fdea2c-c5a5-4e13-8423-e4cd3b4eefda","kind":"yearly_kwh","key":"electricity","value":"3500","billType":null,"source":"user-said-in-chat","savedAt":"2026-11-14T09:50:37.672Z"}},"id":"8032121a-1848-4622-a9eb-9cf9cca2ef55:0","toolCallId":"mock_remember_ebvvzm","atMs":255,"facts":[]}}
+
+data: {"type":"memory","item":{"id":"28fdea2c-c5a5-4e13-8423-e4cd3b4eefda","kind":"yearly_kwh","key":"electricity","value":"3500","billType":null,"source":"user-said-in-chat","savedAt":"2026-11-14T09:50:37.672Z"}}
+
+data: {"type":"delta","text":"Mock "}
+
+data: {"type":"delta","text":"answer. "}
+
+data: {"type":"delta","text":"I "}
+
+data: {"type":"delta","text":"will "}
+
+data: {"type":"delta","text":"remember "}
+
+data: {"type":"delta","text":"that. "}
+
+data: {"type":"sentence","index":0,"text":"Mock answer. I will remember that."}
+
+data: {"type":"delta","text":"You "}
+
+data: {"type":"delta","text":"can "}
+
+data: {"type":"delta","text":"ask "}
+
+data: {"type":"delta","text":"me "}
+
+data: {"type":"delta","text":"to "}
+
+data: {"type":"delta","text":"forget "}
+
+data: {"type":"delta","text":"it "}
+
+data: {"type":"delta","text":"at "}
+
+data: {"type":"delta","text":"any "}
+
+data: {"type":"delta","text":"time. "}
+
+data: {"type":"sentence","index":1,"text":"You can ask me to forget it at any time."}
+
+data: {"type":"grounding","grounding":{"ok":true,"checked":0,"unverified":[],"numbers":[],"corrections":[]},"facts":[]}
+
+data: {"type":"done","text":"Mock answer. I will remember that. You can ask me to forget it at any time.","citations":[],"timings":{"sttMs":null,"firstTokenMs":281,"firstSentenceMs":413,"totalMs":675,"modelSteps":[{"model":"mock","provider":"mock","usedBackup":false,"firstTokenMs":250,"totalMs":250},{"model":"mock","provider":"mock","usedBackup":false,"firstTokenMs":26,"totalMs":419}]}}
+

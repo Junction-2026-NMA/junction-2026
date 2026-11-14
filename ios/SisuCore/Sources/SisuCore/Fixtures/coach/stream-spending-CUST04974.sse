@@ -1,0 +1,68 @@
+data: {"type":"start","turnId":"0d4bf27b-087a-40e6-b6b7-dbde15fabac4","provider":"mock","model":"mock","mock":true}
+
+data: {"type":"delta","text":"Mock "}
+
+data: {"type":"delta","text":"answer. "}
+
+data: {"type":"delta","text":"You "}
+
+data: {"type":"delta","text":"can "}
+
+data: {"type":"delta","text":"safely "}
+
+data: {"type":"delta","text":"spend "}
+
+data: {"type":"delta","text":"164.09 "}
+
+data: {"type":"delta","text":"euros "}
+
+data: {"type":"delta","text":"a "}
+
+data: {"type":"delta","text":"week. "}
+
+data: {"type":"sentence","index":0,"text":"Mock answer. You can safely spend 164.09 euros a week."}
+
+data: {"type":"delta","text":"Try "}
+
+data: {"type":"delta","text":"asking "}
+
+data: {"type":"delta","text":"for "}
+
+data: {"type":"delta","text":"a "}
+
+data: {"type":"delta","text":"cheaper "}
+
+data: {"type":"delta","text":"electricity "}
+
+data: {"type":"delta","text":"deal, "}
+
+data: {"type":"delta","text":"whether "}
+
+data: {"type":"delta","text":"you "}
+
+data: {"type":"delta","text":"can "}
+
+data: {"type":"delta","text":"afford "}
+
+data: {"type":"delta","text":"a "}
+
+data: {"type":"delta","text":"phone "}
+
+data: {"type":"delta","text":"repair, "}
+
+data: {"type":"delta","text":"or "}
+
+data: {"type":"delta","text":"where "}
+
+data: {"type":"delta","text":"your "}
+
+data: {"type":"delta","text":"money "}
+
+data: {"type":"delta","text":"goes. "}
+
+data: {"type":"sentence","index":1,"text":"Try asking for a cheaper electricity deal, whether you can afford a phone repair, or where your money goes."}
+
+data: {"type":"grounding","grounding":{"ok":true,"checked":1,"unverified":[],"numbers":[{"value":164.09,"status":"receipt","factId":"overview:safe-week"}],"corrections":[]},"facts":[{"id":"overview:safe-week","label":"Safe to spend per week","value":164.09,"unit":"EUR","source":"calculation","basis":"safe to spend per month divided by weeks in a month"}]}
+
+data: {"type":"done","text":"Mock answer. You can safely spend 164.09 euros a week. Try asking for a cheaper electricity deal, whether you can afford a phone repair, or where your money goes.","citations":[],"timings":{"sttMs":null,"firstTokenMs":27,"firstSentenceMs":261,"totalMs":754,"modelSteps":[{"model":"mock","provider":"mock","usedBackup":false,"firstTokenMs":26,"totalMs":753}]}}
+

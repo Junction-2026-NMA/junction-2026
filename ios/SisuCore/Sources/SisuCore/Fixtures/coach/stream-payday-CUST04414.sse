@@ -1,0 +1,54 @@
+data: {"type":"start","turnId":"461f0578-2d0b-4fc7-9f88-3c0d0e237592","provider":"mock","model":"mock","mock":true}
+
+data: {"type":"tool_start","id":"mock_get_cash_flow_jpd5dk","name":"get_cash_flow","args":{}}
+
+data: {"type":"tool_end","trace":{"id":"mock_get_cash_flow_jpd5dk","name":"get_cash_flow","args":{},"source":"finance","startedAtMs":253,"tookMs":0,"ok":true,"summary":"Next payday 2026-10-15; expected balance just before it €2530.51","joinedPrefetch":false}}
+
+data: {"type":"stage","stage":{"kind":"calculation","title":"Balance before the next payday","summary":"About €2531 expected on 2026-10-15","source":"calculation","data":{"kind":"calculation","steps":[{"label":"Balance today","amount":4183.34,"basis":"account balance on 2026-09-30"},{"label":"Bills expected before payday (2)","amount":-670.18,"basis":"each bill's 12-month average, on its usual day of the month"},{"label":"Everyday spending for 15 days","amount":-982.65,"basis":"€65.51 a day, the 12-month average"},{"label":"Expected balance just before payday","amount":2530.51,"basis":"next payday expected on 2026-10-15"}],"resultLabel":"Expected balance just before payday","resultValue":2530.51,"unit":"EUR","assumptions":["Payday is taken as day 15 of the month, the usual day in this customer's history.","The projection assumes bills and everyday spending follow their 12-month averages. A large one-off purchase would change it.","Only this account is visible. Money held elsewhere is not counted."]},"id":"461f0578-2d0b-4fc7-9f88-3c0d0e237592:0","toolCallId":"mock_get_cash_flow_jpd5dk","atMs":253,"facts":[{"id":"cash:payday","label":"Usual payday (day of month)","value":15,"unit":"days","source":"bank-data","basis":"the usual salary day in the history"},{"id":"cash:days-to-payday","label":"Days to the next payday","value":15,"unit":"days","source":"calculation","basis":"next payday expected on 2026-10-15"},{"id":"cash:projected-low","label":"Expected balance just before payday","value":2530.51,"unit":"EUR","source":"calculation","basis":"balance minus bills due and average everyday spending until payday"},{"id":"cash:daily-everyday","label":"Everyday spending per day","value":65.51,"unit":"EUR","source":"bank-data","basis":"12-month average"},{"id":"cash:negative-months","label":"Months with a balance below zero","value":0,"unit":"count","source":"bank-data","basis":"last 12 months","evidence":{"from":"2025-10-01","to":"2026-09-30","negativeBalance":true}},{"id":"cash:first-week-share","label":"Share of everyday spending in the week after payday","value":30,"unit":"percent","source":"calculation","basis":"over 12 pay cycles"},{"id":"cash:step:0","label":"Balance today","value":4183.34,"unit":"EUR","source":"calculation","basis":"account balance on 2026-09-30"},{"id":"cash:step:1","label":"Bills expected before payday (2)","value":-670.18,"unit":"EUR","source":"calculation","basis":"each bill's 12-month average, on its usual day of the month"},{"id":"cash:step:2","label":"Everyday spending for 15 days","value":-982.65,"unit":"EUR","source":"calculation","basis":"€65.51 a day, the 12-month average"},{"id":"cash:step:3","label":"Expected balance just before payday","value":2530.51,"unit":"EUR","source":"calculation","basis":"next payday expected on 2026-10-15"},{"id":"cash:due:housing-1","label":"Rent or housing payment due 2026-10-06","value":622.21,"unit":"EUR","source":"bank-data","basis":"the bill's 12-month average"},{"id":"cash:due:utilities-3","label":"Mobile plan due 2026-10-14","value":47.97,"unit":"EUR","source":"bank-data","basis":"the bill's 12-month average"},{"id":"cash:low:2026-03-30","label":"Lowest balance in the cycle from 2026-03-30","value":5910.59,"unit":"EUR","source":"bank-data","basis":"on 2026-04-14"},{"id":"cash:low:2026-04-15","label":"Lowest balance in the cycle from 2026-04-15","value":5944.35,"unit":"EUR","source":"bank-data","basis":"on 2026-05-14"},{"id":"cash:low:2026-05-15","label":"Lowest balance in the cycle from 2026-05-15","value":3436.3,"unit":"EUR","source":"bank-data","basis":"on 2026-06-14"},{"id":"cash:low:2026-06-15","label":"Lowest balance in the cycle from 2026-06-15","value":3265.69,"unit":"EUR","source":"bank-data","basis":"on 2026-06-15"},{"id":"cash:low:2026-07-15","label":"Lowest balance in the cycle from 2026-07-15","value":2234.6,"unit":"EUR","source":"bank-data","basis":"on 2026-08-11"},{"id":"cash:low:2026-08-15","label":"Lowest balance in the cycle from 2026-08-15","value":3078.44,"unit":"EUR","source":"bank-data","basis":"on 2026-09-11"}]}}
+
+data: {"type":"delta","text":"Mock "}
+
+data: {"type":"delta","text":"answer. "}
+
+data: {"type":"delta","text":"Your "}
+
+data: {"type":"delta","text":"next "}
+
+data: {"type":"delta","text":"payday "}
+
+data: {"type":"delta","text":"is "}
+
+data: {"type":"delta","text":"expected "}
+
+data: {"type":"delta","text":"on "}
+
+data: {"type":"delta","text":"2026-10-15, "}
+
+data: {"type":"delta","text":"and "}
+
+data: {"type":"delta","text":"your "}
+
+data: {"type":"delta","text":"balance "}
+
+data: {"type":"delta","text":"just "}
+
+data: {"type":"delta","text":"before "}
+
+data: {"type":"delta","text":"it "}
+
+data: {"type":"delta","text":"should "}
+
+data: {"type":"delta","text":"be "}
+
+data: {"type":"delta","text":"about "}
+
+data: {"type":"delta","text":"2530.51 "}
+
+data: {"type":"delta","text":"euros. "}
+
+data: {"type":"sentence","index":0,"text":"Mock answer. Your next payday is expected on 2026-10-15, and your balance just before it should be about 2530.51 euros."}
+
+data: {"type":"grounding","grounding":{"ok":true,"checked":1,"unverified":[],"numbers":[{"value":2530.51,"status":"receipt","factId":"cash:projected-low"}],"corrections":[]},"facts":[{"id":"cash:payday","label":"Usual payday (day of month)","value":15,"unit":"days","source":"bank-data","basis":"the usual salary day in the history"},{"id":"cash:days-to-payday","label":"Days to the next payday","value":15,"unit":"days","source":"calculation","basis":"next payday expected on 2026-10-15"},{"id":"cash:projected-low","label":"Expected balance just before payday","value":2530.51,"unit":"EUR","source":"calculation","basis":"balance minus bills due and average everyday spending until payday"},{"id":"cash:daily-everyday","label":"Everyday spending per day","value":65.51,"unit":"EUR","source":"bank-data","basis":"12-month average"},{"id":"cash:negative-months","label":"Months with a balance below zero","value":0,"unit":"count","source":"bank-data","basis":"last 12 months","evidence":{"from":"2025-10-01","to":"2026-09-30","negativeBalance":true}},{"id":"cash:first-week-share","label":"Share of everyday spending in the week after payday","value":30,"unit":"percent","source":"calculation","basis":"over 12 pay cycles"},{"id":"cash:step:0","label":"Balance today","value":4183.34,"unit":"EUR","source":"calculation","basis":"account balance on 2026-09-30"},{"id":"cash:step:1","label":"Bills expected before payday (2)","value":-670.18,"unit":"EUR","source":"calculation","basis":"each bill's 12-month average, on its usual day of the month"},{"id":"cash:step:2","label":"Everyday spending for 15 days","value":-982.65,"unit":"EUR","source":"calculation","basis":"€65.51 a day, the 12-month average"},{"id":"cash:step:3","label":"Expected balance just before payday","value":2530.51,"unit":"EUR","source":"calculation","basis":"next payday expected on 2026-10-15"},{"id":"cash:due:housing-1","label":"Rent or housing payment due 2026-10-06","value":622.21,"unit":"EUR","source":"bank-data","basis":"the bill's 12-month average"},{"id":"cash:due:utilities-3","label":"Mobile plan due 2026-10-14","value":47.97,"unit":"EUR","source":"bank-data","basis":"the bill's 12-month average"},{"id":"cash:low:2026-03-30","label":"Lowest balance in the cycle from 2026-03-30","value":5910.59,"unit":"EUR","source":"bank-data","basis":"on 2026-04-14"},{"id":"cash:low:2026-04-15","label":"Lowest balance in the cycle from 2026-04-15","value":5944.35,"unit":"EUR","source":"bank-data","basis":"on 2026-05-14"},{"id":"cash:low:2026-05-15","label":"Lowest balance in the cycle from 2026-05-15","value":3436.3,"unit":"EUR","source":"bank-data","basis":"on 2026-06-14"},{"id":"cash:low:2026-06-15","label":"Lowest balance in the cycle from 2026-06-15","value":3265.69,"unit":"EUR","source":"bank-data","basis":"on 2026-06-15"},{"id":"cash:low:2026-07-15","label":"Lowest balance in the cycle from 2026-07-15","value":2234.6,"unit":"EUR","source":"bank-data","basis":"on 2026-08-11"},{"id":"cash:low:2026-08-15","label":"Lowest balance in the cycle from 2026-08-15","value":3078.44,"unit":"EUR","source":"bank-data","basis":"on 2026-09-11"}]}
+
+data: {"type":"done","text":"Mock answer. Your next payday is expected on 2026-10-15, and your balance just before it should be about 2530.51 euros.","citations":[],"timings":{"sttMs":null,"firstTokenMs":280,"firstSentenceMs":776,"totalMs":776,"modelSteps":[{"model":"mock","provider":"mock","usedBackup":false,"firstTokenMs":250,"totalMs":250},{"model":"mock","provider":"mock","usedBackup":false,"firstTokenMs":27,"totalMs":523}]}}
+

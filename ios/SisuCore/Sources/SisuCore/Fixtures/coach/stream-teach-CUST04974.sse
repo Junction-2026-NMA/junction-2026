@@ -1,0 +1,142 @@
+data: {"type":"start","turnId":"82575d90-f8c8-4e5a-a189-ea662c6e3e25","provider":"mock","model":"mock","mock":true}
+
+data: {"type":"tool_start","id":"mock_explain_concept_glgbru","name":"explain_concept","args":{"concept":"buffer-first"}}
+
+data: {"type":"tool_end","trace":{"id":"mock_explain_concept_glgbru","name":"explain_concept","args":{"concept":"buffer-first"},"source":"finance","startedAtMs":253,"tookMs":9,"ok":true,"summary":"Lesson: Buffer before investing","joinedPrefetch":false}}
+
+data: {"type":"stage","stage":{"kind":"teaching","title":"Buffer before investing","summary":"How many months of your must-pay costs do you think your balance covers today?","source":"bank-data","facts":[{"id":"teach:buffer:runway","label":"Months of must-pay costs covered","value":1.14,"unit":"months","source":"calculation","basis":"balance divided by average must-pay costs"},{"id":"teach:buffer:mandatory","label":"Must-pay costs per month","value":1072.28,"unit":"EUR/month","source":"bank-data","basis":"regular plus now-and-then baskets, 12-month average","evidence":{"from":"2025-10-01","to":"2026-09-30"}},{"id":"teach:buffer:target","label":"Three-month buffer","value":3216.84,"unit":"EUR","source":"calculation","basis":"three times monthly must-pay costs"},{"id":"teach:buffer:balance","label":"Balance","value":1220.35,"unit":"EUR","source":"bank-data","basis":"account balance on 2026-09-30"}],"data":{"kind":"teaching","card":{"id":"buffer-first","concept":"buffer-first","title":"Buffer before investing","explanation":"A buffer is cash that covers your must-pay costs if income stops or a large bill lands. A common rule of thumb is three to six months. Without one, a surprise cost has to come from credit, which costs more than most investments earn.","question":"How many months of your must-pay costs do you think your balance covers today?","reveal":"About 1.14 months. Your must-pay costs average €1,072 a month, so a three-month buffer would be €3,217; your balance is €1,220.","facts":[{"id":"teach:buffer:runway","label":"Months of must-pay costs covered","value":1.14,"unit":"months","source":"calculation","basis":"balance divided by average must-pay costs"},{"id":"teach:buffer:mandatory","label":"Must-pay costs per month","value":1072.28,"unit":"EUR/month","source":"bank-data","basis":"regular plus now-and-then baskets, 12-month average","evidence":{"from":"2025-10-01","to":"2026-09-30"}},{"id":"teach:buffer:target","label":"Three-month buffer","value":3216.84,"unit":"EUR","source":"calculation","basis":"three times monthly must-pay costs"},{"id":"teach:buffer:balance","label":"Balance","value":1220.35,"unit":"EUR","source":"bank-data","basis":"account balance on 2026-09-30"}],"options":["About 3.85 months","About 6.46 months","About 1.14 months"],"correctIndex":2}},"id":"82575d90-f8c8-4e5a-a189-ea662c6e3e25:0","toolCallId":"mock_explain_concept_glgbru","atMs":262}}
+
+data: {"type":"teaching","card":{"id":"buffer-first","concept":"buffer-first","title":"Buffer before investing","explanation":"A buffer is cash that covers your must-pay costs if income stops or a large bill lands. A common rule of thumb is three to six months. Without one, a surprise cost has to come from credit, which costs more than most investments earn.","question":"How many months of your must-pay costs do you think your balance covers today?","reveal":"About 1.14 months. Your must-pay costs average €1,072 a month, so a three-month buffer would be €3,217; your balance is €1,220.","facts":[{"id":"teach:buffer:runway","label":"Months of must-pay costs covered","value":1.14,"unit":"months","source":"calculation","basis":"balance divided by average must-pay costs"},{"id":"teach:buffer:mandatory","label":"Must-pay costs per month","value":1072.28,"unit":"EUR/month","source":"bank-data","basis":"regular plus now-and-then baskets, 12-month average","evidence":{"from":"2025-10-01","to":"2026-09-30"}},{"id":"teach:buffer:target","label":"Three-month buffer","value":3216.84,"unit":"EUR","source":"calculation","basis":"three times monthly must-pay costs"},{"id":"teach:buffer:balance","label":"Balance","value":1220.35,"unit":"EUR","source":"bank-data","basis":"account balance on 2026-09-30"}],"options":["About 3.85 months","About 6.46 months","About 1.14 months"],"correctIndex":2}}
+
+data: {"type":"delta","text":"Mock "}
+
+data: {"type":"delta","text":"answer. "}
+
+data: {"type":"delta","text":"A "}
+
+data: {"type":"delta","text":"buffer "}
+
+data: {"type":"delta","text":"is "}
+
+data: {"type":"delta","text":"cash "}
+
+data: {"type":"delta","text":"that "}
+
+data: {"type":"delta","text":"covers "}
+
+data: {"type":"delta","text":"your "}
+
+data: {"type":"delta","text":"must-pay "}
+
+data: {"type":"delta","text":"costs "}
+
+data: {"type":"delta","text":"if "}
+
+data: {"type":"delta","text":"income "}
+
+data: {"type":"delta","text":"stops "}
+
+data: {"type":"delta","text":"or "}
+
+data: {"type":"delta","text":"a "}
+
+data: {"type":"delta","text":"large "}
+
+data: {"type":"delta","text":"bill "}
+
+data: {"type":"delta","text":"lands. "}
+
+data: {"type":"sentence","index":0,"text":"Mock answer. A buffer is cash that covers your must-pay costs if income stops or a large bill lands."}
+
+data: {"type":"delta","text":"A "}
+
+data: {"type":"delta","text":"common "}
+
+data: {"type":"delta","text":"rule "}
+
+data: {"type":"delta","text":"of "}
+
+data: {"type":"delta","text":"thumb "}
+
+data: {"type":"delta","text":"is "}
+
+data: {"type":"delta","text":"three "}
+
+data: {"type":"delta","text":"to "}
+
+data: {"type":"delta","text":"six "}
+
+data: {"type":"delta","text":"months. "}
+
+data: {"type":"sentence","index":1,"text":"A common rule of thumb is three to six months."}
+
+data: {"type":"delta","text":"Without "}
+
+data: {"type":"delta","text":"one, "}
+
+data: {"type":"delta","text":"a "}
+
+data: {"type":"delta","text":"surprise "}
+
+data: {"type":"delta","text":"cost "}
+
+data: {"type":"delta","text":"has "}
+
+data: {"type":"delta","text":"to "}
+
+data: {"type":"delta","text":"come "}
+
+data: {"type":"delta","text":"from "}
+
+data: {"type":"delta","text":"credit, "}
+
+data: {"type":"delta","text":"which "}
+
+data: {"type":"delta","text":"costs "}
+
+data: {"type":"delta","text":"more "}
+
+data: {"type":"delta","text":"than "}
+
+data: {"type":"delta","text":"most "}
+
+data: {"type":"delta","text":"investments "}
+
+data: {"type":"delta","text":"earn. "}
+
+data: {"type":"sentence","index":2,"text":"Without one, a surprise cost has to come from credit, which costs more than most investments earn."}
+
+data: {"type":"delta","text":"How "}
+
+data: {"type":"delta","text":"many "}
+
+data: {"type":"delta","text":"months "}
+
+data: {"type":"delta","text":"of "}
+
+data: {"type":"delta","text":"your "}
+
+data: {"type":"delta","text":"must-pay "}
+
+data: {"type":"delta","text":"costs "}
+
+data: {"type":"delta","text":"do "}
+
+data: {"type":"delta","text":"you "}
+
+data: {"type":"delta","text":"think "}
+
+data: {"type":"delta","text":"your "}
+
+data: {"type":"delta","text":"balance "}
+
+data: {"type":"delta","text":"covers "}
+
+data: {"type":"delta","text":"today? "}
+
+data: {"type":"sentence","index":3,"text":"How many months of your must-pay costs do you think your balance covers today?"}
+
+data: {"type":"grounding","grounding":{"ok":true,"checked":0,"unverified":[],"numbers":[],"corrections":[]},"facts":[]}
+
+data: {"type":"done","text":"Mock answer. A buffer is cash that covers your must-pay costs if income stops or a large bill lands. A common rule of thumb is three to six months. Without one, a surprise cost has to come from credit, which costs more than most investments earn. How many months of your must-pay costs do you think your balance covers today?","citations":[],"timings":{"sttMs":null,"firstTokenMs":287,"firstSentenceMs":757,"totalMs":1902,"modelSteps":[{"model":"mock","provider":"mock","usedBackup":false,"firstTokenMs":250,"totalMs":250},{"model":"mock","provider":"mock","usedBackup":false,"firstTokenMs":25,"totalMs":1640}]}}
+

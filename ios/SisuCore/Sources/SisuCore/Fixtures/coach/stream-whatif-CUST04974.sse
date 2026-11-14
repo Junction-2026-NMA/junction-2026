@@ -1,0 +1,46 @@
+data: {"type":"start","turnId":"11ebef91-d474-4f33-b218-d409d31a6bfa","provider":"mock","model":"mock","mock":true}
+
+data: {"type":"tool_start","id":"mock_run_scenario_av28yf","name":"run_scenario","args":{"billSavingPerMonth":50,"everydayCutPct":0,"years":5}}
+
+data: {"type":"tool_end","trace":{"id":"mock_run_scenario_av28yf","name":"run_scenario","args":{"billSavingPerMonth":50,"everydayCutPct":0,"years":5},"source":"finance","startedAtMs":253,"tookMs":0,"ok":true,"summary":"€50 a month freed, projected over 5 years","joinedPrefetch":false}}
+
+data: {"type":"stage","stage":{"kind":"impact","title":"5 years ahead","summary":"About €3000 more after 5 years if the freed money is kept.","source":"calculation","data":{"kind":"impact","impact":{"monthlyEur":50,"yearlyEur":600,"horizonYears":5,"branches":[{"id":"nothing","label":"Change nothing","endTotal":490.75,"endLow":490.75,"endHigh":490.75},{"id":"save","label":"Make the change, keep the cash","endTotal":3490.75,"endLow":3490.75,"endHigh":3490.75},{"id":"invest","label":"Make the change, invest it","endTotal":3887.29,"endLow":3552.56,"endHigh":4169.26}],"gainVsNothingEur":3000,"summary":"About €3000 more after 5 years if the freed money is kept."}},"id":"11ebef91-d474-4f33-b218-d409d31a6bfa:0","toolCallId":"mock_run_scenario_av28yf","atMs":254,"facts":[{"id":"scenario:freed","label":"Freed per month","value":50,"unit":"EUR/month","source":"calculation","basis":"bill saving plus the trimmed share of everyday spending"},{"id":"scenario:years","label":"Years ahead","value":5,"unit":"years","source":"customer-stated","basis":"the horizon asked for"},{"id":"scenario:gain","label":"Extra after the period if the money is kept","value":3000,"unit":"EUR","source":"calculation","basis":"'keep the cash' minus 'change nothing'"},{"id":"scenario:nothing:end","label":"Change nothing: total at the end","value":490.75,"unit":"EUR","source":"calculation","basis":"projected from 12-month averages"},{"id":"scenario:nothing:low","label":"Change nothing: low case","value":490.75,"unit":"EUR","source":"calculation","basis":"1% a year scenario"},{"id":"scenario:nothing:high","label":"Change nothing: high case","value":490.75,"unit":"EUR","source":"calculation","basis":"8% a year scenario"},{"id":"scenario:save:end","label":"Make the change, keep the cash: total at the end","value":3490.75,"unit":"EUR","source":"calculation","basis":"projected from 12-month averages"},{"id":"scenario:save:low","label":"Make the change, keep the cash: low case","value":3490.75,"unit":"EUR","source":"calculation","basis":"1% a year scenario"},{"id":"scenario:save:high","label":"Make the change, keep the cash: high case","value":3490.75,"unit":"EUR","source":"calculation","basis":"8% a year scenario"},{"id":"scenario:invest:end","label":"Make the change, invest it: total at the end","value":3887.29,"unit":"EUR","source":"calculation","basis":"projected from 12-month averages"},{"id":"scenario:invest:low","label":"Make the change, invest it: low case","value":3552.56,"unit":"EUR","source":"calculation","basis":"1% a year scenario"},{"id":"scenario:invest:high","label":"Make the change, invest it: high case","value":4169.26,"unit":"EUR","source":"calculation","basis":"8% a year scenario"}]}}
+
+data: {"type":"delta","text":"Mock "}
+
+data: {"type":"delta","text":"answer. "}
+
+data: {"type":"delta","text":"Keeping "}
+
+data: {"type":"delta","text":"50 "}
+
+data: {"type":"delta","text":"euros "}
+
+data: {"type":"delta","text":"a "}
+
+data: {"type":"delta","text":"month "}
+
+data: {"type":"delta","text":"adds "}
+
+data: {"type":"delta","text":"up "}
+
+data: {"type":"delta","text":"to "}
+
+data: {"type":"delta","text":"about "}
+
+data: {"type":"delta","text":"3000 "}
+
+data: {"type":"delta","text":"euros "}
+
+data: {"type":"delta","text":"over "}
+
+data: {"type":"delta","text":"the "}
+
+data: {"type":"delta","text":"period. "}
+
+data: {"type":"sentence","index":0,"text":"Mock answer. Keeping 50 euros a month adds up to about 3000 euros over the period."}
+
+data: {"type":"grounding","grounding":{"ok":true,"checked":2,"unverified":[],"numbers":[{"value":50,"status":"receipt","factId":"scenario:freed"},{"value":3000,"status":"receipt","factId":"scenario:gain"}],"corrections":[]},"facts":[{"id":"scenario:freed","label":"Freed per month","value":50,"unit":"EUR/month","source":"calculation","basis":"bill saving plus the trimmed share of everyday spending"},{"id":"scenario:years","label":"Years ahead","value":5,"unit":"years","source":"customer-stated","basis":"the horizon asked for"},{"id":"scenario:gain","label":"Extra after the period if the money is kept","value":3000,"unit":"EUR","source":"calculation","basis":"'keep the cash' minus 'change nothing'"},{"id":"scenario:nothing:end","label":"Change nothing: total at the end","value":490.75,"unit":"EUR","source":"calculation","basis":"projected from 12-month averages"},{"id":"scenario:nothing:low","label":"Change nothing: low case","value":490.75,"unit":"EUR","source":"calculation","basis":"1% a year scenario"},{"id":"scenario:nothing:high","label":"Change nothing: high case","value":490.75,"unit":"EUR","source":"calculation","basis":"8% a year scenario"},{"id":"scenario:save:end","label":"Make the change, keep the cash: total at the end","value":3490.75,"unit":"EUR","source":"calculation","basis":"projected from 12-month averages"},{"id":"scenario:save:low","label":"Make the change, keep the cash: low case","value":3490.75,"unit":"EUR","source":"calculation","basis":"1% a year scenario"},{"id":"scenario:save:high","label":"Make the change, keep the cash: high case","value":3490.75,"unit":"EUR","source":"calculation","basis":"8% a year scenario"},{"id":"scenario:invest:end","label":"Make the change, invest it: total at the end","value":3887.29,"unit":"EUR","source":"calculation","basis":"projected from 12-month averages"},{"id":"scenario:invest:low","label":"Make the change, invest it: low case","value":3552.56,"unit":"EUR","source":"calculation","basis":"1% a year scenario"},{"id":"scenario:invest:high","label":"Make the change, invest it: high case","value":4169.26,"unit":"EUR","source":"calculation","basis":"8% a year scenario"}]}
+
+data: {"type":"done","text":"Mock answer. Keeping 50 euros a month adds up to about 3000 euros over the period.","citations":[],"timings":{"sttMs":null,"firstTokenMs":279,"firstSentenceMs":671,"totalMs":671,"modelSteps":[{"model":"mock","provider":"mock","usedBackup":false,"firstTokenMs":250,"totalMs":250},{"model":"mock","provider":"mock","usedBackup":false,"firstTokenMs":25,"totalMs":417}]}}
+

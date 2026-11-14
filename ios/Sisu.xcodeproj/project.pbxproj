@@ -20,9 +20,17 @@
 			remoteGlobalIDString = 1718DBE74DAEAFA08E2FE144;
 			remoteInfo = Sisu;
 		};
+		6376676B745D16B739FB0AF9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ECBF7EF7EE170963C5D4B9EC /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1718DBE74DAEAFA08E2FE144;
+			remoteInfo = Sisu;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		66E577543C5929F5FB374001 /* SisuUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SisuUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		72AEE472B80283C658A0D5A9 /* SisuTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SisuTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		86479A4369DB05E0E224A55F /* SisuCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SisuCore; path = SisuCore; sourceTree = SOURCE_ROOT; };
 		C1D2288F83ADF0159C7FE8CF /* Sisu.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Sisu.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -61,6 +69,15 @@
 			path = Sisu;
 			sourceTree = "<group>";
 		};
+		C2724C45EA5CB56F85CF6023 /* SisuUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = SisuUITests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -81,6 +98,7 @@
 			children = (
 				C1D2288F83ADF0159C7FE8CF /* Sisu.app */,
 				72AEE472B80283C658A0D5A9 /* SisuTests.xctest */,
+				66E577543C5929F5FB374001 /* SisuUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -109,6 +127,7 @@
 				0DB6DB69A816480F27B6D718 /* rive */,
 				A6F158BD65611C7003A5E57D /* Sisu */,
 				7025C2ED5180315F291D7027 /* SisuTests */,
+				C2724C45EA5CB56F85CF6023 /* SisuUITests */,
 				03523B7A53096D8ED3A39FDA /* Products */,
 			);
 			sourceTree = "<group>";
@@ -139,6 +158,28 @@
 			productName = Sisu;
 			productReference = C1D2288F83ADF0159C7FE8CF /* Sisu.app */;
 			productType = "com.apple.product-type.application";
+		};
+		77EC595EB75A41F1D49ABB71 /* SisuUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9A21CB8A45AE89816FE98C68 /* Build configuration list for PBXNativeTarget "SisuUITests" */;
+			buildPhases = (
+				F41A62F48292DF1912368561 /* Sources */,
+				4FB90297CEEB821DA3C39A1E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				085182082886C3539B926D17 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				C2724C45EA5CB56F85CF6023 /* SisuUITests */,
+			);
+			name = SisuUITests;
+			packageProductDependencies = (
+			);
+			productName = SisuUITests;
+			productReference = 66E577543C5929F5FB374001 /* SisuUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 		BC4C15B2A529A80A77A0F762 /* SisuTests */ = {
 			isa = PBXNativeTarget;
@@ -171,6 +212,9 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 2660;
 				TargetAttributes = {
+					77EC595EB75A41F1D49ABB71 = {
+						TestTargetID = 1718DBE74DAEAFA08E2FE144;
+					};
 				};
 			};
 			buildConfigurationList = 5FC9C55915CF8FCF6483DACF /* Build configuration list for PBXProject "Sisu" */;
@@ -193,11 +237,19 @@
 			targets = (
 				1718DBE74DAEAFA08E2FE144 /* Sisu */,
 				BC4C15B2A529A80A77A0F762 /* SisuTests */,
+				77EC595EB75A41F1D49ABB71 /* SisuUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		4FB90297CEEB821DA3C39A1E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		5F22B1311053FC151D4307CF /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -230,9 +282,21 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F41A62F48292DF1912368561 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		085182082886C3539B926D17 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1718DBE74DAEAFA08E2FE144 /* Sisu */;
+			targetProxy = 6376676B745D16B739FB0AF9 /* PBXContainerItemProxy */;
+		};
 		C025B1ACB1C9B6302DB94ED2 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 1718DBE74DAEAFA08E2FE144 /* Sisu */;
@@ -263,6 +327,24 @@
 				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
+		};
+		2FFAD145251BAA2B24E57766 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = fi.sisu.demo.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = Sisu;
+			};
+			name = Release;
 		};
 		31BAC1441D6E6D46415E6742 /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -344,6 +426,24 @@
 				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
+		};
+		46225CFC0FDDD615E0F226AF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = fi.sisu.demo.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = Sisu;
+			};
+			name = Debug;
 		};
 		51B469D5178F78F0EDD7CC7F /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -463,6 +563,15 @@
 			buildConfigurations = (
 				E9C293722B3BCD963EBD94A5 /* Debug */,
 				39CA3D0A0CC359E9D2571EDC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		9A21CB8A45AE89816FE98C68 /* Build configuration list for PBXNativeTarget "SisuUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				46225CFC0FDDD615E0F226AF /* Debug */,
+				2FFAD145251BAA2B24E57766 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

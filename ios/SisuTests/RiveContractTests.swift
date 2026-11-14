@@ -29,10 +29,8 @@ final class RiveContractTests: XCTestCase {
                 sizing: try XCTUnwrap(RiveSizing(rawValue: artboard.sizing), "unknown sizing \(artboard.sizing)"),
                 outTriggers: artboard.properties.filter { $0.type == "trigger" && $0.direction == "out" }.map(\.name)
             )
-            // What the views really use: SisuCore once it is implemented, the temporary table until then.
+            // What the views really use: SisuCore's RiveComponent.
             XCTAssertEqual(component.contract, expected, "\(artboard.name): the app's contract differs from rive/contract.json")
-            // Remove this line together with RiveContractTable.
-            XCTAssertEqual(RiveContractTable.rows[component], expected, "\(artboard.name): RiveContractTable differs from rive/contract.json")
         }
         XCTAssertEqual(seen.sorted(), RiveComponent.allCases.map(\.rawValue).sorted(), "SisuCore's RiveComponent cases and the contract's artboards differ")
     }

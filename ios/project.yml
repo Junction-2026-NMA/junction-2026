@@ -107,6 +107,24 @@ targets:
     dependencies:
       - target: Sisu
 
+  # The screenshot harness: launches the app with launch arguments and attaches a screenshot at each named
+  # point. Run it with `sh ios/scripts/screenshots.sh` from the repository root.
+  SisuUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: SisuUITests
+        type: syncedFolder
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: fi.sisu.demo.uitests
+        GENERATE_INFOPLIST_FILE: "YES"
+        TARGETED_DEVICE_FAMILY: "1"
+        TEST_TARGET_NAME: Sisu
+    dependencies:
+      - target: Sisu
+
 schemes:
   Sisu:
     build:
@@ -125,3 +143,16 @@ schemes:
       config: Debug
     archive:
       config: Release
+
+  # Only the screenshot harness, so `test-app.sh` (scheme Sisu) does not run it.
+  SisuScreens:
+    build:
+      targets:
+        Sisu: all
+        SisuUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - SisuUITests

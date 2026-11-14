@@ -38,27 +38,82 @@ public protocol SisuAPI: Sendable {
 
 /// Builds the HTTP requests for the live API. Pure, so it can be tested without a network.
 public enum Endpoints {
+    /// Characters that never need escaping in a path segment or a query value (RFC 3986 "unreserved").
+    static let unreserved = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
+
+    static func escape(_ text: String) -> String {
+        text.addingPercentEncoding(withAllowedCharacters: unreserved) ?? text
+    }
+
+    /// `{base}{path}?{query}`: the base keeps its own path prefix, a trailing slash on it is dropped, and
+    /// query names and values are percent-encoded.
+    static func url(_ baseURL: URL, _ path: String, query: [(String, String)] = []) -> URL {
+        var text = baseURL.absoluteString
+        while text.hasSuffix("/") { text.removeLast() }
+        text += path
+        if !query.isEmpty {
+            text += "?" + query.map { "\(escape($0.0))=\(escape($0.1))" }.joined(separator: "&")
+        }
+        return URL(string: text) ?? baseURL
+    }
+
+    static func get(_ url: URL) -> URLRequest {
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        return request
+    }
+
+    static func postJSON(_ url: URL, body: Data) -> URLRequest {
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.httpBody = body
+        return request
+    }
+
     /// `GET {base}/api/customers/demo`
     public static func demoCustomers(baseURL: URL) -> URLRequest {
-        URLRequest(url: baseURL) // scaffold stub
+        get(url(baseURL, "/api/customers/demo"))
     }
 
     /// `GET {base}/api/customers/{id}/overview`. The id is percent-encoded as a path segment.
     public static func overview(baseURL: URL, customerId: String) -> URLRequest {
-        URLRequest(url: baseURL) // scaffold stub
+        get(url(baseURL, "/api/customers/\(escape(customerId))/overview"))
     }
 
     /// `GET {base}/api/customers/{id}/transactions` with one query item per non-nil filter field,
     /// in this order: `from`, `to`, `category`, `basket`, `mcc`, `negativeBalance` (`true` or `false`).
     /// A nil filter adds no query at all.
     public static func transactions(baseURL: URL, customerId: String, filter: EvidenceFilter?) -> URLRequest {
-        URLRequest(url: baseURL) // scaffold stub
+        var query: [(String, String)] = []
+        if let filter {
+            query.append(("from", filter.from))
+            query.append(("to", filter.to))
+            if let category = filter.category { query.append(("category", category)) }
+            if let basket = filter.basket { query.append(("basket", basket.rawValue)) }
+            if let mcc = filter.mcc { query.append(("mcc", mcc)) }
+            if let negative = filter.negativeBalance { query.append(("negativeBalance", negative ? "true" : "false")) }
+        }
+        return get(url(baseURL, "/api/customers/\(escape(customerId))/transactions", query: query))
     }
 
     /// `POST {base}/api/scenarios` with header `Content-Type: application/json` and a JSON body holding
     /// exactly the keys `customerId`, `billSavingPerMonth`, `everydayCutPct` and `years`.
     public static func scenario(baseURL: URL, customerId: String, input: ScenarioInput) -> URLRequest {
-        URLRequest(url: baseURL) // scaffold stub
+        struct Body: Encodable {
+            let customerId: String
+            let billSavingPerMonth: Double
+            let everydayCutPct: Double
+            let years: Int
+        }
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        let finite: (Double) -> Double = { $0.isFinite ? $0 : 0 }
+        let body = Body(customerId: customerId, billSavingPerMonth: finite(input.billSavingPerMonth),
+                        everydayCutPct: finite(input.everydayCutPct), years: input.years)
+        return postJSON(url(baseURL, "/api/scenarios"), body: (try? encoder.encode(body)) ?? Data("{}".utf8))
     }
 }
 
@@ -69,9 +124,12 @@ public enum Endpoints {
 ///   (an `ApiError`), or an empty string when the body has none.
 /// - A transport failure (no connection, timeout) throws `.offline`.
 /// - `kind` is `.live`.
+/// - Every request times out after `timeout` seconds (5 by default).
 public struct LiveAPI: SisuAPI {
     public let baseURL: URL
     public let session: URLSession
+    /// Seconds before a request counts as offline.
+    public var timeout: TimeInterval = 5
 
     public init(baseURL: URL, session: URLSession = .shared) {
         self.baseURL = baseURL
@@ -80,10 +138,49 @@ public struct LiveAPI: SisuAPI {
 
     public var kind: DataSourceKind { .live }
 
-    public func demoCustomers() async throws -> [DemoCustomer] { throw SisuError.notImplemented("LiveAPI.demoCustomers") }
-    public func overview(customerId: String) async throws -> Overview { throw SisuError.notImplemented("LiveAPI.overview") }
-    public func transactions(customerId: String, filter: EvidenceFilter?) async throws -> TransactionList { throw SisuError.notImplemented("LiveAPI.transactions") }
-    public func scenario(customerId: String, input: ScenarioInput) async throws -> ScenarioResponse { throw SisuError.notImplemented("LiveAPI.scenario") }
+    /// Sends one request and maps the answer as the type's doc comment says.
+    func send<T: Decodable>(_ request: URLRequest, as type: T.Type) async throws -> T {
+        var request = request
+        request.timeoutInterval = timeout
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            throw SisuError.offline
+        }
+        return try Self.decode(data: data, response: response, as: type)
+    }
+
+    /// The pure half of `send`: status and body in, model or `SisuError` out.
+    static func decode<T: Decodable>(data: Data, response: URLResponse, as type: T.Type) throws -> T {
+        guard let http = response as? HTTPURLResponse else { throw SisuError.invalidResponse }
+        guard (200..<300).contains(http.statusCode) else {
+            let message = (try? JSONDecoder().decode(ApiError.self, from: data))?.error ?? ""
+            throw SisuError.server(status: http.statusCode, message: message)
+        }
+        do {
+            return try JSONDecoder().decode(T.self, from: data)
+        } catch {
+            throw SisuError.invalidResponse
+        }
+    }
+
+    public func demoCustomers() async throws -> [DemoCustomer] {
+        try await send(Endpoints.demoCustomers(baseURL: baseURL), as: [DemoCustomer].self)
+    }
+
+    public func overview(customerId: String) async throws -> Overview {
+        try await send(Endpoints.overview(baseURL: baseURL, customerId: customerId), as: Overview.self)
+    }
+
+    public func transactions(customerId: String, filter: EvidenceFilter?) async throws -> TransactionList {
+        try await send(Endpoints.transactions(baseURL: baseURL, customerId: customerId, filter: filter), as: TransactionList.self)
+    }
+
+    public func scenario(customerId: String, input: ScenarioInput) async throws -> ScenarioResponse {
+        try await send(Endpoints.scenario(baseURL: baseURL, customerId: customerId, input: input), as: ScenarioResponse.self)
+    }
 }
 
 /// Serves the JSON captured from the team backend on 14 Nov 2026 and bundled with this package.
@@ -144,15 +241,84 @@ public struct FixtureAPI: SisuAPI {
 /// customer returns the same `input`, `freedPerMonth`, branch ids, labels and order, `assumptions`, and every
 /// number of every branch and point to within 0.01.
 public enum ScenarioEngine {
+    /// Yearly return scenarios (before inflation, after the fund fee) and the fee, as on the server.
+    static let returnLow = 0.01, returnMid = 0.05, returnHigh = 0.08
+    static let fundFee = 0.002
+
     /// The limits the server clamps to: bill saving 0...500 a month, everyday cut 0...50 percent, 1...10 years
     /// (years are rounded to a whole number after clamping).
     public static func clean(_ input: ScenarioInput) -> ScenarioInput {
-        input // scaffold stub
+        func clamp(_ value: Double, _ lo: Double, _ hi: Double) -> Double {
+            Swift.min(Swift.max(value.isFinite ? value : lo, lo), hi)
+        }
+        return ScenarioInput(billSavingPerMonth: clamp(input.billSavingPerMonth, 0, 500),
+                             everydayCutPct: clamp(input.everydayCutPct, 0, 50),
+                             years: Swift.min(Swift.max(input.years, 1), 10))
+    }
+
+    /// JavaScript's `Math.round(x * 100) / 100` (halves go up).
+    static func round2(_ x: Double) -> Double {
+        guard x.isFinite else { return 0 }
+        return (x * 100 + 0.5).rounded(.down) / 100
+    }
+
+    static func label(_ id: BranchId) -> String {
+        switch id {
+        case .nothing: return "Change nothing"
+        case .save: return "Make the change, keep the cash"
+        case .invest: return "Make the change, invest it"
+        }
+    }
+
+    static func project(_ id: BranchId, overview: Overview, toCash: Double, toInvested: Double, months: Int) -> Branch {
+        func grow(_ invested: Double, _ yearlyReturn: Double) -> Double {
+            (invested + toInvested) * (1 + (yearlyReturn - fundFee) / 12)
+        }
+        let balance = overview.balance
+        var cash = balance, low = 0.0, mid = 0.0, high = 0.0
+        var points = [BranchPoint(month: 0, cash: balance, invested: 0, total: balance, totalLow: balance, totalHigh: balance)]
+        for month in 0..<Swift.max(months, 0) {
+            cash += toCash
+            low = grow(low, returnLow)
+            mid = grow(mid, returnMid)
+            high = grow(high, returnHigh)
+            points.append(BranchPoint(month: month + 1, cash: round2(cash), invested: round2(mid), total: round2(cash + mid),
+                                      totalLow: round2(cash + low), totalHigh: round2(cash + high)))
+        }
+        let end = points[points.count - 1]
+        let atYear1 = points[Swift.min(12, points.count - 1)]
+        let runway = overview.monthlyMandatory > 0 ? round2(Swift.max(atYear1.cash, 0) / overview.monthlyMandatory) : 0
+        return Branch(id: id, label: label(id), points: points, endTotal: end.total, endLow: end.totalLow, endHigh: end.totalHigh,
+                      runwayMonthsAtYear1: runway)
+    }
+
+    /// The number as JavaScript prints it in the assumption sentences: `5`, `0.2`.
+    static func percent(_ fraction: Double) -> String {
+        let value = (fraction * 100 * 1_000_000).rounded() / 1_000_000
+        return value == value.rounded() ? String(Int(value)) : String(value)
     }
 
     public static func run(overview: Overview, input: ScenarioInput) -> ScenarioResponse {
-        // scaffold stub: no futures yet
-        ScenarioResponse(customerId: overview.customerId, dataTimestamp: overview.dataTimestamp, currency: overview.currency,
-                         input: input, freedPerMonth: 0, branches: [], assumptions: [])
+        let input = clean(input)
+        let freed = round2(input.billSavingPerMonth + (overview.monthlyEveryday * input.everydayCutPct) / 100)
+        let netToCash = overview.monthlyIncome - overview.monthlySpending - overview.monthlySaved
+        let months = input.years * 12
+        let saved = overview.monthlySaved
+        return ScenarioResponse(
+            customerId: overview.customerId, dataTimestamp: overview.dataTimestamp, currency: "EUR", input: input,
+            freedPerMonth: freed,
+            branches: [
+                project(.nothing, overview: overview, toCash: netToCash, toInvested: saved, months: months),
+                project(.save, overview: overview, toCash: netToCash + freed, toInvested: saved, months: months),
+                project(.invest, overview: overview, toCash: netToCash, toInvested: saved + freed, months: months),
+            ],
+            assumptions: [
+                "Income and spending stay at their last-12-month averages. Real life will differ.",
+                "Invested money is shown at \(percent(returnMid))% a year, with a range from \(percent(returnLow))% to \(percent(returnHigh))%. These are scenarios, not predictions; investments can lose value.",
+                "A fund fee of \(percent(fundFee))% a year is taken off. Taxes and inflation are not included.",
+                "Investments already held elsewhere are not visible in the bank data, so the invested pot starts at €0.",
+                "Cash in the account earns no interest here.",
+            ]
+        )
     }
 }
