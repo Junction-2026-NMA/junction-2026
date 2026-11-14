@@ -50,3 +50,15 @@ Alignment guidance was posted directly on PR #1. Do not build new monitors, alte
 4. **No authentication, single-file state:** customer-scoped functions and approval races pass within one process; this is not multi-user authorization or multi-instance persistence. Stay on synthetic data and one demo server.
 5. **Incomplete pricing:** unlisted setup fees still assume zero (now explicit); current-contract exit fees, promotion expiry and like-for-like speed/coverage are not represented. Avoid presenting these estimates as guaranteed savings.
 6. **UI/demo build:** dev hydration and webpack styling observations need the frontend/config owner. No UI files changed by this QA branch.
+
+
+## Incremental audit — 14 November, 13:55 EET
+
+Reviewed main `5da064c` (PR #5, head `3c48685`) against the previous `aa39092` baseline, plus the backend branch's challenge-text-only commit `3cfdfca`. Re-read the supplied challenge Doc. PR #5 improves S-Pankki alignment: basket teaching and conditional telecom savings are now explicit. Earlier alignment guidance is unchanged and was not reposted.
+
+**New P1: category savings and futures disagreed above €500/month.** Eetu's Entertainment average is €632.33. A 100% category cut produced a €632.33 receipt but the generic bill-saving slider limit truncated the scenario to €500; the one-year cash improvement was €6,000 instead of €7,587.96. `runScenarioTool` now preserves the code-computed category saving after validating other scenario inputs. Model-supplied generic savings retain their existing limit. No shared types/config or UI were edited by this fix.
+
+- Added regression failed before the fix (`500 !== 632.33`), then passed. The integrated baseline with PR #5 had 256 passing tests; final suite: **257/257**.
+- Lint and webpack production build passed. HTTP mock judge audit: 12/12 concurrent turns, cross-customer approval 404, absent confirmation 400, simultaneous approvals 200/409/409.
+- Playwright production smoke on isolated port 3351: Aino → Sort out my money → three-way savings split and four waiting actions → Approve all → four explicit simulated completions and futures. Screenshot: `.playwright-mcp/sisu-qa-nov14-approved.png` in the tool output directory. No automated e2e smoke spec exists in this checkout.
+- Tests used scripted/mock providers only. Neither the QA nor shared checkout contains `.env.local`; no fresh live provider calls or voice checks were executed. Earlier live-service and presentation risks remain unverified.

@@ -37,7 +37,7 @@ const RESEARCH_LIMIT_MS = 16_000;
 const POLL_MS = 60;
 const ROWS_SHOWN = 48;
 const PROJECTION_YEARS = 5;
-const SUMMARY_MAX_TOKENS = 140;
+const SUMMARY_MAX_TOKENS = 180;
 // Three pages a bill. Context.dev allows our key 10 page reads a minute; when it is at its limit Exa reads the page.
 const PAGES_PER_BILL: Record<BillType, number> = { electricity: 3, internet: 3, mobile: 3 };
 const BILL_NOUN: Record<BillType, string> = { electricity: "electricity", internet: "home internet", mobile: "mobile plan" };
@@ -95,7 +95,7 @@ function switchItem(billType: BillType, research: ResearchResult, action: AgentA
     detail: `${best.plan ? `${best.plan}. ` : ""}About €${(best.estimatedMonthlyCostEur ?? 0).toFixed(2)} a month against €${(research.baselineMonthlyEur ?? 0).toFixed(2)} now. An estimate from today's prices.${billType === "electricity" ? "" : " It is the cheapest plan found and may be slower or smaller than the one you have: check before switching."}`,
     yearlyEur: round2(yearly),
     monthlyEur: round2(yearly / 12),
-    needs: "nothing",
+    needs: billType === "electricity" ? "nothing" : "check-plan",
     actionId: action?.id ?? null,
     sources: research.citations.filter((citation) => citation.url === best.sourceUrl).concat(research.citations.filter((citation) => citation.url !== best.sourceUrl)).slice(0, 3),
     facts,
@@ -130,22 +130,28 @@ function project(overview: NonNullable<ReturnType<typeof buildOverview>>, totalY
   };
 }
 
-const codeSummary = (plan: Pick<MoneyPlan, "totalYearlyEur" | "effortlessYearlyEur" | "actions">): string => {
+const codeSummary = (plan: Pick<MoneyPlan, "totalYearlyEur" | "effortlessYearlyEur" | "checkPlanYearlyEur" | "actions">): string => {
   if (plan.totalYearlyEur <= 0) return "I went through your last twelve months and today's offers, and found nothing that would clearly save you money. Nothing was set up.";
-  const rest = round2(plan.totalYearlyEur - plan.effortlessYearlyEur);
-  const split = plan.effortlessYearlyEur > 0 && rest > 0 ? ` About €${euros(plan.effortlessYearlyEur)} of it needs nothing from you; the other €${euros(rest)} needs the spending to come down.` : rest > 0 ? " It needs the spending to come down." : " It needs nothing from you.";
+  const habits = round2(plan.totalYearlyEur - plan.effortlessYearlyEur - plan.checkPlanYearlyEur);
+  const parts = [
+    plan.effortlessYearlyEur > 0 ? `€${euros(plan.effortlessYearlyEur)} needs nothing from you` : null,
+    plan.checkPlanYearlyEur > 0 ? `€${euros(plan.checkPlanYearlyEur)} is from cheaper internet and mobile plans, if they match what you have now` : null,
+    habits > 0 ? `€${euros(habits)} needs your spending to come down` : null,
+  ].filter((part): part is string => part !== null);
+  const split = parts.length ? ` Of that, ${parts.join("; ")}.` : "";
   const waiting = plan.actions.length ? ` ${plan.actions.length === 1 ? "One thing is" : `${plan.actions.length} things are`} set up and waiting for your approval.` : "";
   return `I found about €${euros(plan.totalYearlyEur)} a year.${split}${waiting}`;
 };
 
 // Nemotron words the result in the customer's language. Its figures are checked against the plan's receipts.
-async function modelSummary(plan: Pick<MoneyPlan, "totalYearlyEur" | "effortlessYearlyEur" | "actions" | "items">, facts: Fact[], language: string | undefined, signal?: AbortSignal): Promise<string | null> {
+async function modelSummary(plan: Pick<MoneyPlan, "totalYearlyEur" | "effortlessYearlyEur" | "checkPlanYearlyEur" | "actions" | "items">, facts: Fact[], language: string | undefined, signal?: AbortSignal): Promise<string | null> {
   if (plan.totalYearlyEur <= 0) return null;
   const spoken = findLanguage(language)?.name ?? "English";
   const figures = {
     foundPerYearEur: Math.round(plan.totalYearlyEur),
     needsNothingFromCustomerPerYearEur: Math.round(plan.effortlessYearlyEur),
-    needsSpendingToComeDownPerYearEur: Math.round(plan.totalYearlyEur - plan.effortlessYearlyEur),
+    fromCheaperInternetAndMobilePlansIfTheyMatchWhatTheyHaveNowPerYearEur: Math.round(plan.checkPlanYearlyEur),
+    needsSpendingToComeDownPerYearEur: Math.round(plan.totalYearlyEur - plan.effortlessYearlyEur - plan.checkPlanYearlyEur),
     thingsSetUpAndWaitingForApproval: plan.actions.length,
     findings: plan.items.map((item) => ({ what: item.title, perYearEur: Math.round(item.yearlyEur) })),
   };
@@ -153,7 +159,7 @@ async function modelSummary(plan: Pick<MoneyPlan, "totalYearlyEur" | "effortless
   try {
     const chunks = streamChat({
       messages: [
-        { role: "system", content: `You are Sisu, the money coach in the S-Pankki app. You have just gone through this customer's last twelve months and today's offers. Tell them what you found in two or three short sentences, to be spoken aloud, in ${spoken}. Use only the figures given, copied exactly, and no other numbers. Say the yearly total first, then how much of it needs nothing from them and how much needs their spending to come down, then that everything is set up and waits for their approval. No lists, no greeting.` },
+        { role: "system", content: `You are Sisu, the money coach in the S-Pankki app. You have just gone through this customer's last twelve months and today's offers. Tell them what you found in two or three short sentences, to be spoken aloud, in ${spoken}. Use only the figures given, copied exactly, and no other numbers. Say the yearly total first. Then split it honestly, leaving out any part that is 0: how much needs nothing from them, how much comes from cheaper internet and mobile plans if those match what they have now, and how much needs their spending to come down. Then say that everything is set up and waits for their approval. No lists, no greeting.` },
         { role: "user", content: JSON.stringify(figures) },
       ],
       tools: [],
@@ -202,6 +208,7 @@ export async function* runPlan(customerId: string, options: PlanOptions = {}, si
     to: overview.windowTo,
     rows: spending.slice(-ROWS_SHOWN).map((row) => ({ date: row.date, category: row.category, amount: row.amount })),
     categories,
+    baskets: overview.baskets.map((basket) => ({ id: basket.id, label: basket.label, monthlyEur: round2(basket.monthlyAvg), sharePct: Math.round(basket.share * 100) })),
     tookMs: Date.now() - startedAt,
   };
 
@@ -303,23 +310,25 @@ export async function* runPlan(customerId: string, options: PlanOptions = {}, si
 
   const totalYearlyEur = round2(sum(items.map((item) => item.yearlyEur)));
   const effortlessYearlyEur = round2(sum(items.filter((item) => item.needs === "nothing").map((item) => item.yearlyEur)));
-  const steps: CalcStep[] = items.map((item) => ({ label: item.title, amount: item.yearlyEur, basis: item.needs === "nothing" ? "today's best offer against your bill, times 12" : "your own spending, twelve months" }));
+  const checkPlanYearlyEur = round2(sum(items.filter((item) => item.needs === "check-plan").map((item) => item.yearlyEur)));
+  const steps: CalcStep[] = items.map((item) => ({ label: item.title, amount: item.yearlyEur, basis: item.needs === "spending-change" ? "your own spending, twelve months" : "today's best offer against your bill, times 12" }));
   facts.push(
     ...items.flatMap((item) => [fact(`plan:${item.id}`, item.title, item.yearlyEur, "EUR/year", item.kind === "switch" ? "estimated saving from the offer research" : "from the pattern in your transactions", { source: "calculation" }), ...item.facts]),
     fact("plan:total", "Found per year", totalYearlyEur, "EUR/year", "the sum of the findings", { source: "calculation" }),
     fact("plan:effortless", "Needs nothing from you, per year", effortlessYearlyEur, "EUR/year", "the contract switches", { source: "calculation" }),
-    fact("plan:effort", "Needs spending to come down, per year", round2(totalYearlyEur - effortlessYearlyEur), "EUR/year", "the spending habits", { source: "calculation" }),
+    fact("plan:check-plan", "Cheaper internet and mobile plans, if they match yours, per year", checkPlanYearlyEur, "EUR/year", "the internet and mobile switches", { source: "calculation" }),
+    fact("plan:effort", "Needs spending to come down, per year", round2(totalYearlyEur - effortlessYearlyEur - checkPlanYearlyEur), "EUR/year", "the spending habits", { source: "calculation" }),
     fact("plan:actions", "Things set up", actions.length, "count", "actions waiting for approval", { source: "calculation" }),
     ...checkFacts(checks),
   );
-  yield { type: "calc", steps, totalYearlyEur, effortlessYearlyEur };
+  yield { type: "calc", steps, totalYearlyEur, effortlessYearlyEur, checkPlanYearlyEur };
   for (const action of actions) yield { type: "action", action };
 
   const projection = project(overview, totalYearlyEur);
   if (projection) yield { type: "projection", projection };
 
   // 4. The words. Nemotron says it; code checks every figure it used.
-  const draft = { totalYearlyEur, effortlessYearlyEur, actions, items };
+  const draft = { totalYearlyEur, effortlessYearlyEur, checkPlanYearlyEur, actions, items };
   const summaryStartedAt = Date.now();
   const fromModel = config.isMock ? null : await modelSummary(draft, facts, options.language, signal);
   if (signal?.aborted) return;
@@ -337,6 +346,7 @@ export async function* runPlan(customerId: string, options: PlanOptions = {}, si
     actions,
     totalYearlyEur,
     effortlessYearlyEur,
+    checkPlanYearlyEur,
     projection,
     searches,
     summary,

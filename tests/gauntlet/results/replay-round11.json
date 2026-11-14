@@ -1,0 +1,149 @@
+{
+  "at": "2026-11-14T11:42:50.505Z",
+  "results": [
+    {
+      "text": "How much can I safely spend this week?",
+      "answer": "You can safely spend 164 euros this week, based on your income, bills and everyday spending over the last twelve months.",
+      "steps": [],
+      "called": [],
+      "problems": [],
+      "totalMs": 613,
+      "action": null
+    },
+    {
+      "text": "Can you explain how you worked that out?",
+      "answer": "I took your monthly income of 1,783 euros, subtracted your monthly must-pay bills of 757 euros and the 316 euros set aside for now-and-then costs, which leaves 711 euros a month for everyday choices. Dividing that by four point three weeks gives 164 euros a week.",
+      "steps": [],
+      "called": [],
+      "problems": [],
+      "totalMs": 1082,
+      "action": null
+    },
+    {
+      "text": "Uh, yes, please. But also, uh, are you able to make, uh, like saving transfers for me?",
+      "answer": "Yes, I can set up a one-off transfer to your savings or a monthly standing transfer on payday. Your balance is 1,220 euros and you could move 10 euros today without touching your weekly spending. How much would you like to move, and would you like it once or every month?",
+      "steps": [],
+      "called": [],
+      "problems": [],
+      "totalMs": 916,
+      "action": null
+    },
+    {
+      "text": "Uh, can you invest my 1,000 that I got for Christmas?",
+      "answer": "I've set up a one-off transfer of 1,000 euros to your investment account, waiting for your tap on Approve. Moving that much today would leave your account about 823 euros below zero just before payday on 15 October, so the safer amount is 10 euros. Investments can also lose value, and it's usually wise to build a three-month buffer of about 3,217 euros first.",
+      "steps": [
+        "Setting up a transfer of €1,000 for you to approve"
+      ],
+      "called": [
+        "prepare_action"
+      ],
+      "problems": [],
+      "totalMs": 2119,
+      "action": {
+        "title": "Move €1000 to your investment account now",
+        "warning": "Moving €1000 today would leave the account about €823 below zero just before payday on 2026-10-15. About €10 could be moved today without that. The balance covers 1.14 months of must-pay costs. A buffer of about three months (€3217) usually comes before investing."
+      }
+    },
+    {
+      "text": "Okay, but it's important that you are able to give me advice on what I have to do with my money based on all of my data.",
+      "answer": "Your biggest finding is that restaurants cost you 64 euros a month more than people your age, which is 768 euros a year. Your balance also went below zero in six of the last twelve months, and entertainment spending is up 65 percent on a year ago, adding 746 euros a year. I'd recommend cutting restaurant spending to match your peers and moving the freed money into savings to build a buffer. Would you like me to set up a monthly transfer for that?",
+      "steps": [
+        "Scanning twelve months of your transactions for what stands out"
+      ],
+      "called": [
+        "find_patterns"
+      ],
+      "problems": [],
+      "totalMs": 2275,
+      "action": null
+    },
+    {
+      "text": "Would you show me how cutting restaurant spending back to what people my age spend would add up over time?",
+      "answer": "If you cut restaurant spending by 64 euros a month, keeping the cash would grow to 4,331 euros in five years, while investing it could reach about 4,838 euros, with a range from 4,410 to 5,199. Investments can lose value. Would you like me to set up a monthly transfer of 64 euros to your savings?",
+      "steps": [
+        "Projecting 5 years ahead from your real averages"
+      ],
+      "called": [
+        "run_scenario"
+      ],
+      "problems": [],
+      "totalMs": 1952,
+      "action": null
+    },
+    {
+      "text": "Yeah, I mean, you're integrated in my S Bank app, right? So you basically have access to all my accounts. Would you be able to transfer some money from those accounts to maybe, um, being able to earn interest on that money?",
+      "answer": "I can move money from your current account to your savings or investment account. Your balance is 1,220 euros, and you could move 10 euros today without touching your weekly spending. Would you like a one-off transfer or a monthly standing transfer on payday, and how much?",
+      "steps": [],
+      "called": [],
+      "problems": [],
+      "totalMs": 898,
+      "action": null
+    },
+    {
+      "text": "Yes. So I will need to transfer 500 euros to my savings account.",
+      "answer": "I've set up a one-off transfer of 500 euros to your savings, waiting for your tap on Approve. Moving that much today would leave your account about 323 euros below zero just before payday on 15 October, so the safer amount is 10 euros.",
+      "steps": [
+        "Setting up a transfer of €500 for you to approve"
+      ],
+      "called": [
+        "prepare_action"
+      ],
+      "problems": [],
+      "totalMs": 1853,
+      "action": {
+        "title": "Move €500 to savings now",
+        "warning": "Moving €500 today would leave the account about €323 below zero just before payday on 2026-10-15. About €10 could be moved today without that."
+      }
+    },
+    {
+      "text": "Can you explain how, um, the backend layer works, like what you're doing? Because I don't really understand each, uh, process. Like, after I ask a question, what is the process you go through?",
+      "answer": "Your question is turned into text, then the bank's code works out your figures from your transactions and gives them to me. I'm an AI model running on a computer in Finland, and I decide which tools to use. The tools run using the bank's code and live web search, and every number is checked against where it came from before it's shown. Anything that moves money is set up and waits for your tap on Approve, and each step is written to a log. Finally, the answer is spoken to you.",
+      "steps": [],
+      "called": [],
+      "problems": [],
+      "totalMs": 1599,
+      "action": null
+    },
+    {
+      "text": "Um, other than this, can you also tell me, because I think I spend quite a lot of money, like, on, on water, you know? I use a lot of warm water in my showers. So how much could I save if I, like, cut my shower time by 3 minutes?",
+      "answer": "Cutting your shower by 3 minutes could save about 30 euros a year, assuming one shower a day at 8 litres a minute and a combined water and heating cost of 3.4 euros per cubic metre. That's an estimate, so your real saving depends on your actual flow rate and energy price.",
+      "steps": [
+        "Searching the web with Exa: typical shower flow rate litres per minute Finland cost of heating water",
+        "Calculating yearly saving from a 3-minute shorter daily shower"
+      ],
+      "called": [
+        "web_search",
+        "calculate"
+      ],
+      "problems": [],
+      "totalMs": 4560,
+      "action": null
+    },
+    {
+      "text": "Um, can you, can you, can you compare my, my rental data with other, um, with other apartments around me?",
+      "answer": "Your housing payment is 662 euros a month. The typical one-room apartment in Helsinki rents for 730 euros a month, so your 662 euros is below the average.",
+      "steps": [
+        "Searching the web with Exa: average rent one-room apartment Helsinki 2026"
+      ],
+      "called": [
+        "web_search"
+      ],
+      "problems": [],
+      "totalMs": 2666,
+      "action": null
+    },
+    {
+      "text": "Bro, what is this? But you should use Exa, and you should, uh, look at the internet now.",
+      "answer": "I did use a web search for the Helsinki rent figure. Your housing payment is 662 euros a month. The typical one-room apartment in Helsinki is 730 euros a month, so your rent is below the average.",
+      "steps": [
+        "Searching the web with Exa: average rent one-room apartment Helsinki 2026"
+      ],
+      "called": [
+        "web_search"
+      ],
+      "problems": [],
+      "totalMs": 3193,
+      "action": null
+    }
+  ]
+}

@@ -77,7 +77,8 @@ import { VisualCard } from "@/app/visuals/VisualCard";
 
 | `visual.kind` | The picture | Sent when |
 |---|---|---|
-| `budget_donut` | a ring of where the money goes, by category; touch a part to see it | "show me a pie chart of my budget", and with advice |
+| `basket_bar` | the three baskets (must pay every month, must pay now and then, everyday choices) as one split bar, with what is in each | "show me my three baskets", with advice and "what kind of spender am I", and after the three-baskets lesson is answered |
+| `budget_donut` | a ring of where the money goes, by category; touch a part to see it | "show me a pie chart of my budget" |
 | `peer_bars` | each category beside people the same age | "compare me with people my age" |
 | `month_bars` | spending per month with a mark at that month's income; over-spent months are red | "show me my months" |
 | `waterfall` | how safe-to-spend is built up | "show how you worked that out" |
@@ -88,6 +89,11 @@ Every visual has `title`, `caption`, `summary` (a code-written sentence: use it 
 
 The charts are plain SVG in `app/visuals/` with their motion in `app/visuals/visuals.css`. Restyle freely: the colours are CSS variables on `.viz` (`--viz-1` to `--viz-6`, `--viz-main`, `--viz-quiet`). Keep the six category colours in their order (they are checked to be colour-blind safe in that order), keep the legend, and keep text in ink colours, not chart colours.
 
+Two more things for the chat screen:
+
+- A teaching card can carry `card.revealVisual`. Show it only after the customer has guessed, next to `card.reveal`. The three-baskets lesson uses it to reveal their own baskets.
+- "How much could I save if I cut dining out by 20%?" now comes back with the monthly and yearly saving from their 12-month average and a `futures_lines` chart.
+
 ## 3. The money plan on the main screen
 
 `app/plan/` is three pieces you can lift: `Stage` (the dark panel where the work plays), `PlanCard` (what was found, Approve all) and `usePlan`. Section 9b of `docs/FRONTEND_INTEGRATION_CONTRACT.md` lists every event. Put Liito on or beside the stage and drive it from `view.activity`: it will scan, glide to the web, read, count and present in step with the real work.
@@ -95,6 +101,7 @@ The charts are plain SVG in `app/visuals/` with their motion in `app/visuals/vis
 ## Do not
 
 - Do not fake a step, a number or a delay. Every state above comes from a real event.
-- Do not show the plan's total without its split into "needs nothing from you" and "needs spending to come down".
+- Do not show the plan's total without its split. There are three parts now: `effortlessYearlyEur` (needs nothing from you), `checkPlanYearlyEur` (cheaper internet and mobile plans, if they match what the customer has), and the rest (needs spending to come down). Each item says which it is in `item.needs`: `nothing`, `check-plan` or `spending-change`.
+- The plan's `scan` event carries `baskets` (label, monthly euros, share): show the three baskets while Sisu reads the account.
 - Do not hide `action.warning` on an action card.
 - Do not let the model's text be the source of a chart's numbers. Use the `Visual` it sent.
