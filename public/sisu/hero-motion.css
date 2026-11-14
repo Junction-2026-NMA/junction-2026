@@ -86,21 +86,24 @@
     animation: hero-fade 300ms var(--ease-out) 760ms backwards;
   }
 
-  /* Facts strip: the list fades in over 300 ms with an 8 px rise (base.css does the fade),
-     then its two facts follow in reading order. The numbers stay as they are. */
-  .js .fact-list.reveal.is-waiting {
-    transform: translateY(8px);
+  /* Facts strip, the bridge from the hero to the baskets: as it scrolls in, its white band fades
+     in over 180 ms, then the two facts rise 8 px in reading order, each with its source link.
+     base.css fades a revealed block with a transition, and a running transition outranks
+     keyframes, so the band's transition is off here. The band also waits in place (no 16px drop). */
+  .js .facts.reveal.is-waiting {
+    transform: none;
   }
 
-  .js .fact-list.reveal.is-in {
-    transition-duration: 300ms;
+  .js .facts.reveal.is-in {
+    transition: none;
+    animation: hero-fade 180ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
   }
 
-  .js .fact-list.is-in .fact {
-    animation: facts-rise 260ms cubic-bezier(0.22, 1, 0.36, 1) 100ms backwards;
+  .js .facts.is-in .fact {
+    animation: facts-rise 280ms cubic-bezier(0.22, 1, 0.36, 1) 80ms backwards;
   }
 
-  .js .fact-list.is-in .fact + .fact {
+  .js .facts.is-in .fact + .fact {
     animation-delay: 220ms;
   }
 }
@@ -249,6 +252,7 @@
 /* A print taken while the hero is still moving shows it finished. */
 @media print {
   .js .hero *,
+  .js .facts,
   .js .facts * {
     animation: none !important;
   }

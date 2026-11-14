@@ -1,7 +1,7 @@
 /* The Today screen, twice: the phone mock-up in the hero and the safe-to-spend card of panel 1.
    Both are pictures built from HTML and CSS. Nothing in them can be focused or clicked.
-   The hero phone is drawn in em: hero.css gives it a width and a font-size per breakpoint,
-   and every size inside the phone follows that font-size. */
+   The hero phone is drawn in em: hero-layout.css gives it a width and a font-size per breakpoint,
+   and every size inside the phone follows that font-size. Small lines never go under 12px. */
 .phone {
   padding: 0.5em;
   border-radius: 2.25em;
@@ -25,13 +25,13 @@
 .today-date {
   margin-bottom: 0.875em;
   color: var(--green-300);
-  font-size: 0.8125em;
+  font-size: max(12px, 0.8125em);
   font-weight: 600;
 }
 
 .today-label {
   color: var(--green-200);
-  font-size: 0.875em;
+  font-size: max(12px, 0.875em);
   font-weight: 600;
 }
 
@@ -64,7 +64,7 @@
 
 .today-heading {
   color: var(--text-muted);
-  font-size: 0.875em;
+  font-size: max(12px, 0.875em);
   font-weight: 600;
 }
 
@@ -113,7 +113,7 @@
   display: flex;
   align-items: center;
   gap: 0.5em;
-  font-size: 0.875em;
+  font-size: max(12px, 0.875em);
 }
 
 .legend-dot {
