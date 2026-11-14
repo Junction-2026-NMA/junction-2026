@@ -18,10 +18,12 @@
 <link rel="stylesheet" href="baskets.css">
 <link rel="stylesheet" href="panels.css">
 <link rel="stylesheet" href="mockups.css">
+<link rel="stylesheet" href="panels-motion.css">
 <link rel="stylesheet" href="week.css">
 <script src="boot.js"></script>
 <script src="page.js" defer></script>
 <script src="nav.js" defer></script>
+<script src="panels.js" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#sisalto">Siirry suoraan sisältöön</a>
@@ -204,9 +206,9 @@
         <figure class="panel-visual">
           <div class="mock mock-safe">
             <div class="safe-block">
-              <p class="safe-label">Safe to spend</p>
-              <p class="safe-amount js-count">€64</p>
-              <p class="safe-context">6 days to payday</p>
+              <p class="safe-label">Safe to spend today</p>
+              <p class="safe-amount js-count" data-count-ms="800">€64</p>
+              <p class="safe-context">Monday, 6 days to payday</p>
               <span class="period-bar"><span class="period-fill"></span></span>
             </div>
             <p class="safe-row"><span>Balance</span> <span class="num">€402</span></p>
@@ -231,17 +233,17 @@
           <div class="mock mock-chat">
             <p class="chat-name chat-name-user">You</p>
             <p class="bubble bubble-user">€45 for a concert on Friday. Can I afford it?</p>
-            <p class="chat-name">Liito</p>
-            <p class="bubble bubble-liito">€64 is safe to spend, so yes. €19 is left for 6 days after the ticket.</p>
-            <div class="bubble bubble-liito">
-              <p>About €30 usually goes to Leaks in that time.</p>
+            <p class="chat-name chat-name-liito">Liito</p>
+            <p class="bubble bubble-liito bubble-answer">Yes, just. <span class="num">€19</span> is left for 6 days after the ticket.</p>
+            <div class="bubble bubble-liito bubble-follow">
+              <p>Leaks usually take about €30 in 6 days. Want me to find €11?</p>
               <div class="data-card">
                 <p class="data-label">Leaks in a usual 6 days</p>
                 <p class="data-number">€30</p>
                 <p class="data-source">From your card payments, 1 to 31 Oct</p>
               </div>
             </div>
-            <p class="chat-steps"><span class="chat-step">Find €15</span> <span class="chat-step">Show my week</span></p>
+            <p class="chat-steps"><span class="chat-step">Find €11</span> <span class="chat-step">Show my week</span></p>
           </div>
           <figcaption class="example-note">Example figures</figcaption>
         </figure>

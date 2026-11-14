@@ -156,7 +156,8 @@
   color: var(--green-900);
 }
 
-/* Panel 1: the safe-to-spend number is the one big figure. */
+/* Panel 1: the safe-to-spend number is the one big figure. Under it, the three rows it comes
+   from: 402 − 298 − 40 = 64. On desktop the card is as tall as the chat card, so it grows. */
 .safe-block {
   padding: 20px 24px 24px;
   border-radius: var(--radius-xl);
@@ -201,4 +202,31 @@
   justify-content: space-between;
   gap: 16px;
   padding: 6px 8px;
+}
+
+@media (min-width: 1024px) {
+  .safe-block {
+    padding: 24px 28px 28px;
+  }
+
+  .safe-label {
+    font-size: 1rem;
+  }
+
+  .safe-amount {
+    font-size: 4.5rem;
+  }
+
+  .period-bar {
+    margin-top: 20px;
+  }
+
+  .safe-row {
+    padding: 10px 8px;
+    font-size: 1.0625rem;
+  }
+
+  .safe-row + .safe-row {
+    border-top: 2px solid var(--green-50);
+  }
 }
