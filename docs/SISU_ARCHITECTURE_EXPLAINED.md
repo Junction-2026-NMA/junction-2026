@@ -147,6 +147,20 @@ Measured live: 5.7 to 7.6 s from tap to plan with fresh searches, 0.6 s when the
 
 What is honest about it: the part that "needs spending to come down" is not a saving until the customer spends less, and every screen says so. For internet and mobile Sisu cannot see the customer's current speed or data, so the cheapest plan may be a smaller one; the item says that too.
 
+### S-Pankki's own questions (checked 14 November)
+
+The brief gives example questions. Each was asked of the live agent and two were wrong, so they were fixed and are now tests.
+
+| Their question | What Sisu does |
+|---|---|
+| "How much did I spend on taxis last month?" | `get_spending` by merchant type for the last month in the data |
+| "What kind of spender am I?" | `find_patterns`, answered from the three baskets first, with the baskets chart |
+| "What is safe for me to spend this week?" | from the summary, no tool, in about 0.4 s |
+| "How much could I save if I reduced dining out by 20%?" | `run_scenario` with `category` and `categoryCutPct`. Code takes 20% of the 12-month average (€55 a month for Aino). Before the fix the model took 20% of one unusual month and said €252 |
+| the three baskets | a lesson that asks first and reveals the customer's own baskets after they guess, and a `baskets` chart on request |
+
+In the money plan only an electricity switch counts as "needs nothing from you", because it is priced at the customer's own use. A cheaper internet or mobile plan is counted apart as "if it matches what you have now": Sisu cannot see their current speed or data.
+
 ### Exa's three jobs (added 14 November)
 
 Exa started as one fast search per bill. It now does three things, all through its API from our server:

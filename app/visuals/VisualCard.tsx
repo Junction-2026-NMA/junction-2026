@@ -4,6 +4,7 @@
 // message.visuals from useSisu) and it draws the right chart, animated, with its title and where the figures came from.
 import type { Visual } from "@/lib/types";
 import { MonthBars, OfferBars, PeerBars, Waterfall } from "./Bars";
+import { BasketBar } from "./Baskets";
 import { Donut } from "./Donut";
 import { FuturesLines } from "./Lines";
 import "./visuals.css";
@@ -12,6 +13,8 @@ const SOURCE: Record<Visual["source"], string> = { "bank-data": "From your S-Pan
 
 function Chart({ visual }: { visual: Visual }) {
   switch (visual.kind) {
+    case "basket_bar":
+      return <BasketBar visual={visual} />;
     case "budget_donut":
       return <Donut visual={visual} />;
     case "peer_bars":

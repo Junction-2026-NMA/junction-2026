@@ -44,8 +44,10 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
     "Projects three futures (change nothing, keep the cash, invest it). For what-if questions, what a saving or a lump sum adds up to, and how long until a target balance.",
     {
       freedPerMonthEur: { type: "number", description: "euros freed per month by a change, taken from a tool result or the customer (a cheaper contract, a category cut to a figure). 0 if none" },
+      category: { type: "string", enum: CATEGORIES, description: "with categoryCutPct: the category the customer wants to cut ('dining out' is Restaurants)" },
+      categoryCutPct: { type: "number", description: "the percentage to cut that category by, 1 to 100 ('reduce dining out by 20%' is 20). Code works out the euros from the 12-month average" },
       everydayCutPct: { type: "number", description: "only if the customer names a percentage cut of ALL everyday spending, 0 to 50. Otherwise 0" },
-      years: { type: "number", description: "1 to 10" },
+      years: { type: "number", description: "1 to 10. Use 5 if the customer named none" },
       oneOffEur: { type: "number", description: "optional: a lump sum (a gift, a bonus) to see invested against left in the account" },
       targetEur: { type: "number", description: "optional: a balance the customer wants to reach" },
     },
@@ -72,7 +74,7 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
   ),
   tool(
     "show_chart",
-    "Puts a chart on the customer's screen. budget = a ring of where their money goes by category. vs_peers = their categories beside people their age. months = money in and out for each of the last 12 months. safe_to_spend = how safe-to-spend is built up.",
+    "Puts a chart on the customer's screen. baskets = their three baskets (must pay every month, must pay now and then, everyday choices). budget = a ring of where their money goes by category. vs_peers = their categories beside people their age. months = money in and out for each of the last 12 months. safe_to_spend = how safe-to-spend is built up.",
     { chart: { type: "string", enum: CHART_KINDS } },
     ["chart"],
   ),

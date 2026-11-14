@@ -9,7 +9,7 @@ import type { PlanView } from "@/lib/agent/usePlan";
 const hostOf = (url: string): string => new URL(url).hostname.replace(/^www\./, "");
 
 function Item({ item, index }: { item: PlanItem; index: number }) {
-  const effortless = item.needs === "nothing";
+  const tag = { nothing: { text: "Needs nothing from you", tone: "bg-green-soft text-green" }, "check-plan": { text: "Check it matches your plan", tone: "bg-[#2a78d6]/10 text-[#1d5aa8]" }, "spending-change": { text: "Needs spending to come down", tone: "bg-amber/15 text-[#8a5f08]" } }[item.needs];
   return (
     <li className="plan-in py-3" style={{ animationDelay: `${index * 90}ms` }}>
       <div className="flex items-baseline justify-between gap-3">
@@ -17,7 +17,7 @@ function Item({ item, index }: { item: PlanItem; index: number }) {
         <p className="tabular shrink-0 font-semibold text-green">{euro(item.yearlyEur)}/yr</p>
       </div>
       <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-        <span className={`rounded-full px-2 py-0.5 font-medium ${effortless ? "bg-green-soft text-green" : "bg-amber/15 text-[#8a5f08]"}`}>{effortless ? "Needs nothing from you" : "Needs spending to come down"}</span>
+        <span className={`rounded-full px-2 py-0.5 font-medium ${tag.tone}`}>{tag.text}</span>
         {item.sources.map((source) => (
           <a key={source.url} href={source.url} target="_blank" rel="noreferrer" className="text-muted underline decoration-line underline-offset-2">
             {hostOf(source.url)}

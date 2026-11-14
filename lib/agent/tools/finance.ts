@@ -7,7 +7,8 @@ import { groupBy, round2, sum } from "@/lib/finance/math";
 import { mortgageFor } from "@/lib/finance/mortgage";
 import { findPatterns } from "@/lib/finance/patterns";
 import { FUND_FEE, LIMITS, RETURN_SCENARIOS, cleanInput, runScenario } from "@/lib/finance/scenario";
-import { budgetVisual, futuresVisual } from "../visuals";
+import { categoryAverages } from "@/lib/finance/categories";
+import { basketsVisual, futuresVisual } from "../visuals";
 import { CONCEPTS, teachingCard } from "@/lib/finance/teaching";
 import { filterTransactions } from "@/lib/finance/transactions";
 import { billLabel } from "@/lib/memory";
@@ -169,12 +170,14 @@ export function findPatternsTool(ctx: ToolContext): ToolOutcome {
       rankedBy: "yearly euros, largest first",
       important: "Never add amounts together yourself. If a total helps, use twoLargestTogether, which is already worked out.",
       twoLargestTogether: combined,
+      threeBaskets: ctx.overview.baskets.map((basket) => ({ basket: basket.label, perMonthEur: round2(basket.monthlyAvg), shareOfSpendingPct: Math.round(basket.share * 100) })),
+      framing: "When they ask where their money goes or what kind of spender they are, start from threeBaskets (which basket is biggest, and how large everyday choices are), then give the largest finding.",
       patterns: patterns.map((p) => ({ id: p.id, what: p.title, detail: p.detail, yearlyEur: p.yearlyImpactEur, confidence: p.confidence, canResearchOffersFor: p.billType, usefulNextTools: p.nextSteps, numbers: factsForModel(p.facts) })),
     }),
     summary: patterns.length ? `${patterns.length} patterns found; top: ${patterns[0].title}` : "No notable pattern found",
-    facts: [...patterns.flatMap((p) => p.facts), ...combinedFact],
+    facts: [...patterns.flatMap((p) => p.facts), ...combinedFact, ...basketsVisual(ctx.overview).facts],
     stages: [{ kind: "lead", title: "What Sisu noticed", summary: patterns[0]?.title ?? "Nothing notable", source: "bank-data", data: { kind: "lead", patterns } }],
-    visual: budgetVisual(ctx.overview), // advice comes with the picture of where the money goes
+    visual: basketsVisual(ctx.overview), // advice comes with the picture of where the money really goes: the three baskets
   });
 }
 
@@ -199,9 +202,17 @@ export function checkAffordabilityTool(args: Record<string, unknown>, ctx: ToolC
   });
 }
 
+const DEFAULT_CUT_YEARS = 5; // "how much could I save if I cut X by 20%?" names no horizon
+
 export function runScenarioTool(args: Record<string, unknown>, ctx: ToolContext): ToolOutcome {
-  const freed = Number(args.freedPerMonthEur ?? args.billSavingPerMonth ?? 0);
-  const input = cleanInput({ billSavingPerMonth: Number.isFinite(freed) ? freed : 0, everydayCutPct: Number(args.everydayCutPct ?? 0) || 0, years: Number(args.years), oneOffEur: typeof args.oneOffEur === "number" ? args.oneOffEur : 0 });
+  // "Reduce dining out by 20%": the euros come from the category's 12-month average, worked out here. Using one
+  // month's figure (a model's first instinct) can be several times off when that month was unusual.
+  const cutPct = Number(args.categoryCutPct);
+  const cutCategory = typeof args.category === "string" && Number.isFinite(cutPct) && cutPct > 0 && cutPct <= 100 ? categoryAverages(ctx.overview).find((entry) => entry.category === args.category) : undefined;
+  if (typeof args.category === "string" && args.categoryCutPct !== undefined && !cutCategory) return failure("finance", `There is no spending in ${args.category} in the last ${ctx.overview.windowMonths} months, or the percentage is not between 1 and 100.`);
+  const fromCategory = cutCategory ? round2((cutCategory.monthly * cutPct) / 100) : 0;
+  const freed = cutCategory ? fromCategory : Number(args.freedPerMonthEur ?? args.billSavingPerMonth ?? 0);
+  const input = cleanInput({ billSavingPerMonth: Number.isFinite(freed) ? freed : 0, everydayCutPct: Number(args.everydayCutPct ?? 0) || 0, years: Number(args.years) || (cutCategory ? DEFAULT_CUT_YEARS : NaN), oneOffEur: typeof args.oneOffEur === "number" ? args.oneOffEur : 0 });
   if (typeof input === "string") return failure("finance", input);
   const result = runScenario(ctx.overview, input);
   const branches = result.branches.map((b) => ({ future: b.label, endTotalEur: b.endTotal, lowEur: b.endLow, highEur: b.endHigh, monthsOfMustPayCostsCoveredAfterYear1: b.runwayMonthsAtYear1 }));
@@ -213,6 +224,14 @@ export function runScenarioTool(args: Record<string, unknown>, ctx: ToolContext)
   const facts: Fact[] = [
     fact("scenario:freed", "Freed per month", result.freedPerMonth, "EUR/month", "bill saving plus the trimmed share of everyday spending", { source: "calculation" }),
     fact("scenario:years", "Years ahead", input.years, "years", "the horizon asked for", { source: "customer-stated" }),
+    ...(cutCategory
+      ? [
+          fact("scenario:category-avg", `${cutCategory.category}, average per month`, cutCategory.monthly, "EUR/month", `average of the last ${ctx.overview.windowMonths} months`, { evidence: { from: ctx.overview.windowFrom, to: ctx.overview.windowTo, category: cutCategory.category } }),
+          fact("scenario:category-cut-pct", "Cut asked for", cutPct, "percent", "the percentage the customer named", { source: "customer-stated" }),
+          fact("scenario:category-freed", `Cutting ${cutCategory.category} by ${cutPct}% frees, per month`, fromCategory, "EUR/month", `${cutPct}% of the monthly average`, { source: "calculation" }),
+          fact("scenario:category-freed-yearly", `Cutting ${cutCategory.category} by ${cutPct}% frees, per year`, round2(fromCategory * 12), "EUR/year", "the monthly figure times 12", { source: "calculation" }),
+        ]
+      : []),
     fact("scenario:gain", "Extra after the period if the money is kept", gain, "EUR", "'keep the cash' minus 'change nothing'", { source: "calculation" }),
     ...(input.oneOffEur
       ? [
@@ -240,6 +259,9 @@ export function runScenarioTool(args: Record<string, unknown>, ctx: ToolContext)
   return outcome({
     content: JSON.stringify({
       input,
+      ...(cutCategory
+        ? { categoryCut: { category: cutCategory.category, averagePerMonthEur: cutCategory.monthly, cutPct, freesPerMonthEur: fromCategory, freesPerYearEur: round2(fromCategory * 12), basis: `the ${ctx.overview.windowMonths}-month average, not any single month`, say: "Lead with what the cut frees per month and per year, say it is based on their average, then what it adds up to." } }
+        : {}),
       freedPerMonthEur: result.freedPerMonth,
       extraAfterPeriodIfKeptEur: gain,
       ...(input.oneOffEur
@@ -316,7 +338,7 @@ export function explainConcept(args: Record<string, unknown>, ctx: ToolContext):
     summary: `Lesson: ${card.title}`,
     // The receipts go to the app with the card, not to the model, so they are not offered as numbers it may say.
     facts: [],
-    teaching: card,
+    teaching: concept === "three-baskets" ? { ...card, revealVisual: basketsVisual(ctx.overview) } : card,
     stages: [{ kind: "teaching", title: card.title, summary: card.question, source: "bank-data", facts: card.facts, data: { kind: "teaching", card } }],
   });
 }

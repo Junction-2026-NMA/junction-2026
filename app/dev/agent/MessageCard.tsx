@@ -25,6 +25,7 @@ function Teaching({ card }: { card: TeachingCard }) {
         ))}
       </div>
       {picked !== null && <p className="text-muted">{card.reveal}</p>}
+      {picked !== null && card.revealVisual && <VisualCard visual={card.revealVisual} />}
     </div>
   );
 }
