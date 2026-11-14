@@ -27,12 +27,17 @@
 <link rel="stylesheet" href="week.css">
 <link rel="stylesheet" href="week-motion.css">
 <link rel="stylesheet" href="closing.css">
+<link rel="stylesheet" href="inside.css">
+<link rel="stylesheet" href="engine.css">
+<link rel="stylesheet" href="engine-map.css">
+<link rel="stylesheet" href="engine-detail.css">
 <script src="boot.js"></script>
 <script src="page.js" defer></script>
 <script src="nav.js" defer></script>
 <script src="panels.js" defer></script>
 <script src="faq.js" defer></script>
 <script src="journey.js" defer></script>
+<script src="engine.js" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#sisalto">Siirry suoraan sisältöön</a>
@@ -448,6 +453,338 @@
           <figcaption class="example-note">Example figures</figcaption>
         </figure>
       </div>
+    </div>
+  </section>
+
+  <section class="inside" id="inside">
+    <div class="section-head reveal">
+      <h2>Built to live inside S-Pankki.</h2>
+      <p>The same coach in <span class="keep">S-mobiili</span> and on s-pankki.fi, joined to the bank at four points.</p>
+    </div>
+    <div class="inside-grid">
+      <article class="place-card reveal">
+        <!-- A picture of the idea, built from HTML and CSS. Decoration only. -->
+        <div class="place-mock" aria-hidden="true">
+          <p class="app-bar">S-mobiili</p>
+          <p class="app-card"><span class="app-card-label">Safe to spend</span> <span class="app-card-num num">€64</span> <span class="app-card-sub">6 days to payday</span></p>
+          <p class="app-tabs" lang="fi"><span>Etusivu</span><span>Maksut</span><span class="is-on">Sisu</span><span>Lisää</span></p>
+        </div>
+        <div class="place-copy">
+          <p class="place-kicker">In the app</p>
+          <h3>One tab in S-mobiili.</h3>
+          <p>Sisu opens where people already check their balance. The screens exist as a web app and as a native iOS app, and both draw the same events.</p>
+          <p class="code-row"><a class="code-link" href="https://github.com/Junction-2026-NMA/junction-2026/tree/main/app">app/</a> <a class="code-link" href="https://github.com/Junction-2026-NMA/junction-2026/tree/main/ios">ios/</a></p>
+        </div>
+      </article>
+      <article class="place-card reveal">
+        <div class="place-mock" aria-hidden="true">
+          <p class="web-bar"><span class="web-dot"></span>s-pankki.fi</p>
+          <p class="web-crumbs" lang="fi"><span>Verkkopalvelut</span><span>S-mobiili</span><span class="is-on">Sisu</span></p>
+          <p class="web-here">You are here</p>
+        </div>
+        <div class="place-copy">
+          <p class="place-kicker">On the website</p>
+          <h3>One page on <span class="keep">s-pankki.fi.</span></h3>
+          <p>This page sits in the bank's own header, menu and footer. It is how Sisu would be introduced to customers on the web.</p>
+          <p class="code-row"><a class="code-link" href="https://github.com/Junction-2026-NMA/junction-2026/tree/main/public/sisu">public/sisu/</a></p>
+        </div>
+      </article>
+    </div>
+    <div class="plug-block reveal">
+      <h3 class="plug-title">Where the bank plugs in.</h3>
+      <ul class="plug-list">
+        <li class="plug">
+          <p class="plug-name">Account data <a class="code-link" href="https://github.com/Junction-2026-NMA/junction-2026/blob/main/lib/finance/data.ts">lib/finance/data.ts</a></p>
+          <p class="plug-now"><span class="plug-label">In the demo</span> S-Pankki's synthetic transactions, read from files.</p>
+          <p class="plug-then"><span class="plug-label">Inside S-Pankki</span> The bank's own account data. Every read already goes through one function.</p>
+        </li>
+        <li class="plug">
+          <p class="plug-name">Approval <a class="code-link" href="https://github.com/Junction-2026-NMA/junction-2026/tree/main/app/api/actions">app/api/actions/</a></p>
+          <p class="plug-now"><span class="plug-label">In the demo</span> A button press, then a simulated switch or transfer.</p>
+          <p class="plug-then"><span class="plug-label">Inside S-Pankki</span> The bank's own confirmation step and payment systems.</p>
+        </li>
+        <li class="plug">
+          <p class="plug-name">Storage <a class="code-link" href="https://github.com/Junction-2026-NMA/junction-2026/blob/main/lib/store/state.ts">lib/store/state.ts</a></p>
+          <p class="plug-now"><span class="plug-label">In the demo</span> One file on a laptop, with a hash-chained audit log.</p>
+          <p class="plug-then"><span class="plug-label">Inside S-Pankki</span> The bank's database. Three functions are the only place to change.</p>
+        </li>
+        <li class="plug">
+          <p class="plug-name">Model hosting <a class="code-link" href="https://github.com/Junction-2026-NMA/junction-2026/blob/main/lib/agent/config.ts">lib/agent/config.ts</a></p>
+          <p class="plug-now"><span class="plug-label">In the demo</span> Nemotron 3.5 Super VL on our own GPU in Finland.</p>
+          <p class="plug-then"><span class="plug-label">Inside S-Pankki</span> Hosting the bank approves. One setting chooses the host.</p>
+        </li>
+      </ul>
+      <p class="example-note">The pictures show the idea. They are not the real S-mobiili.</p>
+    </div>
+  </section>
+
+  <section class="engine" id="engine">
+    <div class="section-head reveal">
+      <h2>What runs behind every answer.</h2>
+      <p>One rule holds the backend together.</p>
+    </div>
+    <ul class="rule-grid">
+      <li class="rule-card reveal">
+        <h3>The model chooses and explains.</h3>
+        <p>Nemotron picks from 14 tools and words the answer. It never does the sums.</p>
+      </li>
+      <li class="rule-card reveal">
+        <h3>Code computes.</h3>
+        <p>Every number comes from the finance engine or a page a tool fetched, and is checked before you see it.</p>
+      </li>
+      <li class="rule-card rule-you reveal">
+        <h3>You approve.</h3>
+        <p>The model can prepare an action. Only a button press carries it out.</p>
+      </li>
+    </ul>
+
+    <div class="arch reveal" id="arch">
+      <div class="arch-top">
+        <h3>Follow one question through the system.</h3>
+        <p class="arch-ask">“Find me a cheaper electricity deal and prepare the switch.”</p>
+        <p class="turn-bar" hidden>
+          <button class="turn-btn turn-play" type="button">Play the turn</button>
+          <button class="turn-btn turn-back" type="button">Back</button>
+          <button class="turn-btn turn-next" type="button">Next</button>
+          <span class="turn-count" aria-hidden="true"></span>
+        </p>
+        <ol class="turn-steps">
+          <li class="turn-step" data-nodes="screens routes eleven"><span class="step-no">1</span><p><strong>Speech to text.</strong> The recording goes to ElevenLabs and comes back as words.</p><span class="turn-time">0.58 s</span></li>
+          <li class="turn-step" data-nodes="orch research"><span class="step-no">2</span><p><strong>Early start.</strong> A keyword check spots “cheaper electricity deal” and starts the offer research before the model has seen anything.</p><span class="turn-time">under 1 ms</span></li>
+          <li class="turn-step" data-nodes="orch finance memory data"><span class="step-no">3</span><p><strong>The prompt.</strong> Fixed rules, then a summary of the customer worked out by the finance engine, then what Sisu remembers. No customer ID and no transaction rows.</p><span class="turn-time">under 1 ms</span></li>
+          <li class="turn-step" data-nodes="orch nemo tools"><span class="step-no">4</span><p><strong>Nemotron decides.</strong> The model gets the prompt and the 14 tools, and asks for <code>search_offers</code>.</p><span class="turn-time">first token 0.26 s</span></li>
+          <li class="turn-step" data-nodes="tools research exa ctx filter finance"><span class="step-no">5</span><p><strong>Tools run.</strong> Exa finds today's comparison pages. Context.dev reads three at once into typed offers. Code works out each saving against the real bill.</p><span class="turn-time">about 3 s</span></li>
+          <li class="turn-step" data-nodes="nemo tools actions store"><span class="step-no">6</span><p><strong>The switch is prepared.</strong> The server builds the action from the offer it already holds, so the model cannot invent a price. It waits for approval.</p><span class="turn-time">one model step</span></li>
+          <li class="turn-step" data-nodes="orch guard verify eleven hook"><span class="step-no">7</span><p><strong>The answer.</strong> Each finished sentence is checked against the receipts, then spoken, so speech starts before the answer ends.</p><span class="turn-time">first audio 0.30 s</span></li>
+          <li class="turn-step" data-nodes="verify hook screens"><span class="step-no">8</span><p><strong>Receipts.</strong> The turn ends with every number said and where it came from.</p><span class="turn-time">one event</span></li>
+          <li class="turn-step" data-nodes="screens routes actions store"><span class="step-no">9</span><p><strong>Approval.</strong> You press Approve. A separate request marks the switch as carried out, in simulation, and adds two entries to the audit log.</p><span class="turn-time">your tap</span></li>
+        </ol>
+      </div>
+
+      <div class="arch-body">
+        <div class="arch-map">
+          <div class="layer">
+            <p class="layer-name">Phone</p>
+            <p class="layer-nodes">
+              <a class="node" href="#n-screens" data-node="screens">Screens and cards</a>
+              <a class="node" href="#n-hook" data-node="hook">useSisu hook</a>
+            </p>
+          </div>
+          <p class="wire"><span>One stream of typed events</span></p>
+          <div class="layer">
+            <p class="layer-name">Sisu server</p>
+            <p class="layer-nodes"><span class="row-name">In and out</span>
+              <a class="node" href="#n-routes" data-node="routes">API routes</a>
+              <a class="node" href="#n-orch" data-node="orch">Orchestrator</a>
+            </p>
+            <p class="layer-nodes"><span class="row-name">Checks</span>
+              <a class="node" href="#n-guard" data-node="guard">Sentence check</a>
+              <a class="node" href="#n-verify" data-node="verify">Number verifier</a>
+              <a class="node" href="#n-filter" data-node="filter">Untrusted-text filter</a>
+            </p>
+            <p class="layer-nodes"><span class="row-name">Work</span>
+              <a class="node" href="#n-tools" data-node="tools">14 tools</a>
+              <a class="node" href="#n-research" data-node="research">Offer research</a>
+              <a class="node" href="#n-finance" data-node="finance">Finance engine</a>
+            </p>
+            <p class="layer-nodes"><span class="row-name">Kept</span>
+              <a class="node" href="#n-actions" data-node="actions">Actions and approval</a>
+              <a class="node" href="#n-memory" data-node="memory">Memory</a>
+              <a class="node" href="#n-store" data-node="store">State and audit log</a>
+              <a class="node" href="#n-data" data-node="data">S-Pankki data</a>
+            </p>
+          </div>
+          <p class="wire"><span>Totals to the model. The least possible to everyone else.</span></p>
+          <div class="layer-pair">
+            <div class="layer">
+              <p class="layer-name">Our own GPU, Finland</p>
+              <p class="layer-nodes">
+                <a class="node" href="#n-nemo" data-node="nemo">Nemotron 3.5 Super VL</a>
+              </p>
+            </div>
+            <div class="layer">
+              <p class="layer-name">Outside services</p>
+              <p class="layer-nodes">
+                <a class="node" href="#n-backup" data-node="backup">NVIDIA Build</a>
+                <a class="node" href="#n-exa" data-node="exa">Exa</a>
+                <a class="node" href="#n-ctx" data-node="ctx">Context.dev</a>
+                <a class="node" href="#n-eleven" data-node="eleven">ElevenLabs</a>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="arch-side">
+          <p class="side-hint">Pick any part of the map.</p>
+          <div class="node-details">
+            <article class="node-detail" id="n-screens">
+              <p class="detail-layer">Phone</p>
+              <h4>Screens and cards</h4>
+              <p>A web app and a native iOS app. Each draws one card for every event the server sends.</p>
+              <ul class="detail-facts"><li>Stages, charts, lessons, the approval card and the receipts all arrive as events.</li><li>A “mock data” label shows whenever the server runs without keys.</li></ul>
+              <p class="code-row"><a class="code-link" href="https://github.com/Junction-2026-NMA/junction-2026/tree/main/app">app/</a> <a class="code-link" href="https://github.com/Junction-2026-NMA/junction-2026/tree/main/ios/Sisu">ios/Sisu/</a></p>
+            </article>
+            <article class="node-detail" id="n-hook">
+              <p class="detail-layer">Phone</p>
+              <h4>useSisu hook</h4>
+              <p>One hook gives a screen the whole conversation: the stages, the approval card, the lesson, memory and the receipts.</p>
+              <ul class="detail-facts"><li>Every event is typed in <code>lib/types.ts</code>.</li><li>Works with no keys in mock mode, with the same events and timing.</li></ul>
+              <p class="code-row"><a class="code-link" href="https://github.com/Junction-2026-NMA/junction-2026/blob/main/lib/agent/useSisu.ts">lib/agent/useSisu.ts</a></p>
+            </article>
+            <article class="node-detail" id="n-routes">
+              <p class="detail-layer">Sisu server</p>
+              <h4>API routes</h4>
+              <p>Agent, voice, research, actions, memory, coach and health. A question goes in, a stream of events comes out.</p>
+              <ul class="detail-facts"><li><code>POST /api/agent/query</code> for typed questions, <code>POST /api/voice/turn</code> for speech.</li><li><code>POST /api/agent/plan</code> builds a whole money plan in 5.7 to 7.6 s.</li><li><code>GET /api/health</code> asks the model server which model it is serving.</li></ul>
+              <p class="code-row"><a class="code-link" href="https://github.com/Junction-2026-NMA/junction-2026/tree/main/app/api">app/api/</a></p>
+            </article>
+            <article class="node-detail" id="n-orch">
+              <p class="detail-layer">Sisu server</p>
+              <h4>Orchestrator</h4>
+              <p>Runs one turn as a loop of model steps: at most 4 for a question, 9 for an investigation.</p>
+              <ul class="detail-facts"><li>Tools asked for in the same step run at the same time.</li><li>Slow work starts early. The model never waits for anything it did not ask for.</li><li>If research is not ready, a filler sentence is spoken so there is no silence.</li><li>More than 1,000 live turns streamed in one night, with 0 broken streams.</li></ul>
+              <p class="code-row"><a class="code-link" href="https://github.com/Junction-2026-NMA/junction-2026/blob/main/lib/agent/orchestrator.ts">lib/agent/orchestrator.ts</a></p>
+            </article>
+            <article class="node-detail" id="n-guard">
+              <p class="detail-layer">Sisu server</p>
+              <h4>Sentence check</h4>
+              <p>Every sentence is checked before it is shown or spoken.</p>
+              <ul class="detail-facts"><li>Catches a claim with no tool call behind it, a promise in place of work, and a number with no source.</li><li>A sentence that fails is thrown away, and the model tries again with a forced tool call.</li><li>At most two retries in a turn.</li></ul>
+              <p class="code-row"><a class="code-link" href="https://github.com/Junction-2026-NMA/junction-2026/blob/main/lib/agent/guards.ts">lib/agent/guards.ts</a></p>
+            </article>
+            <article class="node-detail" id="n-verify">
+              <p class="detail-layer">Sisu server</p>
+              <h4>Number verifier</h4>
+              <p>Checks every number the model says against the receipts its tools returned.</p>
+              <ul class="detail-facts"><li>A figure copied with a slipped digit is replaced by the receipt's value.</li><li>Numbers written as words are checked like digits.</li><li>0 of 142 numbers had no source on the closing run.</li></ul>
+              <p class="code-row"><a class="code-link" href="https://github.com/Junction-2026-NMA/junction-2026/blob/main/lib/agent/grounding.ts">lib/agent/grounding.ts</a></p>
+            </article>
+            <article class="node-detail" id="n-filter">
+              <p class="detail-layer">Sisu server</p>
+              <h4>Untrusted-text filter</h4>
+              <p>Web pages, bill photos and pasted “instructions” are treated as data, never as orders.</p>
+              <ul class="detail-facts"><li>Sentences that read like instructions to an assistant are removed from search excerpts.</li><li>A test bill carrying “Ignore all previous instructions” was read correctly.</li><li>Injection checks: 6 of 6.</li></ul>
+              <p class="code-row"><a class="code-link" href="https://github.com/Junction-2026-NMA/junction-2026/blob/main/lib/agent/tools/untrusted.ts">lib/agent/tools/untrusted.ts</a></p>
+            </article>
+            <article class="node-detail" id="n-tools">
+              <p class="detail-layer">Sisu server</p>
+              <h4>14 tools</h4>
+              <p>What the model can ask for. Each returns receipts: every number and where it came from.</p>
+              <p class="tool-chips"><code>get_spending</code><code>list_bills</code><code>get_cash_flow</code><code>find_patterns</code><code>check_affordability</code><code>run_scenario</code><code>get_mortgage</code><code>explain_concept</code><code>search_offers</code><code>web_search</code><code>calculate</code><code>show_chart</code><code>prepare_action</code><code>remember</code></p>
+              <ul class="detail-facts"><li>No tool approves or carries out an action.</li></ul>
+              <p class="code-row"><a class="code-link" href="https://github.com/Junction-2026-NMA/junction-2026/tree/main/lib/agent/tools">lib/agent/tools/</a></p>
+            </article>
+            <article class="node-detail" id="n-research">
+              <p class="detail-layer">Sisu server</p>
+              <h4>Offer research</h4>
+              <p>One shared run for each bill type and city, started before the model asks.</p>
+              <ul class="detail-facts"><li>The early start, the app's prefetch and the model's tool call all join the same run.</li><li>A finished result is reused for 10 minutes and kept across restarts.</li><li>It waits for every page, up to 8.5 s, because the best offer changed when it answered from the first page alone.</li></ul>
+              <p class="code-row"><a class="code-link" href="https://github.com/Junction-2026-NMA/junction-2026/tree/main/lib/agent/research">lib/agent/research/</a> <a class="code-link" href="https://github.com/Junction-2026-NMA/junction-2026/blob/main/lib/agent/speculate.ts">lib/agent/speculate.ts</a></p>
+            </article>
+            <article class="node-detail" id="n-finance">
+              <p class="detail-layer">Sisu server</p>
+              <h4>Finance engine</h4>
+              <p>Plain functions on the customer's own rows. Every number on the screen starts here.</p>
+              <ul class="detail-facts"><li>The three baskets, safe to spend, cash flow to payday, nine kinds of pattern, affordability and three futures.</li><li>Each function takes under 0.4 ms.</li><li>Savings are never overstated: electricity use is estimated from the customer's own bill.</li></ul>
+              <p class="code-row"><a class="code-link" href="https://github.com/Junction-2026-NMA/junction-2026/tree/main/lib/finance">lib/finance/</a></p>
+            </article>
+            <article class="node-detail" id="n-actions">
+              <p class="detail-layer">Sisu server</p>
+              <h4>Actions and approval</h4>
+              <p>The model prepares a switch or a transfer. Only your button press carries it out, and in the demo that is a simulation.</p>
+              <ul class="detail-facts"><li>The model has no approving tool. Tests offer it three, and all fail as unknown.</li><li>Approval is a separate request that names the customer.</li><li>An action expires after 30 minutes, because prices change.</li></ul>
+              <p class="code-row"><a class="code-link" href="https://github.com/Junction-2026-NMA/junction-2026/tree/main/lib/actions">lib/actions/</a></p>
+            </article>
+            <article class="node-detail" id="n-memory">
+              <p class="detail-layer">Sisu server</p>
+              <h4>Memory</h4>
+              <p>Sisu remembers only what the customer's own words support, and only with consent.</p>
+              <ul class="detail-facts"><li>Which bill is which, yearly electricity use, preferences and goals.</li><li>Switching memory off erases what was stored.</li><li>A web page or a pasted instruction cannot plant a memory.</li></ul>
+              <p class="code-row"><a class="code-link" href="https://github.com/Junction-2026-NMA/junction-2026/tree/main/lib/memory">lib/memory/</a></p>
+            </article>
+            <article class="node-detail" id="n-store">
+              <p class="detail-layer">Sisu server</p>
+              <h4>State and audit log</h4>
+              <p>One file, written in one go, with an audit log that shows if anyone has changed it.</p>
+              <ul class="detail-facts"><li>Each entry stores the hash of the one before it.</li><li>Editing, removing or reordering an entry breaks the chain.</li><li>Three functions are the one place to put a database.</li></ul>
+              <p class="code-row"><a class="code-link" href="https://github.com/Junction-2026-NMA/junction-2026/tree/main/lib/store">lib/store/</a></p>
+            </article>
+            <article class="node-detail" id="n-data">
+              <p class="detail-layer">Sisu server</p>
+              <h4>S-Pankki data</h4>
+              <p>The synthetic transactions S-Pankki provided for the challenge.</p>
+              <ul class="detail-facts"><li>Rows never leave the finance engine. The model sees totals.</li><li>Every read goes through one function, <code>transactionsFor</code>.</li><li>Tests confirm that no function returns another customer's rows.</li></ul>
+              <p class="code-row"><a class="code-link" href="https://github.com/Junction-2026-NMA/junction-2026/blob/main/lib/finance/data.ts">lib/finance/data.ts</a></p>
+            </article>
+            <article class="node-detail" id="n-nemo">
+              <p class="detail-layer">Our own GPU, Finland</p>
+              <h4>Nemotron 3.5 Super VL</h4>
+              <p>The only reasoning model. It runs on one GPU in Verda's FIN-02 data centre in Finland.</p>
+              <ul class="detail-facts"><li>First token after 0.26 s.</li><li>The right tool in 27 of 27 checks on the closing run.</li><li>Chains five tools on its own in an investigation: 4.2 to 5.3 s.</li><li>Reads a photographed bill in about 1.5 s.</li></ul>
+              <p class="detail-sees"><strong>Sees:</strong> totals and a few selected facts. Never transaction rows or the customer ID.</p>
+              <p class="code-row"><a class="code-link" href="https://github.com/Junction-2026-NMA/junction-2026/blob/main/lib/agent/model.ts">lib/agent/model.ts</a> <a class="code-link" href="https://github.com/Junction-2026-NMA/junction-2026/tree/main/deploy/verda">deploy/verda/</a></p>
+            </article>
+            <article class="node-detail" id="n-backup">
+              <p class="detail-layer">Outside services</p>
+              <h4>NVIDIA Build</h4>
+              <p>The same model, as an automatic backup if our own GPU fails.</p>
+              <ul class="detail-facts"><li>Takes over at once on an error, and after 2 s of silence.</li><li>After one failure, later steps go straight to the backup. A check every 5 s switches back.</li><li>With our GPU cut off, 6 of 6 turns were answered.</li></ul>
+              <p class="detail-sees"><strong>Sees:</strong> totals, only while our GPU is down. Never a bill photo.</p>
+              <p class="code-row"><a class="code-link" href="https://github.com/Junction-2026-NMA/junction-2026/blob/main/lib/agent/breaker.ts">lib/agent/breaker.ts</a></p>
+            </article>
+            <article class="node-detail" id="n-exa">
+              <p class="detail-layer">Outside services</p>
+              <h4>Exa</h4>
+              <p>Live search. It finds today's pages for every bill and every outside fact.</p>
+              <ul class="detail-facts"><li>A search takes about 0.22 s.</li><li>Reads a page when Context.dev cannot.</li><li>Researches an open question across several sources in about 2.5 s.</li></ul>
+              <p class="detail-sees"><strong>Sees:</strong> a bill type and a city. Code writes the query.</p>
+              <p class="code-row"><a class="code-link" href="https://github.com/Junction-2026-NMA/junction-2026/blob/main/lib/agent/research/exa.ts">lib/agent/research/exa.ts</a></p>
+            </article>
+            <article class="node-detail" id="n-ctx">
+              <p class="detail-layer">Outside services</p>
+              <h4>Context.dev</h4>
+              <p>Turns a comparison page into typed offers: provider, plan, price per kWh, monthly fee and contract length.</p>
+              <ul class="detail-facts"><li>Three pages at once, 2.8 to 3.3 s each.</li><li>The slowest stage, so it starts early and its results are shared.</li><li>A failed page is listed. No offer is invented.</li></ul>
+              <p class="detail-sees"><strong>Sees:</strong> the address of an offer page.</p>
+              <p class="code-row"><a class="code-link" href="https://github.com/Junction-2026-NMA/junction-2026/blob/main/lib/agent/research/contextdev.ts">lib/agent/research/contextdev.ts</a></p>
+            </article>
+            <article class="node-detail" id="n-eleven">
+              <p class="detail-layer">Outside services</p>
+              <h4>ElevenLabs</h4>
+              <p>Speech in and speech out. Each sentence is spoken as soon as it is finished.</p>
+              <ul class="detail-facts"><li>Speech to text: 0.58 s for a three-second question.</li><li>First audio 0.30 s after a sentence is ready.</li><li>Finnish, Swedish, German, Hindi, Tamil and Arabic were each heard and answered in kind.</li></ul>
+              <p class="detail-sees"><strong>Sees:</strong> the audio of the question and of the answer.</p>
+              <p class="code-row"><a class="code-link" href="https://github.com/Junction-2026-NMA/junction-2026/blob/main/lib/agent/speech.ts">lib/agent/speech.ts</a></p>
+            </article>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="proof-block reveal">
+      <h3 class="proof-title">Measured on the running system.</h3>
+      <ul class="proof-grid">
+        <li class="proof"><p class="proof-figure">0.26 s</p><p>to the model's first token, on our own GPU</p></li>
+        <li class="proof"><p class="proof-figure">0.47 s</p><p>to the first sentence, for last month's spending</p></li>
+        <li class="proof"><p class="proof-figure">54 of 54</p><p>live checks passed on the closing run</p></li>
+        <li class="proof"><p class="proof-figure">0 of 142</p><p>numbers said without a source</p></li>
+        <li class="proof"><p class="proof-figure">6 of 6</p><p>turns answered by the backup with our GPU cut off</p></li>
+      </ul>
+      <a class="source-link" href="https://github.com/Junction-2026-NMA/junction-2026/blob/main/docs/GAUNTLET_RESULTS.md">Source: our test results, 14 Nov 2026<span class="vh">, on GitHub</span></a>
+    </div>
+
+    <div class="sees-card reveal">
+      <h3>What each service sees.</h3>
+      <dl class="sees-list">
+        <div class="sees-row"><dt>Sisu server</dt><dd>Everything. Transaction rows stay here.</dd></div>
+        <div class="sees-row"><dt>Our GPU in Finland</dt><dd>Totals, averages and a few selected facts. The text of the question. A bill photo, if you take one.</dd></div>
+        <div class="sees-row"><dt>NVIDIA Build</dt><dd>The same totals, only while our GPU is down. Never a bill photo.</dd></div>
+        <div class="sees-row"><dt>Exa</dt><dd>A bill type and a city.</dd></div>
+        <div class="sees-row"><dt>Context.dev</dt><dd>The address of an offer page.</dd></div>
+        <div class="sees-row"><dt>ElevenLabs</dt><dd>The audio of the question and of the answer.</dd></div>
+      </dl>
+      <p class="example-note">Tests read everything the model is sent and check that it holds no customer ID, postal code or transaction row.</p>
+      <a class="demo-button btn-primary" href="https://github.com/Junction-2026-NMA/junction-2026/blob/main/docs/SISU_ARCHITECTURE_EXPLAINED.md">Read the full architecture</a>
     </div>
   </section>
 
