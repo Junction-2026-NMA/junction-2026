@@ -1,6 +1,7 @@
-/* Sections 5 and 6: the dot rows of the sourced figures, and the motion of both sections.
-   Each sequence starts from a .js ... .is-in class set by page.js, runs once, ends in the normal CSS
-   state about 1.1 s after its trigger, and sits in the no-preference query, so reduced motion stays still. */
+/* Sections 5 and 6: the dot rows of the sourced figures, the line that hands over to the receipt, and
+   the motion of both sections. Each sequence starts from an .is-in class that page.js sets once, ends in
+   the normal CSS state about 2 s after its trigger, and sits in the no-preference query, so reduced motion
+   stays still. Some triggers use :has(); a browser without it skips those rules and shows everything at rest. */
 
 /* Ten dots under each figure, filled ones first: about 5 in 10, 2 in 10 and 1 in 10. Deep green rings
    and fills (5.0:1 on pale mint, 5.6:1 on white). */
@@ -12,7 +13,6 @@
 }
 
 .dot {
-  --i: 0;
   --ring: 2px;
   position: relative;
   display: block;
@@ -21,11 +21,6 @@
   border: var(--ring) solid var(--green-700);
   border-radius: var(--radius-full);
 }
-
-.dot:nth-child(2) { --i: 1; }
-.dot:nth-child(3) { --i: 2; }
-.dot:nth-child(4) { --i: 3; }
-.dot:nth-child(5) { --i: 4; }
 
 /* The fill covers the ring too, so a filled dot is one solid disc with no seam. */
 .dot-on::before {
@@ -36,92 +31,84 @@
   background: var(--green-700);
 }
 
-/* The large card first, then the two smaller ones 100 ms apart. */
-.stat-card {
-  --card-delay: 0ms;
+/* The line under the figures that hands over to the receipt. */
+.peers-next {
+  width: min(100% - 2 * var(--gutter), var(--page-max));
+  margin: 24px auto 0;
+  font-size: 1.0625rem;
+  text-align: center;
 }
 
-.stat-card:nth-child(2) {
-  --card-delay: 100ms;
-}
-
-.stat-card:nth-child(3) {
-  --card-delay: 200ms;
-}
-
-/* The receipt lines print in reading order: title, dates, four amounts, jars, streak, Liito. */
-.receipt > * { --line: 0; }
-.receipt > :nth-child(2) { --line: 1; }
-.receipt > :nth-child(3) { --line: 2; }
-.receipt > :nth-child(4) { --line: 3; }
-.receipt > :nth-child(5) { --line: 4; }
-.receipt > :nth-child(6) { --line: 5; }
-.receipt > :nth-child(7) { --line: 6; }
-.receipt > :nth-child(8) { --line: 7; }
-.receipt > :nth-child(9) { --line: 8; }
+.peers-next strong { font-weight: 700; }
 
 @media (min-width: 600px) {
-  .stat-large .stat-dots {
-    gap: 8px;
-  }
-
-  .stat-large .dot {
-    width: 18px;
-    height: 18px;
-  }
+  .stat-large .stat-dots { gap: 8px; }
+  .stat-large .dot { width: 18px; height: 18px; }
 }
 
-/* From 1024 px the large card is tall: its dots move to the top as a picture, two rows of five
-   (the filled row on top), and the figure, sentence and source stay at the bottom. */
+/* From 1024 px the large card's dots are two rows of five, the filled row on top. */
 @media (min-width: 1024px) {
-  .stat-large .stat-dots {
-    order: -1;
-    gap: 12px;
-    max-width: 210px;
-    margin-bottom: auto;
-  }
-
-  .stat-large .dot {
-    --ring: 3px;
-    width: 30px;
-    height: 30px;
-  }
+  .stat-large .stat-dots { gap: 10px; max-width: 170px; }
+  .stat-large .dot { --ring: 3px; width: 26px; height: 26px; }
+  .peers-next { margin-top: 40px; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  /* Section 5: each card fades in and rises 12 px in 320 ms. Its figure counts up in 700 ms as it arrives
-     (page.js, data-count-ms), then its filled dots pop in from the left, 70 ms apart. */
-  .js .stat-card.reveal.is-waiting {
-    transform: translateY(12px);
-  }
+  /* Section 5. Each figure paragraph is the scroll trigger of its card, and its number (page.js) starts
+     at the same scroll position. The cards take turns: the large card arrives in 350 ms and counts to 48%
+     in 700 ms; the 21% card follows at 750 ms and the 11% card at 1100 ms, each arriving in 300 ms and
+     counting in 350 ms (data-count-delay in index.html holds the same delays). */
+  .stat-card { --turn: 0ms; --arrive: 350ms; }
+  .stat-card:nth-child(2) { --turn: 750ms; --arrive: 300ms; }
+  .stat-card:nth-child(3) { --turn: 1100ms; --arrive: 300ms; }
 
-  .js .stat-card.reveal.is-in {
-    transition: none;
-    animation: stat-arrive 320ms cubic-bezier(0.22, 1, 0.36, 1) var(--card-delay) backwards;
-  }
+  /* A filled dot pops in as its counter passes 5, 15, 25, 35 or 45%, so the dots always show the counted
+     value in tens. The count eases out, so the pops slow down with it. */
+  .dot-on { --pop: 25ms; }
+  .stat-large .dot-on:nth-child(2) { --pop: 82ms; }
+  .stat-large .dot-on:nth-child(3) { --pop: 152ms; }
+  .stat-large .dot-on:nth-child(4) { --pop: 247ms; }
+  .stat-large .dot-on:nth-child(5) { --pop: 422ms; }
+  .stat-card:nth-child(2) .dot-on { --pop: 30ms; }
+  .stat-card:nth-child(2) .dot-on:nth-child(2) { --pop: 120ms; }
+  .stat-card:nth-child(3) .dot-on { --pop: 64ms; }
 
-  .js .stat-card.reveal.is-waiting .dot-on::before {
-    transform: scale(0);
-  }
-
-  .js .stat-card.reveal.is-in .dot-on::before {
-    animation: dot-pop 300ms var(--ease-spring) backwards;
-    animation-delay: calc(var(--card-delay) + 260ms + var(--i) * 70ms);
-  }
-
-  /* Section 6: the two figures are only triggers. They do not fade themselves; what is inside moves. */
+  /* The figure paragraphs and the jar amounts are only triggers: they do not fade themselves. */
+  .js .stat-figure.reveal.is-waiting,
   .js .receipt-figure.reveal.is-waiting,
-  .js .shelf-figure.reveal.is-waiting {
+  .js .slot-sum.reveal.is-waiting {
     opacity: 1;
     transform: none;
   }
 
+  .js .stat-figure.reveal.is-in,
   .js .receipt-figure.reveal.is-in,
-  .js .shelf-figure.reveal.is-in {
+  .js .slot-sum.reveal.is-in {
     transition: none;
   }
 
-  /* The receipt prints once from its top edge down in 900 ms, the zigzag edge leading the paper. */
+  .js .stat-card:has(> .stat-figure.is-waiting) {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  .js .stat-card:has(> .stat-figure.is-in) {
+    animation: stat-arrive var(--arrive) cubic-bezier(0.22, 1, 0.36, 1) var(--turn) backwards;
+  }
+
+  .js .stat-card:has(> .stat-figure.is-waiting) .dot-on::before {
+    transform: scale(0);
+  }
+
+  .js .stat-card:has(> .stat-figure.is-in) .dot-on::before {
+    animation: dot-pop 260ms var(--ease-spring) calc(var(--turn) + var(--pop)) backwards;
+  }
+
+  /* Section 6 as one demonstration. The row of jar amounts is the trigger, so when it starts the receipt
+     and the shelf are both on screen. The receipt prints in 650 ms, its lines follow 70 ms apart and each
+     dashed rule draws in 200 ms. Once Into jars is printed, its row lights up for 250 ms and fades over
+     150 ms; then the jars fill while their amounts count, in 650 ms (data-count-delay holds the same
+     1210 ms). On phones the shelf is below the receipt, so the receipt prints when it comes into view. */
   .receipt {
     --receipt-closed: polygon(
       0 0, 100% 0, 100% -12px,
@@ -133,57 +120,94 @@
     );
   }
 
+  .receipt > * { --line: 0; }
+  .receipt > :nth-child(2) { --line: 1; }
+  .receipt > :nth-child(3) { --line: 2; }
+  .receipt > :nth-child(4) { --line: 3; }
+  .receipt > :nth-child(5) { --line: 4; }
+  .receipt > :nth-child(6) { --line: 5; }
+  .receipt > :nth-child(7) { --line: 6; }
+  .receipt > :nth-child(8) { --line: 7; }
+  .receipt > :nth-child(9) { --line: 8; }
+  .receipt > :nth-child(10) { --line: 9; }
+  .receipt > :nth-child(11) { --line: 10; }
+
+  /* Side by side (from 600 px) the printed receipt waits, paused, until the jar amounts come into view. */
+  @media (min-width: 600px) {
+    .js .week-grid:has(.slot-sum.is-waiting) .receipt { --run: paused; }
+  }
+
   .js .receipt-figure.is-waiting .receipt {
     clip-path: var(--receipt-closed);
   }
 
   .js .receipt-figure.is-in .receipt {
-    animation: receipt-print 900ms cubic-bezier(0.3, 0.1, 0.3, 1) 100ms backwards;
+    animation: receipt-print 650ms var(--ease-out) backwards;
   }
 
-  /* Its lines follow in reading order, 60 ms apart; each dashed rule draws from left to right,
-     and the concert line gets its highlight. */
   .js .receipt-figure.is-waiting .receipt > * {
     opacity: 0;
   }
 
   .js .receipt-figure.is-in .receipt > * {
-    animation: receipt-line 280ms var(--ease-out) backwards;
-    animation-delay: calc(200ms + var(--line) * 60ms);
+    animation: receipt-line 220ms var(--ease-out) calc(40ms + var(--line) * 70ms) backwards;
   }
 
   .js .receipt-figure.is-in .receipt-dates::after,
   .js .receipt-figure.is-in .receipt-rule::before,
   .js .receipt-figure.is-in .receipt-liito::before {
-    animation: rule-draw 350ms var(--ease-out) backwards;
-    animation-delay: calc(300ms + var(--line) * 60ms);
+    animation: rule-draw 200ms var(--ease-out) calc(80ms + var(--line) * 70ms) backwards;
   }
 
-  .js .receipt-figure.is-in .receipt-concert::before {
-    animation: mark-sweep 380ms var(--ease-out) backwards;
-    animation-delay: calc(360ms + var(--line) * 60ms);
+  .js .receipt-figure.is-in .receipt-mark::before {
+    animation: mark-sweep 220ms var(--ease-out) calc(100ms + var(--line) * 70ms) backwards;
   }
 
-  /* The jars fill to their levels once with a slight overshoot, 250 and 370 ms after the shelf shows.
-     While the shelf waits below the view its fills stay down, also against the section 4 jar rule. */
-  .js .shelf-figure.is-waiting .jar-fill {
+  /* Into jars (line 7, printed by 750 ms): a mint band sweeps across the row, holds and fades. It exists
+     only for this animation and ends invisible. */
+  .js .receipt-figure.is-in .receipt-jars::after {
+    content: "";
+    position: absolute;
+    inset: 10px -6px 0;
+    z-index: -1;
+    border-radius: var(--radius-xs);
+    background: var(--green-200);
+    opacity: 0;
+    transform-origin: left center;
+    animation: row-flash 450ms linear 760ms backwards;
+  }
+
+  .js .receipt-figure.is-in .receipt,
+  .js .receipt-figure.is-in .receipt > *,
+  .js .receipt-figure.is-in .receipt > *::before,
+  .js .receipt-figure.is-in .receipt > *::after {
+    animation-play-state: var(--run, running);
+  }
+
+  /* The jars stay empty and their amounts wait, then both run together for 650 ms with the same ease-out
+     curve as the count. The section 4 jar rule in week.css is overridden here. */
+  .js .shelf-slot:has(.slot-sum.is-waiting) .jar-fill {
     animation: none;
     transform: translateY(100%);
   }
 
-  .js .shelf-figure.is-in .jar-fill {
-    animation: shelf-fill 650ms var(--ease-spring) 250ms backwards;
+  .js .shelf-slot:has(.slot-sum.is-in) .jar-fill {
+    animation: shelf-fill 650ms cubic-bezier(0.33, 1, 0.68, 1) 1210ms backwards;
   }
 
-  .js .shelf-figure.is-in .shelf-slot:nth-child(2) .jar-fill {
-    animation-delay: 370ms;
+  .js .slot-sum.reveal.is-waiting .js-count {
+    opacity: 0;
+  }
+
+  .js .slot-sum.reveal.is-in .js-count {
+    animation: amount-in 100ms linear 1210ms backwards;
   }
 }
 
 @keyframes stat-arrive {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(16px);
   }
 }
 
@@ -222,9 +246,36 @@
   }
 }
 
+/* 450 ms: sweep in 50 ms, hold 250 ms, fade 150 ms. */
+@keyframes row-flash {
+  0% {
+    opacity: 1;
+    transform: scaleX(0);
+  }
+
+  11% {
+    transform: scaleX(1);
+  }
+
+  67% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scaleX(1);
+  }
+}
+
 @keyframes shelf-fill {
   from {
     transform: translateY(100%);
+  }
+}
+
+@keyframes amount-in {
+  from {
+    opacity: 0;
   }
 }
 
@@ -236,7 +287,8 @@
   .receipt > *,
   .receipt > *::before,
   .receipt > *::after,
-  .jar-fill {
+  .jar-fill,
+  .slot-sum .js-count {
     animation: none !important;
   }
 }
