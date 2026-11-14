@@ -1,6 +1,6 @@
 // Browser side of the agent. No React here, so any UI can use it.
 // It does three things: reads the event stream, records the microphone, and plays speech in order.
-import type { ActionList, AgentAction, BillType, ChatTurn, CustomerMemory, MemoryKind, ResearchResult, SisuEvent } from "@/lib/types";
+import type { ActionList, AgentAction, BillPhotoResult, BillType, ChatTurn, CustomerMemory, MemoryKind, ResearchResult, SisuEvent } from "@/lib/types";
 
 export type TurnInput = {
   customerId: string;
@@ -98,6 +98,19 @@ export const confirmBill = (customerId: string, billId: string, name: string, bi
   postJson<CustomerMemory>("/api/memory", { customerId, kind: "bill_name" satisfies MemoryKind, key: billId, value: name, billType });
 export const setMemoryConsent = (customerId: string, consent: boolean) => postJson<CustomerMemory>("/api/memory", { customerId, consent });
 export const forgetMemory = (customerId: string, itemId?: string) => postJson<CustomerMemory>(`/api/memory?customerId=${customerId}${itemId ? `&itemId=${itemId}` : ""}`, {}, "DELETE");
+
+// A photo of the customer's own bill in, the figures printed on it out. Nothing is saved: show `toConfirm`,
+// and when the user agrees call rememberKwh with the figure.
+export async function readBillPhoto(customerId: string, photo: Blob): Promise<BillPhotoResult> {
+  const form = new FormData();
+  form.set("image", photo, "bill");
+  form.set("customerId", customerId);
+  const response = await fetch("/api/agent/bill-photo", { method: "POST", body: form });
+  const parsed = (await response.json().catch(() => null)) as (BillPhotoResult & { error?: string }) | null;
+  if (!response.ok || !parsed) throw new Error(parsed?.error ?? "Sisu could not read that photo.");
+  return parsed;
+}
+export const rememberKwh = (customerId: string, yearlyKwh: number) => postJson<CustomerMemory>("/api/memory", { customerId, kind: "yearly_kwh" satisfies MemoryKind, value: String(yearlyKwh) });
 
 export type VoiceChoice = { model?: string; voiceId?: string };
 

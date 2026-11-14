@@ -468,3 +468,29 @@ export type HealthReport = {
   store: { persistent: boolean; path: string | null };
   checkedAt: string;
 };
+
+// --- Reading a photographed bill with the model's vision (added 14 Nov) ---
+// What Nemotron read from a photo of the customer's own bill. Nothing is saved until the user confirms it
+// (POST /api/memory with kind "yearly_kwh"). Every field can be null: the model is told to leave out what it cannot see.
+export type BillReading = {
+  billType: BillType | null;
+  provider: string | null;
+  plan: string | null;
+  contractType: string | null; // e.g. fixed, spot
+  contractEndsOn: string | null; // YYYY-MM-DD
+  yearlyKwh: number | null;
+  energyPriceCentsPerKwh: number | null;
+  monthlyFeeEur: number | null;
+  billTotalEur: number | null;
+  mock: boolean;
+  readBy: { provider: string; model: string; tookMs: number };
+  problems: string[]; // fields that were dropped because they were implausible or looked like instructions
+};
+
+export type BillPhotoResult = {
+  customerId: string;
+  reading: BillReading;
+  facts: Fact[]; // the figures read, as receipts with source "customer-stated"
+  comparison: ResearchResult | null; // today's offers compared using the bill's real kWh, if research is ready
+  toConfirm: string; // the sentence to show the user before saving anything
+};
