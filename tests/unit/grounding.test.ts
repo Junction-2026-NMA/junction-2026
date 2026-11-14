@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { AINO } from "./helpers";
-import { checkGrounding, correctNames, correctNumbers, matches, numbersIn, overviewFacts } from "@/lib/agent/grounding";
+import { checkGrounding, correctNames, correctNumbers, matches, numbersIn, overviewFacts, spelledToDigits } from "@/lib/agent/grounding";
 import { fact } from "@/lib/finance/facts";
 import { buildOverview } from "@/lib/finance/overview";
 
@@ -129,6 +129,26 @@ describe("number verifier", () => {
     const bill = [fact("bill", "Bill", 139.47, "EUR/month", "test")];
     assert.equal(checkGrounding("Maksat 139,47 euroa kuussa.", bill, [], []).ok, true);
     assert.deepEqual(checkGrounding("You use 2025 kWh, which costs 2027 a month.", bill, [], []).unverified, [2025, 2027]);
+  });
+
+  // Regression: soak run. A voice answer said "about sixteen months" and "twenty seven thousand one hundred sixty
+  // two euros": its own arithmetic, spelled out, which the digit-only check never saw.
+  it("checks numbers written as words as strictly as numbers written as digits", () => {
+    assert.equal(spelledToDigits("twenty seven thousand one hundred sixty two euros in about sixteen months"), "27162 euros in about 16 months");
+    assert.equal(spelledToDigits("a hundred and forty euros, or one thousand four hundred seventy-one"), "a 140 euros, or 1471");
+    assert.equal(spelledToDigits("the one best thing, in two or three steps"), "the one best thing, in two or three steps"); // small counts stay words
+    const receipts = [fact("bal", "Balance", 27161.81, "EUR", "test")];
+    const spoken = checkGrounding("With twenty seven thousand one hundred sixty two euros you would get there in about sixteen months.", receipts, [], []);
+    assert.deepEqual(spoken.unverified, [16]);
+    assert.equal(checkGrounding("You have twenty seven thousand one hundred sixty two euros.", receipts, [], []).ok, true);
+    assert.equal(checkGrounding("Saving fifty euros a month.", receipts, [], ["What if I save fifty euros a month?"]).ok, true); // the customer said it
+  });
+
+  // Regression: soak run. "on September 16" and "September 23" were reported as unsourced numbers.
+  it("does not mistake the day in a written date for an amount", () => {
+    assert.deepEqual(numbersIn("The largest was 147.31 euros on September 16, then 86.24 on 5 September and 43.17 on the 23rd."), [147.31, 86.24, 43.17]);
+    assert.deepEqual(numbersIn("Palkka tulee 15. lokakuuta ja lasku 3 kesäkuuta."), []);
+    assert.deepEqual(numbersIn("In May 40 euros went on taxis."), [40]); // an amount after a month name is still an amount
   });
 
   it("treats small counts as trivial, not as financial claims", () => {

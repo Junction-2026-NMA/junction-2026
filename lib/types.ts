@@ -494,3 +494,26 @@ export type BillPhotoResult = {
   comparison: ResearchResult | null; // today's offers compared using the bill's real kWh, if research is ready
   toConfirm: string; // the sentence to show the user before saving anything
 };
+
+// --- Mortgage application (added 14 Nov). From the S-Pankki mortgage files; only some customers have one. ---
+export type MortgageApplication = {
+  customerId: string;
+  decision: string; // "approved" or "rejected"
+  startedOn: string; // YYYY-MM-DD
+  decidedOn: string | null;
+  propertyType: string | null;
+  propertyPriceEur: number;
+  loanEur: number;
+  ownMoneyEur: number; // the part the customer pays themselves
+  collateralValueEur: number;
+  loanToValuePct: number;
+  requiredMonthlyIncomeEur: number;
+  monthlyIncomeEur: number; // the customer's own 12-month average, from the bank data
+  incomeMarginEur: number; // income minus what the application required
+  balanceEur: number;
+  ownMoneyStillNeededEur: number; // own money in the application minus the balance in this account, never below zero
+  fees: { type: string; amountEur: number; on: string }[];
+  timeline: { on: string; event: string }[];
+  steps: CalcStep[];
+  assumptions: string[];
+};

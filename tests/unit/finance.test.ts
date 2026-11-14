@@ -6,6 +6,7 @@ import { basketOf } from "@/lib/finance/baskets";
 import { buildCashFlow, nextDayOfMonth } from "@/lib/finance/cashflow";
 import { transactionsFor } from "@/lib/finance/data";
 import { buildOverview } from "@/lib/finance/overview";
+import { mortgageFor, parseStamp } from "@/lib/finance/mortgage";
 import { findPatterns } from "@/lib/finance/patterns";
 import { cleanInput, runScenario } from "@/lib/finance/scenario";
 import { CONCEPTS, teachingCard } from "@/lib/finance/teaching";
@@ -147,6 +148,32 @@ describe("finance engine: scenarios and affordability", () => {
     assert.equal(nextDayOfMonth("2026-09-30", 30), "2026-10-30");
     assert.equal(nextDayOfMonth("2026-01-31", 31), "2026-02-28");
     assert.equal(nextDayOfMonth("2026-09-10", 15), "2026-09-15");
+  });
+});
+
+describe("finance engine: the mortgage application", () => {
+  it("reads the bank's date stamps", () => {
+    assert.equal(parseStamp("01JUN26:21:52:39"), "2026-06-01");
+    assert.equal(parseStamp("12MAY26:00:00:00"), "2026-05-12");
+  });
+
+  it("only the customer who applied has one", () => {
+    assert.equal(mortgageFor(overviewOf(AINO)), null);
+    assert.equal(mortgageFor(overviewOf(EETU)), null);
+    assert.ok(mortgageFor(overviewOf(SANNA)));
+  });
+
+  it("copies the application and sets it beside the customer's own figures", () => {
+    const o = overviewOf(SANNA);
+    const m = mortgageFor(o)!;
+    assert.deepEqual([m.decision, m.propertyPriceEur, m.loanEur, m.ownMoneyEur, m.decidedOn, m.startedOn], ["approved", 178000, 144500, 33500, "2026-06-01", "2026-05-12"]);
+    assert.equal(m.propertyPriceEur - m.loanEur, m.ownMoneyEur);
+    close(m.loanToValuePct, (m.loanEur / m.propertyPriceEur) * 100, 0.01);
+    close(m.incomeMarginEur, o.monthlyIncome - m.requiredMonthlyIncomeEur, 0.01);
+    close(m.ownMoneyStillNeededEur, Math.max(m.ownMoneyEur - o.balance, 0), 0.01);
+    assert.deepEqual(m.fees.map((fee) => fee.amountEur), [300, 480]);
+    assert.equal(m.timeline.length, 15);
+    assert.ok(!JSON.stringify(m.steps).includes(SANNA));
   });
 });
 

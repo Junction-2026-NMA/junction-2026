@@ -38,10 +38,16 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
   tool("check_affordability", "Can the customer absorb a one-off or unexpected cost now?", { amountEur: { type: "number" }, what: { type: "string" } }, ["amountEur"]),
   tool(
     "run_scenario",
-    "Projects three futures (change nothing, keep the cash, invest it). For what-if questions and what a saving adds up to.",
-    { billSavingPerMonth: { type: "number", description: "euros, 0 if none" }, everydayCutPct: { type: "number", description: "0 to 50" }, years: { type: "number", description: "1 to 10" } },
+    "Projects three futures (change nothing, keep the cash, invest it). For what-if questions, what a saving adds up to, and how long until a target balance.",
+    {
+      billSavingPerMonth: { type: "number", description: "euros, 0 if none" },
+      everydayCutPct: { type: "number", description: "0 to 50" },
+      years: { type: "number", description: "1 to 10" },
+      targetEur: { type: "number", description: "optional: a balance the customer wants to reach" },
+    },
     ["billSavingPerMonth", "everydayCutPct", "years"],
   ),
+  tool("get_mortgage", "The customer's mortgage application on record, beside their income and balance. For questions about buying a home or their mortgage.", {}),
   tool(
     "search_offers",
     "Live search for current Finnish offers for one bill, with the saving computed against the customer's real bill.",
@@ -49,7 +55,7 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
     ["billType"],
   ),
   tool("web_search", "Live web search for outside facts (rules, benefits, rates). No personal figures in the query.", { query: { type: "string" } }, ["query"]),
-  tool("explain_concept", "A short lesson from the customer's own numbers, ending in one question to ask them.", { concept: { type: "string", enum: CONCEPTS } }, ["concept"]),
+  tool("explain_concept", "A short lesson from the customer's own numbers, ending in one question to ask them. Only for the ideas in the list. Explain any other idea yourself, in plain words, with no tool.", { concept: { type: "string", enum: CONCEPTS } }, ["concept"]),
   tool(
     "prepare_action",
     "Prepares an action for the customer to approve on screen; never carries it out. switch_contract needs search_offers first.",

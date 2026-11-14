@@ -10,8 +10,45 @@ const TRIVIAL_MAX = 12; // small counts ("three offers", "12 months") are not fi
 // Numbers as people write them, in English and Finnish: 1,932.43 · 1 932,43 · 139,47 · 40. Digits glued to
 // letters (an ID such as CUST04414) are a name, not a number.
 const NUMBER = /(?<![A-Za-z\d.,])(?:\d{1,3}(?:[  ]\d{3})+(?:[.,]\d{1,2})?|\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+[.,]\d{1,2}|\d+)(?![\d])/g;
-// Dates and clock times are not amounts: 2026-09-30, 21:16, and the Finnish 30.9.2026 or 15.10.
-const DATES = /\b\d{4}-\d{2}(?:-\d{2})?\b|\b\d{1,2}:\d{2}\b|\b\d{1,2}\.\d{1,2}\.(?:\d{4}|\d{2})?(?!\d)/g;
+// Dates and clock times are not amounts: 2026-09-30, 21:16, the Finnish 30.9.2026 or 15.10., "September 16",
+// "16 September", "the 15th".
+const MONTH = "(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?|(?:tammi|helmi|maalis|huhti|touko|kesä|heinä|elo|syys|loka|marras|joulu)kuu(?:ta|ssa|n)?)";
+const DATES = new RegExp(
+  [
+    "\\b\\d{4}-\\d{2}(?:-\\d{2})?\\b",
+    "\\b\\d{1,2}:\\d{2}\\b",
+    "\\b\\d{1,2}\\.\\d{1,2}\\.(?:\\d{4}|\\d{2})?(?!\\d)",
+    `\\b${MONTH}\\s+\\d{1,2}(?:st|nd|rd|th)?\\b(?!\\s?(?:€|eur|euro))`,
+    `\\b\\d{1,2}(?:st|nd|rd|th)?\\.?\\s+(?:of\\s+)?${MONTH}\\b`,
+    "\\b\\d{1,2}(?:st|nd|rd|th)\\b",
+  ].join("|"),
+  "gi",
+);
+
+// Numbers written as words ("twenty seven thousand one hundred sixty two") are turned into digits before
+// checking, so spelling a figure out is not a way past the check. Small counts (up to twelve) are left as words.
+const UNITS: Record<string, number> = { zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19 };
+const TENS: Record<string, number> = { twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 };
+const NUMBER_WORD = `(?:${[...Object.keys(UNITS), ...Object.keys(TENS), "hundred", "thousand", "million"].join("|")})`;
+const SPELLED = new RegExp(`\\b${NUMBER_WORD}(?:(?:[\\s-]+and)?[\\s-]+${NUMBER_WORD})*\\b`, "gi");
+
+export function spelledToDigits(text: string): string {
+  return text.replace(SPELLED, (phrase) => {
+    let total = 0;
+    let current = 0;
+    for (const word of phrase.toLowerCase().split(/[\s-]+/)) {
+      if (word in UNITS) current += UNITS[word];
+      else if (word in TENS) current += TENS[word];
+      else if (word === "hundred") current = (current || 1) * 100;
+      else if (word === "thousand" || word === "million") {
+        total += (current || 1) * (word === "thousand" ? 1_000 : 1_000_000);
+        current = 0;
+      }
+    }
+    const value = total + current;
+    return value > TRIVIAL_MAX ? String(value) : phrase;
+  });
+}
 // A figure this close to a receipt is the same figure with a slipped digit, not a different claim.
 const SLIP_ABSOLUTE = 0.05;
 const SLIP_RELATIVE = 0.001;
@@ -117,7 +154,7 @@ function classify({ value, isYear, hint }: Pick<Found, "value" | "isYear" | "hin
   return { value, status: "unverified", factId: null };
 }
 
-const contextNumbersOf = (sources: Sources): number[] => [...sources.contextTexts, ...sources.userTexts].flatMap(numbersIn);
+const contextNumbersOf = (sources: Sources): number[] => [...sources.contextTexts, ...sources.userTexts].flatMap((text) => numbersIn(spelledToDigits(text)));
 
 // Fixes slipped digits. A number with no source that sits within a hair of a receipt (1,059.49 for 1,059.47) is
 // replaced by the receipt's value, written the way the model wrote it. Anything further away is left for the report.
@@ -181,7 +218,7 @@ export function correctNames(text: string, names: string[]): { text: string; cor
 export function checkGrounding(answer: string, facts: Fact[], contextTexts: string[], userTexts: string[], corrections: NumberCorrection[] = []): Grounding {
   const sources = { facts, contextTexts, userTexts };
   const contextNumbers = contextNumbersOf(sources);
-  const numbers = findNumbers(answer).map((found) => classify(found, sources, contextNumbers));
+  const numbers = findNumbers(spelledToDigits(answer)).map((found) => classify(found, sources, contextNumbers));
   const unverified = numbers.filter((n) => n.status === "unverified").map((n) => n.value);
   return { ok: unverified.length === 0, checked: numbers.length, unverified, numbers, corrections };
 }
@@ -209,6 +246,9 @@ export function overviewFacts(o: Overview): Fact[] {
     fact("overview:mandatory", "Must-pay costs per month", o.monthlyMandatory, "EUR/month", basis, { evidence: window }),
     fact("overview:everyday", "Everyday spending per month", o.monthlyEveryday, "EUR/month", basis, { evidence: { ...window, basket: "everyday" } }),
     fact("overview:runway", "Months of must-pay costs covered", o.runwayMonths, "months", "balance divided by must-pay costs", { source: "calculation" }),
+    fact("overview:runway-all", "Months of all spending covered", o.monthlySpending > 0 ? Math.max(o.balance, 0) / o.monthlySpending : 0, "months", "balance divided by average monthly spending", { source: "calculation" }),
+    fact("overview:buffer-3", "A three-month buffer", o.monthlyMandatory * 3, "EUR", "three times monthly must-pay costs", { source: "calculation" }),
+    fact("overview:buffer-6", "A six-month buffer", o.monthlyMandatory * 6, "EUR", "six times monthly must-pay costs", { source: "calculation" }),
     fact("overview:safe-week", "Safe to spend per week", o.safeToSpend.perWeek, "EUR", "safe to spend per month divided by weeks in a month", { source: "calculation" }),
     fact("overview:safe-month", "Safe to spend per month", o.safeToSpend.perMonth, "EUR/month", "income minus must-pays, now-and-then costs and savings", { source: "calculation" }),
     fact("overview:safe-gap", "Gap between safe to spend and actual everyday spending", o.safeToSpend.gapPerMonth, "EUR/month", "safe to spend minus actual", { source: "calculation" }),

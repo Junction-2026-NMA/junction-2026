@@ -1,0 +1,297 @@
+{
+  "at": "2026-11-14T02:28:30.142Z",
+  "results": [
+    {
+      "who": "aino",
+      "mode": "voice",
+      "text": "How much money do I have?",
+      "answer": "You have 1,220 euros in your account.",
+      "tools": [],
+      "totalMs": 444,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "voice",
+      "text": "What's my biggest expense?",
+      "answer": "Your biggest expense is housing, at 662 euros a month on average.",
+      "tools": [],
+      "totalMs": 438,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "voice",
+      "text": "Am I saving enough?",
+      "answer": "You are not saving anything on average. Your income and spending are almost equal, leaving about minus twelve euros a month, and your balance went below zero in six of the last twelve months.",
+      "tools": [
+        "find_patterns"
+      ],
+      "totalMs": 1199,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "eetu",
+      "mode": "voice",
+      "text": "How do I compare to other people my age?",
+      "answer": "You spend 495 euros a month more on entertainment than other people your age, which adds up to about 5,944 euros a year. Your bills also total 2,260 euros a year.",
+      "tools": [
+        "find_patterns"
+      ],
+      "totalMs": 1286,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "voice",
+      "text": "Why did my balance go negative?",
+      "answer": "Your spending runs ahead of your income, especially in the weeks after payday, and your bills arrive before your next payday. That left your balance below zero in six of the last twelve months.",
+      "tools": [
+        "get_cash_flow"
+      ],
+      "totalMs": 1200,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "voice",
+      "text": "What can I cut back on?",
+      "answer": "Your biggest saving is restaurants, where you spend 277 euros a month, 64 euros above people your age. Entertainment is also up 65 percent on a year ago.",
+      "tools": [
+        "find_patterns"
+      ],
+      "totalMs": 1214,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "sanna",
+      "mode": "voice",
+      "text": "How long until I have fifty thousand euros?",
+      "answer": "Based on your income and spending averages, you would reach fifty thousand euros in sixteen months.",
+      "tools": [
+        "run_scenario"
+      ],
+      "totalMs": 1560,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "eetu",
+      "mode": "voice",
+      "text": "Is my electricity bill normal?",
+      "answer": "Your electricity bill averages 79 euros a month, which is 947 euros a year. It has risen by about 10 percent over the past year, and the amount moves between 56 and 115 euros, so it looks usage-based. I can't tell you if that's normal for your home without comparing it to an offer. Would you like me to search for a cheaper electricity deal?",
+      "tools": [
+        "list_bills"
+      ],
+      "totalMs": 1722,
+      "flags": [
+        "LONG 4 sentences"
+      ],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "voice",
+      "text": "When do I get paid?",
+      "answer": "Your next payday is 15 October 2026, which is 15 days away.",
+      "tools": [],
+      "totalMs": 513,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "voice",
+      "text": "How much do I spend on food per day?",
+      "answer": "You spend about 10 euros a day on groceries, based on the last twelve months.",
+      "tools": [
+        "get_spending"
+      ],
+      "totalMs": 1535,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "sanna",
+      "mode": "text",
+      "text": "What should I do with all the cash sitting in my account?",
+      "answer": "Your balance covers 25.11 months of must-pay costs, and about 20672.45 euros sits above a six-month buffer in an account that earns no interest. A common rule of thumb is a three to six month buffer, so you have room to decide what to do with the rest. I can show what different choices would look like over time, such as keeping the cash or moving it elsewhere. Would you like me to run a scenario?",
+      "tools": [
+        "find_patterns"
+      ],
+      "totalMs": 1897,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "text",
+      "text": "Should I get a credit card?",
+      "answer": "A credit card can help build your credit history and give you flexibility, but it also means borrowing money you must pay back, often with interest if you carry a balance. Your spending already runs slightly above your income on average, so adding a card could make it easier to overspend. I can't see your credit score or any loans, so I can't tell you if you'd qualify. Would you like me to explain how credit cards work, or look at your cash flow first?",
+      "tools": [],
+      "totalMs": 1292,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "text",
+      "text": "Can you cancel my Netflix subscription?",
+      "answer": "I can't cancel subscriptions for you. I don't see Netflix in your recurring bills, and your bank data doesn't show merchant or payee names. You'll need to cancel it through Netflix or your app store.",
+      "tools": [],
+      "totalMs": 778,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "eetu",
+      "mode": "text",
+      "text": "What happens if I lose my job?",
+      "answer": "I can't see your job or income details, but your balance is 4183.34 euros and your average monthly spending is 3145.61 euros. Your must-pay costs average 810.55 euros per month. That balance covers about 1.3 months of average spending. Would you like me to look at your bills or spending to see where you could cut back?",
+      "tools": [],
+      "totalMs": 1239,
+      "flags": [
+        "UNSOURCED 1.3"
+      ],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "text",
+      "text": "Help me budget for a 600 euro trip to Lapland in February.",
+      "answer": "A 600 euro trip would leave you with 620.35 euros now, but bills and everyday spending before your next payday on 2026-10-15 would drop your balance to minus 422.88 euros. It's not affordable right now without going below zero. You'd need to save up first or cut everyday spending. Would you like me to show how long it would take to reach 600 euros by saving a set amount each month?",
+      "tools": [
+        "check_affordability"
+      ],
+      "totalMs": 2306,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "text",
+      "text": "What is a good emergency fund for me?",
+      "answer": "A good emergency fund is usually three to six months of must-pay costs. Your must-pay basket averages 756.72 euros a month, so that would be about 2270 to 4540 euros. Your balance is 1220.35 euros, and your data covers 2025-10-01 to 2026-09-30. Would you like me to project how long it might take to reach a target?",
+      "tools": [],
+      "totalMs": 1391,
+      "flags": [
+        "UNSOURCED 2270,4540"
+      ],
+      "action": null
+    },
+    {
+      "who": "eetu",
+      "mode": "text",
+      "text": "Explain inflation to me like I'm twelve.",
+      "answer": "Inflation means prices for things like food, clothes and games go up over time, so the same amount of money buys less than it used to. If a snack cost one euro last year and costs one euro twenty today, your euro doesn't stretch as far. It happens when there's more money around or things cost more to make.",
+      "tools": [],
+      "totalMs": 990,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "voice",
+      "text": "Tell me a joke.",
+      "answer": "Why did the banker break up with the calculator? Too many issues.",
+      "tools": [],
+      "totalMs": 419,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "voice",
+      "text": "What's two plus two?",
+      "answer": "Four.",
+      "tools": [],
+      "totalMs": 290,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "sanna",
+      "mode": "text",
+      "text": "Am I ready to buy an apartment?",
+      "answer": "Your mortgage application is approved for an apartment priced at 178000 euros with a loan of 144500 euros. Your monthly income is 2658.07 euros, just 1.97 euros below the required 2660.04 euros. Your balance is 27161.81 euros, and the own-money part is 33500 euros, so 6338.19 euros would need to come from elsewhere. This is what the bank's record shows, not a recommendation to buy.",
+      "tools": [
+        "get_mortgage"
+      ],
+      "totalMs": 2031,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "text",
+      "text": "How much rent do I pay, and is that a lot?",
+      "answer": "Your rent or housing payment is 661.70 euros a month, based on your bank data. It is the largest part of your must-pay basket, which averages 756.72 euros a month over the last 12 months.",
+      "tools": [],
+      "totalMs": 840,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "eetu",
+      "mode": "text",
+      "text": "I spent a lot on entertainment. What exactly did I spend it on?",
+      "answer": "In September you spent 352.68 euros on entertainment across five purchases. The biggest was 147.31 euros for recreation on September 16, followed by 86.24 euros at an amusement park on September 5, and 43.17 euros for recreation on September 23. The rest went to tickets and events and cinema.",
+      "tools": [
+        "get_spending"
+      ],
+      "totalMs": 2183,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "text",
+      "text": "Mikä on suurin menoni?",
+      "answer": "Suurin menosi syyskuussa oli asuminen, 665,17 euroa. Seuraavaksi suurin oli ravintolat, 1259,05 euroa yhteensä. Suurin yksittäinen osto oli asumismaksu 665,17 euroa 6. syyskuuta.",
+      "tools": [
+        "get_spending"
+      ],
+      "totalMs": 2066,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "voice",
+      "text": "Transfer 200 euros to my friend Mikko right now.",
+      "answer": "I can't make transfers for you. You can send money to Mikko through your bank app, and if you'd like I can check whether 200 euros fits your budget first.",
+      "tools": [],
+      "totalMs": 660,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "eetu",
+      "mode": "text",
+      "text": "What's the cheapest way to heat my flat this winter?",
+      "answer": "I can't see your heating setup or fuel type from your bank data, so I don't know what you currently use to heat your flat. If you tell me whether you heat with electricity, district heating, or something else, I can look for cheaper electricity offers or point you toward the right comparison.",
+      "tools": [],
+      "totalMs": 900,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "text",
+      "text": "Give me three concrete things to do this month, with numbers.",
+      "answer": "1. Cut restaurants from your 276.52 euros a month to the 212.52 euros your age group averages, saving 64 euros a month or 768 euros a year.\n2. Trim entertainment from 157.79 euros a month toward last year's 95.61 euros, saving about 62 euros a month or 746 euros a year.\n3. Set aside 315.56 euros a month for now-and-then costs so the 806.42 euro lump does not push you below zero before the 15 October payday.",
+      "tools": [
+        "find_patterns"
+      ],
+      "totalMs": 2211,
+      "flags": [],
+      "action": null
+    }
+  ]
+}

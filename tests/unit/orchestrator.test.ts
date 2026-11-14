@@ -52,6 +52,46 @@ describe("orchestrator: one turn, driven by a scripted model", () => {
     assert.equal(result.transactions, result.split.reduce((total, group) => total + group.transactions, 0));
   });
 
+  // Regression: soak run. "How long until I have fifty thousand?" was answered with the model's own division.
+  it("a target balance is worked out in code, month by month", async () => {
+    const { script, seen } = scriptedModel([[call("run_scenario", { billSavingPerMonth: 0, everydayCutPct: 0, years: 5, targetEur: 3000 })], "Done."]);
+    setMockScript(script);
+    const events = await collect(runTurn(ask("How long until I have 3000 euros?", { customerId: EETU })));
+    const result = JSON.parse(String(seen.at(-1)!.messages.find((m) => m.role === "tool")!.content)) as { targetEur: number; timeToReachTarget: { future: string; months: number | string }[] };
+    assert.equal(result.targetEur, 3000);
+    assert.equal(result.timeToReachTarget.length, 3);
+    assert.equal(result.timeToReachTarget[0].months, 0); // Eetu already has more than 3,000
+    assert.ok(ofType(events, "tool_end")[0].trace.ok);
+  });
+
+  // Regression: soak run. "How much do I spend on food per day?" got "I cannot see any grocery spending".
+  it("spending comes with per-day and per-month averages, and an empty month names the usual figure", async () => {
+    const { script, seen } = scriptedModel([[call("get_spending", { from: "2025-10-01", to: "2026-09-30", category: "Groceries" }), call("get_spending", { from: "2026-09-01", to: "2026-09-30", category: "Groceries" })], "Done."]);
+    setMockScript(script);
+    await collect(runTurn(ask("How much do I spend on food per day?")));
+    const [year, month] = seen.at(-1)!.messages.filter((m) => m.role === "tool").map((m) => JSON.parse(String(m.content)) as { totalSpentEur: number; daysInPeriod: number; averagePerDayEur: number; averagePerMonthEur: number; note?: string });
+    assert.equal(year.daysInPeriod, 365);
+    assert.ok(Math.abs(year.averagePerDayEur - year.totalSpentEur / 365) < 0.01);
+    assert.ok(Math.abs(year.averagePerMonthEur - year.totalSpentEur / 12) < 0.5);
+    assert.equal(month.totalSpentEur, 0);
+    assert.match(month.note ?? "", /12-month average for Groceries is 288.9/);
+  });
+
+  it("the mortgage tool answers for the customer who applied and says so plainly for one who did not", async () => {
+    const { script, seen } = scriptedModel([[call("get_mortgage")], "Done."]);
+    setMockScript(script);
+    await collect(runTurn(ask("Am I ready to buy an apartment?", { customerId: "CUST02003" })));
+    const sanna = JSON.parse(String(seen.at(-1)!.messages.find((m) => m.role === "tool")!.content)) as { onRecord: boolean; decision: string; loanEur: number };
+    assert.deepEqual([sanna.onRecord, sanna.decision, sanna.loanEur], [true, "approved", 144500]);
+    assert.ok(String(seen[0].messages[0].content).includes('"mortgageApplicationOnRecord":true'));
+
+    const again = scriptedModel([[call("get_mortgage")], "Done."]);
+    setMockScript(again.script);
+    await collect(runTurn(ask("Tell me about my mortgage")));
+    assert.equal((JSON.parse(String(again.seen.at(-1)!.messages.find((m) => m.role === "tool")!.content)) as { onRecord: boolean }).onRecord, false);
+    assert.ok(!String(again.seen[0].messages[0].content).includes("mortgageApplicationOnRecord"));
+  });
+
   it("runs the tools of one step together and reports each in the trace", async () => {
     const { script } = scriptedModel([[call("get_cash_flow"), call("list_bills"), call("find_patterns")], "Here is the picture."]);
     setMockScript(script);

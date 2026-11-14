@@ -46,6 +46,7 @@ function firstTool(question: string): [string, Json] | null {
   if (offer) return ["search_offers", { billType: offer.billType }];
   if (/afford|unexpected|sent me a bill|bill for \d/.test(q) && firstNumber(q)) return ["check_affordability", { amountEur: firstNumber(q), what: "this cost" }];
   if (/remember|kwh/.test(q) && firstNumber(q)) return ["remember", { kind: "yearly_kwh", value: String(firstNumber(q)) }];
+  if (/mortgage|apartment|buy a (home|house|flat)/.test(q)) return ["get_mortgage", {}];
   if (/payday|run out|end of the month|short/.test(q)) return ["get_cash_flow", {}];
   if (/bills?\b|subscription|gone up/.test(q)) return ["list_bills", {}];
   if (/where (is|does) my money|what should i change|how (can|could) i save|unusual|stands? out/.test(q)) return ["find_patterns", {}];
@@ -76,6 +77,8 @@ function wordAnswer(results: { name: string; body: Json }[]): string {
   if (afford) parts.push(`That cost is ${String(afford.verdictMeans)}. Your balance straight after would be ${afford.balanceStraightAfterEur} euros.`);
   const cash = of("get_cash_flow");
   if (cash) parts.push(`Your next payday is expected on ${String(cash.nextPaydayExpected)}, and your balance just before it should be about ${cash.expectedBalanceJustBeforePaydayEur} euros.`);
+  const mortgage = of("get_mortgage");
+  if (mortgage) parts.push(mortgage.onRecord ? `Your mortgage application was ${String(mortgage.decision)}: a loan of ${mortgage.loanEur} euros on a home priced at ${mortgage.propertyPriceEur} euros.` : "There is no mortgage application on record for you.");
   const bills = of("list_bills");
   if (bills) parts.push(`Your recurring bills add up to ${bills.allBillsYearlyEur} euros a year.`);
   const spending = of("get_spending");

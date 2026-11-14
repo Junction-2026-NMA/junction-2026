@@ -1,7 +1,7 @@
 // The tools the model may call. Each runs our own code; the model only chooses and words the result.
 import type { ToolCall } from "../model";
 import { prepareAction, rememberTool } from "./act";
-import { checkAffordabilityTool, explainConcept, findPatternsTool, getCashFlow, getSpending, listBills, runScenarioTool } from "./finance";
+import { checkAffordabilityTool, explainConcept, findPatternsTool, getCashFlow, getMortgage, getSpending, listBills, runScenarioTool } from "./finance";
 import { type ToolContext, type ToolOutcome, failure, parseArgs } from "./types";
 import { searchOffers, webSearch } from "./web";
 
@@ -25,6 +25,8 @@ export async function executeTool(call: ToolCall, ctx: ToolContext): Promise<Too
       return checkAffordabilityTool(args, ctx);
     case "run_scenario":
       return runScenarioTool(args, ctx);
+    case "get_mortgage":
+      return getMortgage(ctx);
     case "search_offers":
       return searchOffers(args, ctx);
     case "web_search":
