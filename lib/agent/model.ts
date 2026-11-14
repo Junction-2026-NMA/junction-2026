@@ -1,4 +1,5 @@
 // Streaming chat client for any OpenAI-compatible endpoint (NVIDIA Build, a Verda vLLM server, Gemini).
+import { recordFailure, recordSuccess, shouldSkip } from "./breaker";
 import { type ModelEndpoint, getConfig, missingKey } from "./config";
 import { mockStream } from "./mock";
 
@@ -56,6 +57,12 @@ export async function* streamChat(options: StreamOptions): AsyncGenerator<ModelC
     return;
   }
 
+  // During an outage the first failed step opens the breaker; later steps skip the wait and go straight to the backup.
+  if (shouldSkip(config.model)) {
+    yield* withoutStarted(streamFrom(backup, options, options.signal, true));
+    return;
+  }
+
   const giveUp = new AbortController();
   const signal = options.signal ? AbortSignal.any([options.signal, giveUp.signal]) : giveUp.signal;
   const main = streamFrom(config.model, options, signal, false);
@@ -73,6 +80,7 @@ export async function* streamChat(options: StreamOptions): AsyncGenerator<ModelC
   } catch (error) {
     if (options.signal?.aborted) throw error;
     giveUp.abort();
+    recordFailure(config.model);
     console.error(`[agent] ${config.model.provider} model failed or stalled (${(error as Error).message}); switching to ${backup.provider}`);
     yield* withoutStarted(streamFrom(backup, options, options.signal, true));
     return;
@@ -80,6 +88,7 @@ export async function* streamChat(options: StreamOptions): AsyncGenerator<ModelC
     clearTimeout(timer);
   }
   if (first.done) return;
+  recordSuccess(config.model);
   // The main model has started. If its connection then breaks before it has said anything to the user
   // (for example while it was still writing a tool call), the backup can take the whole step over unnoticed.
   let saidSomething = false;
@@ -95,6 +104,7 @@ export async function* streamChat(options: StreamOptions): AsyncGenerator<ModelC
     }
   } catch (error) {
     if (options.signal?.aborted || saidSomething) throw error;
+    recordFailure(config.model);
     console.error(`[agent] ${config.model.provider} model broke off mid-step (${(error as Error).message}); switching to ${backup.provider}`);
     yield* withoutStarted(streamFrom(backup, options, options.signal, true));
   }

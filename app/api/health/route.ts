@@ -1,3 +1,4 @@
+import { breakerStatus } from "@/lib/agent/breaker";
 import { getConfig } from "@/lib/agent/config";
 import { storeInfo } from "@/lib/store/state";
 import type { HealthReport } from "@/lib/types";
@@ -35,7 +36,7 @@ export async function GET() {
     ok: config.isMock || reachable === true || config.fallbackModel !== null,
     mock: config.isMock,
     model: { provider: config.provider, name: served, host: host.startsWith("127.0.0.1") || host.startsWith("localhost") ? `${host} (private SSH tunnel to the GPU)` : host, region: REGION[config.provider] ?? null, reachable, latencyMs },
-    backup: config.fallbackModel ? { provider: config.fallbackModel.provider, name: config.fallbackModel.name } : null,
+    backup: config.fallbackModel ? { provider: config.fallbackModel.provider, name: config.fallbackModel.name, inUseNow: breakerStatus(config.model).open } : null,
     services: { exa: !!config.exa.apiKey, contextDev: !!config.contextDev.apiKey, elevenLabs: !!config.eleven.apiKey },
     dataBoundary: [
       "Transactions never leave the finance engine. The model receives computed totals and a few selected facts, never the raw rows or the customer ID.",

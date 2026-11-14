@@ -1,0 +1,163 @@
+{
+  "label": "refused",
+  "base": "http://localhost:3312",
+  "at": "2026-11-14T01:44:02.846Z",
+  "mainReachable": false,
+  "turns": 6,
+  "answered": 6,
+  "answeredByBackup": 6,
+  "everyStepOnBackup": true,
+  "grounded": 6,
+  "firstSentence": {
+    "n": 6,
+    "p50": 1216,
+    "p95": 1536,
+    "min": 600,
+    "max": 1542
+  },
+  "total": {
+    "n": 6,
+    "p50": 1216,
+    "p95": 1536,
+    "min": 601,
+    "max": 1542
+  },
+  "backupStepFirstToken": {
+    "n": 9,
+    "p50": 537,
+    "p95": 895,
+    "min": 509,
+    "max": 902
+  },
+  "details": [
+    {
+      "text": "How much can I safely spend this week?",
+      "error": null,
+      "answer": "You can safely spend 164 euros this week.",
+      "usedBackup": true,
+      "steps": [
+        {
+          "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+          "provider": "nvidia",
+          "usedBackup": true,
+          "firstTokenMs": 885,
+          "totalMs": 939
+        }
+      ],
+      "firstSentenceMs": 953,
+      "totalMs": 954,
+      "grounded": true
+    },
+    {
+      "text": "How much did I spend on groceries in August 2026?",
+      "error": null,
+      "answer": "You spent 278 euros on groceries in August 2026.",
+      "usedBackup": true,
+      "steps": [
+        {
+          "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+          "provider": "nvidia",
+          "usedBackup": true,
+          "firstTokenMs": 829,
+          "totalMs": 831
+        },
+        {
+          "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+          "provider": "nvidia",
+          "usedBackup": true,
+          "firstTokenMs": 528,
+          "totalMs": 634
+        }
+      ],
+      "firstSentenceMs": 1478,
+      "totalMs": 1478,
+      "grounded": true
+    },
+    {
+      "text": "How much do I earn a month?",
+      "error": null,
+      "answer": "You earn about 1,783 euros a month on average over the past year.",
+      "usedBackup": true,
+      "steps": [
+        {
+          "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+          "provider": "nvidia",
+          "usedBackup": true,
+          "firstTokenMs": 537,
+          "totalMs": 654
+        }
+      ],
+      "firstSentenceMs": 665,
+      "totalMs": 665,
+      "grounded": true
+    },
+    {
+      "text": "What if I save fifty euros a month for five years?",
+      "error": null,
+      "answer": "Saving fifty euros a month for five years would add up to three thousand euros if you keep the cash, or about three thousand eight hundred eighty seven euros if invested at five percent.",
+      "usedBackup": true,
+      "steps": [
+        {
+          "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+          "provider": "nvidia",
+          "usedBackup": true,
+          "firstTokenMs": 812,
+          "totalMs": 820
+        },
+        {
+          "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+          "provider": "nvidia",
+          "usedBackup": true,
+          "firstTokenMs": 515,
+          "totalMs": 708
+        }
+      ],
+      "firstSentenceMs": 1542,
+      "totalMs": 1542,
+      "grounded": true
+    },
+    {
+      "text": "How much do I pay for electricity each month?",
+      "error": null,
+      "answer": "You pay about 40 euros a month for electricity.",
+      "usedBackup": true,
+      "steps": [
+        {
+          "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+          "provider": "nvidia",
+          "usedBackup": true,
+          "firstTokenMs": 509,
+          "totalMs": 596
+        }
+      ],
+      "firstSentenceMs": 600,
+      "totalMs": 601,
+      "grounded": true
+    },
+    {
+      "text": "How much did I spend on taxis this year?",
+      "error": null,
+      "answer": "You spent zero euros on taxis this year.",
+      "usedBackup": true,
+      "steps": [
+        {
+          "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+          "provider": "nvidia",
+          "usedBackup": true,
+          "firstTokenMs": 902,
+          "totalMs": 903
+        },
+        {
+          "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+          "provider": "nvidia",
+          "usedBackup": true,
+          "firstTokenMs": 535,
+          "totalMs": 602
+        }
+      ],
+      "firstSentenceMs": 1517,
+      "totalMs": 1517,
+      "grounded": true
+    }
+  ]
+}

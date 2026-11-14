@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { sse, stubFetch } from "./helpers";
+import { breakerStatus, resetBreakers } from "@/lib/agent/breaker";
+import { getConfig } from "@/lib/agent/config";
 import { type ModelChunk, streamChat } from "@/lib/agent/model";
 
 const VERDA = "http://verda.test/v1";
@@ -39,6 +41,7 @@ describe("model client: failover between our GPU and the backup", () => {
   const saved = { ...process.env };
   beforeEach(() => {
     Object.assign(process.env, { MODEL_PROVIDER: "verda", MODEL_FALLBACK: "nvidia", VERDA_BASE_URL: VERDA, VERDA_API_KEY: "test", NEMOTRON_BASE_URL: NVIDIA, NEMOTRON_API_KEY: "test", MODEL_FIRST_TOKEN_LIMIT_MS: "120" });
+    resetBreakers();
   });
   afterEach(() => {
     restore();
@@ -128,6 +131,37 @@ describe("model client: failover between our GPU and the backup", () => {
   it("does not replay an answer the user has already started hearing", async () => {
     restore = stubFetch((url) => (url.startsWith(VERDA) ? breaksAfter([text("You can spend ")]) : sse([text("Backup."), "[DONE]"])));
     await assert.rejects(run());
+  });
+
+  // Regression: live stall test. Every model step waited the full stall limit, so a two-step turn took over 4 s.
+  it("after one failure, later steps go straight to the backup without waiting on the dead host", async () => {
+    const calls: string[] = [];
+    restore = stubFetch((url, init) => {
+      calls.push(url);
+      if (url.startsWith(VERDA)) return new Promise<Response>((_, reject) => init?.signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError"))));
+      return sse([text("Backup."), "[DONE]"]);
+    });
+    await run(); // pays the stall limit once
+    const started = Date.now();
+    const second = await run();
+    const third = await run();
+    assert.ok(Date.now() - started < 100, "no waiting on the later steps");
+    assert.deepEqual([second.end.usedBackup, third.end.usedBackup], [true, true]);
+    assert.equal(calls.filter((url) => url === `${VERDA}/chat/completions`).length, 1, "the dead host is asked once, not on every step");
+    assert.equal(breakerStatus(getConfig().model).open, true);
+  });
+
+  it("goes back to our own GPU once it answers again", async () => {
+    let verdaUp = false;
+    restore = stubFetch((url) => {
+      if (url.startsWith(VERDA) && !verdaUp) return new Response("down", { status: 503 });
+      return sse([text(url.startsWith(VERDA) ? "Own GPU." : "Backup."), "[DONE]"]);
+    });
+    assert.equal((await run()).end.provider, "nvidia");
+    verdaUp = true;
+    resetBreakers(); // stands in for the background probe finding the host healthy after its cooldown
+    assert.equal((await run()).end.provider, "verda");
+    assert.equal(breakerStatus(getConfig().model).open, false);
   });
 
   it("fails clearly when both hosts are down", async () => {

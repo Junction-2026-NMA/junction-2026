@@ -462,7 +462,7 @@ export type HealthReport = {
   ok: boolean;
   mock: boolean;
   model: { provider: string; name: string; host: string; region: string | null; reachable: boolean | null; latencyMs: number | null };
-  backup: { provider: string; name: string } | null;
+  backup: { provider: string; name: string; inUseNow: boolean } | null; // inUseNow: the main model failed recently, so the backup is answering
   services: { exa: boolean; contextDev: boolean; elevenLabs: boolean };
   dataBoundary: string[];
   store: { persistent: boolean; path: string | null };
