@@ -1,0 +1,109 @@
+/* The architecture map, second part: the white card that explains the chosen part of the map.
+   Without scripts all of them are listed; engine.js opens one at a time. */
+.arch-side {
+  display: grid;
+  gap: 10px;
+}
+
+.side-hint {
+  color: var(--green-300);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.node-details {
+  display: grid;
+  gap: 12px;
+}
+
+/* On a phone engine.js moves the open explanation under the layer of the chosen part. */
+.arch-map .node-details {
+  margin-top: 10px;
+}
+
+.node-detail {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  background: var(--white);
+  color: var(--green-900);
+  scroll-margin-top: 16px;
+}
+
+.arch.is-live .node-detail {
+  display: none;
+}
+
+.arch.is-live .node-detail.is-open {
+  display: grid;
+}
+
+.detail-layer {
+  color: var(--green-700);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.node-detail h4 {
+  margin: -6px 0 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.node-detail code {
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  background: var(--green-50);
+}
+
+.detail-facts {
+  display: grid;
+  gap: 6px;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+}
+
+.detail-facts li {
+  position: relative;
+  padding-left: 18px;
+}
+
+.detail-facts li::before {
+  content: "";
+  position: absolute;
+  top: 0.45em;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--green-500);
+}
+
+.detail-sees {
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--green-100);
+  font-size: 0.9375rem;
+}
+
+.tool-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tool-chips code {
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+}
+
+@media (min-width: 1024px) {
+  .arch-side {
+    position: sticky;
+    top: 16px;
+  }
+}

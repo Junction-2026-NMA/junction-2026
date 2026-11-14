@@ -1,0 +1,141 @@
+/* Section "What runs behind every answer": the one rule (three cards), the measured figures and
+   what each service sees. The map between them is in engine-map.css. */
+.rule-grid,
+.proof-block,
+.sees-card {
+  width: min(100% - 2 * var(--gutter), var(--page-max));
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.rule-grid {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.rule-card {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.rule-you {
+  background: var(--green-200);
+}
+
+.rule-card h3,
+.proof-title,
+.sees-card h3 {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+/* Measured figures: small white tiles, the figure in the display face. */
+.proof-block {
+  display: grid;
+  gap: 12px;
+  margin-top: 32px;
+}
+
+.proof-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.proof {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 18px 16px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  font-size: 0.9375rem;
+  line-height: 1.35;
+}
+
+.proof:last-child {
+  grid-column: 1 / -1;
+}
+
+.proof-figure {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 6vw, 2.5rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+/* What each service sees: a name and one line, row by row. */
+.sees-card {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.sees-list {
+  display: grid;
+  width: 100%;
+  margin: 0;
+}
+
+.sees-row {
+  display: grid;
+  gap: 2px;
+  padding: 12px 0;
+  border-top: var(--border) solid var(--bg);
+}
+
+.sees-row dt {
+  font-weight: 700;
+}
+
+.sees-row dd {
+  margin: 0;
+}
+
+.sees-card .demo-button {
+  margin-top: 8px;
+}
+
+@media (min-width: 720px) {
+  .rule-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .proof-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .proof:last-child {
+    grid-column: auto;
+  }
+
+  .sees-row {
+    grid-template-columns: 12rem minmax(0, 1fr);
+    gap: 16px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .rule-card,
+  .sees-card {
+    padding: 28px;
+  }
+
+  .rule-grid {
+    margin-bottom: 24px;
+  }
+}
