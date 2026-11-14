@@ -19,13 +19,17 @@ struct RootView: View {
             SisuTheme.Color.background.ignoresSafeArea()
             switch route {
             case .onboarding:
+                // Leaves a little slower than Today arrives on top of it, so the hand-over never shows an
+                // empty screen.
                 OnboardingView()
-                    .transition(.opacity)
+                    .zIndex(0)
+                    .transition(.asymmetric(insertion: .opacity, removal: .opacity.animation(.easeOut(duration: 0.45))))
             case .chooser:
                 PickerScreen()
                     .transition(.opacity)
             case .main:
                 MainScreen()
+                    .zIndex(1)
                     .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.98)))
             }
         }

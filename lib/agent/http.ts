@@ -66,22 +66,32 @@ export const TOO_MANY = () => jsonError("Sisu is getting a lot of questions. Ple
 // Sends agent events to the browser as server-sent events, one JSON object per message.
 export function eventStream<T = SisuEvent>(events: AsyncGenerator<T>): Response {
   const encoder = new TextEncoder();
+  // Set when the browser goes away (a closed tab, an interrupted turn). An event that arrives after that is
+  // dropped: writing it to a closed stream throws, which used to be logged as a failure although nothing failed.
+  let gone = false;
   const stream = new ReadableStream<Uint8Array>({
     async pull(controller) {
       try {
         const { value, done } = await events.next();
+        if (gone) return;
         if (done) {
           controller.close();
           return;
         }
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(value)}\n\n`));
       } catch (error) {
+        if (gone) return;
         console.error("[agent] event stream failed", error);
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", message: "Sisu could not answer just now. Please try again." })}\n\n`));
-        controller.close();
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", message: "Sisu could not answer just now. Please try again." })}\n\n`));
+          controller.close();
+        } catch {
+          // The stream closed while the error was being reported: there is nobody left to tell.
+        }
       }
     },
     async cancel() {
+      gone = true;
       await events.return(undefined);
     },
   });

@@ -28,5 +28,6 @@ export async function POST(request: Request) {
 
   const saved = saveDraft(customerId, built.draft);
   if (!saved.ok) return jsonError(saved.reason, saved.status);
-  return Response.json({ action: saved.action }, { status: 201 });
+  // 201 for a new action; 200 when the customer had already approved a switch for this bill (it is handed back).
+  return Response.json({ action: saved.action }, { status: saved.action.status === "executed_simulated" ? 200 : 201 });
 }

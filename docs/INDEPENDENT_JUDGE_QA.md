@@ -110,3 +110,18 @@ async function main() {
 }
 main();
 ```
+
+
+## Post-merge audit — 14 November, 17:57 EET
+
+Main `48af231` merged the previously reviewed PR #7 unchanged. Integrated it into the isolated QA branch and fixed its three reported defects now that the implementation branch is merged:
+
+- Competing pending offers for the same customer/bill: previously both executed; now the second approval returns 409 before computing impact or writing execution events. Declining remains possible; another customer remains independent. Batch approval executes exactly one of the competing switches.
+- Empty and whitespace-only primary/backup replies now fail readiness instead of reporting ready.
+- Fallback disclosure names the actual configured provider/model and says customer aggregates are sent there; Gemini is no longer described as the same model.
+
+Validation: **275/275 unit tests**, including five new regressions; lint and webpack production build passed. Mock HTTP audit: 12 concurrent turns completed, cross-customer approval 404, missing confirmation 400, repeated approval race 200/409/409. Browser at 390×844: Aino → plan → approve four → simulated completions and futures, no captured console errors. Screenshot inspected: `browser-screenshot-127-0-0-1-mwgl8rk6-7546be71.png` in local T3 browser artifacts. Existing missing webpack utility styling remains; no visual sign-off and no duplicate frontend comment.
+
+Frontend review: PR #7 hook saving deduplication and readiness page inspected; customer-facing web paths and iOS are otherwise unchanged from reviewed main `c22dba8` / frontend `0488829`. No customer-facing UI edited. Previously reported native fallback notice remains open. Native tests not repeated: active developer directory remains CommandLineTools, with prior XCTest compilation unavailable. Web evidence does not validate native UI.
+
+Read the challenge brief through its text export (web open failed). Existing sponsor/teaching guidance remains applicable and was not reposted. No fresh live calls: QA/shared `.env.local` absent. Readiness is still a bounded service probe, not proof of real tool choice or executed ElevenLabs audio. No merge or deployment performed.
