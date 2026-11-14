@@ -1,8 +1,9 @@
-import { approveAction } from "@/lib/actions";
+import { approveActionsStored } from "@/lib/actions";
 import { impactOf } from "@/lib/actions/drafts";
 import { TOO_MANY, allowRequest, jsonError, parseCustomerId } from "@/lib/agent/http";
 import type { AgentAction } from "@/lib/types";
 import { withVisitor } from "@/lib/agent/visitor";
+import { isWatchKind, startWatch } from "@/lib/watch";
 
 export const runtime = "nodejs";
 const MAX_AT_ONCE = 6;
@@ -20,12 +21,14 @@ export const POST = withVisitor(async function POST(request: Request) {
   const ids = Array.isArray(body.actionIds) ? [...new Set(body.actionIds.filter((id): id is string => typeof id === "string"))] : [];
   if (!ids.length || ids.length > MAX_AT_ONCE) return jsonError(`Name between one and ${MAX_AT_ONCE} actions to approve. Nothing was done.`, 400);
 
+  // Each is checked against the ones before it, and the answers are the decisions as stored.
+  const results = await approveActionsStored(customerId, ids, impactOf);
   const approved: AgentAction[] = [];
   const failed: { actionId: string; reason: string }[] = [];
-  for (const id of ids) {
-    const result = approveAction(customerId, id, impactOf);
+  for (const [index, result] of results.entries()) {
+    if (result.ok && isWatchKind(result.action.kind)) await startWatch(customerId, result.action);
     if (result.ok) approved.push(result.action);
-    else failed.push({ actionId: id, reason: result.reason });
+    else failed.push({ actionId: ids[index], reason: result.reason });
   }
   return Response.json({ approved, failed }, { status: approved.length ? 200 : 409 });
 });

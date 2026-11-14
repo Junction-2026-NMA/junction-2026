@@ -8,7 +8,10 @@ const TTS_TIMEOUT_MS = 12_000;
 const TTS_CACHE_MAX_CHARS = 240; // short sentences and fillers repeat, so they are worth keeping
 const TTS_CACHE_MAX_ENTRIES = 120;
 export const MAX_TTS_CHARS = 600;
-export const MAX_AUDIO_BYTES = 5 * 1024 * 1024;
+// 4 MB, not 5: the host refuses a request body over 4.5 MB before this code runs, with a plain-text answer a
+// client cannot read as JSON. Staying under it means a long recording always gets the sentence below.
+// A minute of speech from a phone or a browser is well under 1 MB; only uncompressed audio gets near this.
+export const MAX_AUDIO_BYTES = 4 * 1024 * 1024;
 
 const globalStore = globalThis as unknown as { __sisuTts?: Map<string, Uint8Array<ArrayBuffer>>; __sisuTtsSlots?: { active: number; waiting: (() => void)[] } };
 const ttsCache: Map<string, Uint8Array<ArrayBuffer>> = (globalStore.__sisuTts ??= new Map());
@@ -210,4 +213,14 @@ export async function listVoices(): Promise<{ voices: VoiceOption[]; models: str
   const body = (await response.json()) as { voices?: { voice_id: string; name: string; labels?: { accent?: string; use_case?: string } }[] };
   const voices = (body.voices ?? []).map((v) => ({ id: v.voice_id, name: v.name, accent: v.labels?.accent ?? null, style: v.labels?.use_case ?? null }));
   return { voices, models: TTS_MODELS, current };
+}
+
+// A long spoken turn usually ends with the question ("...so how much did I spend eating out?"), so when the
+// transcript is over the agent's limit the end is kept, cut at a word.
+export function lastWords(text: string, max: number): string {
+  const trimmed = text.trim();
+  if (trimmed.length <= max) return trimmed;
+  const tail = trimmed.slice(trimmed.length - max);
+  const space = tail.indexOf(" ");
+  return (space > 0 && space < 40 ? tail.slice(space + 1) : tail).trim();
 }

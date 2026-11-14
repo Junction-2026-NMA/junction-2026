@@ -148,3 +148,29 @@ describe("actions: nothing happens without an approval", () => {
     assert.equal(forget(AINO, null), 0);
   });
 });
+
+describe("actions: a transfer's warning adds up", () => {
+  beforeEach(() => void freshState());
+
+  // Found by an automated QA pass: "€100 a month is more than the €80 an average month leaves over, so everyday
+  // spending would have to fall by about €13 a month". 100 − 80 is 20: the 13 came from the unrounded €86.83.
+  it("the fall is the amount minus the figure the sentence says is left over", () => {
+    let checked = 0;
+    for (const customerId of [AINO, EETU, SANNA]) {
+      for (const extra of [7, 20, 60]) {
+        const room = buildTransferDraft(customerId, 25, { preparedBy: "user" });
+        assert.ok(room.ok);
+        const perMonth = room.draft.facts.find((f) => f.id === "transfer:room-monthly")!.value;
+        const draft = buildTransferDraft(customerId, perMonth + extra, { preparedBy: "user" });
+        if (!draft.ok) continue; // more than safe to spend: refused outright, no warning to check
+        const sentence = /€(\d+) a month is more than the €(\d+) an average month leaves over, so everyday spending would have to fall by about €(\d+) a month/.exec(draft.draft.warning ?? "");
+        assert.ok(sentence, `${customerId} +${extra}: ${draft.draft.warning}`);
+        const [amount, left, fall] = sentence.slice(1).map(Number);
+        assert.equal(left, perMonth);
+        assert.equal(fall, amount - left, draft.draft.warning ?? "");
+        checked += 1;
+      }
+    }
+    assert.ok(checked >= 3, `checked ${checked} warnings`);
+  });
+});

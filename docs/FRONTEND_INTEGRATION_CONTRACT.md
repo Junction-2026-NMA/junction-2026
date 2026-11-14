@@ -58,6 +58,8 @@ That is the whole integration: one hook, and a card for each thing it hands you.
 | `investigate()` | Sisu works through a whole case on its own (section 4) | **new** |
 | `approve(actionId)` | The Approve button. Returns the action with `impact` filled in | **new** |
 | `decline(actionId)` | The Decline button | **new** |
+| `watches`, `notifications` | Property watches this visitor approved, and the flats they found (last section of this document) | **new** |
+| `checkWatches(runNow?)`, `stopWatch(id)`, `simulatePriceDrop(id)` | Check now, stop, and the demo's made-up price drop | **new** |
 | `confirmBill(billId, name, billType?)` | The user confirms or corrects a bill's name. Saves it and starts offer research | **new** |
 | `actions` | Every action for this customer, newest first | **new** |
 | `memory` | `{ consent, items }`: what Sisu remembers about this customer | **new** |
@@ -556,3 +558,68 @@ stays `awaiting_approval`. In `approve-all` it comes back in `failed[]`.
 - Sisu knows the balances as they stand and what was done, and says once that it is a demo bank.
 - The overview (`GET /api/customers/:id/overview`), the baskets and the futures stay the bank data: money moved to
   savings is still the customer's money. Show `GET /api/accounts` beside them rather than changing them.
+
+## Property watch (added 14 Nov, evening)
+
+Nothing to wire for the conversation itself. The backend change is inside the agent, so every screen that asks Sisu
+through `useSisu` (typed, voice, or `POST /api/agent/query`) gets it:
+
+- "Find me a three-room flat in Helsinki under 700 euros a month" runs a live listing search (a step with the label
+  "Searching rental listings in Helsinki with Exa and reading them with Context.dev").
+- If nothing fits, the answer asks "Shall I watch prices and tell you when one fits?" and the message carries an
+  `action` of kind `property_watch`. It is an ordinary action card: `approve(action.id)` starts the watch.
+- This action has `simulated: false`. Label its button "Approve (starts the watch)", not "simulation": approving it
+  creates real Context.dev monitors. No money moves and `execution` stays empty.
+
+Two things to draw, both already on the hook:
+
+| From `useSisu` | Draw |
+|---|---|
+| `watches` | One line per watch: city, budget, `status`, and `mode` (`monitor` = Context.dev watches the pages; `reread` = Sisu re-reads them itself) |
+| `notifications` | One card each: `title`, `summary`, a link to `listing.url`. When `simulated` is true, show "simulated for the demo" |
+
+The hook checks an active watch once a minute while it is on screen, so `notifications` fills in on its own. Buttons:
+`checkWatches(true)` (ask Context.dev to check now), `stopWatch(watch.id)`, and for the demo
+`simulatePriceDrop(watch.id)`. A working card to copy: `app/dev/agent/WatchPanel.tsx`.
+
+Without the hook: `GET /api/watch?customerId=` returns `{ watches, notifications }`; `POST /api/watch/check` with
+`{ customerId, runNow? }` polls; `POST /api/watch/:id/stop` and `POST /api/watch/:id/simulate-drop` take
+`{ customerId }`. Send the visitor's `X-Sisu-Session` header as for every other call: a watch belongs to one visitor.
+
+### Any price, not only flats (added 14 Nov, late)
+
+The same watch now covers anything with a price. "Tell me when an iPhone 15 is under 450 euros" or "find me a used
+Corolla under 12,000" runs `search_prices`; when nothing is at the price, the message carries an `action` of kind
+`price_watch`. Treat it exactly like `property_watch`: same card, same `approve`, same `watches` and
+`notifications`. What tells them apart:
+
+| Field | Flat watch | Price watch |
+|---|---|---|
+| `action.kind` | `property_watch` | `price_watch` |
+| `watch.topic` | `null` | what the customer named, e.g. `"iPhone 15"` |
+| `watch.city` | the city | `null` |
+| `watch.priceUnit` | `"EUR/month"` | `"EUR"` (paid once) |
+| `notification.leftOverAfterEur` | what a month leaves over with that rent | `null` |
+| `notification.balanceAfterEur` | `null` | expected balance just before payday after paying |
+
+Draw the watch's heading as `watch.topic ?? "Flats in " + watch.city`, and add "a month" to the price only when
+`priceUnit` is `"EUR/month"`. `notification.title` and `summary` are already worded correctly for both.
+
+One rename since the first version: a listing's price is `listing.priceEur` (it was `pricePerMonthEur`), because it
+is a rent for a flat and a full price for anything else.
+
+The Swift client needs no change to keep working (`ActionKind` is an open enum); it shows a watch as an action
+with a kind it does not know until a case is added.
+
+## Voice: what the backend takes, checked live on 14 Nov
+
+Checked against the hosted backend with real recordings (`tests/gauntlet/voice-formats.mjs`).
+
+| | |
+|---|---|
+| Recording formats | AAC in MP4 (`audio/mp4`, iPhone Safari and the iOS app), Opus in WebM (`audio/webm`, Chrome and Android), Opus in Ogg (Firefox), WAV and MP3. A missing or generic content type works too. |
+| Languages | Detected from the speech; the answer comes back in the language spoken (checked: English, Finnish, Swedish). Send `language` only when the customer chose one. |
+| Size | At most 4 MB per recording. Over that the answer is 413 with `{ "error": … }`. Over 4.5 MB the host itself answers 413 in plain text, so stop recording well before that: a minute of compressed speech is under 1 MB. |
+| Nothing heard | Silence, noise or a very short clip ends the stream with one `error` event: "Sisu did not catch any words. Hold the button while you speak." |
+| Speed | Speech to text about 0.5 s; first sentence of the answer 1.1 to 2.3 s after the upload; first audio of a spoken sentence about 0.3 s. |
+| Speaking an answer | `POST /api/voice/tts` per sentence, `format: "pcm"` to stream or `"mp3"` for a file, at most 600 characters. Five sentences at once are fine. |

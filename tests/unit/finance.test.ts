@@ -10,7 +10,7 @@ import { mortgageFor, parseStamp } from "@/lib/finance/mortgage";
 import { findPatterns } from "@/lib/finance/patterns";
 import { cleanInput, runScenario } from "@/lib/finance/scenario";
 import { CONCEPTS, teachingCard } from "@/lib/finance/teaching";
-import { filterTransactions, listTransactions } from "@/lib/finance/transactions";
+import { filterTransactions, listTransactions, parseFilter } from "@/lib/finance/transactions";
 
 const overviewOf = (id: string) => {
   const overview = buildOverview(id);
@@ -203,5 +203,22 @@ describe("finance engine: receipts open exactly the rows they describe", () => {
         assert.ok(months <= 12);
       }
     }
+  });
+});
+
+// Found by an automated QA pass: 2026-02-31 and 2026-13-99 were accepted, and from=2026-13-45 was answered with
+// "The start date is after the end date."
+describe("transactions filter: dates must be days of the calendar", () => {
+  const parse = (query: string) => parseFilter(new URLSearchParams(query));
+  it("refuses an impossible day or month, and says which date is wrong", () => {
+    assert.equal(parse("from=2026-02-31"), "2026-02-31 is not a date in the calendar. Dates must look like 2026-09-30.");
+    assert.equal(parse("from=2026-01-01&to=2026-13-99"), "2026-13-99 is not a date in the calendar. Dates must look like 2026-09-30.");
+    assert.equal(parse("from=2026-13-45&to=2026-09-30"), "2026-13-45 is not a date in the calendar. Dates must look like 2026-09-30.");
+    assert.equal(parse("from=2026-9-30"), "Dates must look like 2026-09-30.");
+  });
+  it("still accepts real days, a leap day, and reports a reversed range as before", () => {
+    assert.equal(typeof parse("from=2024-02-29&to=2026-09-30"), "object");
+    assert.equal(parse("from=2025-02-29"), "2025-02-29 is not a date in the calendar. Dates must look like 2026-09-30.");
+    assert.equal(parse("from=2026-09-30&to=2026-01-01"), "The start date is after the end date.");
   });
 });

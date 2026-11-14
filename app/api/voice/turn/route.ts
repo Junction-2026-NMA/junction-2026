@@ -2,7 +2,7 @@ import { TOO_MANY, allowRequest, eventStream, jsonError, parseAgentRequest } fro
 import { runTurn } from "@/lib/agent/orchestrator";
 import { warmUp } from "@/lib/agent/warm";
 import { AUTO } from "@/lib/agent/languages";
-import { MAX_AUDIO_BYTES, transcribe } from "@/lib/agent/speech";
+import { MAX_AUDIO_BYTES, lastWords, transcribe } from "@/lib/agent/speech";
 import type { AgentRequest, SisuEvent } from "@/lib/types";
 import { withVisitor } from "@/lib/agent/visitor";
 
@@ -20,11 +20,11 @@ async function* voiceTurn(audio: Blob, base: Omit<AgentRequest, "text">, spoken:
   }
   yield { type: "transcript", text: transcript.text, tookMs: transcript.tookMs, language: transcript.language, languageProbability: transcript.languageProbability };
   if (!transcript.text) {
-    yield { type: "error", message: "Sisu did not catch any words. Hold the button while you speak." };
+    yield { type: "error", message: "Sisu did not catch any words. Please say that again." };
     return;
   }
   // Sisu answers in the language that was spoken, when that is known.
-  yield* runTurn({ ...base, text: transcript.text.slice(0, 500), language: transcript.language ?? undefined }, signal, transcript.tookMs);
+  yield* runTurn({ ...base, text: lastWords(transcript.text, 500), language: transcript.language ?? undefined }, signal, transcript.tookMs);
 }
 
 // Recorded speech in, the same event stream as /api/agent/query out, starting with the transcript.
@@ -34,7 +34,7 @@ export const POST = withVisitor(async function POST(request: Request) {
   const form = await request.formData().catch(() => null);
   const audio = form?.get("audio");
   if (!(audio instanceof Blob) || audio.size === 0) return jsonError("No recording was received.", 400);
-  if (audio.size > MAX_AUDIO_BYTES) return jsonError("That recording is too long. Keep it under a minute.", 413);
+  if (audio.size > MAX_AUDIO_BYTES) return jsonError("That recording is too long. Keep it under a minute, or type your question.", 413);
 
   const history = (() => {
     try {

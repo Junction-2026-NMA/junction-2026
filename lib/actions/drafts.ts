@@ -131,7 +131,8 @@ export function buildTransferDraft(customerId: string, amountEur: number, option
   const warnings = [
     once && lowAfter < 0 ? `Moving €${amount.toFixed(0)} today would leave the account about €${Math.abs(lowAfter).toFixed(0)} below zero just before payday${cashFlow.nextPayday ? ` on ${cashFlow.nextPayday}` : ""}. About €${room.nowEur} could be moved today without that.` : null,
     once && lowAfter >= 0 && amount > room.nowEur ? `After moving €${amount.toFixed(0)} about €${lowAfter.toFixed(0)} would be left just before payday, less than a week of everyday spending. About €${room.nowEur} leaves that week in hand.` : null,
-    !once && amount > room.perMonthEur ? `€${amount.toFixed(0)} a month is more than the €${room.perMonthEur} an average month leaves over, so everyday spending would have to fall by about €${round2(amount - Math.max(safe.gapPerMonth, 0)).toFixed(0)} a month.` : null,
+    // The fall is worked out from the figure the sentence prints, so the sentence adds up (€100 over €80 is €20).
+    !once && amount > room.perMonthEur ? `€${amount.toFixed(0)} a month is more than the €${room.perMonthEur} an average month leaves over, so everyday spending would have to fall by about €${round2(amount - room.perMonthEur).toFixed(0)} a month.` : null,
     destination === "investments" && overview.runwayMonths < 3 ? `The balance covers ${overview.runwayMonths} months of must-pay costs. A buffer of about three months (€${round2(overview.monthlyMandatory * 3).toFixed(0)}) usually comes before investing.` : null,
   ].filter((line): line is string => line !== null);
 
@@ -180,6 +181,7 @@ export function impactOf(action: AgentAction): ActionImpact | null {
   const overview = buildOverview(action.customerId);
   if (!overview) return null;
   const monthly = action.monthlyAmountEur;
+  if (action.kind === "property_watch" || action.kind === "price_watch") return null; // a watch changes nothing about their money until they choose a flat
   if (action.kind === "standing_transfer") {
     return { monthlyEur: monthly, yearlyEur: round2(monthly * 12), horizonYears: IMPACT_YEARS, branches: [], gainVsNothingEur: 0, summary: `€${Math.round(monthly * 12 * IMPACT_YEARS)} set aside over ${IMPACT_YEARS} years. This moves your own money; it does not create new money.` };
   }

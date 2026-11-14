@@ -186,3 +186,44 @@ describe("number verifier", () => {
     assert.ok(receipts.filter((f) => f.source === "bank-data" && f.unit === "EUR/month" && !f.id.endsWith(":peers")).every((f) => f.evidence), "the customer's own monthly figures open their transactions");
   });
 });
+
+// Found by an automated QA pass on the hosted demo (14 Nov): a plain count in a general answer was given a receipt
+// from an unrelated euro figure that rounds to it ("the 25 largest companies" from Aino's €24.83 mobile bill, "12
+// kuukauden" from the −€12.17 safe-to-spend gap), and the turn was reported as fully grounded.
+describe("number verifier: a count of things is not a euro figure", () => {
+  const overview = buildOverview(AINO)!;
+  const receipts = overviewFacts(overview);
+  const statusOf = (answer: string, context: string[] = []) => checkGrounding(answer, receipts, context, []).numbers.map((n) => [n.value, n.status, n.factId]);
+
+  it("a number followed by what it counts never borrows an unrelated euro or percent receipt", () => {
+    assert.ok(receipts.some((f) => f.id === "overview:bill:utilities-3" && Math.round(f.value) === 25), "Aino's mobile bill rounds to 25");
+    assert.deepEqual(statusOf("An index fund follows a whole market, like the 25 largest Finnish companies."), [[25, "unverified", null]]);
+    assert.deepEqual(statusOf("There are 40 countries in the index and 95 people work there."), [[40, "unverified", null], [95, "unverified", null]]);
+    assert.equal(checkGrounding("like the 25 largest Finnish companies", receipts, [], []).ok, false, "reported, not passed by coincidence");
+  });
+
+  it("a Finnish period of time is a time, not the safe-to-spend gap", () => {
+    assert.deepEqual(statusOf("Kulutat ruokaan keskimäärin 288,90 euroa kuukaudessa viimeisten 12 kuukauden ajalta."), [[288.9, "receipt", "overview:category:Groceries"], [12, "trivial", null]]);
+  });
+
+  it("real figures still find their receipts, with or without the euro word", () => {
+    const mobile = receipts.find((f) => f.id === "overview:bill:utilities-3")!;
+    assert.deepEqual(statusOf(`Your mobile plan costs €${mobile.value.toFixed(2)} a month.`), [[mobile.value, "receipt", mobile.id]]);
+    assert.deepEqual(statusOf("That is about 25 euros a month."), [[25, "receipt", mobile.id]]);
+    assert.deepEqual(statusOf(`You have ${Math.floor(overview.balance)} left in the account.`), [[Math.floor(overview.balance), "receipt", "overview:balance"]]);
+    assert.deepEqual(statusOf(`You are one of ${overview.peerCount} people your age in the data.`), [[overview.peerCount, "receipt", "overview:peers"]]);
+    assert.deepEqual(statusOf("The 2027 prices are not out yet."), [[2027, "trivial", null]], "a year before a noun is still a year");
+  });
+
+  it("a number inside a plan name passes when the plan is in what the tools returned", () => {
+    const answer = "The best is Pohjois-Karjalan Sähkö's Optimi takuu 24 kuukautta.";
+    assert.deepEqual(statusOf(answer, ['{"plan":"Optimi takuu 24 kuukautta","provider":"Pohjois-Karjalan Sähkö"}']), [[24, "context", null]]);
+    assert.deepEqual(statusOf(answer), [[24, "unverified", null]], "without that, it is not tied to the €24.83 mobile bill");
+  });
+
+  it("a count is matched exactly in the context, and is never 'corrected' to a nearby euro figure", () => {
+    assert.deepEqual(statusOf("It holds 25 companies.", ["the bill was 24.83 euros"]), [[25, "unverified", null]]);
+    assert.deepEqual(statusOf("It holds 25 companies.", ["an index of 25 companies"]), [[25, "context", null]]);
+    assert.deepEqual(correctNumbers("Around 95 people work there.", { facts: receipts, contextTexts: [], userTexts: [] }).corrections, []);
+  });
+});
