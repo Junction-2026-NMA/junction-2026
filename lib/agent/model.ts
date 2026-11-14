@@ -1,4 +1,5 @@
 // Streaming chat client for any OpenAI-compatible endpoint (NVIDIA Build, a Verda vLLM server, Gemini).
+import { recordFailure, recordSuccess, shouldSkip } from "./breaker";
 import { type ModelEndpoint, getConfig, missingKey } from "./config";
 import { mockStream } from "./mock";
 
@@ -18,18 +19,30 @@ export type ModelChunk =
   | { type: "delta"; text: string }
   | { type: "end"; toolCalls: ToolCall[]; model: string; provider: string; usedBackup: boolean; firstTokenMs: number | null; totalMs: number };
 
+// Internal: the first token of any kind has arrived (text or the start of a tool call). The stall timer stops here,
+// so a model that is busy writing a long tool call is never mistaken for one that has hung.
+type RawChunk = ModelChunk | { type: "started" };
+
 export type StreamOptions = {
   messages: ChatMessage[];
   tools: ToolSchema[];
   maxTokens: number;
   useFastModel?: boolean;
+  forceTool?: boolean | string; // true: the reply must be a tool call. A name: it must be that tool. Used when the model described an action instead of taking it
   signal?: AbortSignal;
 };
 
 const MODEL_TIMEOUT_MS = 25_000;
-// If the main model has produced nothing by now, the backup takes the turn. Normal first tokens arrive in
-// 0.1 to 0.6 s; an uncached 2,000-token prompt on our Verda GPU can take about 2 s, which primeModel avoids.
-const FIRST_TOKEN_LIMIT_MS = 3_000;
+// If the main model has produced nothing by now, the backup takes the turn. Measured first tokens on our GPU:
+// p50 0.26 s, p95 0.34 s alone, and up to about 1.5 s with twelve turns at once. Two seconds leaves room for a
+// busy GPU without making a customer wait long for a dead one. MODEL_FIRST_TOKEN_LIMIT_MS overrides it.
+const firstTokenLimitMs = (): number => Number(process.env.MODEL_FIRST_TOKEN_LIMIT_MS) || 2_000;
+
+// MODEL_FORCE_TOOL=off switches forcing off, for a model server that does not support it.
+function toolChoice(force: StreamOptions["forceTool"]): unknown {
+  if (!force || process.env.MODEL_FORCE_TOOL === "off") return "auto";
+  return typeof force === "string" ? { type: "function", function: { name: force } } : "required";
+}
 
 type Delta = {
   content?: string | null;
@@ -42,12 +55,18 @@ type Delta = {
 export async function* streamChat(options: StreamOptions): AsyncGenerator<ModelChunk> {
   const config = getConfig();
   if (config.isMock) {
-    yield* mockStream(options.messages);
+    yield* mockStream(options.messages, options);
     return;
   }
   const backup = config.fallbackModel;
   if (!backup) {
-    yield* streamFrom(config.model, options, options.signal, false);
+    yield* withoutStarted(streamFrom(config.model, options, options.signal, false));
+    return;
+  }
+
+  // During an outage the first failed step opens the breaker; later steps skip the wait and go straight to the backup.
+  if (shouldSkip(config.model)) {
+    yield* withoutStarted(streamFrom(backup, options, options.signal, true));
     return;
   }
 
@@ -57,28 +76,52 @@ export async function* streamChat(options: StreamOptions): AsyncGenerator<ModelC
   const firstChunk = main.next();
   firstChunk.catch(() => undefined); // handled below; this stops a late failure being reported twice
   let timer: ReturnType<typeof setTimeout> | undefined;
+  const limit = firstTokenLimitMs();
   const tooSlow = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`no reply within ${FIRST_TOKEN_LIMIT_MS} ms`)), FIRST_TOKEN_LIMIT_MS);
+    timer = setTimeout(() => reject(new Error(`no reply within ${limit} ms`)), limit);
   });
 
-  let first: IteratorResult<ModelChunk>;
+  let first: IteratorResult<RawChunk>;
   try {
     first = await Promise.race([firstChunk, tooSlow]);
   } catch (error) {
     if (options.signal?.aborted) throw error;
     giveUp.abort();
+    recordFailure(config.model);
     console.error(`[agent] ${config.model.provider} model failed or stalled (${(error as Error).message}); switching to ${backup.provider}`);
-    yield* streamFrom(backup, options, options.signal, true);
+    yield* withoutStarted(streamFrom(backup, options, options.signal, true));
     return;
   } finally {
     clearTimeout(timer);
   }
   if (first.done) return;
-  yield first.value;
-  yield* main;
+  recordSuccess(config.model);
+  // The main model has started. If its connection then breaks before it has said anything to the user
+  // (for example while it was still writing a tool call), the backup can take the whole step over unnoticed.
+  let saidSomething = false;
+  try {
+    if (first.value.type !== "started") {
+      saidSomething = first.value.type === "delta";
+      yield first.value;
+    }
+    for await (const chunk of main) {
+      if (chunk.type === "started") continue;
+      saidSomething ||= chunk.type === "delta";
+      yield chunk;
+    }
+  } catch (error) {
+    if (options.signal?.aborted || saidSomething) throw error;
+    recordFailure(config.model);
+    console.error(`[agent] ${config.model.provider} model broke off mid-step (${(error as Error).message}); switching to ${backup.provider}`);
+    yield* withoutStarted(streamFrom(backup, options, options.signal, true));
+  }
 }
 
-async function* streamFrom(endpoint: ModelEndpoint, options: StreamOptions, outerSignal: AbortSignal | undefined, usedBackup: boolean): AsyncGenerator<ModelChunk> {
+async function* withoutStarted(chunks: AsyncGenerator<RawChunk>): AsyncGenerator<ModelChunk> {
+  for await (const chunk of chunks) if (chunk.type !== "started") yield chunk;
+}
+
+async function* streamFrom(endpoint: ModelEndpoint, options: StreamOptions, outerSignal: AbortSignal | undefined, usedBackup: boolean): AsyncGenerator<RawChunk> {
   const { thinking } = getConfig();
   const prefix = { nvidia: "NEMOTRON", verda: "VERDA", gemini: "GEMINI", mock: "" }[endpoint.provider];
   if (!endpoint.baseUrl) throw missingKey("The reasoning model", `${prefix}_BASE_URL`);
@@ -99,7 +142,7 @@ async function* streamFrom(endpoint: ModelEndpoint, options: StreamOptions, oute
       stream: true,
       max_tokens: options.maxTokens,
       temperature: 0.3,
-      ...(options.tools.length ? { tools: options.tools, tool_choice: "auto" } : {}),
+      ...(options.tools.length ? { tools: options.tools, tool_choice: toolChoice(options.forceTool) } : {}),
       ...(endpoint.sendsThinkingFlag ? { chat_template_kwargs: { enable_thinking: thinking } } : {}),
     }),
   });
@@ -121,12 +164,12 @@ async function* streamFrom(endpoint: ModelEndpoint, options: StreamOptions, oute
     for (const line of lines) {
       const delta = parseDelta(line);
       if (!delta) continue;
-      if (delta.content) {
-        firstTokenMs ??= Date.now() - started;
-        yield { type: "delta", text: delta.content };
+      if (firstTokenMs === null && (delta.content || delta.tool_calls?.length)) {
+        firstTokenMs = Date.now() - started;
+        yield { type: "started" };
       }
+      if (delta.content) yield { type: "delta", text: delta.content };
       for (const part of delta.tool_calls ?? []) {
-        firstTokenMs ??= Date.now() - started;
         const current = calls.get(part.index) ?? { id: "", name: "", args: "" };
         calls.set(part.index, {
           id: part.id || current.id,

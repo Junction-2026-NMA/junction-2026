@@ -1,0 +1,438 @@
+{
+  "base": "http://localhost:3310",
+  "at": "2026-11-14T01:42:57.242Z",
+  "finance": {
+    "part": "finance",
+    "unit": "ms per call, mean of 300",
+    "buildOverview": 0.364,
+    "buildCashFlow": 0.252,
+    "findPatterns": 0.132,
+    "runScenario": 0.038,
+    "systemPromptChars": 5289,
+    "toolSchemaChars": 4857
+  },
+  "model": {
+    "part": "model",
+    "provider": "verda",
+    "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+    "cold": [
+      {
+        "firstTokenMs": 282,
+        "totalMs": 405,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 41,
+        "toolCalls": 0
+      },
+      {
+        "firstTokenMs": 299,
+        "totalMs": 418,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 41,
+        "toolCalls": 0
+      },
+      {
+        "firstTokenMs": 245,
+        "totalMs": 375,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 41,
+        "toolCalls": 0
+      }
+    ],
+    "warm": [
+      {
+        "firstTokenMs": 250,
+        "totalMs": 372,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 41,
+        "toolCalls": 0
+      },
+      {
+        "firstTokenMs": 273,
+        "totalMs": 400,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 41,
+        "toolCalls": 0
+      },
+      {
+        "firstTokenMs": 270,
+        "totalMs": 395,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 41,
+        "toolCalls": 0
+      },
+      {
+        "firstTokenMs": 267,
+        "totalMs": 374,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 41,
+        "toolCalls": 0
+      },
+      {
+        "firstTokenMs": 250,
+        "totalMs": 379,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 41,
+        "toolCalls": 0
+      },
+      {
+        "firstTokenMs": 244,
+        "totalMs": 373,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 41,
+        "toolCalls": 0
+      },
+      {
+        "firstTokenMs": 252,
+        "totalMs": 386,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 41,
+        "toolCalls": 0
+      },
+      {
+        "firstTokenMs": 257,
+        "totalMs": 380,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 41,
+        "toolCalls": 0
+      },
+      {
+        "firstTokenMs": 256,
+        "totalMs": 382,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 41,
+        "toolCalls": 0
+      },
+      {
+        "firstTokenMs": 325,
+        "totalMs": 456,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 41,
+        "toolCalls": 0
+      }
+    ],
+    "warmNoTools": [
+      {
+        "firstTokenMs": 175,
+        "totalMs": 300,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 41,
+        "toolCalls": 0
+      },
+      {
+        "firstTokenMs": 165,
+        "totalMs": 287,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 41,
+        "toolCalls": 0
+      },
+      {
+        "firstTokenMs": 188,
+        "totalMs": 319,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 41,
+        "toolCalls": 0
+      },
+      {
+        "firstTokenMs": 157,
+        "totalMs": 283,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 41,
+        "toolCalls": 0
+      },
+      {
+        "firstTokenMs": 163,
+        "totalMs": 288,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 41,
+        "toolCalls": 0
+      },
+      {
+        "firstTokenMs": 185,
+        "totalMs": 309,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 41,
+        "toolCalls": 0
+      },
+      {
+        "firstTokenMs": 166,
+        "totalMs": 290,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 41,
+        "toolCalls": 0
+      },
+      {
+        "firstTokenMs": 163,
+        "totalMs": 290,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 41,
+        "toolCalls": 0
+      },
+      {
+        "firstTokenMs": 162,
+        "totalMs": 288,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 41,
+        "toolCalls": 0
+      },
+      {
+        "firstTokenMs": 165,
+        "totalMs": 289,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 41,
+        "toolCalls": 0
+      }
+    ],
+    "toolChoice": [
+      {
+        "firstTokenMs": 281,
+        "totalMs": 476,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 55,
+        "toolCalls": 0
+      },
+      {
+        "firstTokenMs": 244,
+        "totalMs": 440,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 55,
+        "toolCalls": 0
+      },
+      {
+        "firstTokenMs": 251,
+        "totalMs": 392,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 50,
+        "toolCalls": 0
+      },
+      {
+        "firstTokenMs": 236,
+        "totalMs": 434,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 55,
+        "toolCalls": 0
+      },
+      {
+        "firstTokenMs": 249,
+        "totalMs": 457,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 55,
+        "toolCalls": 0
+      },
+      {
+        "firstTokenMs": 258,
+        "totalMs": 463,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 55,
+        "toolCalls": 0
+      },
+      {
+        "firstTokenMs": 275,
+        "totalMs": 472,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 55,
+        "toolCalls": 0
+      },
+      {
+        "firstTokenMs": 247,
+        "totalMs": 446,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 55,
+        "toolCalls": 0
+      },
+      {
+        "firstTokenMs": 263,
+        "totalMs": 467,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 55,
+        "toolCalls": 0
+      },
+      {
+        "firstTokenMs": 255,
+        "totalMs": 457,
+        "provider": "verda",
+        "usedBackup": false,
+        "chars": 55,
+        "toolCalls": 0
+      }
+    ],
+    "long": {
+      "firstTokenMs": 161,
+      "totalMs": 2106,
+      "provider": "verda",
+      "usedBackup": false,
+      "chars": 994,
+      "toolCalls": 0,
+      "charsPerSecond": 511
+    }
+  },
+  "sizes": {
+    "part": "sizes",
+    "results": [
+      {
+        "label": "no tools",
+        "firstTokenMs": [
+          205,
+          166,
+          170,
+          164,
+          163,
+          166,
+          207,
+          196,
+          177,
+          166
+        ]
+      },
+      {
+        "label": "no tools, prompt padded by the size of the tool list",
+        "firstTokenMs": [
+          228,
+          211,
+          231,
+          222,
+          223,
+          230,
+          237,
+          226,
+          216,
+          214
+        ]
+      },
+      {
+        "label": "one small tool",
+        "firstTokenMs": [
+          180,
+          185,
+          233,
+          182,
+          187,
+          200,
+          180,
+          195,
+          192,
+          239
+        ]
+      },
+      {
+        "label": "all tools",
+        "firstTokenMs": [
+          276,
+          271,
+          274,
+          346,
+          240,
+          251,
+          249,
+          254,
+          326,
+          267
+        ]
+      }
+    ]
+  },
+  "search": {
+    "part": "search",
+    "exa": [
+      {
+        "ms": 210,
+        "results": 8,
+        "firstUrl": "https://www.sopimusvahti.fi/en/sahkosopimus/helsinki"
+      },
+      {
+        "ms": 221,
+        "results": 8,
+        "firstUrl": "https://www.sopimusvahti.fi/en/sahkosopimus/helsinki"
+      },
+      {
+        "ms": 251,
+        "results": 8,
+        "firstUrl": "https://www.sopimusvahti.fi/en/sahkosopimus/helsinki"
+      },
+      {
+        "ms": 215,
+        "results": 8,
+        "firstUrl": "https://www.sopimusvahti.fi/en/sahkosopimus/helsinki"
+      },
+      {
+        "ms": 221,
+        "results": 8,
+        "firstUrl": "https://www.sopimusvahti.fi/en/sahkosopimus/helsinki"
+      }
+    ],
+    "exaHighlights": [
+      {
+        "ms": 538,
+        "results": 4
+      },
+      {
+        "ms": 229,
+        "results": 4
+      },
+      {
+        "ms": 235,
+        "results": 4
+      }
+    ]
+  },
+  "extract": {
+    "part": "extract",
+    "pages": [
+      {
+        "host": "voltikka.fi",
+        "ok": true,
+        "ms": 3336,
+        "offers": 6,
+        "cacheAgeMs": 247463,
+        "dropped": 0
+      },
+      {
+        "host": "www.sopimusvahti.fi",
+        "ok": true,
+        "ms": 3194,
+        "offers": 6,
+        "cacheAgeMs": 247256,
+        "dropped": 0
+      },
+      {
+        "host": "vertaa-kilpailuttajat.fi",
+        "ok": true,
+        "ms": 2791,
+        "offers": 3,
+        "cacheAgeMs": 247424,
+        "dropped": 0
+      }
+    ]
+  }
+}

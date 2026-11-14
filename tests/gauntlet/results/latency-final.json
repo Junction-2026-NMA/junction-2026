@@ -1,0 +1,419 @@
+{
+  "base": "http://localhost:3310",
+  "at": "2026-11-14T02:41:39.601Z",
+  "runs": 10,
+  "provider": "verda",
+  "results": [
+    {
+      "id": "summary",
+      "label": "Answer from the summary (no tool)",
+      "runs": 10,
+      "errors": 0,
+      "usedBackup": 1,
+      "tools": [
+        "get_spending"
+      ],
+      "firstToken": {
+        "n": 10,
+        "p50": 283,
+        "p95": 1030,
+        "min": 263,
+        "max": 1407
+      },
+      "firstSentence": {
+        "n": 10,
+        "p50": 479,
+        "p95": 1134,
+        "min": 397,
+        "max": 1562
+      },
+      "firstSpeakableClient": {
+        "n": 10,
+        "p50": 492,
+        "p95": 1142,
+        "min": 410,
+        "max": 1572
+      },
+      "total": {
+        "n": 10,
+        "p50": 480,
+        "p95": 1135,
+        "min": 398,
+        "max": 1563
+      },
+      "modelStepFirstToken": {
+        "n": 11,
+        "p50": 278,
+        "p95": 459,
+        "min": 260,
+        "max": 564
+      },
+      "modelStepTotal": {
+        "n": 11,
+        "p50": 486,
+        "p95": 826,
+        "min": 393,
+        "max": 1045
+      },
+      "toolMs": {
+        "n": 1,
+        "p50": 1,
+        "p95": 1,
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "id": "last-month",
+      "label": "Last month or payday (in the summary since the latency work)",
+      "runs": 10,
+      "errors": 0,
+      "usedBackup": 0,
+      "tools": [],
+      "firstToken": {
+        "n": 10,
+        "p50": 272,
+        "p95": 335,
+        "min": 263,
+        "max": 348
+      },
+      "firstSentence": {
+        "n": 10,
+        "p50": 467,
+        "p95": 619,
+        "min": 429,
+        "max": 624
+      },
+      "firstSpeakableClient": {
+        "n": 10,
+        "p50": 478,
+        "p95": 641,
+        "min": 432,
+        "max": 654
+      },
+      "total": {
+        "n": 10,
+        "p50": 478,
+        "p95": 620,
+        "min": 429,
+        "max": 625
+      },
+      "modelStepFirstToken": {
+        "n": 10,
+        "p50": 269,
+        "p95": 332,
+        "min": 261,
+        "max": 345
+      },
+      "modelStepTotal": {
+        "n": 10,
+        "p50": 473,
+        "p95": 616,
+        "min": 426,
+        "max": 621
+      },
+      "toolMs": {
+        "n": 0,
+        "p50": null,
+        "p95": null,
+        "min": null,
+        "max": null
+      }
+    },
+    {
+      "id": "finance-tool",
+      "label": "One finance tool",
+      "runs": 10,
+      "errors": 0,
+      "usedBackup": 0,
+      "tools": [
+        "get_spending"
+      ],
+      "firstToken": {
+        "n": 10,
+        "p50": 1219,
+        "p95": 1311,
+        "min": 1186,
+        "max": 1380
+      },
+      "firstSentence": {
+        "n": 10,
+        "p50": 1410,
+        "p95": 1532,
+        "min": 1308,
+        "max": 1621
+      },
+      "firstSpeakableClient": {
+        "n": 10,
+        "p50": 1420,
+        "p95": 1545,
+        "min": 1315,
+        "max": 1634
+      },
+      "total": {
+        "n": 10,
+        "p50": 1411,
+        "p95": 1533,
+        "min": 1309,
+        "max": 1622
+      },
+      "modelStepFirstToken": {
+        "n": 20,
+        "p50": 331,
+        "p95": 347,
+        "min": 126,
+        "max": 350
+      },
+      "modelStepTotal": {
+        "n": 20,
+        "p50": 743,
+        "p95": 1052,
+        "min": 363,
+        "max": 1053
+      },
+      "toolMs": {
+        "n": 10,
+        "p50": 1,
+        "p95": 2,
+        "min": 0,
+        "max": 2
+      }
+    },
+    {
+      "id": "scenario",
+      "label": "Scenario simulation",
+      "runs": 10,
+      "errors": 0,
+      "usedBackup": 0,
+      "tools": [
+        "run_scenario"
+      ],
+      "firstToken": {
+        "n": 10,
+        "p50": 964,
+        "p95": 1170,
+        "min": 946,
+        "max": 1174
+      },
+      "firstSentence": {
+        "n": 10,
+        "p50": 1344,
+        "p95": 1501,
+        "min": 1145,
+        "max": 1569
+      },
+      "firstSpeakableClient": {
+        "n": 10,
+        "p50": 1353,
+        "p95": 1512,
+        "min": 1157,
+        "max": 1582
+      },
+      "total": {
+        "n": 10,
+        "p50": 1532,
+        "p95": 1717,
+        "min": 1343,
+        "max": 1749
+      },
+      "modelStepFirstToken": {
+        "n": 20,
+        "p50": 343,
+        "p95": 377,
+        "min": 110,
+        "max": 404
+      },
+      "modelStepTotal": {
+        "n": 20,
+        "p50": 832,
+        "p95": 872,
+        "min": 501,
+        "max": 898
+      },
+      "toolMs": {
+        "n": 10,
+        "p50": 1,
+        "p95": 2,
+        "min": 0,
+        "max": 2
+      }
+    },
+    {
+      "id": "offers-warm",
+      "label": "Offer research, already warm",
+      "runs": 10,
+      "errors": 0,
+      "usedBackup": 0,
+      "tools": [
+        "search_offers"
+      ],
+      "firstToken": {
+        "n": 10,
+        "p50": 677,
+        "p95": 916,
+        "min": 666,
+        "max": 919
+      },
+      "firstSentence": {
+        "n": 10,
+        "p50": 877,
+        "p95": 1157,
+        "min": 739,
+        "max": 1163
+      },
+      "firstSpeakableClient": {
+        "n": 10,
+        "p50": 887,
+        "p95": 1161,
+        "min": 747,
+        "max": 1167
+      },
+      "total": {
+        "n": 10,
+        "p50": 1531,
+        "p95": 1902,
+        "min": 1344,
+        "max": 1995
+      },
+      "modelStepFirstToken": {
+        "n": 20,
+        "p50": 353,
+        "p95": 357,
+        "min": 118,
+        "max": 359
+      },
+      "modelStepTotal": {
+        "n": 20,
+        "p50": 674,
+        "p95": 1238,
+        "min": 537,
+        "max": 1427
+      },
+      "toolMs": {
+        "n": 10,
+        "p50": 1,
+        "p95": 2,
+        "min": 0,
+        "max": 2
+      }
+    },
+    {
+      "id": "web",
+      "label": "Outside fact (Exa web search)",
+      "runs": 10,
+      "errors": 0,
+      "usedBackup": 0,
+      "tools": [
+        "web_search"
+      ],
+      "firstToken": {
+        "n": 10,
+        "p50": 1198,
+        "p95": 1341,
+        "min": 277,
+        "max": 1389
+      },
+      "firstSentence": {
+        "n": 10,
+        "p50": 1415,
+        "p95": 1602,
+        "min": 375,
+        "max": 1615
+      },
+      "firstSpeakableClient": {
+        "n": 10,
+        "p50": 1428,
+        "p95": 1619,
+        "min": 382,
+        "max": 1641
+      },
+      "total": {
+        "n": 10,
+        "p50": 1553,
+        "p95": 2305,
+        "min": 1142,
+        "max": 2552
+      },
+      "modelStepFirstToken": {
+        "n": 19,
+        "p50": 349,
+        "p95": 378,
+        "min": 274,
+        "max": 469
+      },
+      "modelStepTotal": {
+        "n": 19,
+        "p50": 624,
+        "p95": 1169,
+        "min": 570,
+        "max": 1446
+      },
+      "toolMs": {
+        "n": 9,
+        "p50": 256,
+        "p95": 317,
+        "min": 222,
+        "max": 337
+      }
+    },
+    {
+      "id": "text-summary",
+      "label": "Typed question, no tool",
+      "runs": 10,
+      "errors": 0,
+      "usedBackup": 0,
+      "tools": [
+        "find_patterns"
+      ],
+      "firstToken": {
+        "n": 10,
+        "p50": 413,
+        "p95": 734,
+        "min": 261,
+        "max": 851
+      },
+      "firstSentence": {
+        "n": 10,
+        "p50": 669,
+        "p95": 994,
+        "min": 397,
+        "max": 1016
+      },
+      "firstSpeakableClient": {
+        "n": 10,
+        "p50": 675,
+        "p95": 1001,
+        "min": 407,
+        "max": 1026
+      },
+      "total": {
+        "n": 10,
+        "p50": 1005,
+        "p95": 1626,
+        "min": 544,
+        "max": 1731
+      },
+      "modelStepFirstToken": {
+        "n": 15,
+        "p50": 263,
+        "p95": 377,
+        "min": 128,
+        "max": 402
+      },
+      "modelStepTotal": {
+        "n": 15,
+        "p50": 569,
+        "p95": 1137,
+        "min": 412,
+        "max": 1279
+      },
+      "toolMs": {
+        "n": 5,
+        "p50": 3,
+        "p95": 4,
+        "min": 2,
+        "max": 4
+      }
+    }
+  ]
+}

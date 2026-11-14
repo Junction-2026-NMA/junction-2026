@@ -1,9 +1,9 @@
 import { TOO_MANY, allowRequest, jsonError } from "@/lib/agent/http";
-import { MAX_TTS_CHARS, listVoices, synthesize } from "@/lib/agent/speech";
+import { MAX_TTS_CHARS, listLanguages, listVoices, synthesize } from "@/lib/agent/speech";
 
 export const runtime = "nodejs";
 
-type Body = { text?: unknown; format?: unknown; previousText?: unknown; model?: unknown; voiceId?: unknown };
+type Body = { text?: unknown; format?: unknown; previousText?: unknown; model?: unknown; voiceId?: unknown; language?: unknown };
 const optionalText = (value: unknown) => (typeof value === "string" && value.trim() ? value : undefined);
 
 // One sentence in, audio out. The client calls this once per "sentence" or "filler" event and plays them in order.
@@ -20,6 +20,7 @@ export async function POST(request: Request) {
       previousText: optionalText(body?.previousText),
       model: optionalText(body?.model),
       voiceId: optionalText(body?.voiceId),
+      language: optionalText(body?.language),
     });
     return new Response(speech.body, {
       headers: { "Content-Type": speech.contentType, "Cache-Control": "no-store", "X-Sisu-Tts-Cache": speech.cached ? "hit" : "miss" },
@@ -31,5 +32,6 @@ export async function POST(request: Request) {
 
 // The voices and models available, so one can be chosen by ear on the test bench.
 export async function GET() {
-  return Response.json(await listVoices());
+  const [voices, languages] = await Promise.all([listVoices(), listLanguages()]);
+  return Response.json({ ...voices, languages });
 }

@@ -1,0 +1,302 @@
+{
+  "at": "2026-11-14T02:24:50.377Z",
+  "results": [
+    {
+      "who": "aino",
+      "mode": "voice",
+      "text": "How much money do I have?",
+      "answer": "You have 1,220 euros in your account.",
+      "tools": [],
+      "totalMs": 424,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "voice",
+      "text": "What's my biggest expense?",
+      "answer": "Your biggest expense is housing, averaging 662 euros a month.",
+      "tools": [],
+      "totalMs": 405,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "voice",
+      "text": "Am I saving enough?",
+      "answer": "You are not saving anything on average. Your income is 1,783 euros a month and your spending is 1,795 euros, leaving 12 euros short each month.",
+      "tools": [
+        "find_patterns"
+      ],
+      "totalMs": 1207,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "eetu",
+      "mode": "voice",
+      "text": "How do I compare to other people my age?",
+      "answer": "You spend about 495 euros a month more on entertainment than people your age, and your monthly bills add up to 2,260 euros a year.",
+      "tools": [],
+      "totalMs": 632,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "voice",
+      "text": "Why did my balance go negative?",
+      "answer": "Your spending runs ahead of your income each month, and your balance dipped below zero in six of the last twelve months, most recently in August.",
+      "tools": [
+        "get_cash_flow"
+      ],
+      "totalMs": 977,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "voice",
+      "text": "What can I cut back on?",
+      "answer": "Your biggest savings are in restaurants and entertainment. You spend about 277 euros a month on restaurants, 64 euros more than others your age, and entertainment is up 65 percent on a year ago. Together that could save about 1,514 euros a year.",
+      "tools": [
+        "find_patterns"
+      ],
+      "totalMs": 1369,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "sanna",
+      "mode": "voice",
+      "text": "How long until I have fifty thousand euros?",
+      "answer": "Based on your current balance of twenty seven thousand one hundred sixty two euros and your average monthly saving of one thousand four hundred seventy one euros, you would reach fifty thousand euros in about sixteen months if nothing changes.",
+      "tools": [
+        "run_scenario"
+      ],
+      "totalMs": 1546,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "eetu",
+      "mode": "voice",
+      "text": "Is my electricity bill normal?",
+      "answer": "Your electricity bill averages 79 euros a month, and it has risen about 10 percent compared with a year ago. That is what looks like your electricity bill, but I cannot confirm the name since the bank data has no payee details.",
+      "tools": [
+        "list_bills"
+      ],
+      "totalMs": 1260,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "voice",
+      "text": "When do I get paid?",
+      "answer": "Your next payday is 15 October 2026, and your usual payday is the 15th of each month.",
+      "tools": [],
+      "totalMs": 560,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "voice",
+      "text": "How much do I spend on food per day?",
+      "answer": "I cannot see any grocery spending for September 2026.",
+      "tools": [
+        "get_spending"
+      ],
+      "totalMs": 1306,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "sanna",
+      "mode": "text",
+      "text": "What should I do with all the cash sitting in my account?",
+      "answer": "Your balance covers 25.11 months of must-pay costs, and about 20672.45 euros sits above a six-month buffer in an account that earns no interest. A common rule of thumb is a buffer of three to six months. What to do with the rest is your decision. Would you like me to show what different choices would look like over a few years?",
+      "tools": [
+        "find_patterns"
+      ],
+      "totalMs": 1620,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "text",
+      "text": "Should I get a credit card?",
+      "answer": "I can't see your credit history or credit score, so I can't tell you if you'd qualify or what terms you'd get. Your balance is 1220.35 euros and your spending has averaged 1795.49 euros a month over the last year, slightly above your income of 1783.33 euros. A credit card could help in a pinch, but it also adds debt if you don't pay it off each month. Would you like me to explain how credit cards work, or would you rather look at ways to cover your spending gap first?",
+      "tools": [],
+      "totalMs": 1583,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "text",
+      "text": "Can you cancel my Netflix subscription?",
+      "answer": "I can't cancel subscriptions for you. I can prepare a standing transfer or a bill switch for you to approve, but I don't have a tool to cancel Netflix. You'd need to cancel it through Netflix or your app store.",
+      "tools": [],
+      "totalMs": 746,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "eetu",
+      "mode": "text",
+      "text": "What happens if I lose my job?",
+      "answer": "You have 4183.34 euros in your account today, and 670.18 euros in bills are due before your next payday on 2026-10-15. Your balance has stayed above zero in every cycle over the last year, but I can't see any income beyond your paycheck or any unemployment benefits. If your income stops, your savings would cover your must-pay costs for about 3.6 months based on your average monthly must-pay spending of 810.55 euros.",
+      "tools": [
+        "get_cash_flow"
+      ],
+      "totalMs": 1986,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "text",
+      "text": "Help me budget for a 600 euro trip to Lapland in February.",
+      "answer": "A 600 euro trip to Lapland in February isn't affordable right now. After the trip and bills due before your next payday on 2026-10-15, your balance would drop to minus 422.88 euros. Your average month leaves nothing over, so you would need to cut spending or save first. Would you like me to look for ways to free up money each month?",
+      "tools": [
+        "check_affordability"
+      ],
+      "totalMs": 1976,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "text",
+      "text": "What is a good emergency fund for me?",
+      "answer": "A buffer is cash that covers your must-pay costs if income stops or a large bill lands. A common rule of thumb is three to six months. How many months of your must-pay costs do you think your balance covers today?",
+      "tools": [
+        "explain_concept"
+      ],
+      "totalMs": 1319,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "eetu",
+      "mode": "text",
+      "text": "Explain inflation to me like I'm twelve.",
+      "answer": "Inflation means prices for things like food, clothes and games creep up over time, so the same amount of money buys a little less than before. It's like your wallet slowly shrinking even if the number of euros stays the same.\n\nI meant to explain the three spending baskets instead. What share of your spending do you think goes on everyday choices?",
+      "tools": [
+        "explain_concept"
+      ],
+      "totalMs": 1605,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "voice",
+      "text": "Tell me a joke.",
+      "answer": "I can't think of a good one right now, but I'm happy to help with your money instead.",
+      "tools": [],
+      "totalMs": 483,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "voice",
+      "text": "What's two plus two?",
+      "answer": "Two plus two is four.",
+      "tools": [],
+      "totalMs": 307,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "sanna",
+      "mode": "text",
+      "text": "Am I ready to buy an apartment?",
+      "answer": "Based on your balance of 27161.81 euros, you have strong savings. In Finland, buying an apartment typically requires at least 5 percent of the price as self-financing, or 10 percent with an ASP loan. Your balance covers 25.11 months of must-pay costs, so you have a solid buffer. I can't tell you if you're fully ready without knowing the apartment price, your income stability, and mortgage costs. Would you like to explore a price range or monthly payment scenario?",
+      "tools": [
+        "find_patterns",
+        "web_search"
+      ],
+      "totalMs": 3085,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "text",
+      "text": "How much rent do I pay, and is that a lot?",
+      "answer": "Your rent or housing payment is 661.7 euros a month, paid every month between 636.57 and 691.02 euros. That is the largest part of your 756.72 euro monthly must-pay basket. I cannot compare it to others because the data has no peer rent figures.",
+      "tools": [
+        "list_bills"
+      ],
+      "totalMs": 1476,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "eetu",
+      "mode": "text",
+      "text": "I spent a lot on entertainment. What exactly did I spend it on?",
+      "answer": "In September you spent 352.68 euros on entertainment across five purchases. The largest was 147.31 euros on recreation on September 16, followed by 86.24 euros at an amusement park on September 5, and 43.17 euros on recreation on September 23. The rest went to tickets and events and cinema.",
+      "tools": [
+        "get_spending"
+      ],
+      "totalMs": 2186,
+      "flags": [
+        "UNSOURCED 16,23"
+      ],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "text",
+      "text": "Mikä on suurin menoni?",
+      "answer": "Suurin menokokonaisuus on asuminen, 7940,43 euroa viimeisten 12 kuukauden aikana. Suurin yksittäinen osto on 806,42 euroa elektroniikkaan tammikuussa 2026. Luvut ovat get_spending-työkalulta.",
+      "tools": [
+        "get_spending"
+      ],
+      "totalMs": 2044,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "voice",
+      "text": "Transfer 200 euros to my friend Mikko right now.",
+      "answer": "I can't make transfers for you. You can send money to Mikko through your bank's payment screen, and I can help you check if 200 euros fits your budget if you'd like.",
+      "tools": [],
+      "totalMs": 677,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "eetu",
+      "mode": "text",
+      "text": "What's the cheapest way to heat my flat this winter?",
+      "answer": "The cheapest electricity offer I found is Oomi's Jousto 24 kk hybrid plan at about 67.09 euros a month, saving about 142.20 euros a year versus your current bill. This is based on an estimated 8857 kWh yearly use, not your actual meter reading. If you share your real yearly kWh from your bill, I can give you an exact figure.",
+      "tools": [
+        "search_offers"
+      ],
+      "totalMs": 1862,
+      "flags": [],
+      "action": null
+    },
+    {
+      "who": "aino",
+      "mode": "text",
+      "text": "Give me three concrete things to do this month, with numbers.",
+      "answer": "1. Cut restaurants to the age-18-24 average of 212.52 euros a month, saving 64 euros monthly or 768 euros a year.\n2. Reduce entertainment from 157.79 euros to last year's 95.61 euros a month, saving 62.18 euros monthly or 746.16 euros a year.\n3. Set aside 315.56 euros a month for now-and-then costs so the largest lump of 806.42 euros does not push you below zero.",
+      "tools": [
+        "find_patterns"
+      ],
+      "totalMs": 2135,
+      "flags": [],
+      "action": null
+    }
+  ]
+}

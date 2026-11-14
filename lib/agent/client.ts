@@ -1,6 +1,7 @@
 // Browser side of the agent. No React here, so any UI can use it.
 // It does three things: reads the event stream, records the microphone, and plays speech in order.
-import type { AgentEvent, BillType, ChatTurn, ResearchResult } from "@/lib/types";
+import type { VoiceLanguage } from "./languages";
+import type { ActionList, AgentAction, BillPhotoResult, BillType, ChatTurn, CustomerMemory, MemoryKind, ResearchResult, SisuEvent } from "@/lib/types";
 
 export type TurnInput = {
   customerId: string;
@@ -9,6 +10,8 @@ export type TurnInput = {
   mode?: "voice" | "text";
   history?: ChatTurn[];
   focusBill?: BillType;
+  investigate?: boolean; // true = run a whole investigation instead of answering `text`
+  language?: string; // "auto" (default) or a code such as "fi", "de", "hi": the language to listen for and answer in
   signal?: AbortSignal;
 };
 
@@ -18,14 +21,14 @@ async function readError(response: Response): Promise<string> {
 }
 
 // Sends one question (typed or recorded) and yields each event as the server produces it.
-export async function* streamTurn(input: TurnInput): AsyncGenerator<AgentEvent> {
+export async function* streamTurn(input: TurnInput): AsyncGenerator<SisuEvent> {
   const response = input.audio
     ? await fetch("/api/voice/turn", { method: "POST", signal: input.signal, body: voiceForm(input) })
-    : await fetch("/api/agent/query", {
+    : await fetch(input.investigate ? "/api/agent/investigate" : "/api/agent/query", {
         method: "POST",
         signal: input.signal,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customerId: input.customerId, text: input.text, mode: input.mode ?? "text", history: input.history, focusBill: input.focusBill }),
+        body: JSON.stringify({ customerId: input.customerId, text: input.text, mode: input.mode ?? "text", history: input.history, focusBill: input.focusBill, language: input.language }),
       });
   if (!response.ok || !response.body) {
     yield { type: "error", message: await readError(response) };
@@ -42,7 +45,7 @@ export async function* streamTurn(input: TurnInput): AsyncGenerator<AgentEvent> 
     const messages = buffer.split("\n\n");
     buffer = messages.pop() ?? "";
     for (const message of messages) {
-      if (message.startsWith("data: ")) yield JSON.parse(message.slice(6)) as AgentEvent;
+      if (message.startsWith("data: ")) yield JSON.parse(message.slice(6)) as SisuEvent;
     }
   }
 }
@@ -53,6 +56,7 @@ function voiceForm(input: TurnInput): FormData {
   form.set("customerId", input.customerId);
   form.set("history", JSON.stringify(input.history ?? []));
   if (input.focusBill) form.set("focusBill", input.focusBill);
+  form.set("language", input.language ?? "auto");
   return form;
 }
 
@@ -72,6 +76,45 @@ export async function prefetchOffers(customerId: string, billType: BillType): Pr
   return response?.ok ? ((await response.json()) as ResearchResult) : null;
 }
 
+async function postJson<T>(url: string, body: unknown, method = "POST"): Promise<T> {
+  const response = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const parsed = (await response.json().catch(() => null)) as (T & { error?: string }) | null;
+  if (!response.ok || !parsed) throw new Error(parsed?.error ?? "Something went wrong. Please try again.");
+  return parsed;
+}
+
+// --- Actions: the user approves or declines what Sisu prepared. Nothing happens without approveAction. ---
+export const approveAction = (customerId: string, actionId: string) => postJson<{ action: AgentAction }>(`/api/actions/${actionId}/approve`, { customerId, confirm: true });
+export const declineAction = (customerId: string, actionId: string) => postJson<{ action: AgentAction }>(`/api/actions/${actionId}/decline`, { customerId });
+export async function fetchActions(customerId: string): Promise<ActionList | null> {
+  const response = await fetch(`/api/actions?customerId=${customerId}`).catch(() => null);
+  return response?.ok ? ((await response.json()) as ActionList) : null;
+}
+
+// --- Memory: what Sisu remembers between sessions. ---
+export async function fetchMemory(customerId: string): Promise<CustomerMemory | null> {
+  const response = await fetch(`/api/memory?customerId=${customerId}`).catch(() => null);
+  return response?.ok ? ((await response.json()) as CustomerMemory) : null;
+}
+// Call when the user confirms or corrects a bill's name on its card.
+export const confirmBill = (customerId: string, billId: string, name: string, billType?: BillType) =>
+  postJson<CustomerMemory>("/api/memory", { customerId, kind: "bill_name" satisfies MemoryKind, key: billId, value: name, billType });
+export const setMemoryConsent = (customerId: string, consent: boolean) => postJson<CustomerMemory>("/api/memory", { customerId, consent });
+export const forgetMemory = (customerId: string, itemId?: string) => postJson<CustomerMemory>(`/api/memory?customerId=${customerId}${itemId ? `&itemId=${itemId}` : ""}`, {}, "DELETE");
+
+// A photo of the customer's own bill in, the figures printed on it out. Nothing is saved: show `toConfirm`,
+// and when the user agrees call rememberKwh with the figure.
+export async function readBillPhoto(customerId: string, photo: Blob): Promise<BillPhotoResult> {
+  const form = new FormData();
+  form.set("image", photo, "bill");
+  form.set("customerId", customerId);
+  const response = await fetch("/api/agent/bill-photo", { method: "POST", body: form });
+  const parsed = (await response.json().catch(() => null)) as (BillPhotoResult & { error?: string }) | null;
+  if (!response.ok || !parsed) throw new Error(parsed?.error ?? "Sisu could not read that photo.");
+  return parsed;
+}
+export const rememberKwh = (customerId: string, yearlyKwh: number) => postJson<CustomerMemory>("/api/memory", { customerId, kind: "yearly_kwh" satisfies MemoryKind, value: String(yearlyKwh) });
+
 export type VoiceChoice = { model?: string; voiceId?: string };
 
 export type Speaker = {
@@ -79,6 +122,7 @@ export type Speaker = {
   stop: () => void; // drop everything, used when the user interrupts
   unlock: () => void; // call inside a tap or click so the browser allows sound
   setVoice: (choice: VoiceChoice) => void; // try a different model or voice (test bench)
+  setLanguage: (language: string | null) => void; // the language of what is said next (ISO 639-1), or null to let the voice work it out
   whenQuiet: () => Promise<void>; // resolves when the queue has finished playing
 };
 
@@ -100,6 +144,7 @@ export function createSpeaker(onSpeakingChange?: (speaking: boolean) => void, on
   let running: Promise<void> | null = null;
   let lastSaid = "";
   let voice: VoiceChoice = {};
+  let language: string | null = null;
 
   function audio(): AudioContext | null {
     if (context) return context;
@@ -118,7 +163,7 @@ export function createSpeaker(onSpeakingChange?: (speaking: boolean) => void, on
       method: "POST",
       signal: abort.signal,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, format: "pcm", previousText, ...voice }),
+      body: JSON.stringify({ text, format: "pcm", previousText, ...voice, ...(language ? { language } : {}) }),
     })
       .then(async (res) => {
         if (res.ok && res.body) return res;
@@ -227,11 +272,14 @@ export function createSpeaker(onSpeakingChange?: (speaking: boolean) => void, on
     setVoice(choice) {
       voice = choice;
     },
+    setLanguage(next) {
+      language = next;
+    },
     whenQuiet: () => running ?? Promise.resolve(),
   };
 }
 
-export type VoiceOptions = { voices: { id: string; name: string; accent: string | null; style: string | null }[]; models: string[]; current: { model: string; voiceId: string } };
+export type VoiceOptions = { voices: { id: string; name: string; accent: string | null; style: string | null }[]; models: string[]; current: { model: string; voiceId: string }; languages: VoiceLanguage[] };
 
 export async function fetchVoiceOptions(): Promise<VoiceOptions | null> {
   const response = await fetch("/api/voice/tts").catch(() => null);

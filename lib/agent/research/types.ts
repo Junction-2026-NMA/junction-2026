@@ -24,6 +24,7 @@ export type RawResearch = {
   finishedAt: number | null;
   pagesDone: number;
   pagesTotal: number;
+  found?: { url: string; title: string }[]; // the pages the search returned, before any of them is read
   offers: RawOffer[];
   citations: Citation[];
   errors: string[];

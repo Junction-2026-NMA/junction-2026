@@ -102,13 +102,21 @@ The types live in `lib/types.ts`. B and C first commit stubs that return fixed e
 | `POST /api/scenarios` | B | Three futures (`nothing`, `save`, `invest`) with a low and high band and assumptions | Live |
 | `POST /api/agent/query` | C | Server-sent `AgentEvent` stream: tokens, sentences, tool trace, citations | Live |
 | `POST /api/research` (and `GET`) | C | `ResearchResult`: offers, savings, sources, retrieval time. `wait: false` prefetches. | Live |
-| `POST /api/actions/prepare` | B | Draft action awaiting approval | To build |
-| `POST /api/actions/:id/approve` | B | New status plus an audit event | To build |
+| `POST /api/actions/prepare` | B (built on `overnight/fable-lead`) | Draft action awaiting approval | Live on the branch |
+| `POST /api/actions/:id/approve`, `/decline` | B (same) | New status, the impact, and audit events. Needs `confirm: true` | Live on the branch |
+| `GET /api/actions`, `GET /api/audit` | B (same) | Actions and the hash-chained audit trail | Live on the branch |
+| `GET`, `POST`, `DELETE /api/memory` | B (same) | Confirmed bill names, yearly kWh, preferences, goals, consent | Live on the branch |
+| `POST /api/agent/investigate` | C | The same event stream as a query, with a `stage` event per step | Live on the branch |
+| `POST /api/agent/bill-photo` | C | What Nemotron's vision read from a photographed bill | Live on the branch |
+| `GET /api/coach/patterns`, `/cash-flow`, `/affordability`, `/teaching` | C | Code-computed results with no model | Live on the branch |
+| `GET /api/health` | C | What is really running, for judges | Live on the branch |
 | `POST /api/voice/turn`, `/api/voice/stt`, `/api/voice/tts` | C | Audio in → event stream; transcript; audio stream | Live
 | `GET /api/agent/warm` | C | Opens connections; reports mock mode | Live |
-| `POST /api/demo/reset` | B | Clean demo state | To build |
+| `POST /api/demo/reset` | B (built on `overnight/fable-lead`) | Clean demo state. Needs `SISU_RESET_TOKEN` when deployed | Live on the branch |
 
 Responses carry `customerId`, `dataTimestamp`, `currency` and `assumptions` where relevant. Never expose API keys or raw tables to the browser.
+
+The rows marked "Live on the branch" were added on 14 Nov on `overnight/fable-lead` and reach `main` when that branch is merged. How the frontend uses them: `docs/FRONTEND_INTEGRATION_CONTRACT.md`.
 
 ## Timeline (Espoo time)
 

@@ -10,7 +10,7 @@ import type { DemoCustomer } from "@/lib/types";
 import { MessageCard } from "./MessageCard";
 
 const STATUS_LABEL = { idle: "Hold to talk", recording: "Listening… release to send", thinking: "Thinking…", speaking: "Speaking… hold to interrupt" };
-const EXAMPLES = ["How much can I safely spend this week?", "How much did I spend on restaurants last month?", "Can you find me a cheaper electricity deal?", "What if I save 50 euros a month for five years?", "What is Kela's general housing allowance?"];
+const EXAMPLES = ["How much can I safely spend this week?", "Where is my money going? What should I change?", "Can I afford a 300 euro phone repair right now?", "Find me a cheaper electricity deal and prepare the switch.", "What if I save 50 euros a month for five years?", "Explain the three baskets idea to me.", "What is Kela's general housing allowance?"];
 
 export default function AgentBench() {
   const [customers, setCustomers] = useState<DemoCustomer[]>([]);
@@ -20,7 +20,8 @@ export default function AgentBench() {
   const [prefetched, setPrefetched] = useState<string | null>(null);
   const [voiceOptions, setVoiceOptions] = useState<VoiceOptions | null>(null);
   const [voice, setVoice] = useState<{ model: string; voiceId: string } | null>(null);
-  const sisu = useSisu({ customerId, speakReplies });
+  const [language, setLanguage] = useState("auto");
+  const sisu = useSisu({ customerId, speakReplies, language });
 
   useEffect(() => {
     fetchVoiceOptions().then((options) => {
@@ -55,6 +56,13 @@ export default function AgentBench() {
     setPrefetched(result ? `Electricity research ${result.status} (started in the background)` : "Could not start research");
   };
 
+  // Clears actions, memory and the audit log on the server, then the conversation here.
+  const resetDemo = async () => {
+    await fetch("/api/demo/reset", { method: "POST" });
+    sisu.reset();
+    void sisu.refresh();
+  };
+
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
     sisu.ask(draft);
@@ -67,6 +75,8 @@ export default function AgentBench() {
         <h1 className="mr-auto text-xl font-semibold tracking-tight">Sisu agent test bench</h1>
         {sisu.server?.mock && <span className="rounded-full bg-amber/20 px-2 py-0.5 text-xs font-semibold text-[#8a5f08]">MOCK DATA</span>}
         <span className="rounded-full border border-line bg-card px-2 py-0.5 text-xs text-muted">{sisu.server ? sisu.server.model.split("/").pop() : "connecting…"}</span>
+        {/* Stand-in for the mascot: the pose Liito should be in, and what Sisu is doing right now. */}
+        <span className="rounded-full bg-green-soft px-2 py-0.5 text-xs font-semibold text-green">Liito: {sisu.activity.liito} · {sisu.activity.label}</span>
       </header>
 
       <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -80,11 +90,25 @@ export default function AgentBench() {
           <input id="speak" type="checkbox" checked={speakReplies} onChange={(e) => setSpeakReplies(e.target.checked)} className="h-5 w-5 accent-[var(--green)]" />
           Speak replies
         </label>
+        <label className="flex items-center gap-2">
+          <span className="text-muted">Language</span>
+          <select id="language" value={language} onChange={(e) => setLanguage(e.target.value)} className="min-h-11 rounded-xl border border-line bg-card px-3 font-semibold">
+            <option value="auto">Auto-detect{sisu.heardLanguage ? ` (heard: ${sisu.heardLanguage})` : ""}</option>
+            {(voiceOptions?.languages ?? []).map((l) => <option key={l.code} value={l.code}>{l.nativeName} · {l.name}</option>)}
+          </select>
+        </label>
         <button type="button" onClick={prefetch} className="min-h-11 rounded-xl border border-line bg-card px-3 font-semibold">Prefetch electricity offers</button>
         <button type="button" onClick={sisu.testVoice} className="min-h-11 rounded-xl border border-line bg-card px-3 font-semibold">Test voice</button>
+        <button type="button" onClick={sisu.investigate} disabled={!customerId} className="min-h-11 rounded-xl bg-ink px-3 font-semibold text-white disabled:opacity-40">Investigate for me</button>
         <button type="button" onClick={sisu.reset} className="min-h-11 rounded-xl border border-line bg-card px-3 font-semibold">Clear</button>
+        <button type="button" onClick={resetDemo} className="min-h-11 rounded-xl border border-line bg-card px-3 font-semibold">Reset demo</button>
       </div>
       {prefetched && <p className="text-xs text-muted">{prefetched}</p>}
+      {(sisu.memory?.items.length || sisu.actions.length) ? (
+        <p className="text-xs text-muted">
+          Remembered: {sisu.memory?.items.map((item) => `${item.kind.replace("_", " ")} = ${item.value}`).join("; ") || "nothing"} · Actions: {sisu.actions.map((action) => action.status.replace(/_/g, " ")).join(", ") || "none"} · Freed by approved switches: €{sisu.approvedMonthlySaving.toFixed(2)}/month
+        </p>
+      ) : null}
 
       {voiceOptions && voice && voiceOptions.voices.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -115,7 +139,7 @@ export default function AgentBench() {
       )}
 
       <ol className="space-y-3">
-        {sisu.messages.map((message) => <li key={message.id}><MessageCard message={message} /></li>)}
+        {sisu.messages.map((message) => <li key={message.id}><MessageCard message={message} onApprove={(id) => void sisu.approve(id)} onDecline={(id) => void sisu.decline(id)} /></li>)}
       </ol>
 
       <div className="fixed inset-x-0 bottom-0 border-t border-line bg-card/95 px-4 pb-5 pt-3 backdrop-blur">

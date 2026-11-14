@@ -2,6 +2,10 @@
 
 For whoever builds the screens (lane A). Everything here works in mock mode with no API keys.
 
+> **Newer and fuller guide:** `docs/FRONTEND_INTEGRATION_CONTRACT.md` (added 14 Nov on `overnight/fable-lead`). It covers everything below plus stages, the approval card, teaching cards, memory, receipts, the investigation and the bill photo. Nothing below has changed; the hook only gained fields.
+
+> **Frontend agent, start here (14 Nov):** `docs/FRONTEND_AGENT_HANDOFF.md`. It says how to make Liito act out what Sisu is really doing (`activity` on both hooks), how to draw the charts Sisu sends (`VisualCard`), and how to lift the money plan from `/plan`.
+
 ## Try it first
 
 ```bash

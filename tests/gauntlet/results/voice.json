@@ -1,0 +1,52 @@
+{
+  "base": "http://localhost:3310",
+  "at": "2026-11-14T01:46:28.379Z",
+  "charsSpent": 288,
+  "fresh": [
+    {
+      "ok": true,
+      "firstAudioMs": 679,
+      "totalMs": 1088,
+      "bytes": 195840,
+      "cache": "miss",
+      "type": "audio/pcm;rate=24000"
+    },
+    {
+      "ok": true,
+      "firstAudioMs": 266,
+      "totalMs": 730,
+      "bytes": 230400,
+      "cache": "miss",
+      "type": "audio/pcm;rate=24000"
+    },
+    {
+      "ok": true,
+      "firstAudioMs": 301,
+      "totalMs": 750,
+      "bytes": 230400,
+      "cache": "miss",
+      "type": "audio/pcm;rate=24000"
+    }
+  ],
+  "repeat": {
+    "ok": true,
+    "firstAudioMs": 8,
+    "totalMs": 9,
+    "bytes": 195840,
+    "cache": "hit",
+    "type": "audio/pcm;rate=24000"
+  },
+  "turn": {
+    "status": 200,
+    "transcript": "How much can I safely spend this week?",
+    "sttMs": 583,
+    "firstSentence": "You can safely spend 164 euros this week.",
+    "firstSentenceAtMs": 1119,
+    "answer": "You can safely spend 164 euros this week.",
+    "grounded": true,
+    "provider": "verda",
+    "error": null,
+    "firstAudioAfterSentenceMs": 254,
+    "heardAtMs": 1373
+  }
+}

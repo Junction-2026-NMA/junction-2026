@@ -143,3 +143,24 @@ Event order in one turn: `start`, (`transcript`), (`speculation`), then any mix 
 14. **Offers are kept warm.** `GET /api/agent/warm` (called when the app opens) starts electricity research for the demo cities. A finished result is used as is for 10 minutes; up to an hour old it is still served at once, with its real retrieval time, while a fresh copy loads behind the scenes.
 15. **The model's cache is primed.** Reading a customer's 2,000-token instructions takes our Verda GPU about 2 s the first time and about 0.2 s after that. The warm-up sends each demo customer's instructions once, so their first question is fast.
 16. **Voice.** ElevenLabs `eleven_v4_turbo` (newest generation, about 0.3 s to first audio). Audio is streamed as raw samples and played as it arrives, and each sentence is sent with the previous one as context so the speech flows. The full `eleven_v4` sounds richest but takes about 1.1 s to start. Compare by ear on `/dev/agent`.
+
+## Added on 14 Nov (branch `overnight/fable-lead`)
+
+The full explanation is `docs/SISU_ARCHITECTURE_EXPLAINED.md`. The rules added to this contract:
+
+17. **Receipts.** Every tool returns `facts`: each number, its source (`bank-data`, `exa`, `context.dev`, `calculation`, `assumption`, `customer-stated`) and, where it has one, the filter that opens its transactions.
+18. **Every number is checked.** When a sentence is complete, code checks its numbers against the receipts (`lib/agent/grounding.ts`). A figure copied with a slipped digit is replaced by the receipt's value before it is shown or spoken. The turn ends with a `grounding` event; a number with no source is listed there.
+19. **The model never does arithmetic.** Projections go through `run_scenario`, one-off costs through `check_affordability`, and `find_patterns` hands over any total ready-made.
+20. **Twelve tools.** Added: `list_bills`, `get_cash_flow`, `find_patterns`, `check_affordability`, `get_mortgage`, `explain_concept`, `prepare_action`, `remember`. Each tool call also emits typed `stage` events for the UI.
+21. **Common answers in one step.** Last month's spending by category, the payday outlook, how long the balance would last and the three and six month buffers are in the customer summary, so those questions need no tool (0.47 s to the first sentence instead of 1.26 s).
+22. **Approval is outside the model.** `prepare_action` only prepares, from data the server already holds. `POST /api/actions/:id/approve` with `confirm: true` is the only way an action is carried out, and it is a simulation. Every step is in a hash-chained audit log.
+23. **Memory needs the customer's own words.** `remember` saves only what one of the customer's messages supports, and only with consent.
+24. **Three kinds of outside text are untrusted:** web pages, bill photos and anything in the customer's message dressed up as a tool result or system message (`lib/agent/tools/untrusted.ts`).
+25. **Investigation.** `POST /api/agent/investigate` runs the same loop with up to 9 model steps and a prompt that walks find, research, project, teach, prepare. If the model stops early it is told which step it skipped.
+26. **Circuit breaker.** After the main model fails once, later steps go straight to the backup; a background probe every 5 s switches back (`lib/agent/breaker.ts`). The stall limit is 2 s and stops at the first token of any kind.
+27. **Bill photos go only to the main model host**, never to the backup (`lib/agent/vision.ts`).
+28. **Speech requests queue two at a time**, which is the ElevenLabs plan's limit.
+
+Event order is now: `start`, (`transcript`), (`speculation`), (`filler`), then any mix of `tool_start`, `tool_end`, `research`, `stage`, `teaching`, `action`, `memory`, `delta`, `sentence`, then `grounding`, then `done`. Or `error`.
+
+Measured turn times after these changes are in `docs/GAUNTLET_RESULTS.md`. One earlier claim in this file did not hold up when re-measured: priming the model per customer (rule 15) makes no measurable difference on our GPU (first token 257 ms repeated, 282 ms with the cache defeated). First-token time instead grows with prompt length, about 10 ms per 1,000 characters.

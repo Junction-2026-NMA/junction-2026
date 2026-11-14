@@ -1,5 +1,6 @@
 // Shared helpers for the agent's API routes: request validation, a small rate limit and the event stream.
-import type { AgentEvent, AgentRequest, BillType, ChatTurn } from "@/lib/types";
+import type { AgentRequest, BillType, ChatTurn, SisuEvent } from "@/lib/types";
+import { languageCode } from "./languages";
 
 const MAX_TEXT_CHARS = 500;
 const MAX_HISTORY = 12;
@@ -38,6 +39,7 @@ export function parseAgentRequest(body: unknown, mode: "voice" | "text"): AgentR
     mode: input.mode === "voice" || input.mode === "text" ? input.mode : mode,
     history: parseHistory(input.history),
     focusBill: parseBillType(input.focusBill),
+    language: languageCode(input.language) ?? undefined,
   };
 }
 
@@ -62,7 +64,7 @@ export function allowRequest(request: Request, bucket: string, limitPerMinute: n
 export const TOO_MANY = () => jsonError("Sisu is getting a lot of questions. Please wait a moment and try again.", 429);
 
 // Sends agent events to the browser as server-sent events, one JSON object per message.
-export function eventStream(events: AsyncGenerator<AgentEvent>): Response {
+export function eventStream<T = SisuEvent>(events: AsyncGenerator<T>): Response {
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async pull(controller) {
