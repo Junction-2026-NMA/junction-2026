@@ -72,25 +72,34 @@ export async function prefetchOffers(customerId: string, billType: BillType): Pr
   return response?.ok ? ((await response.json()) as ResearchResult) : null;
 }
 
+export type VoiceChoice = { model?: string; voiceId?: string };
+
 export type Speaker = {
-  say: (text: string) => void; // queue a sentence; audio is fetched at once and played in order
+  say: (text: string) => void; // queue a sentence; its audio is requested at once and played in order
   stop: () => void; // drop everything, used when the user interrupts
   unlock: () => void; // call inside a tap or click so the browser allows sound
+  setVoice: (choice: VoiceChoice) => void; // try a different model or voice (test bench)
   whenQuiet: () => Promise<void>; // resolves when the queue has finished playing
 };
 
 type AudioContextClass = typeof AudioContext;
+type Clip = { response: Promise<Response | null>; abort: AbortController };
 
-// Plays sentences one after another through the Web Audio API. Each sentence's audio is requested the
-// moment it is queued, so the next one is usually ready before the previous one ends.
-// Web Audio is used instead of an <audio> element because, once unlocked by one tap, it keeps working
-// in Safari and on phones, where <audio>.play() is blocked outside a tap.
+const SAMPLE_RATE = 24_000; // must match PCM_SAMPLE_RATE on the server
+const LEAD_SECONDS = 0.04; // tiny cushion so the first chunk is not clipped
+
+// Plays Sisu's sentences one after another, starting each as soon as its first audio arrives.
+// The server streams raw samples, and each chunk is scheduled on the Web Audio clock right behind
+// the previous one, so nothing waits for a whole clip to download or decode. Web Audio also keeps
+// working in Safari and on phones once one tap has unlocked it.
 export function createSpeaker(onSpeakingChange?: (speaking: boolean) => void, onError?: (message: string) => void): Speaker {
   let context: AudioContext | null = null;
-  let queue: Promise<AudioBuffer | null>[] = [];
-  let current: AudioBufferSourceNode | null = null;
+  let queue: Clip[] = [];
+  let playing: AudioBufferSourceNode[] = [];
   let generation = 0; // bumping this cancels a playback loop in progress
   let running: Promise<void> | null = null;
+  let lastSaid = "";
+  let voice: VoiceChoice = {};
 
   function audio(): AudioContext | null {
     if (context) return context;
@@ -103,50 +112,86 @@ export function createSpeaker(onSpeakingChange?: (speaking: boolean) => void, on
     return context;
   }
 
-  async function fetchClip(text: string): Promise<AudioBuffer | null> {
-    try {
-      const response = await fetch("/api/voice/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
-      if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+  function request(text: string, previousText: string): Clip {
+    const abort = new AbortController();
+    const response = fetch("/api/voice/tts", {
+      method: "POST",
+      signal: abort.signal,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, format: "pcm", previousText, ...voice }),
+    })
+      .then(async (res) => {
+        if (res.ok && res.body) return res;
+        const body = (await res.json().catch(() => null)) as { error?: string } | null;
         onError?.(body?.error ?? "Sisu's voice is unavailable right now. The answer is shown as text.");
         return null;
-      }
-      const ctx = audio();
-      return ctx ? await ctx.decodeAudioData(await response.arrayBuffer()) : null;
-    } catch {
-      onError?.("Sisu's voice could not be loaded. The answer is shown as text.");
-      return null;
-    }
+      })
+      .catch(() => {
+        if (!abort.signal.aborted) onError?.("Sisu's voice could not be loaded. The answer is shown as text.");
+        return null;
+      });
+    return { response, abort };
   }
 
-  function playClip(ctx: AudioContext, buffer: AudioBuffer): Promise<void> {
-    return new Promise((resolve) => {
+  // Reads one sentence's audio as it streams in and schedules each chunk. Resolves when it has finished playing.
+  async function playStream(ctx: AudioContext, response: Response, mine: number): Promise<void> {
+    const reader = (response.body as ReadableStream<Uint8Array>).getReader();
+    let leftover: Uint8Array = new Uint8Array(0); // a sample can be split across two network chunks
+    let playAt = 0;
+    let lastSource: AudioBufferSourceNode | null = null;
+
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (mine !== generation) {
+        void reader.cancel().catch(() => undefined);
+        return;
+      }
+      if (done) break;
+      const bytes = new Uint8Array(leftover.length + value.length);
+      bytes.set(leftover);
+      bytes.set(value, leftover.length);
+      const usable = bytes.length - (bytes.length % 2);
+      leftover = bytes.slice(usable);
+      if (!usable) continue;
+
+      const samples = new Int16Array(bytes.buffer, 0, usable / 2);
+      const buffer = ctx.createBuffer(1, samples.length, SAMPLE_RATE);
+      const channel = buffer.getChannelData(0);
+      for (let i = 0; i < samples.length; i++) channel[i] = samples[i] / 32768;
+
       const source = ctx.createBufferSource();
       source.buffer = buffer;
       source.connect(ctx.destination);
+      playAt = Math.max(playAt, ctx.currentTime + LEAD_SECONDS);
+      source.start(playAt);
+      playAt += buffer.duration;
+      playing = [...playing, source];
       source.onended = () => {
-        if (current === source) current = null;
-        resolve();
+        playing = playing.filter((node) => node !== source);
       };
-      current = source;
-      source.start();
-    });
+      lastSource = source;
+    }
+    const finalSource = lastSource;
+    if (finalSource && playing.includes(finalSource)) {
+      await new Promise<void>((resolve) => finalSource.addEventListener("ended", () => resolve(), { once: true }));
+    }
   }
 
   async function drain(mine: number): Promise<void> {
     onSpeakingChange?.(true);
     while (queue.length && mine === generation) {
-      const buffer = await queue[0];
+      const clip = queue[0];
+      const response = await clip.response;
       if (mine !== generation) break;
       queue = queue.slice(1);
       const ctx = audio();
-      if (!buffer || !ctx) continue;
+      if (!response || !ctx) continue;
       if (ctx.state === "suspended") await ctx.resume().catch(() => undefined);
       if (ctx.state !== "running") {
         onError?.("Your browser is blocking sound. Tap anywhere on the page, then ask again.");
         continue;
       }
-      await playClip(ctx, buffer);
+      await playStream(ctx, response, mine);
     }
     if (mine === generation) {
       running = null;
@@ -156,26 +201,41 @@ export function createSpeaker(onSpeakingChange?: (speaking: boolean) => void, on
 
   return {
     say(text) {
-      queue = [...queue, fetchClip(text)];
+      queue = [...queue, request(text, lastSaid)];
+      lastSaid = text;
       running ??= drain(generation);
     },
     stop() {
       generation += 1;
+      queue.forEach((clip) => clip.abort.abort());
       queue = [];
       running = null;
-      try {
-        current?.stop();
-      } catch {
-        // already stopped
-      }
-      current = null;
+      lastSaid = "";
+      playing.forEach((source) => {
+        try {
+          source.stop();
+        } catch {
+          // already stopped
+        }
+      });
+      playing = [];
       onSpeakingChange?.(false);
     },
     unlock() {
       void audio()?.resume().catch(() => undefined);
     },
+    setVoice(choice) {
+      voice = choice;
+    },
     whenQuiet: () => running ?? Promise.resolve(),
   };
+}
+
+export type VoiceOptions = { voices: { id: string; name: string; accent: string | null; style: string | null }[]; models: string[]; current: { model: string; voiceId: string } };
+
+export async function fetchVoiceOptions(): Promise<VoiceOptions | null> {
+  const response = await fetch("/api/voice/tts").catch(() => null);
+  return response?.ok ? ((await response.json()) as VoiceOptions) : null;
 }
 
 export type Recorder = { start: () => Promise<void>; stop: () => Promise<Blob | null>; release: () => void };

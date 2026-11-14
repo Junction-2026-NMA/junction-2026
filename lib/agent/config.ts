@@ -61,7 +61,7 @@ export function getConfig(): AgentConfig {
     contextDev: { apiKey: env("CONTEXT_DEV_API_KEY") },
     eleven: {
       apiKey: env("ELEVENLABS_API_KEY"),
-      ttsModel: env("ELEVENLABS_TTS_MODEL", "eleven_turbo_v2_5"),
+      ttsModel: env("ELEVENLABS_TTS_MODEL", "eleven_v4_turbo"),
       sttModel: env("ELEVENLABS_STT_MODEL", "scribe_v3"),
       sttLanguage: env("ELEVENLABS_STT_LANGUAGE", "en"),
       voiceId: env("ELEVENLABS_VOICE_ID"),

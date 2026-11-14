@@ -27,8 +27,9 @@ export type StreamOptions = {
 };
 
 const MODEL_TIMEOUT_MS = 25_000;
-// If the main model has produced nothing by now, the backup takes the turn. Normal first tokens arrive in 0.1 to 0.6 s.
-const FIRST_TOKEN_LIMIT_MS = 2_000;
+// If the main model has produced nothing by now, the backup takes the turn. Normal first tokens arrive in
+// 0.1 to 0.6 s; an uncached 2,000-token prompt on our Verda GPU can take about 2 s, which primeModel avoids.
+const FIRST_TOKEN_LIMIT_MS = 3_000;
 
 type Delta = {
   content?: string | null;
@@ -156,5 +157,17 @@ function parseDelta(line: string): Delta | null {
     return parsed.choices?.[0]?.delta ?? null;
   } catch {
     return null; // a partial or keep-alive line; the stream carries on
+  }
+}
+
+// Sends the prompt once and throws the answer away. vLLM keeps the processed prompt in its cache, so the
+// user's first real question skips about 2 s of prompt reading. Only the main model is primed.
+export async function primeModel(messages: ChatMessage[], tools: ToolSchema[]): Promise<void> {
+  const config = getConfig();
+  if (config.isMock) return;
+  try {
+    for await (const chunk of streamFrom(config.model, { messages, tools, maxTokens: 1 }, undefined, false)) void chunk;
+  } catch (error) {
+    console.error(`[agent] could not prime the ${config.model.provider} model:`, (error as Error).message);
   }
 }

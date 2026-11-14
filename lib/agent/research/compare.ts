@@ -146,7 +146,3 @@ export function toResult(raw: RawResearch, baselineMonthlyEur: number | null, st
     errors: raw.errors,
   };
 }
-
-export function comparableCount(raw: RawResearch): number {
-  return dedupe(raw.offers).filter((o) => isComparable(o, raw.billType)).length;
-}

@@ -79,7 +79,7 @@ await runTurn("5. Mentions electricity but needs no research", await ask("How mu
 await runTurn("6. Outside fact (web search)", await ask("What is the general housing allowance from Kela?"));
 
 // A full voice turn: make a spoken question with text to speech, then send it as if it were recorded.
-const clip = await fetch(`${BASE}/api/voice/tts`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: "What happens if I save fifty euros a month for five years?" }) });
+const clip = await fetch(`${BASE}/api/voice/tts`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: "What happens if I save fifty euros a month for five years?", format: "mp3" }) });
 if (clip.ok) {
   const form = new FormData();
   form.set("audio", new Blob([await clip.arrayBuffer()], { type: clip.headers.get("content-type") ?? "audio/mpeg" }), "question.mp3");

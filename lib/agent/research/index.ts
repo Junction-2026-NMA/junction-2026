@@ -4,16 +4,14 @@
 import type { BillType } from "@/lib/types";
 import { getConfig } from "../config";
 import { mockRawOffers } from "../mock";
-import { comparableCount } from "./compare";
 import { extractOffers } from "./contextdev";
 import { exaSearch } from "./exa";
 import type { RawResearch } from "./types";
 
-const RESULT_TTL_MS = 10 * 60_000;
+const FRESH_MS = 10 * 60_000; // younger than this: use as is
+const STALE_OK_MS = 60 * 60_000; // up to this old: still answer from it at once, and refresh behind the scenes
 const PAGES_TO_READ = 3;
 const POLL_MS = 50;
-const QUIET_MS = 600; // once usable, how long to wait for one more page before answering
-const MIN_COMPARABLE = 2;
 const MOCK_DELAY_MS = 900;
 
 const QUERY: Record<BillType, (city: string) => string> = {
@@ -39,12 +37,6 @@ const store: Map<string, Entry> = (globalStore.__sisuResearch ??= new Map());
 
 const keyOf = (billType: BillType, city: string) => `${billType}:${city.toLowerCase()}`;
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-function isReusable(entry: Entry): boolean {
-  const { status, finishedAt } = entry.snapshot;
-  if (status === "running" || status === "partial") return true;
-  return status === "done" && finishedAt !== null && Date.now() - finishedAt < RESULT_TTL_MS;
-}
 
 function update(entry: Entry, change: Partial<RawResearch>): void {
   entry.snapshot = { ...entry.snapshot, ...change };
@@ -112,16 +104,11 @@ async function run(entry: Entry): Promise<void> {
   update(entry, { status: entry.snapshot.offers.length ? "done" : "failed", finishedAt: Date.now() });
 }
 
-// Starts research, or joins the run already in flight (or a recent finished one). Never blocks.
-export function ensureResearch(billType: BillType, city: string): { key: string; reused: boolean } {
-  const key = keyOf(billType, city);
-  const existing = store.get(key);
-  if (existing && isReusable(existing)) return { key, reused: true };
-
-  const entry: Entry = {
+function newEntry(billType: BillType, city: string): Entry {
+  return {
     lastChangeAt: Date.now(),
     snapshot: {
-      key,
+      key: keyOf(billType, city),
       billType,
       city,
       status: "running",
@@ -136,6 +123,42 @@ export function ensureResearch(billType: BillType, city: string): { key: string;
       errors: [],
     },
   };
+}
+
+const refreshing: Set<string> = ((globalThis as unknown as { __sisuRefreshing?: Set<string> }).__sisuRefreshing ??= new Set());
+
+// Fetches a fresh copy without disturbing the one being served. It replaces the old result only if it succeeds.
+function refreshBehindTheScenes(billType: BillType, city: string): void {
+  const key = keyOf(billType, city);
+  if (refreshing.has(key)) return;
+  refreshing.add(key);
+  const entry = newEntry(billType, city);
+  run(entry)
+    .then(() => {
+      if (entry.snapshot.status === "done") store.set(key, entry);
+    })
+    .catch((error) => console.error("[agent] background refresh failed", error))
+    .finally(() => refreshing.delete(key));
+}
+
+// Starts research, or joins the run already in flight (or a recent finished one). Never blocks.
+// A result up to an hour old is still served at once, with its real retrieval time, while a fresh
+// copy is fetched behind the scenes. That keeps the slow step out of the conversation.
+export function ensureResearch(billType: BillType, city: string): { key: string; reused: boolean } {
+  const key = keyOf(billType, city);
+  const existing = store.get(key);
+  if (existing) {
+    const { status, finishedAt } = existing.snapshot;
+    if (status === "running" || status === "partial") return { key, reused: true };
+    const age = status === "done" && finishedAt !== null ? Date.now() - finishedAt : Infinity;
+    if (age < FRESH_MS) return { key, reused: true };
+    if (age < STALE_OK_MS) {
+      refreshBehindTheScenes(billType, city);
+      return { key, reused: true };
+    }
+  }
+
+  const entry = newEntry(billType, city);
   store.set(key, entry);
   run(entry).catch((error) => {
     console.error("[agent] research run failed", error);
@@ -148,10 +171,12 @@ export function peekResearch(key: string): RawResearch | null {
   return store.get(key)?.snapshot ?? null;
 }
 
+// Usable means every page has been read (or failed). Answering from the first page alone gave unstable
+// results: with one page the "typical price" shifts and the best offer or the saving can come out differently.
+// Waiting costs a few seconds only on a cold search, which the background refresh makes rare.
 function isUsable(entry: Entry): boolean {
   const { status } = entry.snapshot;
-  if (status === "done" || status === "failed") return true;
-  return comparableCount(entry.snapshot) >= MIN_COMPARABLE && Date.now() - entry.lastChangeAt >= QUIET_MS;
+  return status === "done" || status === "failed";
 }
 
 // True when a tool call for this research would return straight away, so no filler line is needed.

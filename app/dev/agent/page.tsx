@@ -4,7 +4,7 @@
 // It is for the team, not the judges. The real UI lives in app/page.tsx and components/.
 import { useEffect, useState } from "react";
 import { fetchDemoCustomers } from "@/lib/api";
-import { prefetchOffers } from "@/lib/agent/client";
+import { type VoiceOptions, fetchVoiceOptions, prefetchOffers } from "@/lib/agent/client";
 import { useSisu } from "@/lib/agent/useSisu";
 import type { DemoCustomer } from "@/lib/types";
 import { MessageCard } from "./MessageCard";
@@ -18,7 +18,23 @@ export default function AgentBench() {
   const [speakReplies, setSpeakReplies] = useState(true);
   const [draft, setDraft] = useState("");
   const [prefetched, setPrefetched] = useState<string | null>(null);
+  const [voiceOptions, setVoiceOptions] = useState<VoiceOptions | null>(null);
+  const [voice, setVoice] = useState<{ model: string; voiceId: string } | null>(null);
   const sisu = useSisu({ customerId, speakReplies });
+
+  useEffect(() => {
+    fetchVoiceOptions().then((options) => {
+      setVoiceOptions(options);
+      if (options) setVoice(options.current);
+    });
+  }, []);
+
+  const chooseVoice = (change: Partial<{ model: string; voiceId: string }>) => {
+    if (!voice) return;
+    const next = { ...voice, ...change };
+    setVoice(next);
+    sisu.setVoice(next);
+  };
 
   useEffect(() => {
     fetchDemoCustomers().then((list) => {
@@ -69,6 +85,24 @@ export default function AgentBench() {
         <button type="button" onClick={sisu.reset} className="min-h-11 rounded-xl border border-line bg-card px-3 font-semibold">Clear</button>
       </div>
       {prefetched && <p className="text-xs text-muted">{prefetched}</p>}
+
+      {voiceOptions && voice && voiceOptions.voices.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <label className="flex items-center gap-2">
+            <span className="text-muted">Voice</span>
+            <select id="voice" value={voice.voiceId} onChange={(e) => chooseVoice({ voiceId: e.target.value })} className="min-h-11 max-w-[14rem] rounded-xl border border-line bg-card px-3 font-semibold">
+              {voiceOptions.voices.map((v) => <option key={v.id} value={v.id}>{v.name.split(" - ")[0]}{v.accent ? ` · ${v.accent}` : ""}{v.style ? ` · ${v.style.replace(/_/g, " ")}` : ""}</option>)}
+            </select>
+          </label>
+          <label className="flex items-center gap-2">
+            <span className="text-muted">Model</span>
+            <select id="voice-model" value={voice.model} onChange={(e) => chooseVoice({ model: e.target.value })} className="min-h-11 rounded-xl border border-line bg-card px-3 font-semibold">
+              {voiceOptions.models.map((m) => <option key={m} value={m}>{m.replace("eleven_", "").replace(/_/g, " ")}</option>)}
+            </select>
+          </label>
+          <span className="text-xs text-muted">Pick, then tap Test voice. Tell Nicholas&apos;s Claude which pair sounds best.</span>
+        </div>
+      )}
 
       {sisu.messages.length === 0 && (
         <ul className="space-y-2">

@@ -9,7 +9,7 @@ import { toResult } from "./research/compare";
 import { exaSearch } from "./research/exa";
 import { ensureResearch, waitForUsable } from "./research";
 
-const RESEARCH_HARD_LIMIT_MS = 7_000;
+const RESEARCH_HARD_LIMIT_MS = 8_500; // every page has an 8 s limit of its own
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const BILL_TYPES: BillType[] = ["electricity", "mobile", "internet"];
 const BILL_GUESS_LABEL: Record<BillType, string> = { electricity: "Electricity", mobile: "Mobile plan", internet: "Home internet" };
@@ -187,6 +187,7 @@ async function searchOffers(args: Record<string, unknown>, ctx: ToolContext): Pr
   return {
     content: JSON.stringify({
       status: research.status,
+      statusNote: research.status === "done" ? undefined : "Not every page had loaded. Say this is from what could be read so far and may change.",
       exampleDataOnly: research.mock,
       currentBillMonthlyEur: research.baselineMonthlyEur,
       yearlyKwhUsed: research.assumedYearlyKwh,

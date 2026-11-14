@@ -107,9 +107,11 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
       // and any speculative research simply stays in the cache.
       if (!toolCalls.length) {
         // Guard: sometimes the model says "I can run that for you" and stops. Make it follow through once.
-        if (step === 0 && stepText.length < PROMISE_MAX_CHARS && PROMISE_PATTERN.test(stepText)) {
+        // The same goes when the question was clearly about a better deal and it answered without searching.
+        const promised = stepText.length < PROMISE_MAX_CHARS && PROMISE_PATTERN.test(stepText);
+        if (step === 0 && (promised || guess)) {
           yield* emitSentences(splitter.flush());
-          messages.push({ role: "assistant", content: stepText }, { role: "user", content: "Go ahead: call the tool now, then answer with the result." });
+          messages.push({ role: "assistant", content: stepText }, { role: "user", content: guess ? `Go ahead: call search_offers for ${guess.billType} now, then answer with the result.` : "Go ahead: call the tool now, then answer with the result." });
           continue;
         }
         break;

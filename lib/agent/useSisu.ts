@@ -4,7 +4,7 @@
 // Usage is shown in context/frontend-integration.md and app/dev/agent/page.tsx.
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { BillType, ChatTurn, Citation, ResearchResult, ToolTrace, TurnTimings } from "@/lib/types";
-import { type Recorder, type Speaker, createRecorder, createSpeaker, streamTurn, warmAgent } from "./client";
+import { type Recorder, type Speaker, type VoiceChoice, createRecorder, createSpeaker, streamTurn, warmAgent } from "./client";
 
 export type SisuStatus = "idle" | "recording" | "thinking" | "speaking";
 
@@ -198,13 +198,17 @@ export function useSisu({ customerId, focusBill, speakReplies = true }: SisuOpti
     else setMicError("That was too short. Hold the button while you speak, then let go.");
   }, [runTurn]);
 
+  // Tries another ElevenLabs model or voice for everything Sisu says next (test bench only).
+  const setVoice = useCallback((choice: VoiceChoice) => speaker.current?.setVoice(choice), []);
+
   // Says a fixed sentence, to check that sound works on this device.
   const testVoice = useCallback(() => {
     setVoiceError(null);
     speaker.current?.unlock();
-    speaker.current?.say("Hi, this is Sisu. If you can hear me, sound is working.");
+    speaker.current?.stop();
+    speaker.current?.say("Hi, this is Sisu. I found a cheaper electricity deal that could save you about a hundred and forty euros a year.");
   }, []);
 
   const status: SisuStatus = recording ? "recording" : busy ? "thinking" : speaking ? "speaking" : "idle";
-  return { status, messages, server, micError, voiceError, ask, startTalking, stopTalking, testVoice, cancel, reset };
+  return { status, messages, server, micError, voiceError, ask, startTalking, stopTalking, testVoice, setVoice, cancel, reset };
 }

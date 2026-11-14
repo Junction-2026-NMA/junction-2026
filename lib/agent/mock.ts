@@ -111,3 +111,14 @@ export function mockWav(seconds = 0.25, frequency = 660): Uint8Array<ArrayBuffer
   }
   return new Uint8Array(buffer);
 }
+
+// The same beep as raw 16-bit samples, which is what the browser's streamed player expects.
+export function mockPcm(sampleRate: number, seconds = 0.25, frequency = 660): Uint8Array<ArrayBuffer> {
+  const samples = Math.floor(sampleRate * seconds);
+  const view = new DataView(new ArrayBuffer(samples * 2));
+  for (let i = 0; i < samples; i++) {
+    const fade = Math.min(1, i / 400, (samples - i) / 400);
+    view.setInt16(i * 2, Math.sin((2 * Math.PI * frequency * i) / sampleRate) * 6000 * fade, true);
+  }
+  return new Uint8Array(view.buffer as ArrayBuffer);
+}

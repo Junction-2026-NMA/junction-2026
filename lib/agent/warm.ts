@@ -1,6 +1,11 @@
 // The first call to each outside service is slow (new connection, about 0.3 to 0.6 s extra).
 // Warming them once, when the app opens, moves that cost away from the user's first question.
+import { DEMO_CUSTOMERS } from "@/lib/finance/data";
+import { buildOverview } from "@/lib/finance/overview";
 import { getConfig } from "./config";
+import { primeModel } from "./model";
+import { buildSystemPrompt } from "./prompt";
+import { TOOL_SCHEMAS } from "./tools";
 import { synthesize } from "./speech";
 
 const FILLERS = ["Let me check today's electricity deals in Helsinki.", "Let me check today's electricity deals in Espoo.", "Let me check today's mobile plans."];
@@ -29,4 +34,17 @@ async function warm(): Promise<void> {
 // Safe to call on every request: the work happens once per server process.
 export function warmUp(): Promise<void> {
   return (globalStore.__sisuWarm ??= warm());
+}
+
+// Reads each demo customer's instructions into the model's cache. Cheap to repeat: a cached prompt returns in about 0.2 s.
+export async function primeCustomers(): Promise<void> {
+  if (getConfig().isMock) return;
+  await Promise.all(
+    DEMO_CUSTOMERS.flatMap((customer) => {
+      const overview = buildOverview(customer.customerId);
+      if (!overview) return [];
+      // Voice is what the demo uses. A typed question primes its own prompt on first use.
+      return [primeModel([{ role: "system", content: buildSystemPrompt(overview, "voice", customer.area) }, { role: "user", content: "Hello" }], TOOL_SCHEMAS)];
+    }),
+  );
 }
