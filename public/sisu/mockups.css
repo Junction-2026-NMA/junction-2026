@@ -11,7 +11,7 @@
 
 .chat-name {
   color: var(--text-muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 
@@ -61,7 +61,7 @@
 
 .data-source {
   color: var(--text-muted);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 
@@ -83,9 +83,11 @@
   font-weight: 600;
 }
 
-/* Panel 3: the daily checklist with the streak flame and a jar filling. */
+/* Panel 3: the daily checklist with the streak flame and the buffer jar. Today's win is done:
+   the label says so in a mint chip, the bar is full, and the third task is optional. */
 .daily-top {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
@@ -99,9 +101,15 @@
 
 .daily-done {
   margin-left: auto;
-  color: var(--text-muted);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  background: var(--green-100);
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 700;
+}
+
+.mock-daily .meter-fill {
+  width: 100%;
 }
 
 .task {
