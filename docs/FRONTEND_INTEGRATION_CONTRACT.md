@@ -623,3 +623,15 @@ Checked against the hosted backend with real recordings (`tests/gauntlet/voice-f
 | Nothing heard | Silence, noise or a very short clip ends the stream with one `error` event: "Sisu did not catch any words. Hold the button while you speak." |
 | Speed | Speech to text about 0.5 s; first sentence of the answer 1.1 to 2.3 s after the upload; first audio of a spoken sentence about 0.3 s. |
 | Speaking an answer | `POST /api/voice/tts` per sentence, `format: "pcm"` to stream or `"mp3"` for a file, at most 600 characters. Five sentences at once are fine. |
+
+## 18. Short answers and next-step buttons (new 15 Nov)
+
+Sisu's written answers are now one or two sentences (about 20-60 words). The cards, charts, offer lists, sources and workings carry the detail, so the answer text no longer repeats them.
+
+**Buttons under every answer.** Each turn sends `{ type: "suggestions", items: Suggestion[] }` (2-3 items) just before `grounding`. With `useSisu`, read `message.suggestions`. Show them as chips under the answer. On tap: `sisu.ask(item.prompt)`, or `sisu.investigate()` when `item.kind === "investigate"`. `item.agentic` is true when tapping makes Sisu do something (search offers, set up a transfer, start a watch); give those a distinct look.
+
+**Buttons on an empty Talk screen.** `GET /api/agent/suggestions?customerId=…[&language=fi]` returns `{ customerId, suggestions }` (4 items, no model call). `useSisu` exposes them as `sisu.starters` and refreshes them after every turn, so a bill already switched or a watch already running is replaced by what comes next.
+
+**Watch actions.** `monthlyAmountEur` is now 0 for `property_watch` and `price_watch`: a watch frees no money. Its limit is `action.watch.budgetEur`. Do not show "freed" or "Simulated, no real switch" on a watch: `action.simulated` is false because the monitors are real.
+
+Fields are additive; nothing existing changed shape.
