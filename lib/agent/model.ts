@@ -31,10 +31,10 @@ export type StreamOptions = {
 };
 
 const MODEL_TIMEOUT_MS = 25_000;
-// If the main model has produced nothing by now, the backup takes the turn. Normal first tokens arrive in
-// 0.1 to 0.6 s; an uncached prompt on our Verda GPU can take about 2 s, which primeModel avoids.
-// MODEL_FIRST_TOKEN_LIMIT_MS overrides it (the tests use a short limit).
-const firstTokenLimitMs = (): number => Number(process.env.MODEL_FIRST_TOKEN_LIMIT_MS) || 3_000;
+// If the main model has produced nothing by now, the backup takes the turn. Measured first tokens on our GPU:
+// p50 0.26 s, p95 0.34 s alone, and up to about 1.5 s with twelve turns at once. Two seconds leaves room for a
+// busy GPU without making a customer wait long for a dead one. MODEL_FIRST_TOKEN_LIMIT_MS overrides it.
+const firstTokenLimitMs = (): number => Number(process.env.MODEL_FIRST_TOKEN_LIMIT_MS) || 2_000;
 
 type Delta = {
   content?: string | null;

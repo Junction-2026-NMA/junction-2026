@@ -8,8 +8,9 @@ const RUNS = Number(process.argv[2] ?? 8);
 const jsonPath = process.argv.includes("--json") ? process.argv[process.argv.indexOf("--json") + 1] : null;
 
 const SCENARIOS = [
-  { id: "summary", label: "Answer from the summary (no tool)", mode: "voice", questions: ["How much can I safely spend this week?", "What is my biggest spending category?", "How much do I earn a month?", "How much do I pay for electricity each month?"] },
-  { id: "finance-tool", label: "One finance tool", mode: "voice", questions: ["How much did I spend on restaurants last month?", "How much did I spend on groceries in August 2026?", "How much did I spend on taxis this year?", "What did I spend on transport last month?"] },
+  { id: "summary", label: "Answer from the summary (no tool)", mode: "voice", questions: ["How much can I safely spend this week?", "How much do I spend on restaurants in an average month?", "How much do I earn a month?", "How much do I pay for electricity each month?"] },
+  { id: "last-month", label: "Last month or payday (in the summary since the latency work)", mode: "voice", questions: ["How much did I spend on restaurants last month?", "Will I make it to payday?", "What did I spend in total last month?", "How many days until payday?"] },
+  { id: "finance-tool", label: "One finance tool", mode: "voice", questions: ["How much did I spend on restaurants in June 2026?", "How much did I spend on groceries in August 2026?", "How much did I spend on taxis this year?", "Which month this year was my most expensive for groceries?"] },
   { id: "scenario", label: "Scenario simulation", mode: "voice", questions: ["What if I save fifty euros a month for five years?", "What happens if I cut everyday spending by 10 percent for 3 years?"] },
   { id: "offers-warm", label: "Offer research, already warm", mode: "voice", questions: ["Can you find me a cheaper electricity deal?", "Is there a cheaper electricity contract for me?"] },
   { id: "web", label: "Outside fact (Exa web search)", mode: "voice", questions: ["What is the general housing allowance from Kela?", "What is the current ECB deposit rate?"] },

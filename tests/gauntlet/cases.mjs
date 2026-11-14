@@ -12,12 +12,15 @@ export const CASES = [
   { id: "sel-summary-income", group: "tool-selection", text: "How much do I earn in a month?", none: true },
   { id: "sel-summary-baskets", group: "tool-selection", text: "What are my three spending baskets and how big is each?", none: true },
   { id: "sel-summary-peers", group: "tool-selection", text: "Do I spend more on restaurants than people my age?", none: true, say: /64|277/ },
-  { id: "sel-spending-month", group: "tool-selection", text: "How much did I spend on restaurants last month?", tools: ["get_spending"], args: { get_spending: (a) => a.category === "Restaurants" && String(a.from).startsWith("2026-09") } },
+  // Last month's figures and the payday outlook are in the summary since the latency work, so no tool is the fast, correct path.
+  { id: "sel-summary-last-month", group: "tool-selection", text: "How much did I spend on restaurants last month?", none: true, say: /1,?259/ },
+  { id: "sel-spending-other-month", group: "tool-selection", text: "How much did I spend on restaurants in June 2026?", tools: ["get_spending"], args: { get_spending: (a) => a.category === "Restaurants" && a.from === "2026-06-01" }, say: /75[12]/ },
   { id: "sel-spending-merchant", group: "tool-selection", text: "How much have I spent on taxis this year?", tools: ["get_spending"], args: { get_spending: (a) => a.merchantType === "Taxi" && String(a.from).startsWith("2026-01") } },
   { id: "sel-spending-split", group: "tool-selection", text: "Which month this year was my most expensive for groceries?", tools: ["get_spending"], args: { get_spending: (a) => a.category === "Groceries" && a.groupBy === "month" } },
   { id: "sel-spending-largest", group: "tool-selection", text: "What was my biggest single purchase in the last three months?", tools: ["get_spending"] },
   { id: "sel-bills", group: "tool-selection", text: "Have any of my bills gone up compared with last year?", tools: ["list_bills"], say: /10|9/ },
-  { id: "sel-cashflow", group: "tool-selection", text: "Will I make it to my next payday without going below zero?", tools: ["get_cash_flow"], say: /177/ },
+  { id: "sel-payday", group: "tool-selection", text: "Will I make it to my next payday without going below zero?", say: /177/, forbid: ["search_offers", "web_search", "prepare_action"] }, // the summary or get_cash_flow are both right
+  { id: "sel-cashflow", group: "tool-selection", text: "After payday, how quickly does my money usually go, and when in the cycle is my balance lowest?", tools: ["get_cash_flow"] },
   { id: "sel-cashflow-why", group: "tool-selection", text: "Why am I always short at the end of the month?", anyOf: ["get_cash_flow", "find_patterns"] },
   { id: "sel-patterns", group: "tool-selection", text: "Where is my money going? What should I change?", tools: ["find_patterns"] },
   { id: "sel-patterns-save", group: "tool-selection", text: "How could I save more money?", anyOf: ["find_patterns"] },

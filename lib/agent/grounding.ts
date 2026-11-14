@@ -1,7 +1,9 @@
 // The number verifier. After the model has answered, every number it said is checked against the receipts:
 // first the facts tools returned, then the customer summary and raw tool output, then what the user said.
 // A number with no source is reported as "unverified", so the UI can flag it and the gauntlet can count it.
+import { buildCashFlow } from "@/lib/finance/cashflow";
 import { fact } from "@/lib/finance/facts";
+import { lastMonthSpending } from "@/lib/finance/recent";
 import type { Fact, Grounding, NumberCheck, NumberCorrection, Overview } from "@/lib/types";
 
 const TRIVIAL_MAX = 12; // small counts ("three offers", "12 months") are not financial claims
@@ -12,18 +14,21 @@ const DATES = /\b\d{4}-\d{2}(?:-\d{2})?\b|\b\d{1,2}:\d{2}\b/g;
 const SLIP_ABSOLUTE = 0.05;
 const SLIP_RELATIVE = 0.001;
 
-type Found = { value: number; raw: string; index: number };
+type Found = { value: number; raw: string; index: number; isYear: boolean };
+
+// "2027" on its own is a year. "€2,027" or "2027 euros" is an amount.
+const isYearToken = (text: string, raw: string, index: number): boolean =>
+  /^20\d{2}$/.test(raw) && text[index - 1] !== "€" && !/^\s?(€|eur\b|euros?\b)/i.test(text.slice(index + raw.length));
 
 // Numbers in a piece of text, with where they are. "1,932.43", "1 932" and "40" all work. Dates and times are skipped.
 function findNumbers(text: string): Found[] {
   const blanked = text.replace(DATES, (match) => " ".repeat(match.length)); // same length, so positions still line up
-  return [...blanked.matchAll(NUMBER)].map((match) => ({ value: Number(match[0].replace(/[,\u00a0 ]/g, "")), raw: match[0], index: match.index })).filter((n) => Number.isFinite(n.value));
+  return [...blanked.matchAll(NUMBER)]
+    .map((match) => ({ value: Number(match[0].replace(/[,\u00a0 ]/g, "")), raw: match[0], index: match.index, isYear: isYearToken(blanked, match[0], match.index) }))
+    .filter((n) => Number.isFinite(n.value));
 }
 
 export const numbersIn = (text: string): number[] => findNumbers(text).map((n) => n.value);
-
-// Years named in the data or by the user ("September 2026") are dates, not amounts.
-const yearsIn = (texts: string[]): number[] => texts.flatMap((text) => [...text.matchAll(/\b(20\d{2})\b/g)].map((match) => Number(match[1])));
 
 // "About 140" or "about 1,900" is a rounded figure. 1,536 is not: a precise-looking number must match precisely.
 const isRound = (n: number): boolean => Number.isInteger(n) && n % 5 === 0;
@@ -43,30 +48,27 @@ const matchesDerived = (said: number, value: number): boolean => matches(said, v
 
 export type Sources = { facts: Fact[]; contextTexts: string[]; userTexts: string[] };
 
-function classify(value: number, sources: Sources, contextNumbers: number[], years: number[]): NumberCheck {
+function classify({ value, isYear }: Pick<Found, "value" | "isYear">, sources: Sources, contextNumbers: number[]): NumberCheck {
   const receipt = sources.facts.find((f) => matches(value, f.value));
   if (receipt) return { value, status: "receipt", factId: receipt.id };
   if (contextNumbers.some((n) => matches(value, n))) return { value, status: "context", factId: null };
-  if (Number.isInteger(value) && years.includes(value)) return { value, status: "trivial", factId: null };
+  if (isYear) return { value, status: "trivial", factId: null }; // "September 2026", "next year, 2027": a date, not an amount
   const derived = sources.facts.find((f) => (f.unit === "EUR/month" || f.unit === "EUR/year" || f.unit === "EUR") && matchesDerived(value, f.value));
   if (derived) return { value, status: "context", factId: derived.id };
   if (Number.isInteger(value) && value <= TRIVIAL_MAX) return { value, status: "trivial", factId: null };
   return { value, status: "unverified", factId: null };
 }
 
-const prepared = (sources: Sources) => ({
-  contextNumbers: [...sources.contextTexts, ...sources.userTexts].flatMap(numbersIn),
-  years: [...yearsIn([...sources.contextTexts, ...sources.userTexts]), new Date().getFullYear()],
-});
+const contextNumbersOf = (sources: Sources): number[] => [...sources.contextTexts, ...sources.userTexts].flatMap(numbersIn);
 
 // Fixes slipped digits. A number with no source that sits within a hair of a receipt (1,059.49 for 1,059.47) is
 // replaced by the receipt's value, written the way the model wrote it. Anything further away is left for the report.
 export function correctNumbers(text: string, sources: Sources): { text: string; corrections: NumberCorrection[] } {
-  const { contextNumbers, years } = prepared(sources);
+  const contextNumbers = contextNumbersOf(sources);
   const corrections: NumberCorrection[] = [];
   let corrected = text;
   for (const found of findNumbers(text).reverse()) {
-    if (classify(found.value, sources, contextNumbers, years).status !== "unverified") continue;
+    if (classify(found, sources, contextNumbers).status !== "unverified") continue;
     const near = sources.facts.find((f) => Math.abs(Math.abs(f.value) - found.value) <= Math.max(SLIP_ABSOLUTE, Math.abs(f.value) * SLIP_RELATIVE));
     if (!near) continue;
     const decimals = found.raw.includes(".") ? found.raw.split(".")[1].length : 0;
@@ -79,8 +81,8 @@ export function correctNumbers(text: string, sources: Sources): { text: string; 
 
 export function checkGrounding(answer: string, facts: Fact[], contextTexts: string[], userTexts: string[], corrections: NumberCorrection[] = []): Grounding {
   const sources = { facts, contextTexts, userTexts };
-  const { contextNumbers, years } = prepared(sources);
-  const numbers = numbersIn(answer).map((value) => classify(value, sources, contextNumbers, years));
+  const contextNumbers = contextNumbersOf(sources);
+  const numbers = findNumbers(answer).map((found) => classify(found, sources, contextNumbers));
   const unverified = numbers.filter((n) => n.status === "unverified").map((n) => n.value);
   return { ok: unverified.length === 0, checked: numbers.length, unverified, numbers, corrections };
 }
@@ -89,7 +91,18 @@ export function checkGrounding(answer: string, facts: Fact[], contextTexts: stri
 export function overviewFacts(o: Overview): Fact[] {
   const window = { from: o.windowFrom, to: o.windowTo };
   const basis = `average of the last ${o.windowMonths} months`;
+  const last = lastMonthSpending(o);
+  const flow = buildCashFlow(o);
   return [
+    fact("last-month:total", `All spending in ${last.month}`, last.totalEur, "EUR", `sum of ${last.transactions} transactions`, { evidence: last.evidence }),
+    ...last.categories.flatMap((c) => [
+      fact(`last-month:${c.category}`, `${c.category} in ${last.month}`, c.totalEur, "EUR", `sum of ${c.transactions} transactions`, { evidence: { ...last.evidence, category: c.category } }),
+      fact(`last-month:${c.category}:count`, `${c.category} purchases in ${last.month}`, c.transactions, "count", "number of transactions", { evidence: { ...last.evidence, category: c.category } }),
+    ]),
+    ...(flow.projectedLowPointEur === null ? [] : [fact("payday:expected-balance", "Expected balance just before the next payday", flow.projectedLowPointEur, "EUR", `balance minus bills due and average everyday spending until ${flow.nextPayday}`, { source: "calculation" })]),
+    ...(flow.daysToNextPayday === null ? [] : [fact("payday:days", "Days to the next payday", flow.daysToNextPayday, "days", `next payday expected on ${flow.nextPayday}`, { source: "calculation" })]),
+    ...(flow.typicalPayday === null ? [] : [fact("payday:day", "Usual payday (day of the month)", flow.typicalPayday, "days", "the usual salary day in the history")]),
+    ...(flow.steps[1] ? [fact("payday:bills-due", "Bills due before the next payday", -flow.steps[1].amount, "EUR", flow.steps[1].basis, { source: "calculation" })] : []),
     fact("overview:balance", "Balance", o.balance, "EUR", `account balance on ${o.dataTimestamp}`),
     fact("overview:income", "Income per month", o.monthlyIncome, "EUR/month", basis, { evidence: window }),
     fact("overview:spending", "Spending per month", o.monthlySpending, "EUR/month", basis, { evidence: window }),

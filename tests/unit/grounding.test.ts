@@ -74,6 +74,10 @@ describe("number verifier", () => {
     const result = checkGrounding("In September 2026 you spent 277 euros, averaged from October 2025.", facts, ['{"averagesCover":"2025-10-01 to 2026-09-30"}'], []);
     assert.equal(result.ok, true);
     assert.deepEqual(result.unverified, []);
+    // Regression: round 4. "I don't have a forecast for 2027" is a year the data never mentions.
+    assert.equal(checkGrounding("I don't have a forecast for 2027.", facts, [], []).ok, true);
+    // But a year-shaped amount is still an amount.
+    assert.deepEqual(checkGrounding("You would save 2027 euros, or €2031, or 2,035.", facts, [], []).unverified, [2027, 2031, 2035]);
   });
 
   it("treats small counts as trivial, not as financial claims", () => {
