@@ -2,6 +2,8 @@
 
 For whoever builds the screens (lane A). Everything here works in mock mode with no API keys.
 
+> **Newer and fuller guide:** `docs/FRONTEND_INTEGRATION_CONTRACT.md` (added 14 Nov on `overnight/fable-lead`). It covers everything below plus stages, the approval card, teaching cards, memory, receipts, the investigation and the bill photo. Nothing below has changed; the hook only gained fields.
+
 ## Try it first
 
 ```bash

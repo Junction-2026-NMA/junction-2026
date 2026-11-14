@@ -40,7 +40,7 @@ const store: Map<string, Entry> = (globalStore.__sisuResearch ??= new Map());
 
 // Finished live results are also kept on disk, so a server restart does not throw away research that is still
 // good. A restored result is served with its real retrieval time and refreshed behind the scenes like any other.
-const researchFile = (): string => resolve(process.cwd(), `${process.env.SISU_STATE_FILE?.trim() || ".sisu/state.json"}.research.json`);
+const researchFile = (): string => resolve(/*turbopackIgnore: true*/ process.cwd(), `${process.env.SISU_STATE_FILE?.trim() || ".sisu/state.json"}.research.json`);
 const loadedFrom = globalThis as unknown as { __sisuResearchFile?: string };
 
 function restoreSaved(): void {

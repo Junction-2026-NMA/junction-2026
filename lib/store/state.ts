@@ -21,7 +21,8 @@ type Holder = { state: SisuState | null; file: string | null; persistent: boolea
 const globalStore = globalThis as unknown as { __sisuState?: Holder };
 const holder: Holder = (globalStore.__sisuState ??= { state: null, file: null, persistent: true });
 
-const statePath = (): string => resolve(process.cwd(), process.env.SISU_STATE_FILE?.trim() || DEFAULT_FILE);
+// The path is only known at run time, so the bundler is told not to trace it.
+const statePath = (): string => resolve(/*turbopackIgnore: true*/ process.cwd(), process.env.SISU_STATE_FILE?.trim() || DEFAULT_FILE);
 
 function isState(value: unknown): value is SisuState {
   const candidate = value as SisuState | null;

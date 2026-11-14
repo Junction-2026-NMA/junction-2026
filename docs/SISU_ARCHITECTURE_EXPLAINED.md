@@ -97,8 +97,8 @@ A turn is a loop of model steps, at most 4 for a question and 9 for an investiga
 
 Nemotron 3.5 Super VL is the only reasoning model. It does four jobs:
 
-1. **Chooses tools.** From a free-text question it picks among 11 tools and fills in their arguments. In the last live run it chose correctly in 26 of 27 tool-selection checks (the one miss was a correct answer that used a tool it did not strictly need).
-2. **Chains tools on its own.** In an investigation it calls five tools across six steps without being asked between them: find what stands out, research it, project the saving, pick a lesson, prepare the action. All three demo customers completed all seven stages, in 4.2 to 4.6 s.
+1. **Chooses tools.** From a free-text question it picks among 11 tools and fills in their arguments. In the final live run it chose correctly in 27 of 27 tool-selection checks.
+2. **Chains tools on its own.** In an investigation it calls five tools across six steps without being asked between them: find what stands out, research it, project the saving, pick a lesson, prepare the action. All three demo customers completed all seven stages, in 4.2 to 5.1 s.
 3. **Explains.** It words the result in plain language, in the customer's language, in one or two sentences for voice.
 4. **Reads bills.** Given a photo of the customer's bill, it copies out the yearly kWh, price, fee, provider and contract end date (about 1.5 s).
 
@@ -194,7 +194,7 @@ If our GPU fails, the same model on NVIDIA Build answers instead:
 
 - **Error or unreachable:** the backup takes the step at once. Live test: 6 of 6 turns answered, first sentence after 1.2 s.
 - **Accepts the request, then silence:** the backup takes over after 2 s. The stall timer stops at the first token of any kind, so a model busy writing a long tool call is not mistaken for a dead one.
-- **Circuit breaker:** after one failure, later steps skip the wait and go straight to the backup. A background probe checks every 10 s whether our GPU is back. Live test with a silent GPU: first sentence went from 4.1 s to 1.6 s.
+- **Circuit breaker:** after one failure, later steps skip the wait and go straight to the backup. A background probe checks every 5 s whether our GPU is back. Live test with a silent GPU: first sentence went from 4.1 s to 1.6 s.
 - **A step that breaks before saying anything** is handed to the backup whole. An answer the user has started hearing is never replayed.
 - Each model step records which host served it, so the screen can show a "backup" tag.
 
@@ -251,20 +251,20 @@ Measured on 14 November on our Verda GPU, 10 runs per row, server clock. The "be
 
 | Question type | First sentence ready, before (p50 / p95) | After (p50 / p95) |
 |---|---|---|
-| Answered from the summary | 396 / 450 ms | 399 / 575 ms |
-| "How much did I spend on restaurants last month?" | 1,262 / 1,358 ms | **426 / 784 ms** |
-| One finance tool (another period) | 1,262 / 1,358 ms | 1,376 / 1,527 ms |
-| Scenario | 1,337 / 1,498 ms | 1,386 / 1,539 ms |
-| Offer research, warm | 1,169 / 1,297 ms | 1,037 / 1,336 ms |
-| Web search | 1,406 / 1,514 ms | 1,404 / 1,482 ms |
-| Whole investigation (7 stages) | did not exist | 4,200 to 4,600 ms |
+| Answered from the summary | 396 / 450 ms | 396 / 459 ms |
+| "How much did I spend on restaurants last month?" | 1,262 / 1,358 ms | **444 / 764 ms** |
+| One finance tool (another period) | 1,262 / 1,358 ms | 1,371 / 1,658 ms |
+| Scenario | 1,337 / 1,498 ms | 1,472 / 1,558 ms |
+| Offer research, warm | 1,169 / 1,297 ms | 748 / 1,283 ms |
+| Web search | 1,406 / 1,514 ms | 1,451 / 1,600 ms |
+| Whole investigation (7 stages) | did not exist | 4,200 to 5,100 ms |
 
 For a voice turn, add about 0.58 s of speech to text before and about 0.30 s of text to speech after.
 
 What the measurements showed, and what was done about each:
 
 1. **The model's first word slows by about 10 ms for every 1,000 characters of prompt, and the server's prompt cache does not help.** A prompt with a unique first line (cache defeated) started in 282 ms; the same prompt repeated started in 257 ms. Offering all 11 tools costs about 100 ms per step against offering none (257 against 165 ms). So the prompt was cut by 21% (tool descriptions from 6,815 to 4,857 characters), which kept seven new tools to roughly 50 ms extra per step.
-2. **The most common question took two model steps.** Last month's spending by category and the payday outlook are now computed up front and placed in the customer summary, so those answers need one step: 1.26 s became 0.43 s.
+2. **The most common question took two model steps.** Last month's spending by category and the payday outlook are now computed up front and placed in the customer summary, so those answers need one step: 1.26 s became 0.44 s.
 3. **A silent GPU cost a full wait on every step.** The circuit breaker makes it one wait per outage: 4.1 s became 1.6 s.
 4. **Finance functions are not worth optimising.** Each takes under 0.4 ms.
 5. **Context.dev's typed extraction is the slowest stage** (2.8 to 3.3 s a page, even for a cached page). It is kept out of the conversation by starting early, sharing one run, keeping results warm for an hour and saving them across restarts.

@@ -126,7 +126,7 @@ Narrow on `stage.data.kind` and TypeScript gives you the right fields.
 6. `teaching`: one question for the customer
 7. `action`: a switch prepared and waiting for approval
 
-Measured on the real model: 4.2 to 4.6 seconds for all seven, when offers are already warm. A `filler` event arrives at once ("Give me a moment, Aino. I'm going through your last twelve months."), so there is never silence. `text` is an optional focus, for example `"my mobile bill"`.
+Measured on the real model: 4.2 to 5.1 seconds for all seven, when offers are already warm. A `filler` event arrives at once ("Give me a moment, Aino. I'm going through your last twelve months."), so there is never silence. `text` is an optional focus, for example `"my mobile bill"`.
 
 ## 5. Actions: prepare, approve, decline
 
@@ -226,7 +226,7 @@ type Grounding = {
 };
 ```
 
-Ideas for the screen: colour each figure by `source`; make a figure tappable when its fact has `evidence`; show "All 6 numbers have a source" under an answer; show a warning when `grounding.ok` is false. In the last live run, 152 of 152 numbers had a source.
+Ideas for the screen: colour each figure by `source`; make a figure tappable when its fact has `evidence`; show "All 6 numbers have a source" under an answer; show a warning when `grounding.ok` is false. In the final live run, 151 of 151 numbers had a source.
 
 ## 8. Memory
 
