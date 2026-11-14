@@ -103,6 +103,7 @@
     }
 
     const spoken = document.createElement('span');
+    const countMs = Number(el.getAttribute('data-count-ms')) || COUNT_MS;
     const startedAt = performance.now();
     let frame = 0;
     let timer = 0;
@@ -123,7 +124,7 @@
     }
 
     function step(now) {
-      const progress = Math.min(1, Math.max(0, (now - startedAt) / COUNT_MS));
+      const progress = Math.min(1, Math.max(0, (now - startedAt) / countMs));
       if (progress >= 1) {
         finish();
         return;
@@ -140,7 +141,7 @@
     runningCounts.add(finish);
     show(0);
     frame = window.requestAnimationFrame(step);
-    timer = window.setTimeout(finish, COUNT_MS + 150);
+    timer = window.setTimeout(finish, countMs + 150);
   }
 
   /* Fade-ins. Nothing is hidden on load, so a capture, a print-out or a reader ahead of the
