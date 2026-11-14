@@ -61,7 +61,8 @@
   margin-top: 12px;
 }
 
-/* Sourced figures: one large card, two smaller ones. */
+/* Sourced figures: one large card, two smaller ones. Each card: its role line, the figure, a row of
+   dots (week-motion.css), the sentence and the source. */
 .stat-grid {
   display: grid;
   gap: 16px;
@@ -81,6 +82,13 @@
   background: var(--green-100);
 }
 
+.stat-role {
+  color: var(--green-700);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
 .stat-figure {
   font-family: var(--font-display);
   font-size: clamp(3.5rem, 9vw, 5rem);
@@ -88,6 +96,12 @@
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.02em;
+}
+
+/* The counting number fills its paragraph, so the paragraph (the scroll trigger of the card) and the
+   count start at the same scroll position. */
+.stat-figure .js-count {
+  display: block;
 }
 
 .stat-large .stat-figure {
@@ -226,20 +240,21 @@
 }
 
 @media (min-width: 1024px) {
+  /* Three in a row, the large card first and widest. The role lines and the figures start on one line,
+     so the three cards take their turns from one scroll position. */
   .stat-grid {
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr);
     gap: 24px;
   }
 
   .stat-large {
     grid-column: auto;
-    grid-row: span 2;
-    justify-content: flex-end;
-    padding: 40px 40px 28px;
+    padding-right: 36px;
+    padding-left: 36px;
   }
 
-  .stat-card .source-link {
-    margin-top: 0;
+  .stat-large .stat-figure {
+    font-size: clamp(4.5rem, 11vw, 9rem);
   }
 
   .closing-block {

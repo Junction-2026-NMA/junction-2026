@@ -287,37 +287,45 @@
   <section class="peers">
     <div class="section-head reveal">
       <h2>You are not the only one.</h2>
-      <p>Money worry is common. One small step is a good place to start.</p>
+      <p>You are in good company.</p>
     </div>
-    <!-- Each row of ten dots draws the share: 48% about 5 in 10, 21% about 2, 11% about 1. -->
+    <!-- Each figure has a role line above it, and a row of ten dots that draws the share: 48% about 5 in 10,
+         21% about 2, 11% about 1. The figures take turns: 48% counts at once, 21% after 750 ms and 11% after
+         1100 ms (data-count-delay). Each figure paragraph is the scroll trigger of its card (week-motion.css). -->
     <ul class="stat-grid">
-      <li class="stat-card stat-large reveal">
-        <p class="stat-figure js-count" data-count-ms="700">48%</p>
+      <li class="stat-card stat-large">
+        <p class="stat-role">Money worry is common.</p>
+        <p class="stat-figure reveal"><span class="js-count" data-count-ms="700">48%</span></p>
         <span class="stat-dots" aria-hidden="true"><span class="dot dot-on"></span><span class="dot dot-on"></span><span class="dot dot-on"></span><span class="dot dot-on"></span><span class="dot dot-on"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>
         <p class="stat-text">of under-30s in Finland worry about money at least once a week.</p>
         <a class="source-link" href="https://www.sttinfo.fi/tiedote/72282300/s-pankin-tutkimus-nuoret-kokevat-arjen-turvalliseksi-vaikka-talous-huolettaakin?lang=fi">S-Pankki study of young adults, press release on STT Info</a>
       </li>
-      <li class="stat-card reveal">
-        <p class="stat-figure js-count" data-count-ms="700">21%</p>
+      <li class="stat-card">
+        <p class="stat-role">Starting from zero is common too.</p>
+        <p class="stat-figure reveal"><span class="js-count" data-count-ms="350" data-count-delay="750">21%</span></p>
         <span class="stat-dots" aria-hidden="true"><span class="dot dot-on"></span><span class="dot dot-on"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>
         <p class="stat-text">of under-30s in Finland have no savings at all.</p>
         <a class="source-link" href="https://www.sttinfo.fi/tiedote/72282300/s-pankin-tutkimus-nuoret-kokevat-arjen-turvalliseksi-vaikka-talous-huolettaakin?lang=fi">S-Pankki study of young adults, press release on STT Info</a>
       </li>
-      <li class="stat-card reveal">
-        <p class="stat-figure js-count" data-count-ms="700">11%</p>
+      <li class="stat-card">
+        <p class="stat-role">Young savers are still few.</p>
+        <p class="stat-figure reveal"><span class="js-count" data-count-ms="350" data-count-delay="1100">11%</span></p>
         <span class="stat-dots" aria-hidden="true"><span class="dot dot-on"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>
         <p class="stat-text">of the people who use S-Pankki's <span lang="fi">Säästäjä</span> are 18 to 25.</p>
         <a class="source-link" href="https://dokumentit.s-pankki.fi/tiedostot/s-pankki-saastajien-suomi-032026">S-Pankki report Säästäjien Suomi, March 2026</a>
       </li>
     </ul>
+    <p class="peers-next reveal"><strong>Next:</strong> your own week, added up.</p>
   </section>
 
   <section class="week">
     <div class="section-head reveal">
       <h2>Your week on one receipt.</h2>
     </div>
-    <!-- The receipt and the shelf close the example week that starts in section 4 (Monday, 6 days to payday).
-         Each figure is its own reveal trigger, so the receipt prints and the jars fill when they come into view. -->
+    <!-- Sunday of the example week that starts in section 4 (Monday, 6 days to payday). The two marked rows are
+         that week's decision: the paused streaming plan found the gap, and the concert fit.
+         The row of jar amounts (.slot-sum) starts the demonstration when it comes into view: the receipt prints,
+         Into jars lights up, then the jars fill while their amounts count (week-motion.css, data-count-delay). -->
     <div class="week-grid">
       <div class="tall-card tall-receipt reveal">
         <div class="tall-head">
@@ -328,16 +336,18 @@
           <div class="receipt">
             <p class="receipt-title">Your week</p>
             <p class="receipt-dates">9 to 15 Nov 2026</p>
-            <p class="receipt-row"><span>Fixed</span> <span class="num">€254.50</span></p>
+            <p class="receipt-row"><span>Fixed</span> <span class="num">€265.50</span></p>
+            <p class="receipt-row receipt-mark"><span>Paused streaming</span> <span class="num">−€11.00</span></p>
             <p class="receipt-row"><span>Curveballs</span> <span class="num">€32.50</span></p>
             <p class="receipt-row"><span>Leaks</span> <span class="num">€29.40</span></p>
-            <p class="receipt-row receipt-concert"><span>Concert ticket</span> <span class="num">€45.00</span></p>
-            <p class="receipt-row receipt-rule"><span>Into jars</span> <span class="num">+€40.00</span></p>
+            <p class="receipt-row receipt-mark"><span>Concert ticket</span> <span class="num">€45.00</span></p>
+            <p class="receipt-row receipt-rule receipt-jars"><span>Into jars</span> <span class="num">+€40.00</span></p>
             <p class="receipt-row">
               <span>Streak</span>
               <span class="num receipt-streak"><svg class="flame" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c0 4 6 6.5 6 12a6 6 0 0 1-12 0c0-2 .8-3.6 2-5 .2 1.6 1 2.6 2 3 0-3.5.5-7 2-10z"/></svg> 18 days</span>
             </p>
-            <p class="receipt-liito">Liito: 7 check-ins. The concert fit, with €0.60 to spare.</p>
+            <p class="receipt-row receipt-rule receipt-total"><span>Left at payday</span> <span class="num">€0.60</span></p>
+            <p class="receipt-liito">Liito: 7 check-ins. The concert fit.</p>
           </div>
           <figcaption class="example-note">Example figures</figcaption>
         </figure>
@@ -347,17 +357,17 @@
           <h3>The jar shelf</h3>
           <p class="tall-lead">Each jar is one goal with a name and a target.</p>
         </div>
-        <figure class="shelf-figure reveal">
+        <figure class="shelf-figure">
           <div class="shelf">
             <div class="shelf-slot">
               <p class="slot-stand"><span class="jar jar-buffer"><span class="jar-lid"></span><span class="jar-glass"><span class="jar-fill"></span></span></span></p>
               <p class="slot-name">Buffer</p>
-              <p class="slot-sum"><span class="num js-count" data-count-ms="700">€160</span> <span class="slot-goal">of €500</span></p>
+              <p class="slot-sum reveal"><span class="num js-count" data-count-ms="650" data-count-delay="1160">€160</span> <span class="slot-goal">of €500</span></p>
             </div>
             <div class="shelf-slot">
               <p class="slot-stand"><span class="jar jar-trip"><span class="jar-lid"></span><span class="jar-glass"><span class="jar-fill"></span></span></span></p>
               <p class="slot-name">Summer trip</p>
-              <p class="slot-sum"><span class="num js-count" data-count-ms="700">€260</span> <span class="slot-goal">of €400</span></p>
+              <p class="slot-sum reveal"><span class="num js-count" data-count-ms="650" data-count-delay="1160">€260</span> <span class="slot-goal">of €400</span></p>
             </div>
             <div class="shelf-slot">
               <p class="slot-stand"><span class="jar-empty"><span class="jar-plus"></span></span></p>

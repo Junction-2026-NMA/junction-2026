@@ -85,15 +85,16 @@
   line-height: 1.4;
 }
 
-/* The concert from the question in section 4, marked as if with a highlighter. */
-.receipt-concert {
+/* The week's decision from section 4, marked as if with a highlighter: the paused streaming plan that
+   found the gap, and the concert it paid for. */
+.receipt-mark {
   position: relative;
   z-index: 0;
   margin: 0 -6px;
   padding: 0 6px;
 }
 
-.receipt-concert::before {
+.receipt-mark::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -105,11 +106,22 @@
 
 .receipt-rule {
   position: relative;
+  z-index: 0;
   margin-top: 4px;
   padding-top: 10px;
 }
 
 .receipt-streak { display: inline-flex; align-items: center; gap: 4px; }
+
+/* The total: what is left on Sunday, payday. The concert fit with this much to spare. */
+.receipt-total { font-weight: 700; }
+
+.receipt-total .num {
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
 
 .receipt-liito {
   position: relative;
