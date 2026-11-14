@@ -1,6 +1,7 @@
 /* Section 3 (baskets), section 5 (figures), section 7 (questions) and section 8 (closing block). */
 
-/* Three baskets: white cards, an icon chip in the basket's own green. */
+/* Three baskets: white cards, each icon chip filled with its basket's green (the darker, the more fixed).
+   The row layout, the colour key, the hand-over line and the entrance are in baskets.css. */
 .basket-grid {
   display: grid;
   gap: 16px;
@@ -8,6 +9,7 @@
 
 .basket-card {
   --basket: var(--basket-fixed);
+  --basket-icon: var(--green-200);
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
@@ -19,10 +21,12 @@
 
 .basket-curveballs {
   --basket: var(--basket-curveballs);
+  --basket-icon: var(--white);
 }
 
 .basket-leaks {
   --basket: var(--basket-leaks);
+  --basket-icon: var(--white);
 }
 
 .icon-chip {
@@ -33,8 +37,8 @@
   width: 56px;
   height: 56px;
   border-radius: var(--radius-full);
-  background: var(--green-100);
-  fill: var(--basket);
+  background: var(--basket);
+  fill: var(--basket-icon);
 }
 
 .basket-name {
@@ -54,7 +58,7 @@
 
 .basket-text {
   grid-column: 1 / -1;
-  margin-top: 8px;
+  margin-top: 12px;
 }
 
 /* Sourced figures: one large card, two smaller ones. */
