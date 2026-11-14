@@ -67,8 +67,8 @@ function buildSafeToSpend(months: MonthPoint[]): SafeToSpend {
     perWeek: round2(perMonth / WEEKS_PER_MONTH),
     steps: [
       { label: "Money in per month", amount: income, basis },
-      { label: "Must pay, every month", amount: -regular, basis },
-      { label: "Set aside for now-and-then costs", amount: -irregular, basis },
+      { label: "Regular essentials", amount: -regular, basis },
+      { label: "Set aside for occasional essentials", amount: -irregular, basis },
       { label: "Savings you already make", amount: -saved, basis: `investment deposits, ${basis}` },
     ],
     actualEverydayPerMonth: everyday,
@@ -91,8 +91,8 @@ function buildInsights(windowTx: Transaction[], baskets: BasketSummary[], months
     overPeers
       ? {
           id: "over-peers",
-          title: `${overPeers.category}: €${Math.round(overPeers.monthlyAvg - (overPeers.peerMonthlyAvg ?? 0))} a month above people your age`,
-          body: `You average €${Math.round(overPeers.monthlyAvg)} a month across ${overPeers.count} purchases. The ${peerCount(ageBand)} customers aged ${ageBand} in the dataset average €${Math.round(overPeers.peerMonthlyAvg ?? 0)}.`,
+          title: `${overPeers.category}: €${Math.round(overPeers.monthlyAvg - (overPeers.peerMonthlyAvg ?? 0))} a month above other demo profiles`,
+          body: `You average €${Math.round(overPeers.monthlyAvg)} a month across ${overPeers.count} purchases. The ${peerCount(ageBand)} other profiles aged ${ageBand} in the synthetic demo data average €${Math.round(overPeers.peerMonthlyAvg ?? 0)}. A comparison within the demo data, not a statistic about real people.`,
           evidence: { from, to, category: overPeers.category },
         }
       : null,
