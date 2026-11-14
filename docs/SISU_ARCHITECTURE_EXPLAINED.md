@@ -25,7 +25,7 @@ flowchart TB
     routes["Routes<br/>app/api/agent, voice, research,<br/>actions, memory, coach, health"]
     orch["Orchestrator<br/>lib/agent/orchestrator.ts<br/>one turn = a stream of events"]
     verify["Number verifier<br/>lib/agent/grounding.ts"]
-    tools["11 tools<br/>lib/agent/tools/"]
+    tools["12 tools<br/>lib/agent/tools/"]
     guard["Untrusted-text filter<br/>lib/agent/tools/untrusted.ts"]
     fin["Finance engine<br/>lib/finance/<br/>every number, in code"]
     act["Actions and approval<br/>lib/actions/"]
@@ -68,10 +68,10 @@ A customer asks, by voice, "Find me a cheaper electricity deal and prepare the s
 1. **Speech to text.** `POST /api/voice/turn` sends the recording to ElevenLabs (`lib/agent/speech.ts`). Measured: 0.58 s for a three-second question.
 2. **Early start.** Before the model has seen anything, a keyword check (`lib/agent/speculate.ts`, under a millisecond) notices "cheaper electricity deal" and starts the offer research in the background. If the model later decides it does not need it, nothing is lost.
 3. **The prompt.** The orchestrator builds one prompt (`lib/agent/prompt.ts`): fixed rules, then the customer's summary computed by the finance engine (averages, the three baskets, bills, last month by category, the payday outlook), then anything Sisu remembers about them. No customer ID, no postal code, no transaction rows.
-4. **Nemotron decides.** The model receives the prompt and the list of 11 tools and replies with tool calls: here, `search_offers`. Measured on our GPU: first token after 0.26 s.
+4. **Nemotron decides.** The model receives the prompt and the list of 12 tools and replies with tool calls: here, `search_offers`. Measured on our GPU: first token after 0.26 s.
 5. **Tools run.** `search_offers` joins the research already in flight. Exa finds today's comparison pages (0.22 s). Context.dev reads three of them in parallel and returns typed offers: provider, plan, price per kWh, monthly fee, contract length (2.8 to 3.3 s each). Each extracted name passes the untrusted-text filter. Code in `lib/agent/research/compare.ts` then works out each offer's monthly cost and yearly saving against the customer's real bill.
 6. **Nemotron continues.** It sees the result and, because the customer asked for it, calls `prepare_action`. The server builds the action from the offer it already holds (`lib/actions/drafts.ts`), so the model cannot invent a provider or a price. The action is saved as "awaiting approval" and written to the audit log.
-7. **The answer.** Nemotron words the result. As each sentence completes, code checks its numbers against the receipts. A figure copied with a slipped digit is replaced by the receipt's value before the sentence is shown or spoken. Sentences go to text to speech one by one, so speaking starts before the answer is finished.
+7. **The answer.** Nemotron words the result. As each sentence completes, code checks its numbers against the receipts: a figure said as "euros a year" is checked against yearly euro receipts only, and numbers written as words are checked like digits. A figure copied with a slipped digit, or a provider name misspelled, is replaced by the real one before the sentence is shown or spoken. Sentences go to text to speech one by one, so speaking starts before the answer is finished.
 8. **Receipts.** The turn ends with a `grounding` event: every number said, and where it came from.
 9. **Approval.** The customer presses Approve. `POST /api/actions/:id/approve` marks the action as a simulated execution, writes two more audit entries, and returns what the saving adds up to over five years from the same scenario engine as the futures chart.
 
@@ -97,23 +97,24 @@ A turn is a loop of model steps, at most 4 for a question and 9 for an investiga
 
 Nemotron 3.5 Super VL is the only reasoning model. It does four jobs:
 
-1. **Chooses tools.** From a free-text question it picks among 11 tools and fills in their arguments. In the final live run it chose correctly in 27 of 27 tool-selection checks.
-2. **Chains tools on its own.** In an investigation it calls five tools across six steps without being asked between them: find what stands out, research it, project the saving, pick a lesson, prepare the action. All three demo customers completed all seven stages, in 4.2 to 5.1 s.
+1. **Chooses tools.** From a free-text question it picks among 12 tools and fills in their arguments. In the closing live run it chose correctly in 27 of 27 tool-selection checks (25 to 27 across the last five runs).
+2. **Chains tools on its own.** In an investigation it calls five tools across six steps without being asked between them: find what stands out, research it, project the saving, pick a lesson, prepare the action. All three demo customers completed all seven stages in every run, in 4.2 to 5.3 s.
 3. **Explains.** It words the result in plain language, in the customer's language, in one or two sentences for voice.
 4. **Reads bills.** Given a photo of the customer's bill, it copies out the yearly kWh, price, fee, provider and contract end date (about 1.5 s).
 
 Thinking mode is switched off for conversation (`chat_template_kwargs: { enable_thinking: false }`), which the team measured earlier as saving about 2.5 s per turn with the same tool choices.
 
-### The 11 tools
+### The 12 tools
 
 | Tool | What it does | Code |
 |---|---|---|
-| `get_spending` | Exact spending for any period, by category, merchant type or basket, optionally split by month | `lib/agent/tools/finance.ts` |
+| `get_spending` | Exact spending for any period, by category, merchant type or basket, optionally split by month, with per-day and per-month averages | `lib/agent/tools/finance.ts` |
 | `list_bills` | Recurring bills, yearly cost, change on a year ago, confirmed or guessed name | same |
 | `get_cash_flow` | Pay cycles, lowest balance each cycle, bills due before payday, expected balance | same, `lib/finance/cashflow.ts` |
 | `find_patterns` | What stands out in the history, ranked by yearly euros | same, `lib/finance/patterns.ts` |
 | `check_affordability` | Can the customer absorb a one-off cost now? | same, `lib/finance/affordability.ts` |
-| `run_scenario` | Three futures: change nothing, keep the cash, invest it | same, `lib/finance/scenario.ts` |
+| `run_scenario` | Three futures: change nothing, keep the cash, invest it. Given a target balance, the months to reach it | same, `lib/finance/scenario.ts` |
+| `get_mortgage` | The customer's mortgage application beside their income and balance | same, `lib/finance/mortgage.ts` |
 | `explain_concept` | A lesson from the customer's own numbers with a predict-first question | same, `lib/finance/teaching.ts` |
 | `search_offers` | Live offers for a bill with the saving computed in code | `lib/agent/tools/web.ts`, `lib/agent/research/` |
 | `web_search` | Live search for outside facts, with sources | `lib/agent/tools/web.ts` |
@@ -133,6 +134,7 @@ Thinking mode is switched off for conversation (`chat_template_kwargs: { enable_
 | `affordability.ts` | Whether a cost fits before payday, with every step shown, and how many months of saving it would take if not |
 | `teaching.ts` | Seven lessons, each with a predict-first question whose right answer and wrong options are computed from the customer's own numbers |
 | `recent.ts` | Last month's spending by category, handed to the model up front |
+| `mortgage.ts` | The mortgage application from the S-Pankki mortgage files: price, loan, own money, required income, set beside the customer's real income and balance |
 | `facts.ts` | The receipt format: what a number is, where it came from, how to open its rows |
 
 Customer isolation is enforced in one place: every read goes through `transactionsFor(customerId)` in `lib/finance/data.ts`. Tests confirm no function returns another customer's rows and that an unknown or malformed ID returns nothing.
@@ -251,20 +253,20 @@ Measured on 14 November on our Verda GPU, 10 runs per row, server clock. The "be
 
 | Question type | First sentence ready, before (p50 / p95) | After (p50 / p95) |
 |---|---|---|
-| Answered from the summary | 396 / 450 ms | 396 / 459 ms |
-| "How much did I spend on restaurants last month?" | 1,262 / 1,358 ms | **444 / 764 ms** |
-| One finance tool (another period) | 1,262 / 1,358 ms | 1,371 / 1,658 ms |
-| Scenario | 1,337 / 1,498 ms | 1,472 / 1,558 ms |
-| Offer research, warm | 1,169 / 1,297 ms | 748 / 1,283 ms |
-| Web search | 1,406 / 1,514 ms | 1,451 / 1,600 ms |
-| Whole investigation (7 stages) | did not exist | 4,200 to 5,100 ms |
+| Answered from the summary | 396 / 450 ms | 479 / 1,134 ms (an earlier clean run: 396 / 459) |
+| "How much did I spend on restaurants last month?" | 1,262 / 1,358 ms | **467 / 619 ms** |
+| One finance tool (another period) | 1,262 / 1,358 ms | 1,410 / 1,532 ms |
+| Scenario | 1,337 / 1,498 ms | 1,344 / 1,501 ms |
+| Offer research, warm | 1,169 / 1,297 ms | 877 / 1,157 ms |
+| Web search | 1,406 / 1,514 ms | 1,415 / 1,602 ms |
+| Whole investigation (7 stages) | did not exist | 4,200 to 5,300 ms |
 
 For a voice turn, add about 0.58 s of speech to text before and about 0.30 s of text to speech after.
 
 What the measurements showed, and what was done about each:
 
-1. **The model's first word slows by about 10 ms for every 1,000 characters of prompt, and the server's prompt cache does not help.** A prompt with a unique first line (cache defeated) started in 282 ms; the same prompt repeated started in 257 ms. Offering all 11 tools costs about 100 ms per step against offering none (257 against 165 ms). So the prompt was cut by 21% (tool descriptions from 6,815 to 4,857 characters), which kept seven new tools to roughly 50 ms extra per step.
-2. **The most common question took two model steps.** Last month's spending by category and the payday outlook are now computed up front and placed in the customer summary, so those answers need one step: 1.26 s became 0.44 s.
+1. **The model's first word slows by about 10 ms for every 1,000 characters of prompt, and the server's prompt cache does not help.** A prompt with a unique first line (cache defeated) started in 282 ms; the same prompt repeated started in 257 ms. Offering the tools costs about 100 ms per step against offering none (257 against 165 ms). So the tool descriptions were cut from 6,815 characters for 11 tools to 5,345 for 12. Even so, with eight more tools than at the start of the night and a fuller customer summary, a model step now starts about 80 ms later than it did (283 against 201 ms).
+2. **The most common question took two model steps.** Last month's spending by category and the payday outlook are now computed up front and placed in the customer summary, so those answers need one step: 1.26 s became 0.47 s. The same was then done for how long the balance would last and for three and six month buffers.
 3. **A silent GPU cost a full wait on every step.** The circuit breaker makes it one wait per outage: 4.1 s became 1.6 s.
 4. **Finance functions are not worth optimising.** Each takes under 0.4 ms.
 5. **Context.dev's typed extraction is the slowest stage** (2.8 to 3.3 s a page, even for a cached page). It is kept out of the conversation by starting early, sharing one run, keeping results warm for an hour and saving them across restarts.

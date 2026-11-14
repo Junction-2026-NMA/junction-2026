@@ -126,7 +126,7 @@ Narrow on `stage.data.kind` and TypeScript gives you the right fields.
 6. `teaching`: one question for the customer
 7. `action`: a switch prepared and waiting for approval
 
-Measured on the real model: 4.2 to 5.1 seconds for all seven, when offers are already warm. A `filler` event arrives at once ("Give me a moment, Aino. I'm going through your last twelve months."), so there is never silence. `text` is an optional focus, for example `"my mobile bill"`.
+Measured on the real model: 4.2 to 5.3 seconds for all seven, when offers are already warm. A `filler` event arrives at once ("Give me a moment, Aino. I'm going through your last twelve months."), so there is never silence. `text` is an optional focus, for example `"my mobile bill"`.
 
 ## 5. Actions: prepare, approve, decline
 
@@ -226,7 +226,7 @@ type Grounding = {
 };
 ```
 
-Ideas for the screen: colour each figure by `source`; make a figure tappable when its fact has `evidence`; show "All 6 numbers have a source" under an answer; show a warning when `grounding.ok` is false. In the final live run, 151 of 151 numbers had a source.
+Ideas for the screen: colour each figure by `source`; make a figure tappable when its fact has `evidence`; show "All 6 numbers have a source" under an answer; show a warning when `grounding.ok` is false. In the closing live run, 142 of 142 numbers had a source.
 
 ## 8. Memory
 
@@ -269,8 +269,9 @@ await rememberKwh(customerId, result.reading.yearlyKwh);
 | `GET /api/coach/cash-flow?customerId=` | `CashFlow`: payday, bills due before it, expected balance just before it, `steps` |
 | `GET /api/coach/affordability?customerId=&amountEur=` | `Affordability`: `verdict` (`comfortable`, `tight`, `not-yet`), `steps`, `monthsToSaveUp` |
 | `GET /api/coach/teaching?customerId=&concept=` | `{ cards: TeachingCard[] }` |
+| `GET /api/coach/mortgage?customerId=` | `MortgageApplication`: price, loan, own money, required income, the customer's income and balance, `steps`, `timeline`. `404` if the customer has none (of the demo three, only Sanna has one) |
 | `GET /api/health` | `HealthReport`: the model actually being served, where, the backup, the data boundary |
-| `POST /api/demo/reset` | Clears actions, memory and the audit log for the three demo customers |
+| `POST /api/demo/reset` | Clears actions, memory and the audit log for the three demo customers. Open in development. On a deployed site it needs the header `x-sisu-reset-token` matching `SISU_RESET_TOKEN` |
 
 These are plain code, so they answer in a few milliseconds and always give the same result. Use them for cards that should be on screen before the user asks anything.
 
