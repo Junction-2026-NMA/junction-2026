@@ -70,3 +70,43 @@ Reviewed main `9750ce3` (merged PR #6) against `5da064c`; backend remains `3cfdf
 **New static P2 handoff, iOS core:** `PlanSession.approveAll()` does not call `noteFallback()` in either its success or error path. With a `liveWithSampleFallback` client, an offline approval POST makes `FallbackTransport.send()` permanently switch to bundled recordings. `dataLabel` changes to sample, but the promised `fallbackNotice` remains nil; an unknown live action ID can yield a sample error with no explanation of the transition. The method's comment also assumes server-side logging even if the answer is now replayed. Minimal correction: invoke `noteFallback()` after the awaited approval request on both paths (for example `defer { noteFallback() }`); test a live plan followed by an offline approval and assert sample label plus notice, without claiming server execution. This is a conditional core-client path, not a reproduced phone-screen failure. Handed to PR #6; no frontend code edited.
 
 Validation attempt: `sh ios/scripts/test-core.sh` could not compile tests: `no such module 'XCTest'`. Active developer directory is CommandLineTools; no Xcode app found. Thus the merge author's 205 passing Swift tests were not independently reproduced. Existing backend build/browser checks were not repeated on byte-identical backend code. No `.env.local` in QA/shared checkouts; no live sponsor calls executed.
+
+## PR #7 independent delta audit — 14 November, 16:00 EET
+
+Reviewed main `c22dba8` (iOS-only delta from `9750ce3`) and backend PR #7 `442c777`. Backend `3cfdfca` and the other previously reviewed backend heads are unchanged. Temporarily combined #7 with QA `04579f3` only in the isolated QA worktree, then aborted that local integration. Existing unit suite: **270/270**, 22.4 s. No live calls, new browser check or native runtime verification; no production code changed in this audit.
+
+New scripted findings, handed to the active PR owner rather than overlapping their files:
+
+- **P1: the one-switch-per-bill rule is checked only when drafting.** Prepare two distinct offers for the same customer and bill while both are pending; approve the first, then the second. Both return success and two actions are `executed_simulated`. The new total deduplication hides this in the web total but does not prevent contradictory approvals (native clients can still sum both). Minimal fix: in `decide`, before computing impact or writing approval, reject an approval of a switch when another approved switch exists for this customer/bill, with 409. Keep decline possible. Regression: two pending different offers, then single approvals and approve-all; exactly one execution/audit execution for that bill, and another customer remains independent.
+- **P2: empty model output is reported healthy.** Both providers returning `choices: [{message: {content: ""}}]` produce `ready: true` and “wrote a reply”. Require trimmed nonempty content; test empty and whitespace content for primary and backup. This probe still does not prove tool selection.
+- **P2: Gemini fallback is misidentified.** With `MODEL_FALLBACK=gemini`, the returned stand-in says “Google hosted copy of the same model”. Name the configured fallback provider AND model; only claim the same model when names actually match. State that hosted fallback sends aggregates outside the Verda deployment. This matters for NVIDIA's Super VL requirement and Verda's hosting story.
+
+ElevenLabs readiness currently checks account/model metadata, not STT/TTS; do not present `voiceReady` as executed audio coverage. Existing teammate live results remain attributed to that teammate. No keys found in QA/shared `.env.local` files.
+
+### Reproduction (scripted, no network)
+
+On PR #7 plus PR #4, save the following as `tests/qa-pr7-review.ts`, run `npx tsx tests/qa-pr7-review.ts`, then remove it. It uses test-only isolated state and stubbed fetch; the alternate draft models a changed offer between two preparations.
+
+```typescript
+import { freshState, AINO, stubFetch } from './unit/helpers';
+import { runPlan } from '../lib/agent/plan';
+import { saveDraft, approveAction, listActions } from '../lib/actions';
+import { forgetReadiness, readiness } from '../lib/agent/readiness';
+async function main() {
+ freshState();
+ for await (const event of runPlan(AINO, {fresh:false})) { void event; }
+ const first = listActions(AINO).find(a => a.kind === 'switch_contract')!;
+ const second = saveDraft(AINO, {...first, offer:{...first.offer!, provider:'Alternative provider'}, monthlyAmountEur:first.monthlyAmountEur + 1});
+ if (!second.ok) throw new Error(second.reason);
+ const one=approveAction(AINO, first.id,()=>null);
+ const two=approveAction(AINO, second.action.id,()=>null);
+ console.log(JSON.stringify({case:'two different offers prepared before approval',firstApproved:one.ok,secondApproved:two.ok,executedForSameBill:listActions(AINO).filter(a=>a.billType===first.billType&&a.status==='executed_simulated').length}));
+ Object.assign(process.env,{MODEL_PROVIDER:'verda',MODEL_FALLBACK:'gemini',VERDA_BASE_URL:'http://gpu.test/v1',GEMINI_BASE_URL:'http://backup.test/v1',EXA_API_KEY:'test',CONTEXT_DEV_API_KEY:'test',ELEVENLABS_API_KEY:'test'});
+ const restore=stubFetch(url=>new Response(JSON.stringify(url.includes('/chat/completions')?{choices:[{message:{content:''}}]}:url.includes('exa.ai')?{results:[{url:'https://example.com'}]}:url.includes('context.dev')?{json:{success:true,data:{title:'Example'}}}:{character_count:0,character_limit:100}),{status:200}));
+ forgetReadiness();
+ const report=await readiness({fresh:true});
+ console.log(JSON.stringify({case:'empty model replies with Gemini backup',ready:report.ready,model:report.checks.find(c=>c.id==='model')}));
+ restore();
+}
+main();
+```
