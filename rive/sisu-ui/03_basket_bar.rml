@@ -1,0 +1,90 @@
+<!-- BasketBar  (350x40, flexibleWidth)
+     One rounded bar split into the baskets, dark to light green.
+
+     View model BasketBarVM  (names and types are fixed by rive/contract.json):
+       fixed       number             in     default 0.5
+       curveballs  number             in     default 0.1
+       leaks       number             in     default 0.3
+       jars        number             in     default 0.1
+
+     How it works
+       Bar        a clipped, fully rounded layout row with a 2 pt gap. Four `fill` segments, dark to light green.
+       Widths     each segment's fractionalWidth (flex weight) is bound to its number through `flex weight, eased`,
+                  so widths are always in proportion to the four numbers and the bar is always full, whatever they sum to.
+       Zero       each segment's displayValue is bound through `zero hides`: a value of 0 removes the segment and its gap.
+       No state machine logic: Main has one empty layer, which is what keeps the binds running. -->
+<Rive version="1" kind="fragment">
+    <!-- View model -->
+    <ViewModel defaultInstanceId="3:6" name="BasketBarVM" id="3:1">
+        <ViewModelPropertyNumber name="fixed" id="3:2"/>
+        <ViewModelPropertyNumber name="curveballs" id="3:3"/>
+        <ViewModelPropertyNumber name="leaks" id="3:4"/>
+        <ViewModelPropertyNumber name="jars" id="3:5"/>
+        <ViewModelInstance exports="true" name="Default" id="3:6">
+            <ViewModelInstanceNumber propertyValue="0.5" viewModelPropertyId="3:2" id="3:7"/>  <!-- fixed -->
+            <ViewModelInstanceNumber propertyValue="0.1" viewModelPropertyId="3:3" id="3:8"/>  <!-- curveballs -->
+            <ViewModelInstanceNumber propertyValue="0.3" viewModelPropertyId="3:4" id="3:9"/>  <!-- leaks -->
+            <ViewModelInstanceNumber propertyValue="0.1" viewModelPropertyId="3:5" id="3:10"/>  <!-- jars -->
+        </ViewModelInstance>
+    </ViewModel>
+
+    <Artboard defaultStateMachineId="3:25" viewModelId="3:1" viewModelInstanceId="3:6" clip="true" width="350" height="40"
+            x="1040" y="0" styleId="3:12" name="BasketBar" id="3:11">
+        <LayoutComponentStyle name="Artboard Style" id="3:12"/>
+
+        <!-- Scene. The first sibling draws on top. -->
+        <!-- One fully rounded, clipped row. Each segment is a `fill` box whose flex weight is bound to its number.
+             Gap Colour is a white box pinned behind the segments (1 pt inside the edge, so no white rim shows on dark backgrounds): it is what you see through the 2 pt gaps. -->
+        <LayoutComponent clip="true" styleId="3:14" name="Bar" id="3:13">
+            <SemanticData role="image" name="Semantics"/>  <!-- for VoiceOver: role -->
+            <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" flexDirectionValue="row"
+                    cornerRadiusTL="20" gapHorizontal="2" gapHorizontalUnitsValue="points" name="Bar Style" id="3:14"/>
+            <LayoutComponent clip="false" styleId="3:16" name="Fixed" id="3:15">
+                <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" name="Fixed Style" id="3:16">
+                    <DataBindContext sourcePathIds="3:1-3:2" propertyKey="596" converterId="0:66"/>  <!-- displayValue <- fixed: 0 hides the segment and its gap -->
+                </LayoutComponentStyle>
+                <DataBindContext sourcePathIds="3:1-3:2" propertyKey="706" converterId="0:68"/>  <!-- fractionalWidth <- fixed: the flex weight -->
+                <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+            </LayoutComponent>
+            <LayoutComponent clip="false" styleId="3:18" name="Curveballs" id="3:17">
+                <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" name="Curveballs Style" id="3:18">
+                    <DataBindContext sourcePathIds="3:1-3:3" propertyKey="596" converterId="0:66"/>  <!-- displayValue <- curveballs: 0 hides the segment and its gap -->
+                </LayoutComponentStyle>
+                <DataBindContext sourcePathIds="3:1-3:3" propertyKey="706" converterId="0:68"/>  <!-- fractionalWidth <- curveballs: the flex weight -->
+                <Fill name="Fill"><SolidColor colorValue="FF007841" name="Color"/></Fill>
+            </LayoutComponent>
+            <LayoutComponent clip="false" styleId="3:20" name="Leaks" id="3:19">
+                <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" name="Leaks Style" id="3:20">
+                    <DataBindContext sourcePathIds="3:1-3:4" propertyKey="596" converterId="0:66"/>  <!-- displayValue <- leaks: 0 hides the segment and its gap -->
+                </LayoutComponentStyle>
+                <DataBindContext sourcePathIds="3:1-3:4" propertyKey="706" converterId="0:68"/>  <!-- fractionalWidth <- leaks: the flex weight -->
+                <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+            </LayoutComponent>
+            <LayoutComponent clip="false" styleId="3:22" name="Jars" id="3:21">
+                <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" linkCornerRadius="false"
+                        cornerRadiusTR="20" cornerRadiusBR="20" name="Jars Style" id="3:22">
+                    <DataBindContext sourcePathIds="3:1-3:5" propertyKey="596" converterId="0:66"/>  <!-- displayValue <- jars: 0 hides the segment and its gap -->
+                </LayoutComponentStyle>
+                <DataBindContext sourcePathIds="3:1-3:5" propertyKey="706" converterId="0:68"/>  <!-- fractionalWidth <- jars: the flex weight -->
+                <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+                <Stroke thickness="2" position="inside" name="Outline"><SolidColor colorValue="FF00AA46" name="Color"/></Stroke>
+            </LayoutComponent>
+            <LayoutComponent clip="false" styleId="3:24" name="Gap Colour" id="3:23">
+                <LayoutComponentStyle positionTypeValue="absolute" widthUnitsValue="auto" heightUnitsValue="auto" positionLeft="1"
+                        positionLeftUnitsValue="points" positionRight="1" positionRightUnitsValue="points" positionTop="1"
+                        positionTopUnitsValue="points" positionBottom="1" positionBottomUnitsValue="points" cornerRadiusTL="19"
+                        name="Gap Colour Style" id="3:24"/>
+                <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill>
+            </LayoutComponent>
+        </LayoutComponent>
+
+        <!-- State machine. Declared before the timelines so the editor opens it first. -->
+        <StateMachine name="Main" id="3:25">
+            <StateMachineLayer name="Base" id="3:26">
+                <AnyState x="0" y="-140" id="3:27"/>
+                <ExitState x="0" y="-280" id="3:28"/>
+                <EntryState x="0" y="0" id="3:29"/>
+            </StateMachineLayer>
+        </StateMachine>
+    </Artboard>
+</Rive>

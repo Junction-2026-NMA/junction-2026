@@ -1,0 +1,155 @@
+<!-- BasketChip  (160x32, fixed)
+     Pill naming a basket, with its icon in the basket's green.
+
+     View model BasketChipVM  (names and types are fixed by rive/contract.json):
+       basket      enum Basket        in     default "fixed"
+       label       string             in     default "Fixed"
+
+     How it works
+       Pill       hugs its icon and label and is anchored to the left edge of the fixed 160 x 32 artboard.
+                  The label shrinks its font past 112 pt wide (a full-width pill).
+       Icon       a Solo holding four drawn icons, each in its basket's green: anchor, lightning, drop, jar.
+       Basket     AnyState -> fixed | curveballs | leaks | jars on `basket`; the pose keys Solo.activeComponentId. -->
+<Rive version="1" kind="fragment">
+    <!-- View model -->
+    <ViewModel defaultInstanceId="4:4" name="BasketChipVM" id="4:1">
+        <ViewModelPropertyEnumCustom enumId="0:120" name="basket" id="4:2"/>
+        <ViewModelPropertyString name="label" id="4:3"/>
+        <ViewModelInstance exports="true" name="Default" id="4:4">
+            <ViewModelInstanceEnum propertyValue="0:121" viewModelPropertyId="4:2" id="4:5"/>  <!-- basket = fixed -->
+            <ViewModelInstanceString propertyValue="Fixed" viewModelPropertyId="4:3" id="4:6"/>  <!-- label -->
+        </ViewModelInstance>
+    </ViewModel>
+
+    <Artboard defaultStateMachineId="4:20" viewModelId="4:1" viewModelInstanceId="4:4" clip="true" width="160" height="32" x="0"
+            y="140" styleId="4:8" name="BasketChip" id="4:7">
+        <LayoutComponentStyle name="Artboard Style" id="4:8"/>
+
+        <!-- Scene. The first sibling draws on top. -->
+        <!-- Pale mint pill that hugs its icon and label and sits at the artboard's left edge, inside the app's fixed 160 x 32 frame. -->
+        <LayoutComponent height="32" clip="true" styleId="4:10" name="Pill" id="4:9">
+            <SemanticData role="text" name="Semantics"><DataBindContext sourcePathIds="4:1-4:3" propertyKey="983"/></SemanticData>  <!-- for VoiceOver: role, label <- the component's text -->
+            <LayoutComponentStyle layoutWidthScaleType="hug" layoutHeightScaleType="fixed" flexDirectionValue="row"
+                    layoutAlignmentType="center" cornerRadiusTL="16" paddingLeft="12" paddingLeftUnitsValue="points" paddingRight="12"
+                    paddingRightUnitsValue="points" gapHorizontal="6" gapHorizontalUnitsValue="points" name="Pill Style" id="4:10"/>
+            <Fill name="Fill"><SolidColor colorValue="FFD2FCD5" name="Color"/></Fill>
+            <LayoutComponent width="18" height="18" clip="false" styleId="4:12" name="Icon Slot" id="4:11">
+                <LayoutComponentStyle name="Icon Slot Style" id="4:12"/>
+                <Solo x="9" y="9" activeComponentId="4:14" name="Icon" id="4:13">
+                    <Node name="Fixed: anchor" id="4:14">
+                        <Shape name="Anchor">
+                            <Ellipse width="4.6" height="4.6" y="-6.4" name="Ring"/>
+                            <PointsPath isClosed="false" name="Shank">
+                                <StraightVertex x="0" y="-4"/>
+                                <StraightVertex x="0" y="7.6"/>
+                            </PointsPath>
+                            <PointsPath isClosed="false" name="Stock">
+                                <StraightVertex x="-3.6" y="-1.2"/>
+                                <StraightVertex x="3.6" y="-1.2"/>
+                            </PointsPath>
+                            <PointsPath isClosed="false" name="Arms">
+                                <StraightVertex x="-6.6" y="1.6"/>
+                                <CubicMirroredVertex x="0" y="7.6" rotation="0" distance="5.2"/>
+                                <StraightVertex x="6.6" y="1.6"/>
+                            </PointsPath>
+                            <Stroke thickness="2" cap="round" join="round" name="Stroke"><SolidColor colorValue="FF004628" name="Color"/></Stroke>
+                        </Shape>
+                    </Node>
+                    <Node name="Curveballs: lightning" id="4:15">
+                        <Shape name="Lightning">
+                            <PointsPath isClosed="true" name="Bolt">
+                                <StraightVertex x="2.4" y="-8.8" radius="0.9"/>
+                                <StraightVertex x="-5.6" y="1" radius="0.9"/>
+                                <StraightVertex x="-0.8" y="1.8" radius="0.4"/>
+                                <StraightVertex x="-2.4" y="8.8" radius="0.9"/>
+                                <StraightVertex x="5.6" y="-1" radius="0.9"/>
+                                <StraightVertex x="0.8" y="-1.8" radius="0.4"/>
+                            </PointsPath>
+                            <Fill name="Fill"><SolidColor colorValue="FF007841" name="Color"/></Fill>
+                        </Shape>
+                    </Node>
+                    <Node name="Leaks: drop" id="4:16">
+                        <Shape name="Drop">
+                            <PointsPath isClosed="true" name="Drop">
+                                <StraightVertex x="0" y="-8.5" radius="1.2"/>
+                                <CubicDetachedVertex x="5.9" y="2.6" inRotation="-1.5708" inDistance="4.2" outRotation="1.5708" outDistance="3.3"/>
+                                <CubicMirroredVertex x="0" y="8.5" rotation="3.14159" distance="3.3"/>
+                                <CubicDetachedVertex x="-5.9" y="2.6" inRotation="1.5708" inDistance="3.3" outRotation="-1.5708" outDistance="4.2"/>
+                            </PointsPath>
+                            <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                        </Shape>
+                    </Node>
+                    <Node name="Jars: jar" id="4:17">
+                        <Shape name="Jar">
+                            <Rectangle width="12.5" height="11" cornerRadiusTL="3.2" y="2.6" name="Body"/>
+                            <Rectangle width="10" height="3.6" cornerRadiusTL="1.3" y="-5.8" name="Lid"/>
+                            <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+                            <Stroke thickness="1.5" join="round" name="Stroke"><SolidColor colorValue="FF00AA46" name="Color"/></Stroke>
+                        </Shape>
+                    </Node>
+                </Solo>
+            </LayoutComponent>
+            <Text wrapValue="noWrap" overflowValue="fitFontSize" name="Label" id="4:18">
+                <LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" maxWidth="112" maxWidthUnitsValue="points" name="Layout"/>
+                <TextStylePaint fontSize="14" fontAssetId="0:11" familyName="Figtree" styleName="SemiBold" name="Label Style" id="4:19">
+                    <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="4:19" text="" name="Run"><DataBindContext sourcePathIds="4:1-4:3" propertyKey="268"/></TextValueRun>  <!-- text <- label -->
+            </Text>
+        </LayoutComponent>
+
+        <!-- State machine. Declared before the timelines so the editor opens it first. -->
+        <StateMachine name="Main" id="4:20">
+            <StateMachineLayer name="Basket" id="4:21">
+                <AnyState x="0" y="-140" id="4:22">
+                    <StateTransition stateToId="4:25">  <!-- to fixed -->
+                        <TransitionViewModelCondition>  <!-- basket is fixed -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="4:1-4:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:121"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="4:26">  <!-- to curveballs -->
+                        <TransitionViewModelCondition>  <!-- basket is curveballs -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="4:1-4:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:122"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="4:27">  <!-- to leaks -->
+                        <TransitionViewModelCondition>  <!-- basket is leaks -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="4:1-4:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:123"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="4:28">  <!-- to jars -->
+                        <TransitionViewModelCondition>  <!-- basket is jars -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="4:1-4:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:124"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnyState>
+                <ExitState x="0" y="-280" id="4:23"/>
+                <EntryState x="0" y="0" id="4:24">
+                    <StateTransition stateToId="4:25"/>  <!-- starts in fixed -->
+                </EntryState>
+                <AnimationState animationId="4:29" stateName="fixed" x="240" y="0" id="4:25"/>
+                <AnimationState animationId="4:30" stateName="curveballs" x="240" y="110" id="4:26"/>
+                <AnimationState animationId="4:31" stateName="leaks" x="240" y="220" id="4:27"/>
+                <AnimationState animationId="4:32" stateName="jars" x="240" y="330" id="4:28"/>
+            </StateMachineLayer>
+        </StateMachine>
+
+        <!-- Timelines. Most are one-key poses: the state transitions do the blending. -->
+        <LinearAnimation duration="1" name="basket: fixed" id="4:29">
+            <KeyedObject objectId="4:13"><KeyedProperty property="activeComponentId"><KeyFrameId value="4:14" frame="0"/></KeyedProperty></KeyedObject>  <!-- Icon -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="basket: curveballs" id="4:30">
+            <KeyedObject objectId="4:13"><KeyedProperty property="activeComponentId"><KeyFrameId value="4:15" frame="0"/></KeyedProperty></KeyedObject>  <!-- Icon -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="basket: leaks" id="4:31">
+            <KeyedObject objectId="4:13"><KeyedProperty property="activeComponentId"><KeyFrameId value="4:16" frame="0"/></KeyedProperty></KeyedObject>  <!-- Icon -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="basket: jars" id="4:32">
+            <KeyedObject objectId="4:13"><KeyedProperty property="activeComponentId"><KeyFrameId value="4:17" frame="0"/></KeyedProperty></KeyedObject>  <!-- Icon -->
+        </LinearAnimation>
+    </Artboard>
+</Rive>

@@ -1,0 +1,701 @@
+<!-- StageIndicator  (350x72, flexibleWidth)
+     Shows the live research stage: searching, reading pages, comparing, done.
+
+     View model StageIndicatorVM  (names and types are fixed by rive/contract.json):
+       stage       enum ResearchStage in     default "searching"
+       label       string             in     default "Searching for current offers"
+
+     How it works
+       Steps      a layout row: four 28 pt steps and three `fill` lines between them, so the row spans any width.
+       Stage      AnyState -> searching | reading | comparing | done on `stage`. Each pose keys every dot, tick and line:
+                  earlier steps are deep green with a tick, the current step is S green with a pulsing halo (the pose loops),
+                  later steps are pale mint with a soft green ring. `done` ticks all four and is still.
+       Progress   a second layer on `stage` that plays once per change: the line into the new step fills from the left
+                  (a deep green box inside the line, scaled from 0 to 1) and the tick of the step just finished pops.
+       Label      bound to `label`; wraps to two lines, then ends in an ellipsis. -->
+<Rive version="1" kind="fragment">
+    <!-- View model -->
+    <ViewModel defaultInstanceId="11:4" name="StageIndicatorVM" id="11:1">
+        <ViewModelPropertyEnumCustom enumId="0:220" name="stage" id="11:2"/>
+        <ViewModelPropertyString name="label" id="11:3"/>
+        <ViewModelInstance exports="true" name="Default" id="11:4">
+            <ViewModelInstanceEnum propertyValue="0:221" viewModelPropertyId="11:2" id="11:5"/>  <!-- stage = searching -->
+            <ViewModelInstanceString propertyValue="Searching for current offers" viewModelPropertyId="11:3" id="11:6"/>  <!-- label -->
+        </ViewModelInstance>
+    </ViewModel>
+
+    <Artboard defaultStateMachineId="11:60" viewModelId="11:1" viewModelInstanceId="11:4" clip="true" width="350" height="72"
+            x="520" y="510" styleId="11:8" name="StageIndicator" id="11:7">
+        <LayoutComponentStyle name="Artboard Style" id="11:8"/>
+
+        <!-- Scene. The first sibling draws on top. -->
+        <!-- Four step dots joined by lines that stretch with the width, and the label under them (two lines, then an ellipsis). -->
+        <LayoutComponent clip="false" styleId="11:10" name="Root" id="11:9">
+            <SemanticData role="text" name="Semantics"><DataBindContext sourcePathIds="11:1-11:3" propertyKey="983"/></SemanticData>  <!-- for VoiceOver: role, label <- the component's text -->
+            <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" flexDirectionValue="column"
+                    layoutAlignmentType="topLeft" gapVertical="8" gapVerticalUnitsValue="points" name="Root Style" id="11:10"/>
+            <LayoutComponent height="28" clip="false" styleId="11:12" name="Steps" id="11:11">
+                <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fixed" flexDirectionValue="row"
+                        layoutAlignmentType="center" gapHorizontal="6" gapHorizontalUnitsValue="points" name="Steps Style"
+                        id="11:12"/>
+                <LayoutComponent width="28" height="28" clip="false" styleId="11:14" name="Step 0: searching" id="11:13">
+                    <LayoutComponentStyle flexDirectionValue="row" layoutAlignmentType="center" name="Step 0: searching Style" id="11:14"/>
+                    <LayoutComponent width="20" height="20" clip="false" styleId="11:16" name="Dot 0" id="11:15">
+                        <LayoutComponentStyle cornerRadiusTL="10" name="Dot 0 Style" id="11:16"/>
+                        <Fill name="Fill"><SolidColor colorValue="FFD2FCD5" name="Color" id="11:17"/></Fill>
+                        <Stroke thickness="2" position="inside" name="Ring"><SolidColor colorValue="FF99D59F" name="Color" id="11:18"/></Stroke>
+                        <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+                        <Node x="10" y="10" name="Tick Holder 0">
+                            <Shape opacity="0" name="Tick 0" id="11:19">
+                                <PointsPath isClosed="false" name="Path">
+                                    <StraightVertex x="-3.69" y="0.328"/>
+                                    <StraightVertex x="-1.148" y="2.952"/>
+                                    <StraightVertex x="3.936" y="-2.788"/>
+                                </PointsPath>
+                                <Stroke thickness="2.2" cap="round" join="round" name="Stroke"><SolidColor colorValue="FFFFFFFF" name="Color"/></Stroke>
+                            </Shape>
+                        </Node>
+                    </LayoutComponent>
+                    <LayoutComponent opacity="0" clip="false" styleId="11:21" name="Halo 0" id="11:20">
+                        <LayoutComponentStyle positionTypeValue="absolute" widthUnitsValue="auto" heightUnitsValue="auto"
+                                positionLeft="0" positionLeftUnitsValue="points" positionRight="0"
+                                positionRightUnitsValue="points" positionTop="0" positionTopUnitsValue="points" positionBottom="0"
+                                positionBottomUnitsValue="points" cornerRadiusTL="14" name="Halo 0 Style" id="11:21"/>
+                        <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                    </LayoutComponent>
+                </LayoutComponent>
+                <LayoutComponent height="4" clip="false" styleId="11:23" name="Line 0" id="11:22">
+                    <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fixed" cornerRadiusTL="2"
+                            name="Line 0 Style" id="11:23"/>
+                    <Fill name="Fill"><SolidColor colorValue="FF99D59F" name="Color" id="11:24"/></Fill>
+                    <LayoutComponent scaleX="0" clip="false" styleId="11:81" name="Line 0 Fill" id="11:80">
+                        <LayoutComponentStyle positionTypeValue="absolute" widthUnitsValue="auto" heightUnitsValue="auto" positionLeft="0"
+                                positionLeftUnitsValue="points" positionRight="0" positionRightUnitsValue="points" positionTop="0"
+                                positionTopUnitsValue="points" positionBottom="0" positionBottomUnitsValue="points" cornerRadiusTL="2"
+                                name="Line 0 Fill Style" id="11:81"/>
+                        <ComponentOrigin originX="0" originY="0.5" name="Origin"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF007841" name="Color"/></Fill>
+                    </LayoutComponent>
+                </LayoutComponent>
+                <LayoutComponent width="28" height="28" clip="false" styleId="11:26" name="Step 1: reading" id="11:25">
+                    <LayoutComponentStyle flexDirectionValue="row" layoutAlignmentType="center" name="Step 1: reading Style" id="11:26"/>
+                    <LayoutComponent width="20" height="20" clip="false" styleId="11:28" name="Dot 1" id="11:27">
+                        <LayoutComponentStyle cornerRadiusTL="10" name="Dot 1 Style" id="11:28"/>
+                        <Fill name="Fill"><SolidColor colorValue="FFD2FCD5" name="Color" id="11:29"/></Fill>
+                        <Stroke thickness="2" position="inside" name="Ring"><SolidColor colorValue="FF99D59F" name="Color" id="11:30"/></Stroke>
+                        <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+                        <Node x="10" y="10" name="Tick Holder 1">
+                            <Shape opacity="0" name="Tick 1" id="11:31">
+                                <PointsPath isClosed="false" name="Path">
+                                    <StraightVertex x="-3.69" y="0.328"/>
+                                    <StraightVertex x="-1.148" y="2.952"/>
+                                    <StraightVertex x="3.936" y="-2.788"/>
+                                </PointsPath>
+                                <Stroke thickness="2.2" cap="round" join="round" name="Stroke"><SolidColor colorValue="FFFFFFFF" name="Color"/></Stroke>
+                            </Shape>
+                        </Node>
+                    </LayoutComponent>
+                    <LayoutComponent opacity="0" clip="false" styleId="11:33" name="Halo 1" id="11:32">
+                        <LayoutComponentStyle positionTypeValue="absolute" widthUnitsValue="auto" heightUnitsValue="auto"
+                                positionLeft="0" positionLeftUnitsValue="points" positionRight="0"
+                                positionRightUnitsValue="points" positionTop="0" positionTopUnitsValue="points" positionBottom="0"
+                                positionBottomUnitsValue="points" cornerRadiusTL="14" name="Halo 1 Style" id="11:33"/>
+                        <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                    </LayoutComponent>
+                </LayoutComponent>
+                <LayoutComponent height="4" clip="false" styleId="11:35" name="Line 1" id="11:34">
+                    <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fixed" cornerRadiusTL="2"
+                            name="Line 1 Style" id="11:35"/>
+                    <Fill name="Fill"><SolidColor colorValue="FF99D59F" name="Color" id="11:36"/></Fill>
+                    <LayoutComponent scaleX="0" clip="false" styleId="11:83" name="Line 1 Fill" id="11:82">
+                        <LayoutComponentStyle positionTypeValue="absolute" widthUnitsValue="auto" heightUnitsValue="auto" positionLeft="0"
+                                positionLeftUnitsValue="points" positionRight="0" positionRightUnitsValue="points" positionTop="0"
+                                positionTopUnitsValue="points" positionBottom="0" positionBottomUnitsValue="points" cornerRadiusTL="2"
+                                name="Line 1 Fill Style" id="11:83"/>
+                        <ComponentOrigin originX="0" originY="0.5" name="Origin"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF007841" name="Color"/></Fill>
+                    </LayoutComponent>
+                </LayoutComponent>
+                <LayoutComponent width="28" height="28" clip="false" styleId="11:38" name="Step 2: comparing" id="11:37">
+                    <LayoutComponentStyle flexDirectionValue="row" layoutAlignmentType="center" name="Step 2: comparing Style" id="11:38"/>
+                    <LayoutComponent width="20" height="20" clip="false" styleId="11:40" name="Dot 2" id="11:39">
+                        <LayoutComponentStyle cornerRadiusTL="10" name="Dot 2 Style" id="11:40"/>
+                        <Fill name="Fill"><SolidColor colorValue="FFD2FCD5" name="Color" id="11:41"/></Fill>
+                        <Stroke thickness="2" position="inside" name="Ring"><SolidColor colorValue="FF99D59F" name="Color" id="11:42"/></Stroke>
+                        <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+                        <Node x="10" y="10" name="Tick Holder 2">
+                            <Shape opacity="0" name="Tick 2" id="11:43">
+                                <PointsPath isClosed="false" name="Path">
+                                    <StraightVertex x="-3.69" y="0.328"/>
+                                    <StraightVertex x="-1.148" y="2.952"/>
+                                    <StraightVertex x="3.936" y="-2.788"/>
+                                </PointsPath>
+                                <Stroke thickness="2.2" cap="round" join="round" name="Stroke"><SolidColor colorValue="FFFFFFFF" name="Color"/></Stroke>
+                            </Shape>
+                        </Node>
+                    </LayoutComponent>
+                    <LayoutComponent opacity="0" clip="false" styleId="11:45" name="Halo 2" id="11:44">
+                        <LayoutComponentStyle positionTypeValue="absolute" widthUnitsValue="auto" heightUnitsValue="auto"
+                                positionLeft="0" positionLeftUnitsValue="points" positionRight="0"
+                                positionRightUnitsValue="points" positionTop="0" positionTopUnitsValue="points" positionBottom="0"
+                                positionBottomUnitsValue="points" cornerRadiusTL="14" name="Halo 2 Style" id="11:45"/>
+                        <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                    </LayoutComponent>
+                </LayoutComponent>
+                <LayoutComponent height="4" clip="false" styleId="11:47" name="Line 2" id="11:46">
+                    <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fixed" cornerRadiusTL="2"
+                            name="Line 2 Style" id="11:47"/>
+                    <Fill name="Fill"><SolidColor colorValue="FF99D59F" name="Color" id="11:48"/></Fill>
+                    <LayoutComponent scaleX="0" clip="false" styleId="11:85" name="Line 2 Fill" id="11:84">
+                        <LayoutComponentStyle positionTypeValue="absolute" widthUnitsValue="auto" heightUnitsValue="auto" positionLeft="0"
+                                positionLeftUnitsValue="points" positionRight="0" positionRightUnitsValue="points" positionTop="0"
+                                positionTopUnitsValue="points" positionBottom="0" positionBottomUnitsValue="points" cornerRadiusTL="2"
+                                name="Line 2 Fill Style" id="11:85"/>
+                        <ComponentOrigin originX="0" originY="0.5" name="Origin"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF007841" name="Color"/></Fill>
+                    </LayoutComponent>
+                </LayoutComponent>
+                <LayoutComponent width="28" height="28" clip="false" styleId="11:50" name="Step 3: done" id="11:49">
+                    <LayoutComponentStyle flexDirectionValue="row" layoutAlignmentType="center" name="Step 3: done Style" id="11:50"/>
+                    <LayoutComponent width="20" height="20" clip="false" styleId="11:52" name="Dot 3" id="11:51">
+                        <LayoutComponentStyle cornerRadiusTL="10" name="Dot 3 Style" id="11:52"/>
+                        <Fill name="Fill"><SolidColor colorValue="FFD2FCD5" name="Color" id="11:53"/></Fill>
+                        <Stroke thickness="2" position="inside" name="Ring"><SolidColor colorValue="FF99D59F" name="Color" id="11:54"/></Stroke>
+                        <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+                        <Node x="10" y="10" name="Tick Holder 3">
+                            <Shape opacity="0" name="Tick 3" id="11:55">
+                                <PointsPath isClosed="false" name="Path">
+                                    <StraightVertex x="-3.69" y="0.328"/>
+                                    <StraightVertex x="-1.148" y="2.952"/>
+                                    <StraightVertex x="3.936" y="-2.788"/>
+                                </PointsPath>
+                                <Stroke thickness="2.2" cap="round" join="round" name="Stroke"><SolidColor colorValue="FFFFFFFF" name="Color"/></Stroke>
+                            </Shape>
+                        </Node>
+                    </LayoutComponent>
+                    <LayoutComponent opacity="0" clip="false" styleId="11:57" name="Halo 3" id="11:56">
+                        <LayoutComponentStyle positionTypeValue="absolute" widthUnitsValue="auto" heightUnitsValue="auto"
+                                positionLeft="0" positionLeftUnitsValue="points" positionRight="0"
+                                positionRightUnitsValue="points" positionTop="0" positionTopUnitsValue="points" positionBottom="0"
+                                positionBottomUnitsValue="points" cornerRadiusTL="14" name="Halo 3 Style" id="11:57"/>
+                        <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                    </LayoutComponent>
+                </LayoutComponent>
+            </LayoutComponent>
+            <Text wrapValue="wrap" overflowValue="ellipsis" verticalAlignValue="top" sizingValue="fixed" name="Label" id="11:58">
+                <LayoutParticipant layoutWidthScaleType="fill" layoutHeightScaleType="fill" name="Layout"/>
+                <TextStylePaint fontSize="14" lineHeight="18" fontAssetId="0:11" familyName="Figtree" styleName="SemiBold"
+                        name="Label Style" id="11:59">
+                    <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="11:59" text="" name="Run"><DataBindContext sourcePathIds="11:1-11:3" propertyKey="268"/></TextValueRun>  <!-- text <- label -->
+            </Text>
+        </LayoutComponent>
+
+        <!-- State machine. Declared before the timelines so the editor opens it first. -->
+        <StateMachine name="Main" id="11:60">
+            <StateMachineLayer name="Stage" id="11:61">
+                <AnyState x="0" y="-140" id="11:62">
+                    <StateTransition stateToId="11:65" duration="200">  <!-- to searching -->
+                        <TransitionViewModelCondition>  <!-- stage is searching -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="11:1-11:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:221"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="11:66" duration="200">  <!-- to reading -->
+                        <TransitionViewModelCondition>  <!-- stage is reading -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="11:1-11:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:222"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="11:67" duration="200">  <!-- to comparing -->
+                        <TransitionViewModelCondition>  <!-- stage is comparing -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="11:1-11:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:223"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="11:68" duration="200">  <!-- to done -->
+                        <TransitionViewModelCondition>  <!-- stage is done -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="11:1-11:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:224"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnyState>
+                <ExitState x="0" y="-280" id="11:63"/>
+                <EntryState x="0" y="0" id="11:64">
+                    <StateTransition stateToId="11:65"/>  <!-- starts in searching -->
+                </EntryState>
+                <AnimationState animationId="11:69" stateName="searching" x="240" y="0" id="11:65"/>
+                <AnimationState animationId="11:70" stateName="reading" x="240" y="110" id="11:66"/>
+                <AnimationState animationId="11:71" stateName="comparing" x="240" y="220" id="11:67"/>
+                <AnimationState animationId="11:72" stateName="done" x="240" y="330" id="11:68"/>
+            </StateMachineLayer>
+            <!-- Progress: the motion that answers a change of `stage`. Each state plays once and holds its last frame:
+                 the line into the new step fills from the left, and the tick of the step just finished pops. -->
+            <StateMachineLayer name="Progress" id="11:86">
+                <AnyState x="0" y="-140" id="11:87">
+                    <StateTransition stateToId="11:90">  <!-- to at searching -->
+                        <TransitionViewModelCondition>  <!-- stage is searching -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="11:1-11:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:221"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="11:91">  <!-- to to reading -->
+                        <TransitionViewModelCondition>  <!-- stage is reading -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="11:1-11:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:222"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="11:92">  <!-- to to comparing -->
+                        <TransitionViewModelCondition>  <!-- stage is comparing -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="11:1-11:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:223"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="11:93">  <!-- to to done -->
+                        <TransitionViewModelCondition>  <!-- stage is done -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="11:1-11:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:224"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnyState>
+                <ExitState x="0" y="-280" id="11:88"/>
+                <EntryState x="0" y="0" id="11:89">
+                    <StateTransition stateToId="11:90"/>  <!-- starts in at searching -->
+                </EntryState>
+                <AnimationState animationId="11:94" stateName="at searching" x="240" y="0" id="11:90"/>
+                <AnimationState animationId="11:95" stateName="to reading" x="240" y="110" id="11:91"/>
+                <AnimationState animationId="11:96" stateName="to comparing" x="240" y="220" id="11:92"/>
+                <AnimationState animationId="11:97" stateName="to done" x="240" y="330" id="11:93"/>
+            </StateMachineLayer>
+        </StateMachine>
+
+        <!-- Timelines. Most are one-key poses: the state transitions do the blending. -->
+        <LinearAnimation duration="72" loopValue="loop" name="stage: searching" id="11:69">
+            <KeyedObject objectId="11:17"><KeyedProperty property="colorValue"><KeyFrameColor value="FF00AA46" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 0 Color -->
+            <KeyedObject objectId="11:18"><KeyedProperty property="colorValue"><KeyFrameColor value="0099D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 0 Ring -->
+            <KeyedObject objectId="11:19"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Tick 0 -->
+            <KeyedObject objectId="11:20">  <!-- Halo 0 -->
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0.5" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="54" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="72" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0.72" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="54" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="72" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="0.72" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="54" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="72" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:15">  <!-- Dot 0 -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.12" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="36" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="72" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.12" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="36" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="72" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:29"><KeyedProperty property="colorValue"><KeyFrameColor value="FFD2FCD5" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 1 Color -->
+            <KeyedObject objectId="11:30"><KeyedProperty property="colorValue"><KeyFrameColor value="FF99D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 1 Ring -->
+            <KeyedObject objectId="11:31"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Tick 1 -->
+            <KeyedObject objectId="11:32"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Halo 1 -->
+            <KeyedObject objectId="11:27"><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 1 -->
+            <KeyedObject objectId="11:41"><KeyedProperty property="colorValue"><KeyFrameColor value="FFD2FCD5" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 2 Color -->
+            <KeyedObject objectId="11:42"><KeyedProperty property="colorValue"><KeyFrameColor value="FF99D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 2 Ring -->
+            <KeyedObject objectId="11:43"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Tick 2 -->
+            <KeyedObject objectId="11:44"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Halo 2 -->
+            <KeyedObject objectId="11:39"><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 2 -->
+            <KeyedObject objectId="11:53"><KeyedProperty property="colorValue"><KeyFrameColor value="FFD2FCD5" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 3 Color -->
+            <KeyedObject objectId="11:54"><KeyedProperty property="colorValue"><KeyFrameColor value="FF99D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 3 Ring -->
+            <KeyedObject objectId="11:55"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Tick 3 -->
+            <KeyedObject objectId="11:56"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Halo 3 -->
+            <KeyedObject objectId="11:51"><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 3 -->
+            <KeyedObject objectId="11:24"><KeyedProperty property="colorValue"><KeyFrameColor value="FF99D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Line 0 Color -->
+            <KeyedObject objectId="11:36"><KeyedProperty property="colorValue"><KeyFrameColor value="FF99D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Line 1 Color -->
+            <KeyedObject objectId="11:48"><KeyedProperty property="colorValue"><KeyFrameColor value="FF99D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Line 2 Color -->
+        </LinearAnimation>
+        <LinearAnimation duration="72" loopValue="loop" name="stage: reading" id="11:70">
+            <KeyedObject objectId="11:17"><KeyedProperty property="colorValue"><KeyFrameColor value="FF007841" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 0 Color -->
+            <KeyedObject objectId="11:18"><KeyedProperty property="colorValue"><KeyFrameColor value="0099D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 0 Ring -->
+            <KeyedObject objectId="11:19"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Tick 0 -->
+            <KeyedObject objectId="11:20"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Halo 0 -->
+            <KeyedObject objectId="11:15"><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 0 -->
+            <KeyedObject objectId="11:29"><KeyedProperty property="colorValue"><KeyFrameColor value="FF00AA46" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 1 Color -->
+            <KeyedObject objectId="11:30"><KeyedProperty property="colorValue"><KeyFrameColor value="0099D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 1 Ring -->
+            <KeyedObject objectId="11:31"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Tick 1 -->
+            <KeyedObject objectId="11:32">  <!-- Halo 1 -->
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0.5" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="54" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="72" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0.72" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="54" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="72" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="0.72" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="54" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="72" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:27">  <!-- Dot 1 -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.12" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="36" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="72" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.12" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="36" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="72" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:41"><KeyedProperty property="colorValue"><KeyFrameColor value="FFD2FCD5" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 2 Color -->
+            <KeyedObject objectId="11:42"><KeyedProperty property="colorValue"><KeyFrameColor value="FF99D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 2 Ring -->
+            <KeyedObject objectId="11:43"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Tick 2 -->
+            <KeyedObject objectId="11:44"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Halo 2 -->
+            <KeyedObject objectId="11:39"><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 2 -->
+            <KeyedObject objectId="11:53"><KeyedProperty property="colorValue"><KeyFrameColor value="FFD2FCD5" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 3 Color -->
+            <KeyedObject objectId="11:54"><KeyedProperty property="colorValue"><KeyFrameColor value="FF99D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 3 Ring -->
+            <KeyedObject objectId="11:55"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Tick 3 -->
+            <KeyedObject objectId="11:56"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Halo 3 -->
+            <KeyedObject objectId="11:51"><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 3 -->
+            <KeyedObject objectId="11:24"><KeyedProperty property="colorValue"><KeyFrameColor value="FF99D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Line 0 Color -->
+            <KeyedObject objectId="11:36"><KeyedProperty property="colorValue"><KeyFrameColor value="FF99D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Line 1 Color -->
+            <KeyedObject objectId="11:48"><KeyedProperty property="colorValue"><KeyFrameColor value="FF99D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Line 2 Color -->
+        </LinearAnimation>
+        <LinearAnimation duration="72" loopValue="loop" name="stage: comparing" id="11:71">
+            <KeyedObject objectId="11:17"><KeyedProperty property="colorValue"><KeyFrameColor value="FF007841" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 0 Color -->
+            <KeyedObject objectId="11:18"><KeyedProperty property="colorValue"><KeyFrameColor value="0099D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 0 Ring -->
+            <KeyedObject objectId="11:19"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Tick 0 -->
+            <KeyedObject objectId="11:20"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Halo 0 -->
+            <KeyedObject objectId="11:15"><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 0 -->
+            <KeyedObject objectId="11:29"><KeyedProperty property="colorValue"><KeyFrameColor value="FF007841" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 1 Color -->
+            <KeyedObject objectId="11:30"><KeyedProperty property="colorValue"><KeyFrameColor value="0099D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 1 Ring -->
+            <KeyedObject objectId="11:31"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Tick 1 -->
+            <KeyedObject objectId="11:32"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Halo 1 -->
+            <KeyedObject objectId="11:27"><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 1 -->
+            <KeyedObject objectId="11:41"><KeyedProperty property="colorValue"><KeyFrameColor value="FF00AA46" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 2 Color -->
+            <KeyedObject objectId="11:42"><KeyedProperty property="colorValue"><KeyFrameColor value="0099D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 2 Ring -->
+            <KeyedObject objectId="11:43"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Tick 2 -->
+            <KeyedObject objectId="11:44">  <!-- Halo 2 -->
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0.5" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="54" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="72" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0.72" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="54" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="72" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="0.72" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="54" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="72" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:39">  <!-- Dot 2 -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.12" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="36" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="72" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.12" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="36" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="72" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:53"><KeyedProperty property="colorValue"><KeyFrameColor value="FFD2FCD5" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 3 Color -->
+            <KeyedObject objectId="11:54"><KeyedProperty property="colorValue"><KeyFrameColor value="FF99D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 3 Ring -->
+            <KeyedObject objectId="11:55"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Tick 3 -->
+            <KeyedObject objectId="11:56"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Halo 3 -->
+            <KeyedObject objectId="11:51"><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 3 -->
+            <KeyedObject objectId="11:24"><KeyedProperty property="colorValue"><KeyFrameColor value="FF99D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Line 0 Color -->
+            <KeyedObject objectId="11:36"><KeyedProperty property="colorValue"><KeyFrameColor value="FF99D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Line 1 Color -->
+            <KeyedObject objectId="11:48"><KeyedProperty property="colorValue"><KeyFrameColor value="FF99D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Line 2 Color -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="stage: done" id="11:72">
+            <KeyedObject objectId="11:17"><KeyedProperty property="colorValue"><KeyFrameColor value="FF007841" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 0 Color -->
+            <KeyedObject objectId="11:18"><KeyedProperty property="colorValue"><KeyFrameColor value="0099D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 0 Ring -->
+            <KeyedObject objectId="11:19"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Tick 0 -->
+            <KeyedObject objectId="11:20"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Halo 0 -->
+            <KeyedObject objectId="11:15"><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 0 -->
+            <KeyedObject objectId="11:29"><KeyedProperty property="colorValue"><KeyFrameColor value="FF007841" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 1 Color -->
+            <KeyedObject objectId="11:30"><KeyedProperty property="colorValue"><KeyFrameColor value="0099D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 1 Ring -->
+            <KeyedObject objectId="11:31"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Tick 1 -->
+            <KeyedObject objectId="11:32"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Halo 1 -->
+            <KeyedObject objectId="11:27"><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 1 -->
+            <KeyedObject objectId="11:41"><KeyedProperty property="colorValue"><KeyFrameColor value="FF007841" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 2 Color -->
+            <KeyedObject objectId="11:42"><KeyedProperty property="colorValue"><KeyFrameColor value="0099D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 2 Ring -->
+            <KeyedObject objectId="11:43"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Tick 2 -->
+            <KeyedObject objectId="11:44"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Halo 2 -->
+            <KeyedObject objectId="11:39"><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 2 -->
+            <KeyedObject objectId="11:53"><KeyedProperty property="colorValue"><KeyFrameColor value="FF007841" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 3 Color -->
+            <KeyedObject objectId="11:54"><KeyedProperty property="colorValue"><KeyFrameColor value="0099D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 3 Ring -->
+            <KeyedObject objectId="11:55"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Tick 3 -->
+            <KeyedObject objectId="11:56"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Halo 3 -->
+            <KeyedObject objectId="11:51"><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 3 -->
+            <KeyedObject objectId="11:24"><KeyedProperty property="colorValue"><KeyFrameColor value="FF99D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Line 0 Color -->
+            <KeyedObject objectId="11:36"><KeyedProperty property="colorValue"><KeyFrameColor value="FF99D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Line 1 Color -->
+            <KeyedObject objectId="11:48"><KeyedProperty property="colorValue"><KeyFrameColor value="FF99D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Line 2 Color -->
+        </LinearAnimation>
+        <!-- Nothing finished yet: the lines are empty. -->
+        <LinearAnimation duration="1" name="progress: at searching" id="11:94">
+            <KeyedObject objectId="11:80">  <!-- Line 0 Fill -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:82">  <!-- Line 1 Fill -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:84">  <!-- Line 2 Fill -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:19">  <!-- Tick 0 -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:31">  <!-- Tick 1 -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:43">  <!-- Tick 2 -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:55">  <!-- Tick 3 -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+        <!-- 0.55 s: line 0 fills from the left, then the tick of step 0 pops. -->
+        <LinearAnimation duration="34" name="progress: to reading" id="11:95">
+            <KeyedObject objectId="11:80">  <!-- Line 0 Fill -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.2" y1="0.8" x2="0.3" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="22" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:82">  <!-- Line 1 Fill -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:84">  <!-- Line 2 Fill -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:19">  <!-- Tick 0 -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="10" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.5" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.9" frame="24" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="30" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="10" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.5" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.9" frame="24" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="30" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:31">  <!-- Tick 1 -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:43">  <!-- Tick 2 -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:55">  <!-- Tick 3 -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+        <!-- 0.55 s: line 1 fills, the tick of step 1 pops. -->
+        <LinearAnimation duration="34" name="progress: to comparing" id="11:96">
+            <KeyedObject objectId="11:80">  <!-- Line 0 Fill -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:82">  <!-- Line 1 Fill -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.2" y1="0.8" x2="0.3" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="22" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:84">  <!-- Line 2 Fill -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:19">  <!-- Tick 0 -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:31">  <!-- Tick 1 -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="10" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.5" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.9" frame="24" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="30" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="10" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.5" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.9" frame="24" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="30" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:43">  <!-- Tick 2 -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:55">  <!-- Tick 3 -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+        <!-- 0.7 s: line 2 fills, the ticks of steps 2 and 3 pop one after the other. -->
+        <LinearAnimation duration="42" name="progress: to done" id="11:97">
+            <KeyedObject objectId="11:80">  <!-- Line 0 Fill -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:82">  <!-- Line 1 Fill -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:84">  <!-- Line 2 Fill -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.2" y1="0.8" x2="0.3" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="22" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:19">  <!-- Tick 0 -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:31">  <!-- Tick 1 -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:43">  <!-- Tick 2 -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="8" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.5" frame="16" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.9" frame="22" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="28" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="8" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.5" frame="16" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.9" frame="22" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="28" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="11:55">  <!-- Tick 3 -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.5" frame="26" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.9" frame="32" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="38" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.5" frame="26" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.9" frame="32" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="38" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+    </Artboard>
+</Rive>
