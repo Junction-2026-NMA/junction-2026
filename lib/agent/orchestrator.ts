@@ -6,7 +6,7 @@ import { findPatterns } from "@/lib/finance/patterns";
 import { getMemory } from "@/lib/memory";
 import type { AgentRequest, BillType, CashFlow, Citation, Fact, NumberCorrection, SisuEvent, Stage, ToolTrace, TurnTimings } from "@/lib/types";
 import { getConfig } from "./config";
-import { type Sources, checkGrounding, correctNumbers, overviewFacts } from "./grounding";
+import { type Sources, checkGrounding, correctNames, correctNumbers, overviewFacts } from "./grounding";
 import { type ChatMessage, type ToolCall, streamChat } from "./model";
 import { buildSystemPrompt, customerSummary } from "./prompt";
 import { ensureResearch, isResearchReady } from "./research";
@@ -113,14 +113,22 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
   const summaryText = customerSummary(overview, customer.area);
   const sources = (): Sources => ({ facts: [...toolFacts, ...summaryFacts], contextTexts: [summaryText, ...toolContents, ...memory.items.map((item) => item.value)], userTexts });
   const corrections: NumberCorrection[] = [];
+  const providerNames: string[] = []; // every provider the offer research returned this turn
+  const nameCorrections: { said: string; corrected: string }[] = [];
+  const fixSlips = (text: string): string => {
+    const numbers = correctNumbers(text, sources());
+    const names = correctNames(numbers.text, providerNames);
+    corrections.push(...numbers.corrections);
+    nameCorrections.push(...names.corrections);
+    return names.text;
+  };
 
   // A sentence is checked the moment it is complete, before it is shown as a sentence or spoken:
   // a figure the model copied with a slipped digit is replaced by the receipt's value.
   function* emitSentences(sentences: string[]): Generator<SisuEvent> {
     for (const sentence of sentences) {
-      const fixed = correctNumbers(sentence, sources());
-      corrections.push(...fixed.corrections);
-      const text = request.mode === "voice" ? forSpeech(fixed.text) : fixed.text;
+      const fixed = fixSlips(sentence);
+      const text = request.mode === "voice" ? forSpeech(fixed) : fixed;
       if (!text) continue;
       timings.firstSentenceMs ??= sinceStart();
       yield { type: "sentence", index: sentenceIndex++, text };
@@ -209,6 +217,7 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
         toolFacts.push(...outcome.facts);
         toolContents.push(outcome.content);
         if (outcome.research) {
+          providerNames.push(...outcome.research.offers.map((offer) => offer.provider));
           researched = true;
           offerFound ||= outcome.research.best !== null;
         }
@@ -230,9 +239,9 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
     yield* emitSentences(splitter.flush());
 
     // Every number in the answer is checked against the receipts before the turn is declared done.
-    const finalText = correctNumbers(answer, sources()).text;
+    const finalText = correctNames(correctNumbers(answer, sources()).text, providerNames).text;
     const { facts: allFacts, contextTexts } = sources();
-    const grounding = checkGrounding(finalText, allFacts, contextTexts, userTexts, corrections);
+    const grounding = { ...checkGrounding(finalText, allFacts, contextTexts, userTexts, corrections), ...(nameCorrections.length ? { nameCorrections } : {}) };
     if (corrections.length) console.error(`[agent] corrected slipped figures: ${corrections.map((c) => `${c.said} -> ${c.corrected}`).join(", ")}`);
     const usedIds = new Set(grounding.numbers.map((n) => n.factId));
     const facts = [...toolFacts, ...summaryFacts.filter((f) => usedIds.has(f.id))].filter((f, index, all) => all.findIndex((other) => other.id === f.id) === index);

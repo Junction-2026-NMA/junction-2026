@@ -1,9 +1,51 @@
+import { useState } from "react";
 import type { SisuMessage } from "@/lib/agent/useSisu";
+import type { AgentAction, TeachingCard } from "@/lib/types";
 
 const seconds = (ms: number | null | undefined) => (ms === null || ms === undefined ? "–" : `${(ms / 1000).toFixed(2)} s`);
 const host = (url: string) => new URL(url).hostname.replace(/^www\./, "");
 
-export function MessageCard({ message }: { message: SisuMessage }) {
+const SOURCE_LABEL: Record<string, string> = { "bank-data": "bank data", exa: "Exa", "context.dev": "Context.dev", calculation: "calculated", assumption: "assumption", "customer-stated": "you said", nemotron: "Nemotron" };
+
+// Predict first, then reveal: the answer stays hidden until an option is tapped.
+function Teaching({ card }: { card: TeachingCard }) {
+  const [picked, setPicked] = useState<number | null>(null);
+  return (
+    <div className="space-y-2 border-t border-line pt-2 text-sm">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted">Learn: {card.title}</p>
+      <p>{card.question}</p>
+      <div className="flex flex-wrap gap-2">
+        {card.options.map((option, index) => (
+          <button key={option} type="button" disabled={picked !== null} onClick={() => setPicked(index)} className={`min-h-11 rounded-xl border px-3 text-sm ${picked === null ? "border-line bg-paper" : index === card.correctIndex ? "border-green bg-green/10 font-semibold" : index === picked ? "border-coral bg-coral/10" : "border-line opacity-50"}`}>
+            {option}
+          </button>
+        ))}
+      </div>
+      {picked !== null && <p className="text-muted">{card.reveal}</p>}
+    </div>
+  );
+}
+
+function ActionCard({ action, onApprove, onDecline }: { action: AgentAction; onApprove?: (id: string) => void; onDecline?: (id: string) => void }) {
+  const waiting = action.status === "awaiting_approval";
+  return (
+    <div className="space-y-2 rounded-xl border border-amber/60 bg-amber/10 p-3 text-sm">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#8a5f08]">Simulated action · {action.status.replace(/_/g, " ")}</p>
+      <p className="font-semibold">{action.title}</p>
+      <p className="text-muted">{action.summary}</p>
+      <ol className="list-decimal space-y-1 pl-5 text-xs text-muted">{action.checklist.map((step) => <li key={step}>{step}</li>)}</ol>
+      {waiting && (
+        <div className="flex gap-2">
+          <button type="button" onClick={() => onApprove?.(action.id)} className="min-h-11 flex-1 rounded-xl bg-green px-3 font-semibold text-white">Approve (simulation)</button>
+          <button type="button" onClick={() => onDecline?.(action.id)} className="min-h-11 flex-1 rounded-xl border border-line bg-card px-3 font-semibold">Decline</button>
+        </div>
+      )}
+      {action.impact && <p className="font-semibold text-green">{action.impact.summary}</p>}
+    </div>
+  );
+}
+
+export function MessageCard({ message, onApprove, onDecline }: { message: SisuMessage; onApprove?: (id: string) => void; onDecline?: (id: string) => void }) {
   if (message.role === "user") {
     return <p className="ml-auto w-fit max-w-[85%] rounded-2xl bg-green px-4 py-2 text-white">{message.pending ? "Listening…" : message.text}</p>;
   }
@@ -27,6 +69,19 @@ export function MessageCard({ message }: { message: SisuMessage }) {
             </li>
           ))}
         </ul>
+      )}
+
+      {message.stages.length > 0 && (
+        <ol className="space-y-1 border-t border-line pt-2 text-xs">
+          {message.stages.map((stage, index) => (
+            <li key={stage.id} className="flex flex-wrap gap-x-2">
+              <span className="tabular text-muted">{index + 1}.</span>
+              <span className="font-semibold">{stage.title}</span>
+              <span className="text-muted">{SOURCE_LABEL[stage.source] ?? stage.source} · {seconds(stage.atMs)}</span>
+              <span className="w-full text-muted">{stage.summary}</span>
+            </li>
+          ))}
+        </ol>
       )}
 
       {research && research.offers.length > 0 && (
@@ -53,6 +108,18 @@ export function MessageCard({ message }: { message: SisuMessage }) {
       {message.citations.length > 0 && !research && (
         <p className="border-t border-line pt-2 text-xs text-muted">
           Sources: {message.citations.map((c, i) => <a key={c.url} href={c.url} target="_blank" rel="noreferrer" className="underline">{i ? ", " : ""}{host(c.url)}</a>)}
+        </p>
+      )}
+
+      {message.teaching && <Teaching card={message.teaching} />}
+      {message.action && <ActionCard action={message.action} onApprove={onApprove} onDecline={onDecline} />}
+      {message.remembered.map((item) => <p key={item.id} className="text-xs text-muted">Sisu will remember: {item.kind.replace("_", " ")} = {item.value}</p>)}
+
+      {message.grounding && message.grounding.checked > 0 && (
+        <p className={`border-t border-line pt-2 text-xs ${message.grounding.ok ? "text-muted" : "text-coral"}`}>
+          {message.grounding.ok ? `All ${message.grounding.checked} numbers have a source` : `No source for: ${message.grounding.unverified.join(", ")}`}
+          {message.grounding.corrections.length > 0 && ` · ${message.grounding.corrections.length} slipped digit corrected`}
+          {message.facts.length > 0 && ` · ${[...new Set(message.facts.map((f) => SOURCE_LABEL[f.source] ?? f.source))].join(", ")}`}
         </p>
       )}
 

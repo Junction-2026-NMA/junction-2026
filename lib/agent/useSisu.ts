@@ -3,8 +3,8 @@
 // One hook for the whole conversation: type or hold-to-talk, streamed answers, spoken replies, interruption.
 // Usage is shown in context/frontend-integration.md and app/dev/agent/page.tsx.
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { BillType, ChatTurn, Citation, ResearchResult, ToolTrace, TurnTimings } from "@/lib/types";
-import { type Recorder, type Speaker, type VoiceChoice, createRecorder, createSpeaker, streamTurn, warmAgent } from "./client";
+import type { AgentAction, BillType, ChatTurn, Citation, CustomerMemory, Fact, Grounding, MemoryItem, ResearchResult, Stage, TeachingCard, ToolTrace, TurnTimings } from "@/lib/types";
+import { type Recorder, type Speaker, type VoiceChoice, approveAction, confirmBill as saveBillName, createRecorder, createSpeaker, declineAction, fetchActions, fetchMemory, streamTurn, warmAgent } from "./client";
 
 export type SisuStatus = "idle" | "recording" | "thinking" | "speaking";
 
@@ -20,6 +20,13 @@ export type SisuMessage = {
   citations: Citation[];
   timings: TurnTimings | null;
   error: string | null;
+  // Added 14 Nov (all optional to read; older UI code keeps working):
+  stages: Stage[]; // each step of Sisu's work, typed for drawing as cards (see Stage in lib/types.ts)
+  action: AgentAction | null; // an action awaiting approval; show Approve and Decline
+  teaching: TeachingCard | null; // ask `question`, show `options`, then reveal `reveal`
+  remembered: MemoryItem[]; // things Sisu saved this turn ("Sisu will remember…")
+  grounding: Grounding | null; // every number in the answer and whether it has a source
+  facts: Fact[]; // the receipts: what each number is, where it came from, how to open its rows
 };
 
 export type SisuOptions = {
@@ -40,6 +47,12 @@ const blank = (role: "user" | "assistant", text = "", pending = true): SisuMessa
   citations: [],
   timings: null,
   error: null,
+  stages: [],
+  action: null,
+  teaching: null,
+  remembered: [],
+  grounding: null,
+  facts: [],
 });
 
 export function useSisu({ customerId, focusBill, speakReplies = true }: SisuOptions) {
@@ -50,6 +63,8 @@ export function useSisu({ customerId, focusBill, speakReplies = true }: SisuOpti
   const [server, setServer] = useState<{ mock: boolean; provider: string; model: string } | null>(null);
   const [micError, setMicError] = useState<string | null>(null);
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [actions, setActions] = useState<AgentAction[]>([]);
+  const [memory, setMemory] = useState<CustomerMemory | null>(null);
 
   const speaker = useRef<Speaker | null>(null);
   const recorder = useRef<Recorder | null>(null);
@@ -72,6 +87,25 @@ export function useSisu({ customerId, focusBill, speakReplies = true }: SisuOpti
   const patch = (id: string, change: (message: SisuMessage) => SisuMessage) =>
     setMessages((all) => all.map((message) => (message.id === id ? change(message) : message)));
 
+  // Actions and memory belong to the customer, not to one conversation, so they load when the customer changes.
+  const refresh = useCallback(async () => {
+    if (!customerId) return;
+    const [list, remembered] = await Promise.all([fetchActions(customerId), fetchMemory(customerId)]);
+    if (list) setActions(list.actions);
+    if (remembered) setMemory(remembered);
+  }, [customerId]);
+
+  useEffect(() => {
+    setActions([]);
+    setMemory(null);
+    void refresh();
+  }, [refresh]);
+
+  const putAction = (action: AgentAction) => {
+    setActions((all) => [action, ...all.filter((existing) => existing.id !== action.id)]);
+    setMessages((all) => all.map((message) => (message.action?.id === action.id ? { ...message, action } : message)));
+  };
+
   // Stops whatever Sisu is doing. Used when the user interrupts or switches customer.
   const cancel = useCallback(() => {
     controller.current?.abort();
@@ -88,7 +122,7 @@ export function useSisu({ customerId, focusBill, speakReplies = true }: SisuOpti
   }, [cancel]);
 
   const runTurn = useCallback(
-    async (input: { text?: string; audio?: Blob }) => {
+    async (input: { text?: string; audio?: Blob; investigate?: boolean }) => {
       if (!customerId) return;
       cancel();
       const abort = new AbortController();
@@ -101,7 +135,7 @@ export function useSisu({ customerId, focusBill, speakReplies = true }: SisuOpti
 
       let question = input.text ?? "";
       try {
-        const events = streamTurn({ customerId, ...input, mode: spoken ? "voice" : "text", history: history.current, focusBill, signal: abort.signal });
+        const events = streamTurn({ customerId, ...input, mode: spoken ? "voice" : "text", history: input.investigate ? [] : history.current, focusBill, signal: abort.signal });
         for await (const event of events) {
           if (abort.signal.aborted) return;
           switch (event.type) {
@@ -128,6 +162,23 @@ export function useSisu({ customerId, focusBill, speakReplies = true }: SisuOpti
             case "research":
               patch(reply.id, (m) => ({ ...m, research: event.result }));
               break;
+            case "stage":
+              patch(reply.id, (m) => ({ ...m, stages: [...m.stages, event.stage] }));
+              break;
+            case "action":
+              patch(reply.id, (m) => ({ ...m, action: event.action }));
+              setActions((all) => [event.action, ...all.filter((existing) => existing.id !== event.action.id)]);
+              break;
+            case "teaching":
+              patch(reply.id, (m) => ({ ...m, teaching: event.card }));
+              break;
+            case "memory":
+              patch(reply.id, (m) => ({ ...m, remembered: [...m.remembered, event.item] }));
+              void refresh();
+              break;
+            case "grounding":
+              patch(reply.id, (m) => ({ ...m, grounding: event.grounding, facts: event.facts }));
+              break;
             case "done":
               patch(reply.id, (m) => ({ ...m, text: event.text || m.text, pending: false, citations: event.citations, timings: event.timings }));
               history.current = [...history.current, { role: "user" as const, content: question }, { role: "assistant" as const, content: event.text }].slice(-12);
@@ -148,7 +199,44 @@ export function useSisu({ customerId, focusBill, speakReplies = true }: SisuOpti
         }
       }
     },
-    [customerId, focusBill, speakReplies, cancel],
+    [customerId, focusBill, speakReplies, cancel, refresh],
+  );
+
+  // Sisu works through a whole case on its own. Watch `stages` on the reply fill in as it goes.
+  const investigate = useCallback(() => {
+    speaker.current?.unlock();
+    setVoiceError(null);
+    void runTurn({ text: "Look into my finances and find the best thing I can do.", investigate: true });
+  }, [runTurn]);
+
+  // The Approve and Decline buttons. Approval is the only thing that carries an action out, and it is a simulation.
+  // Both return the updated action; after an approval `action.impact` holds what it adds up to.
+  const approve = useCallback(
+    async (actionId: string): Promise<AgentAction | null> => {
+      if (!customerId) return null;
+      const { action } = await approveAction(customerId, actionId);
+      putAction(action);
+      return action;
+    },
+    [customerId],
+  );
+  const decline = useCallback(
+    async (actionId: string): Promise<AgentAction | null> => {
+      if (!customerId) return null;
+      const { action } = await declineAction(customerId, actionId);
+      putAction(action);
+      return action;
+    },
+    [customerId],
+  );
+
+  // Call when the user confirms or corrects a bill's name. Saves it and starts offer research for that bill.
+  const confirmBill = useCallback(
+    async (billId: string, name: string, billType?: BillType) => {
+      if (!customerId) return;
+      setMemory(await saveBillName(customerId, billId, name, billType));
+    },
+    [customerId],
   );
 
   const ask = useCallback(
@@ -210,5 +298,7 @@ export function useSisu({ customerId, focusBill, speakReplies = true }: SisuOpti
   }, []);
 
   const status: SisuStatus = recording ? "recording" : busy ? "thinking" : speaking ? "speaking" : "idle";
-  return { status, messages, server, micError, voiceError, ask, startTalking, stopTalking, testVoice, setVoice, cancel, reset };
+  // What has been freed so far by approved switches: feed this to the futures chart as the monthly bill saving.
+  const approvedMonthlySaving = actions.filter((action) => action.status === "executed_simulated" && action.kind === "switch_contract").reduce((total, action) => total + action.monthlyAmountEur, 0);
+  return { status, messages, server, micError, voiceError, ask, startTalking, stopTalking, testVoice, setVoice, cancel, reset, investigate, approve, decline, confirmBill, actions, memory, approvedMonthlySaving, refresh };
 }

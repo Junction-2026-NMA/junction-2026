@@ -1,23 +1,9 @@
 // Mock mode (MODEL_PROVIDER=mock): no keys, no network. Emits the same shapes and realistic timing
 // so the frontend and finance lanes can build against the real endpoints. Everything here is labelled mock.
 import type { BillType } from "@/lib/types";
-import type { ChatMessage, ModelChunk, StreamOptions, ToolCall } from "./model";
+import { scriptedMockModel } from "./mock-model";
+import type { ChatMessage, ModelChunk, StreamOptions } from "./model";
 import type { RawOffer } from "./research/types";
-import { speculate } from "./speculate";
-
-const WORD_DELAY_MS = 25;
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-async function* speak(text: string): AsyncGenerator<ModelChunk> {
-  const started = Date.now();
-  let firstTokenMs: number | null = null;
-  for (const word of text.split(" ")) {
-    await sleep(WORD_DELAY_MS);
-    firstTokenMs ??= Date.now() - started;
-    yield { type: "delta", text: `${word} ` };
-  }
-  yield { type: "end", toolCalls: [], model: "mock", provider: "mock", usedBackup: false, firstTokenMs, totalMs: Date.now() - started };
-}
 
 // Tests replace the scripted model with their own, to drive the orchestrator through exact tool calls.
 export type MockScript = (options: StreamOptions) => AsyncGenerator<ModelChunk>;
@@ -26,59 +12,9 @@ export function setMockScript(script: MockScript | null): void {
   scriptStore.__sisuMockScript = script;
 }
 
-function lastUserText(messages: ChatMessage[]): string {
-  const user = [...messages].reverse().find((m) => m.role === "user");
-  return user && typeof user.content === "string" ? user.content : "";
-}
-
-// A scripted stand-in for the model: asks for research when the question is about a better deal,
-// words the tool result when one comes back, and otherwise answers from the summary in the prompt.
 export async function* mockStream(messages: ChatMessage[], options?: StreamOptions): AsyncGenerator<ModelChunk> {
-  if (scriptStore.__sisuMockScript && options) {
-    yield* scriptStore.__sisuMockScript(options);
-    return;
-  }
-  const last = messages[messages.length - 1];
-
-  if (last.role === "tool") {
-    const result = safeParse(last.content);
-    const best = result?.best as { provider?: string; estimatedYearlySavingEur?: number } | undefined;
-    if (best?.provider) {
-      yield* speak(`Mock answer. ${best.provider} looks cheapest, saving about ${Math.round(best.estimatedYearlySavingEur ?? 0)} euros a year. Shall I prepare the switch checklist?`);
-      return;
-    }
-    yield* speak("Mock answer. I ran the numbers with the tool you can see in the trace.");
-    return;
-  }
-
-  const question = lastUserText(messages);
-  const guess = speculate(question);
-  if (guess) {
-    await sleep(300);
-    const call: ToolCall = {
-      id: "mock_call_1",
-      type: "function",
-      function: { name: "search_offers", arguments: JSON.stringify({ billType: guess.billType }) },
-    };
-    yield { type: "end", toolCalls: [call], model: "mock", provider: "mock", usedBackup: false, firstTokenMs: 300, totalMs: 300 };
-    return;
-  }
-
-  const system = messages.find((m) => m.role === "system");
-  const perWeek = typeof system?.content === "string" ? /"perWeek":\s*([\d.]+)/.exec(system.content)?.[1] : null;
-  yield* speak(
-    perWeek
-      ? `Mock answer. You can safely spend about ${Math.round(Number(perWeek))} euros a week. Ask me about a cheaper electricity deal to see the research flow.`
-      : "Mock answer. Ask me about a cheaper electricity deal to see the research flow.",
-  );
-}
-
-function safeParse(text: string): Record<string, unknown> | null {
-  try {
-    return JSON.parse(text) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
+  const script = scriptStore.__sisuMockScript ?? scriptedMockModel;
+  yield* script(options ?? { messages, tools: [], maxTokens: 200 });
 }
 
 // Example offers. Invented providers, so nobody mistakes them for live prices.

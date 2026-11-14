@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { AINO } from "./helpers";
-import { checkGrounding, correctNumbers, matches, numbersIn, overviewFacts } from "@/lib/agent/grounding";
+import { checkGrounding, correctNames, correctNumbers, matches, numbersIn, overviewFacts } from "@/lib/agent/grounding";
 import { fact } from "@/lib/finance/facts";
 import { buildOverview } from "@/lib/finance/overview";
 
@@ -78,6 +78,17 @@ describe("number verifier", () => {
     assert.equal(checkGrounding("I don't have a forecast for 2027.", facts, [], []).ok, true);
     // But a year-shaped amount is still an amount.
     assert.deepEqual(checkGrounding("You would save 2027 euros, or €2031, or 2,035.", facts, [], []).unverified, [2027, 2031, 2035]);
+  });
+
+  // Regression: live browser check. Nemotron wrote "Vaasan Sähkö Myönti Oy" for "Vaasan Sähkö Myynti Oy".
+  it("puts a misspelled provider name right, and leaves other words alone", () => {
+    const names = ["Vaasan Sähkö Myynti Oy", "Oomi", "Helen", "Pohjois-Karjalan Sähkö Oy"];
+    const fixed = correctNames("The cheapest offer is Vaasan Sähkö Myönti Oy at about 36 euros. I have prepared a switch to Vaasan Sähkö Myönti Oy's plan.", names);
+    assert.equal(fixed.text, "The cheapest offer is Vaasan Sähkö Myynti Oy at about 36 euros. I have prepared a switch to Vaasan Sähkö Myynti Oy's plan.");
+    assert.equal(fixed.corrections.length, 2);
+    const untouched = "Vaasan Sähkö Myynti Oy and Oomi and Helen are listed. Pohjois-Karjalan Sähkö Oy too. Your bill is modest.";
+    assert.deepEqual(correctNames(untouched, names), { text: untouched, corrections: [] });
+    assert.equal(correctNames("Fortum is not in the list, and neither is Helsingin Energia.", names).corrections.length, 0);
   });
 
   it("treats small counts as trivial, not as financial claims", () => {

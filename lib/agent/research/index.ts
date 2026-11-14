@@ -1,6 +1,8 @@
 // Live offer research: Exa finds the pages, Context.dev reads them in parallel.
 // One run per bill type and city is shared by every caller ("single flight"), so speculation,
 // the UI's prefetch and the model's tool call can never start duplicate work.
+import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import type { BillType } from "@/lib/types";
 import { getConfig } from "../config";
 import { mockRawOffers } from "../mock";
@@ -35,6 +37,38 @@ type Entry = { snapshot: RawResearch; lastChangeAt: number };
 // Kept on globalThis so the dev server's hot reload does not drop runs that are in flight.
 const globalStore = globalThis as unknown as { __sisuResearch?: Map<string, Entry> };
 const store: Map<string, Entry> = (globalStore.__sisuResearch ??= new Map());
+
+// Finished live results are also kept on disk, so a server restart does not throw away research that is still
+// good. A restored result is served with its real retrieval time and refreshed behind the scenes like any other.
+const researchFile = (): string => resolve(process.cwd(), `${process.env.SISU_STATE_FILE?.trim() || ".sisu/state.json"}.research.json`);
+const loadedFrom = globalThis as unknown as { __sisuResearchFile?: string };
+
+function restoreSaved(): void {
+  const file = researchFile();
+  if (loadedFrom.__sisuResearchFile === file) return;
+  loadedFrom.__sisuResearchFile = file;
+  try {
+    const saved = JSON.parse(readFileSync(file, "utf8")) as Record<string, RawResearch>;
+    for (const [key, snapshot] of Object.entries(saved)) {
+      const fresh = snapshot?.status === "done" && typeof snapshot.finishedAt === "number" && Date.now() - snapshot.finishedAt < STALE_OK_MS;
+      if (fresh && !store.has(key)) store.set(key, { snapshot, lastChangeAt: snapshot.finishedAt as number });
+    }
+  } catch {
+    // no saved research yet: the first search will create it
+  }
+}
+
+function saveFinished(): void {
+  const live = Object.fromEntries([...store.entries()].filter(([, entry]) => entry.snapshot.status === "done" && !entry.snapshot.mock).map(([key, entry]) => [key, entry.snapshot]));
+  try {
+    const file = researchFile();
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(`${file}.tmp`, JSON.stringify(live));
+    renameSync(`${file}.tmp`, file);
+  } catch (error) {
+    console.error("[agent] could not save research to disk:", (error as Error).message);
+  }
+}
 
 const keyOf = (billType: BillType, city: string) => `${billType}:${city.toLowerCase()}`;
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -106,6 +140,12 @@ async function run(entry: Entry): Promise<void> {
   update(entry, { status: entry.snapshot.offers.length ? "done" : "failed", finishedAt: Date.now() });
 }
 
+// Runs the research and, when it finishes with offers, keeps a copy on disk.
+async function runAndKeep(entry: Entry): Promise<void> {
+  await run(entry);
+  if (entry.snapshot.status === "done" && !entry.snapshot.mock && store.get(entry.snapshot.key) === entry) saveFinished();
+}
+
 function newEntry(billType: BillType, city: string): Entry {
   return {
     lastChangeAt: Date.now(),
@@ -137,7 +177,9 @@ function refreshBehindTheScenes(billType: BillType, city: string): void {
   const entry = newEntry(billType, city);
   run(entry)
     .then(() => {
-      if (entry.snapshot.status === "done") store.set(key, entry);
+      if (entry.snapshot.status !== "done") return;
+      store.set(key, entry);
+      saveFinished();
     })
     .catch((error) => console.error("[agent] background refresh failed", error))
     .finally(() => refreshing.delete(key));
@@ -147,6 +189,7 @@ function refreshBehindTheScenes(billType: BillType, city: string): void {
 // A result up to an hour old is still served at once, with its real retrieval time, while a fresh
 // copy is fetched behind the scenes. That keeps the slow step out of the conversation.
 export function ensureResearch(billType: BillType, city: string): { key: string; reused: boolean } {
+  restoreSaved();
   const key = keyOf(billType, city);
   const existing = store.get(key);
   if (existing) {
@@ -162,7 +205,7 @@ export function ensureResearch(billType: BillType, city: string): { key: string;
 
   const entry = newEntry(billType, city);
   store.set(key, entry);
-  run(entry).catch((error) => {
+  runAndKeep(entry).catch((error) => {
     console.error("[agent] research run failed", error);
     update(entry, { status: "failed", finishedAt: Date.now(), errors: [...entry.snapshot.errors, "Research stopped unexpectedly."] });
   });
@@ -170,6 +213,7 @@ export function ensureResearch(billType: BillType, city: string): { key: string;
 }
 
 export function peekResearch(key: string): RawResearch | null {
+  restoreSaved();
   return store.get(key)?.snapshot ?? null;
 }
 

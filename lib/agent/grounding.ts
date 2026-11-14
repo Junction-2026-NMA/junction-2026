@@ -79,6 +79,47 @@ export function correctNumbers(text: string, sources: Sources): { text: string; 
   return { text: corrected, corrections };
 }
 
+function editDistance(a: string, b: string): number {
+  const row = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let previous = row[0];
+    row[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const current = row[j];
+      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, previous + (a[i - 1] === b[j - 1] ? 0 : 1));
+      previous = current;
+    }
+  }
+  return row[b.length];
+}
+
+// The same idea for names. The model sometimes misspells a provider it just read ("Myönti" for "Myynti").
+// A phrase one or two letters away from a provider the tools returned is replaced by the real name.
+export function correctNames(text: string, names: string[]): { text: string; corrections: { said: string; corrected: string }[] } {
+  const corrections: { said: string; corrected: string }[] = [];
+  let corrected = text;
+  for (const name of [...new Set(names)].filter((n) => n.length >= 6).sort((a, b) => b.length - a.length)) {
+    const tolerance = name.length >= 12 ? 2 : 1;
+    const length = name.split(/\s+/).length;
+    // Every run of `length` consecutive words is a candidate, wherever it starts.
+    const words = [...corrected.matchAll(/[\p{L}\p{N}&.'’-]+/gu)].map((match) => ({ start: match.index, end: match.index + match[0].length }));
+    const edits: { start: number; end: number }[] = [];
+    for (let i = 0; i + length <= words.length; i++) {
+      const start = words[i].start;
+      const phrase = corrected.slice(start, words[i + length - 1].end);
+      const bare = phrase.replace(/[.,;:!?]+$/u, "").replace(/['’]s$/u, "");
+      if (bare === name || names.includes(bare)) continue;
+      const distance = editDistance(bare.toLowerCase(), name.toLowerCase());
+      if (distance === 0 || distance > tolerance) continue;
+      edits.push({ start, end: start + bare.length });
+      corrections.push({ said: bare, corrected: name });
+      i += length - 1;
+    }
+    for (const edit of edits.reverse()) corrected = corrected.slice(0, edit.start) + name + corrected.slice(edit.end);
+  }
+  return { text: corrected, corrections };
+}
+
 export function checkGrounding(answer: string, facts: Fact[], contextTexts: string[], userTexts: string[], corrections: NumberCorrection[] = []): Grounding {
   const sources = { facts, contextTexts, userTexts };
   const contextNumbers = contextNumbersOf(sources);

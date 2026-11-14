@@ -152,6 +152,9 @@ describe("HTTP routes: validation, approval and isolation", () => {
     const events = await readStream(await investigate(request("/api/agent/investigate", { customerId: AINO })));
     assert.equal(events.at(-1)?.type, "done");
     assert.equal(events.find((e) => e.type === "filler")?.type, "filler");
+    assert.equal(events.filter((e) => e.type === "stage").length, 7);
+    const list = await json<ActionList>(await listRoute(request(`/api/actions?customerId=${AINO}`)));
+    assert.deepEqual(list.actions.map((a) => a.status), ["awaiting_approval"]);
     assert.equal((await investigate(request("/api/agent/investigate", { customerId: "x" }))).status, 400);
   });
 

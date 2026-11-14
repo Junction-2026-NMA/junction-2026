@@ -6,6 +6,8 @@ import type { ModelChunk, StreamOptions, ToolCall } from "@/lib/agent/model";
 import type { SisuEvent } from "@/lib/types";
 
 process.env.MODEL_PROVIDER = "mock";
+// Tests must never read or write the real state in .sisu/, so every test process starts on a throwaway file.
+process.env.SISU_STATE_FILE = join(mkdtempSync(join(tmpdir(), "sisu-test-")), "state.json");
 
 export const AINO = "CUST04974";
 export const EETU = "CUST04414";

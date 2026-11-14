@@ -9,8 +9,51 @@ const TTS_CACHE_MAX_ENTRIES = 120;
 export const MAX_TTS_CHARS = 600;
 export const MAX_AUDIO_BYTES = 5 * 1024 * 1024;
 
-const globalStore = globalThis as unknown as { __sisuTts?: Map<string, Uint8Array<ArrayBuffer>> };
+const globalStore = globalThis as unknown as { __sisuTts?: Map<string, Uint8Array<ArrayBuffer>>; __sisuTtsSlots?: { active: number; waiting: (() => void)[] } };
 const ttsCache: Map<string, Uint8Array<ArrayBuffer>> = (globalStore.__sisuTts ??= new Map());
+
+// ElevenLabs allows only a few requests at once (2 on the free plan). A long answer arrives as several sentences
+// almost together, and the third request used to be rejected, which silenced the voice. Requests now wait their
+// turn. Sentences play in order anyway, so waiting costs nothing the listener can hear.
+const maxConcurrentTts = (): number => Math.max(1, Number(process.env.ELEVENLABS_MAX_CONCURRENT) || 2);
+const BUSY_RETRY_MS = 250;
+const slots = (globalStore.__sisuTtsSlots ??= { active: 0, waiting: [] });
+
+async function takeSlot(): Promise<() => void> {
+  if (slots.active >= maxConcurrentTts()) await new Promise<void>((resolve) => slots.waiting.push(resolve));
+  else slots.active += 1;
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    const next = slots.waiting.shift();
+    if (next) next(); // hands this slot straight to the next in line
+    else slots.active -= 1;
+  };
+}
+
+// Passes audio through untouched and frees the slot when the last byte has gone (or the listener hangs up).
+function releaseWhenDone(body: ReadableStream<Uint8Array>, release: () => void): ReadableStream<Uint8Array> {
+  const reader = body.getReader();
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const { done, value } = await reader.read();
+        if (done) {
+          release();
+          controller.close();
+        } else controller.enqueue(value);
+      } catch (error) {
+        release();
+        controller.error(error);
+      }
+    },
+    cancel(reason) {
+      release();
+      return reader.cancel(reason);
+    },
+  });
+}
 
 export type Transcript = { text: string; tookMs: number; mock: boolean };
 
@@ -75,23 +118,40 @@ export async function synthesize(text: string, options: SpeechOptions = {}): Pro
   const cached = ttsCache.get(cacheKey);
   if (cached) return { body: cached, contentType: FORMAT[format].contentType, cached: true };
 
-  const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream?output_format=${FORMAT[format].query}`, {
-    method: "POST",
-    signal: AbortSignal.timeout(TTS_TIMEOUT_MS),
-    headers: { "xi-api-key": eleven.apiKey, "Content-Type": "application/json" },
-    body: JSON.stringify({ text, model_id: model, ...(previousText ? { previous_text: previousText } : {}) }),
-  });
+  const release = await takeSlot();
+  const request = () =>
+    fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream?output_format=${FORMAT[format].query}`, {
+      method: "POST",
+      signal: AbortSignal.timeout(TTS_TIMEOUT_MS),
+      headers: { "xi-api-key": eleven.apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify({ text, model_id: model, ...(previousText ? { previous_text: previousText } : {}) }),
+    });
+  let response: Response;
+  try {
+    response = await request();
+    // Another app on the same account may hold the other slot. One short wait and a second try covers it.
+    if (response.status === 429) {
+      await response.arrayBuffer().catch(() => undefined);
+      await new Promise((resolve) => setTimeout(resolve, BUSY_RETRY_MS));
+      response = await request();
+    }
+  } catch (error) {
+    release();
+    throw error;
+  }
   if (!response.ok || !response.body) {
+    release();
     const detail = (await response.text().catch(() => "")).slice(0, 200);
     console.error(`[agent] text to speech returned ${response.status}: ${detail}`);
     if (/quota|credit/i.test(detail)) throw new Error("Sisu's voice has used up its ElevenLabs credit. The answer is shown as text.");
     throw new Error("Sisu's voice is unavailable right now. The answer is shown as text.");
   }
 
-  if (text.length > TTS_CACHE_MAX_CHARS) return { body: response.body, contentType: FORMAT[format].contentType, cached: false };
+  const upstream = releaseWhenDone(response.body, release);
+  if (text.length > TTS_CACHE_MAX_CHARS) return { body: upstream, contentType: FORMAT[format].contentType, cached: false };
 
   // Send the audio to the caller and keep a copy for next time, without delaying either.
-  const [forCaller, forCache] = response.body.tee();
+  const [forCaller, forCache] = upstream.tee();
   void new Response(forCache)
     .arrayBuffer()
     .then((buffer) => {

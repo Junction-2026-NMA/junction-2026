@@ -291,7 +291,7 @@ export type NumberCheck = {
 export type NumberCorrection = { said: number; corrected: number; factId: string };
 
 // Result of checking every number in the answer against the receipts. `ok` is false if any number has no source.
-export type Grounding = { ok: boolean; checked: number; unverified: number[]; numbers: NumberCheck[]; corrections: NumberCorrection[] };
+export type Grounding = { ok: boolean; checked: number; unverified: number[]; numbers: NumberCheck[]; corrections: NumberCorrection[]; nameCorrections?: { said: string; corrected: string }[] };
 
 export type PatternKind = "bill-opportunity" | "bill-creep" | "overdraft-risk" | "payday-spike" | "category-drift" | "peer-gap" | "small-purchases" | "lumpy-costs" | "idle-cash";
 
