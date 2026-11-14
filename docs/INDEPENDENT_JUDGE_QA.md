@@ -125,3 +125,22 @@ Validation: **275/275 unit tests**, including five new regressions; lint and web
 Frontend review: PR #7 hook saving deduplication and readiness page inspected; customer-facing web paths and iOS are otherwise unchanged from reviewed main `c22dba8` / frontend `0488829`. No customer-facing UI edited. Previously reported native fallback notice remains open. Native tests not repeated: active developer directory remains CommandLineTools, with prior XCTest compilation unavailable. Web evidence does not validate native UI.
 
 Read the challenge brief through its text export (web open failed). Existing sponsor/teaching guidance remains applicable and was not reposted. No fresh live calls: QA/shared `.env.local` absent. Readiness is still a bounded service probe, not proof of real tool choice or executed ElevenLabs audio. No merge or deployment performed.
+
+
+## Incremental review — 14 November, 18:24 EET
+
+- Main 48af231 and native/frontend 0488829 unchanged; reviewed PR #9 287bc90 and landing PR #10 7e512df independently.
+- PR #9: 20/20 existing model tests passed in 2.51 s, scripted providers only; no new backend failure confirmed.
+- PR #10: 390×844 static landing smoke, nine steps and 19 pickers; no horizontal overflow; screenshot inspected. No console entries captured; missing favicon 404 only.
+- P2 privacy copy handoff: backup also receives prompts when GPU is slow; Exa receives free-form queries; ElevenLabs receives answer text. Posted exact locations/corrections on PR #10.
+- Read available relevant T3 threads and new branch context; no visible frontend builder thread. Re-read challenge via text export.
+
+## Decisions
+- No UI/config edits or branch integration; temporary detached reviews only in our isolated worktree, now restored to QA branch.
+- Existing backend builds and approval smoke not repeated on unchanged app code. No fresh live-provider or native runtime evidence; Xcode selection remains CommandLineTools.
+
+## Next / open questions
+- PR #4 fixes still await integration; existing native fallback notice, basket_bar support and demo styling risks remain.
+
+Handoff: https://github.com/Junction-2026-NMA/junction-2026/pull/10#issuecomment-6880605317
+Screenshot: `/Users/nicholasportelli/.t3/userdata/browser-artifacts/browser-screenshot-127-0-0-1-mwgm8ii6-59bce186.png`. This landing smoke does not validate backend approvals or native iOS.
