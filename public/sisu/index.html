@@ -21,10 +21,12 @@
 <link rel="stylesheet" href="panels-motion.css">
 <link rel="stylesheet" href="week.css">
 <link rel="stylesheet" href="week-motion.css">
+<link rel="stylesheet" href="closing.css">
 <script src="boot.js"></script>
 <script src="page.js" defer></script>
 <script src="nav.js" defer></script>
 <script src="panels.js" defer></script>
+<script src="faq.js" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#sisalto">Siirry suoraan sisältöön</a>
@@ -370,38 +372,59 @@
   </section>
 
   <section class="faq">
-    <div class="section-head reveal">
-      <h2>Good to know.</h2>
-    </div>
-    <div class="faq-list reveal">
-      <details class="faq-item">
-        <summary>Is Sisu a real S-Pankki service?</summary>
-        <p class="faq-answer">No. Sisu is a concept built at Junction 2026 for S-Pankki's challenge. It runs on synthetic data. It is not a service that S-Pankki offers.</p>
-      </details>
-      <details class="faq-item">
-        <summary>Where does the data come from?</summary>
-        <p class="faq-answer">From synthetic data that S-Pankki provided for the challenge. No real customer's transactions are in it.</p>
-      </details>
-      <details class="faq-item">
-        <summary>What does Sisu cost?</summary>
-        <p class="faq-answer">Nothing. The concept is free for customers, and nothing is locked behind payment.</p>
-      </details>
-      <details class="faq-item">
-        <summary>Can spending break my streak?</summary>
-        <p class="faq-answer">No. The streak never depends on not spending, so buying something cannot break it. One tiny action a day keeps it going.</p>
-      </details>
-      <details class="faq-item">
-        <summary>Does Sisu sell loans or credit?</summary>
-        <p class="faq-answer">No. Sisu never sells or markets loans, credit or pay-later, and it earns nothing from debt.</p>
-      </details>
+    <div class="faq-layout">
+      <div class="section-head reveal">
+        <h2>Good to know.</h2>
+        <p>Straight answers before you try it.</p>
+      </div>
+      <div class="faq-list reveal">
+        <details class="faq-item">
+          <summary>Is Sisu a real S-Pankki service?<span class="faq-sign" aria-hidden="true"></span></summary>
+          <p class="faq-answer">No. Sisu is a concept built at Junction 2026 for S-Pankki's challenge. It runs on synthetic data. It is not a service that S-Pankki offers.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Where does the data come from?<span class="faq-sign" aria-hidden="true"></span></summary>
+          <p class="faq-answer">From synthetic data that S-Pankki provided for the challenge. No real customer's transactions are in it.</p>
+        </details>
+        <details class="faq-item">
+          <summary>What does Sisu cost?<span class="faq-sign" aria-hidden="true"></span></summary>
+          <p class="faq-answer">Nothing. The concept is free for customers, and nothing is locked behind payment.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Can spending break my streak?<span class="faq-sign" aria-hidden="true"></span></summary>
+          <p class="faq-answer">No. The streak never depends on not spending, so buying something cannot break it. One tiny action a day keeps it going.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Does Sisu sell loans or credit?<span class="faq-sign" aria-hidden="true"></span></summary>
+          <p class="faq-answer">No. Sisu never sells or markets loans, credit or pay-later, and it earns nothing from debt.</p>
+        </details>
+      </div>
     </div>
   </section>
 
   <section class="closing">
     <div class="closing-block reveal">
-      <h2>Start with one small win.</h2>
-      <p class="closing-lead">Try one day with Sisu on synthetic data.</p>
-      <a class="demo-button demo-button-dark btn-primary" href="/">Open the Sisu demo</a>
+      <div class="closing-copy">
+        <h2>Start with one small win.</h2>
+        <p class="closing-lead">See what is safe to spend, then take your first small step.</p>
+        <p class="closing-note">Pick Aino, Eetu or Sanna, three demo customers on synthetic data.</p>
+        <a class="demo-button demo-button-dark btn-primary" href="/">Open the Sisu demo</a>
+      </div>
+      <!-- A picture of the demo's Today screen on day 1, built from HTML and CSS. Decoration only. -->
+      <div class="closing-phone" aria-hidden="true">
+        <div class="closing-screen">
+          <div class="closing-today">
+            <p><span lang="fi">Hei</span> Aino</p>
+            <p class="closing-day"><svg class="flame" width="36" height="36" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c0 4 6 6.5 6 12a6 6 0 0 1-12 0c0-2 .8-3.6 2-5 .2 1.6 1 2.6 2 3 0-3.5.5-7 2-10z"/></svg>Day 1</p>
+            <p class="closing-sub">Your streak starts today.</p>
+          </div>
+          <div class="closing-tasks">
+            <p class="closing-label">Today's small win</p>
+            <p class="closing-task"><span class="closing-check"></span><span class="closing-done">Check in</span></p>
+            <p class="closing-week"><span class="closing-check"></span><span></span><span></span><span></span><span></span><span></span><span></span></p>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 

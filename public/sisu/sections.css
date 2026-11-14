@@ -104,7 +104,21 @@
   margin-top: auto;
 }
 
-/* Questions: a flat accordion on native details. Plus sign drawn from two bars. */
+/* Questions: five native details on white cards, stacked under the heading; two columns from
+   1024px (closing.css). The sign is a pale mint chip with a plus drawn from two bars. While its
+   question is open the chip turns dark green and the plus turns into a cross. The closing block,
+   the phone and the entrance motion of both sections are in closing.css. */
+.faq-layout {
+  width: min(100% - 2 * var(--gutter), var(--page-max));
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.faq .section-head,
+.faq .faq-list {
+  width: auto;
+}
+
 .faq-list {
   display: grid;
   gap: 12px;
@@ -121,7 +135,7 @@
   display: flex;
   align-items: center;
   min-height: 64px;
-  padding: 12px 64px 12px 20px;
+  padding: 12px 68px 12px 20px;
   border-radius: var(--radius-lg);
   color: var(--green-900);
   font-family: var(--font-text);
@@ -136,26 +150,48 @@
   display: none;
 }
 
-.faq-item summary::before,
-.faq-item summary::after {
-  content: "";
+.faq-sign {
   position: absolute;
   top: 50%;
-  right: 22px;
-  width: 20px;
+  right: 14px;
+  width: 40px;
+  height: 40px;
+  margin-top: -20px;
+  border-radius: var(--radius-full);
+  background: var(--green-100);
+}
+
+.faq-sign::before,
+.faq-sign::after {
+  content: "";
+  position: absolute;
+  top: 18px;
+  left: 11px;
+  width: 18px;
   height: 4px;
-  margin-top: -2px;
   border-radius: var(--radius-full);
   background: var(--green-900);
 }
 
-.faq-item summary::after {
+.faq-sign::after {
   transform: rotate(90deg);
-  transition: transform var(--duration-fast) var(--ease-out);
 }
 
-.faq-item[open] summary::after {
-  transform: rotate(0deg);
+@media (hover: hover) {
+  .faq-item summary:hover .faq-sign {
+    background: var(--green-200);
+  }
+}
+
+/* faq.js adds is-closing while a question folds shut, so the sign turns back at the first tap. */
+.faq-item[open]:not(.is-closing) .faq-sign {
+  background: var(--green-900);
+  transform: rotate(45deg);
+}
+
+.faq-item[open]:not(.is-closing) .faq-sign::before,
+.faq-item[open]:not(.is-closing) .faq-sign::after {
+  background: var(--white);
 }
 
 .faq-answer {
@@ -163,53 +199,6 @@
   padding: 0 20px 20px;
   color: var(--green-900);
   font-family: var(--font-text);
-}
-
-/* Closing block: dark green, mint button. The two circles are decoration and are clipped. */
-.closing-block {
-  position: relative;
-  overflow: hidden;
-  padding: 48px 20px 52px;
-  border-radius: var(--radius-xl);
-  background: var(--hero-bg);
-  color: var(--hero-text);
-  text-align: center;
-}
-
-.closing-block::before,
-.closing-block::after {
-  content: "";
-  position: absolute;
-  width: 220px;
-  height: 220px;
-  border-radius: var(--radius-full);
-  background: var(--green-700);
-}
-
-.closing-block::before {
-  top: -150px;
-  left: -90px;
-}
-
-.closing-block::after {
-  right: -100px;
-  bottom: -160px;
-}
-
-.closing-block > * {
-  position: relative;
-  z-index: 1;
-}
-
-.closing-lead {
-  max-width: 30rem;
-  margin: 12px auto 28px;
-  color: var(--green-300);
-  font-size: 1.125rem;
-}
-
-.closing-block :focus-visible {
-  outline-color: var(--white);
 }
 
 @media (min-width: 600px) {
