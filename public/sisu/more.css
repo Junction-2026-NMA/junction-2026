@@ -1,8 +1,74 @@
-/* Two extras of the bank header that scripts switch on.
-   1. The logo's text fallback (page.js): the name in place of an image that cannot load.
-   2. The "Katso lisää" menu (nav.js): from 1024px the navigation links that do not fit on
+/* The bank shell, part 2: the header's parts that need the scripts, then the breadcrumb.
+   1. The phone menu button and the customer-group list (page.js), closed until opened.
+   2. The logo's text fallback (page.js): the name in place of an image that cannot load.
+   3. Asiakastuki as an outlined (i) in the phone bar, between Kirjaudu and the menu button,
+      as on the bank's phone header. It is the same link as in the menu, not a copy.
+   4. The "Katso lisää" menu (nav.js): from 1024px the navigation links that do not fit on
       one row sit in a small list under a pill, as on the bank's own site.
-   Without the scripts the browser shows the alt text and the navigation wraps. */
+   Without the scripts every list is open, the browser shows the logo's alt text, Asiakastuki
+   is a row of the menu and the navigation wraps. Nothing here moves. */
+.menu-button {
+  grid-area: 1 / -2;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--green-900);
+  cursor: pointer;
+}
+
+.js .menu-button {
+  display: inline-flex;
+}
+
+/* Two lines, as on the bank's phone bar; a cross while the menu is open. */
+.menu-lines {
+  position: relative;
+  display: block;
+  width: 24px;
+  height: 10px;
+}
+
+.menu-lines::before,
+.menu-lines::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 2.5px;
+  border-radius: var(--radius-full);
+  background: currentColor;
+}
+
+.menu-lines::before {
+  top: 0;
+}
+
+.menu-lines::after {
+  bottom: 0;
+}
+
+.menu-button[aria-expanded="true"] .menu-lines::before {
+  transform: translateY(3.75px) rotate(45deg);
+}
+
+.menu-button[aria-expanded="true"] .menu-lines::after {
+  transform: translateY(-3.75px) rotate(-45deg);
+}
+
+.segment-button[aria-expanded="true"] .line-icon {
+  transform: rotate(180deg);
+}
+
+.js .segment:not(.is-open) .segment-list {
+  display: none;
+}
+
 .js .site-header > .is-logo-missing img {
   display: none;
 }
@@ -11,49 +77,159 @@
   content: "S-Pankki";
   display: flex;
   align-items: center;
-  width: 107px;
+  width: 76px;
   height: 46px;
   color: var(--green-900);
   font-family: var(--font-display);
-  font-size: 1.375rem;
+  font-size: 1rem;
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.02em;
   white-space: nowrap;
 }
 
-@media not all and (min-width: 390px) {
-  .js .site-header > .is-logo-missing::before {
-    width: 86px;
-    font-size: 1.125rem;
+@media not all and (min-width: 1024px) {
+  .js .site-header:not(.is-menu-open) .header-menu {
+    display: none;
   }
 }
 
+@media (min-width: 600px) {
+  .js .site-header > .is-logo-missing::before {
+    width: 107px;
+    font-size: 1.375rem;
+  }
+}
+
+/* From 360px to 1023px the bar has four columns: logo, Kirjaudu, (i) and the menu button.
+   The (i) is the menu's Asiakastuki link, lifted over the empty third column. It stays there
+   while the menu is open, and its name stays readable for screen readers. Below 360px the
+   bar keeps three columns and Asiakastuki stays a row of the menu. */
+@media (min-width: 360px) and (max-width: 1023.98px) {
+  .js .site-header {
+    position: relative;
+    grid-template-columns: minmax(0, 1fr) auto 48px 48px;
+  }
+
+  .js .site-header:not(.is-menu-open) .header-menu {
+    display: contents;
+  }
+
+  .js .site-header:not(.is-menu-open) .header-menu > :not(.util-support) {
+    display: none;
+  }
+
+  /* 72px from the right: the bar's 16px padding, the 48px menu button and an 8px gap. */
+  .js .util-support {
+    position: absolute;
+    top: 4px;
+    right: 72px;
+    justify-content: center;
+    width: 48px;
+    padding: 0;
+  }
+
+  .js .util-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* Breadcrumb: one back link to the parent step on a phone, the full path from 1024px.
+   Grey medium text, the current page in dark green, as on the bank's site. */
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 16px 0 4px;
+  color: var(--text-muted);
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+.crumb {
+  display: none;
+}
+
+.crumb-parent {
+  display: flex;
+}
+
+.crumb a,
+.crumb [aria-current] {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 48px;
+  min-height: 48px;
+  text-decoration: none;
+}
+
+.crumb a:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.crumb-arrow {
+  stroke-width: 1.75;
+}
+
+.crumb [aria-current] {
+  color: var(--green-900);
+  font-weight: 700;
+}
+
 @media (min-width: 1024px) {
+  .js .menu-button {
+    display: none;
+  }
+
+  /* With scripts the five customer-group links are a small flat panel under the pill. */
+  .js .segment-list {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 5;
+    display: grid;
+    width: max-content;
+    min-width: 100%;
+    padding: 8px;
+    border: 2px solid var(--green-900);
+    border-radius: var(--radius-lg);
+    background: var(--white);
+  }
+
+  .js .site-header > .is-logo-missing::before {
+    width: 112px;
+    height: 48px;
+    font-size: 1.4375rem;
+  }
+
   .nav-more {
     position: relative;
   }
 
+  /* Drawn like the Henkilöasiakkaat pill. */
   .more-button {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
     min-width: 48px;
     min-height: 48px;
-    padding: 0 20px 0 24px;
+    padding: 0 22px 0 24px;
     border: 2px solid var(--green-900);
     border-radius: var(--radius-full);
     background: var(--white);
     color: var(--green-900);
-    font-size: 1rem;
-    font-weight: 700;
+    font-size: inherit;
+    font-weight: 600;
     line-height: 1.25;
     white-space: nowrap;
     cursor: pointer;
-  }
-
-  .more-button .line-icon {
-    transition: transform var(--duration-fast) var(--ease-out);
   }
 
   .more-button[aria-expanded="true"] .line-icon {
@@ -87,5 +263,24 @@
 
   .nav-list.is-fitted > li {
     flex: none;
+  }
+
+  .crumbs {
+    padding: 16px 0 0;
+    font-size: 1rem;
+  }
+
+  .crumb {
+    display: flex;
+    align-items: center;
+  }
+
+  .crumb + .crumb::before {
+    content: "/";
+    margin: 0 12px;
+  }
+
+  .crumb-arrow {
+    display: none;
   }
 }

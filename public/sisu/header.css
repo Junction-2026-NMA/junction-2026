@@ -1,12 +1,50 @@
-/* The bank shell: the header. Written from scratch after the screenshots in context/landing.
-   One breakpoint: a phone bar below 1024px, two full-width rows from 1024px.
-   Whatever closes a list is under the js class, so no script means everything open. */
+/* The bank shell, top of the page: the skip link, the concept notice and the header's layout.
+   Written from scratch after the screenshots in context/landing. The header's scripted parts
+   and the breadcrumb are in more.css, the footer in shell.css. Like the bank's site, the shell
+   has no motion. A phone bar below 1024px, two full-width rows from 1024px. Sizes follow the
+   bank's header: on a phone a small logo and a large Kirjaudu pill, on a desktop wide pills
+   and roomy rows. Whatever closes a list is under the js class, so without scripts it is open. */
+.skip-link {
+  position: absolute;
+  top: 0;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  width: fit-content;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: var(--radius-full);
+  background: var(--white);
+  color: var(--green-900);
+  font-weight: 700;
+  transform: translateY(-250%);
+}
+
+/* On focus the skip link takes its own row above the notice. */
+.skip-link:focus {
+  position: static;
+  margin: 8px 16px;
+  transform: none;
+}
+
+.concept-note {
+  padding: 10px 16px;
+  background: var(--green-900);
+  color: var(--white);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  text-wrap: balance;
+}
+
 .site-header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
+  padding: 4px 16px;
   background: var(--shell-pale);
   color: var(--green-900);
   font-size: 1rem;
@@ -14,9 +52,15 @@
   line-height: 1.25;
 }
 
+/* The header's outline icons are a little heavier than the content's, as on the bank's site. */
+.site-header .line-icon {
+  stroke-width: 2.25;
+}
+
 /* The logo link is the header's first child. The image keeps its box when it cannot load.
    Its alt text is small on purpose: Safari draws the alt text of a missing image only when
-   it fits above the error icon. With scripts on, more.css shows the name as text instead. */
+   it fits above the error icon. With scripts on, more.css shows the name as text instead.
+   On a phone the mark is drawn at about the bank's phone size, in a box that keeps its height. */
 .site-header > a:first-child {
   grid-area: 1 / 1;
   justify-self: start;
@@ -30,9 +74,11 @@
 
 .site-header > a:first-child img {
   display: block;
-  width: 107px;
+  width: 76px;
   height: 46px;
   max-width: none;
+  object-fit: contain;
+  object-position: left center;
   color: var(--green-900);
   font-size: 0.75rem;
   font-weight: 700;
@@ -44,68 +90,16 @@
   grid-area: 1 / 2;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-width: 48px;
   min-height: 48px;
-  padding: 0 16px;
+  padding: 0 14px 0 12px;
   border-radius: var(--radius-full);
   background: var(--green-200);
   color: var(--green-900);
+  font-size: 1.0625rem;
+  white-space: nowrap;
   text-decoration: none;
-}
-
-.menu-button {
-  grid-area: 1 / 3;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  min-width: 48px;
-  min-height: 48px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-full);
-  background: transparent;
-  color: var(--green-900);
-  cursor: pointer;
-}
-
-.js .menu-button {
-  display: inline-flex;
-}
-
-.menu-lines {
-  position: relative;
-  display: block;
-  width: 24px;
-  height: 11px;
-}
-
-.menu-lines::before,
-.menu-lines::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  border-radius: var(--radius-full);
-  background: currentColor;
-  transition: transform var(--duration-fast) var(--ease-out);
-}
-
-.menu-lines::before {
-  top: 0;
-}
-
-.menu-lines::after {
-  bottom: 0;
-}
-
-.menu-button[aria-expanded="true"] .menu-lines::before {
-  transform: translateY(4px) rotate(45deg);
-}
-
-.menu-button[aria-expanded="true"] .menu-lines::after {
-  transform: translateY(-4px) rotate(-45deg);
 }
 
 /* Everything the menu button opens: full-width rows that push the page down. */
@@ -113,7 +107,7 @@
   grid-area: 2 / 1 / 3 / -1;
   display: grid;
   gap: 8px;
-  margin: 0 -16px -8px;
+  margin: -4px -16px -4px;
   padding: 16px;
   border-top: 2px solid var(--shell-grey);
   background: var(--white);
@@ -129,7 +123,7 @@
   padding: 0 16px;
   border-radius: var(--radius-full);
   color: var(--green-900);
-  font-size: 1rem;
+  font-size: 1.0625rem;
   font-weight: 700;
   line-height: 1.25;
   text-decoration: none;
@@ -159,35 +153,21 @@
   cursor: pointer;
 }
 
-.segment-button .line-icon {
-  transition: transform var(--duration-fast) var(--ease-out);
-}
-
-.segment-button[aria-expanded="true"] .line-icon {
-  transform: rotate(180deg);
-}
-
 .nav-list [aria-current] {
   background: var(--shell-grey);
 }
 
-.js .segment:not(.is-open) .segment-list {
-  display: none;
-}
-
-/* Below 390px the logo is drawn smaller inside a box that keeps its height, so that the bar
-   fits 320px and Safari still has room for the alt text of a missing image. */
-@media not all and (min-width: 390px) {
-  .site-header > a:first-child img {
-    width: 86px;
-    object-fit: contain;
-    object-position: left center;
+/* From 390px the Kirjaudu pill takes the bank's phone size. */
+@media (min-width: 390px) {
+  .login-pill {
+    padding: 0 18px;
+    font-size: 1.125rem;
   }
 }
 
-@media not all and (min-width: 1024px) {
-  .js .site-header:not(.is-menu-open) .header-menu {
-    display: none;
+@media (min-width: 600px) {
+  .site-header > a:first-child img {
+    width: 107px;
   }
 }
 
@@ -197,8 +177,8 @@
     grid-template-areas:
       "logo segment . svenska login"
       "nav nav nav support branches";
-    gap: 16px;
-    padding: 16px 24px 12px;
+    gap: 24px 16px;
+    padding: 16px 24px;
     background: var(--white);
   }
 
@@ -206,8 +186,9 @@
     grid-area: logo;
   }
 
-  .js .menu-button {
-    display: none;
+  .site-header > a:first-child img {
+    width: 112px;
+    height: 48px;
   }
 
   .header-menu {
@@ -220,12 +201,14 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    margin-left: 16px;
+    margin-left: 24px;
   }
 
   .segment-button {
     width: auto;
-    padding: 0 20px 0 24px;
+    gap: 12px;
+    padding: 0 22px 0 24px;
+    font-weight: 600;
   }
 
   .segment-list {
@@ -234,41 +217,39 @@
     padding-left: 0;
   }
 
-  /* With scripts the five links are a small flat panel under the pill. */
-  .js .segment-list {
-    position: absolute;
-    top: calc(100% + 8px);
-    left: 0;
-    z-index: 5;
-    display: grid;
-    width: max-content;
-    min-width: 100%;
-    padding: 8px;
-    border: 2px solid var(--green-900);
-    border-radius: var(--radius-lg);
-    background: var(--white);
-  }
-
-  .util-sv {
+  .header-menu .util-sv {
     grid-area: svenska;
     justify-self: end;
+    padding: 0 26px;
+    font-weight: 600;
   }
 
   .login-pill {
     grid-area: login;
     justify-self: end;
-    padding: 0 24px;
+    gap: 7px;
+    padding: 0 26px 0 25px;
+    font-size: 1.0625rem;
   }
 
+  /* Row 2 starts a little inside the logo. Its links sit 42px apart, text to text, so that
+     five of them fit before "Katso lisää" at 1280px; from 1440px they take the bank's 54px.
+     The "Katso lisää" pill (more.css) takes the row's type size. */
   .main-nav {
     grid-area: nav;
-    margin-left: -16px;
+    margin-left: -11px;
   }
 
   .nav-list {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    font-size: 1rem;
+  }
+
+  .nav-list a {
+    padding: 0 17px;
+    font-size: inherit;
+    font-weight: 600;
   }
 
   .util-support {
@@ -281,5 +262,20 @@
     grid-area: branches;
     justify-self: end;
     align-self: start;
+  }
+}
+
+/* The bank's own row 2: 17px links 54px apart, kept at least 32px clear of Asiakastuki. */
+@media (min-width: 1440px) {
+  .main-nav {
+    margin-right: 32px;
+  }
+
+  .nav-list {
+    font-size: 1.0625rem;
+  }
+
+  .nav-list a {
+    padding: 0 23px;
   }
 }
