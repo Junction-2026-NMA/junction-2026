@@ -82,7 +82,9 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
     yield { type: "speculation", billType: guess.billType, reason: guess.reason };
   }
 
-  const openingLine = investigate ? investigationFiller(overview.displayName, request.language) : null;
+  // Fillers vary with the turn, and skip a line Sisu just said, so a voice chat never replays the same sentence.
+  const fillerContext = { turn: (request.history ?? []).filter((turn) => turn.role === "user").length, recent: (request.history ?? []).filter((turn) => turn.role === "assistant").map((turn) => turn.content) };
+  const openingLine = investigate ? investigationFiller(overview.displayName, request.language, fillerContext) : null;
   if (openingLine) yield { type: "filler", text: openingLine };
 
   const history = (request.history ?? []).slice(-MAX_HISTORY_TURNS);
@@ -271,7 +273,7 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
         // Deeper research takes a few seconds: say so, so a voice conversation never goes quiet.
         if (call.function.name === "web_search" && args.deep === true && !fillerSent && !stepText.trim()) {
           fillerSent = true;
-          const line = researchFiller(request.language);
+          const line = researchFiller(request.language, fillerContext);
           if (line) yield { type: "filler", text: line };
         }
         const billType = call.function.name === "search_offers" ? billTypeOf(args) : null;
@@ -279,7 +281,7 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
         const { key } = ensureResearch(billType, customer.area);
         if (!fillerSent && !stepText.trim() && !isResearchReady(key)) {
           fillerSent = true;
-          const line = offerFiller(billType, customer.area, request.language);
+          const line = offerFiller(billType, customer.area, request.language, fillerContext);
           if (line) yield { type: "filler", text: line };
         }
       }
