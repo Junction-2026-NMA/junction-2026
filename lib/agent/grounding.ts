@@ -55,7 +55,7 @@ const SLIP_RELATIVE = 0.001;
 
 // What kind of quantity the words around a number say it is. A figure said as "euros a year" may only be
 // checked against yearly euro receipts, never against a percentage or a monthly figure that happens to be close.
-type Hint = "money" | "money-month" | "money-year" | "percent" | "kwh" | "price" | "time" | null;
+type Hint = "money" | "money-month" | "money-year" | "percent" | "kwh" | "price" | "time" | "count" | null;
 type Found = { value: number; raw: string; index: number; isYear: boolean; hint: Hint };
 
 function toNumber(raw: string): number {
@@ -79,9 +79,27 @@ function hintFor(text: string, raw: string, index: number): Hint {
   if (/^\s?(%|percent\b|prosent)/i.test(after)) return "percent";
   if (/^\s?kwh\b/i.test(after)) return "kwh";
   if (/^\s?(c\b|cents?\b|snt\b)/i.test(after)) return "price";
-  if (/^\s?(days?|months?|years?|weeks?|purchases?|transactions?|payments?|kk\b|pv\b)/i.test(after)) return "time";
+  if (/^\s?(days?|months?|years?|weeks?|purchases?|transactions?|payments?|kk\b|pv\b|päiv|viik|kuukau|vuo(?:si|de|tta|sia))/i.test(after)) return "time";
+  if (COUNTED.test(after)) return "count";
   return null;
 }
+
+// A number followed by a word that names what is counted ("the 25 largest companies", "40 countries", "95 people")
+// is a count of those things. It may stand for a count the tools returned, never for a euro figure or a percentage
+// that happens to round to it. These are the words that can follow an amount without naming a thing:
+// "25 a month", "40 more", "12 less than last month", "133 left".
+const AMOUNT_WORDS = [
+  "a", "an", "the", "per", "each", "every", "more", "less", "extra", "over", "under", "above", "below", "in", "on", "at", "to", "from", "for", "and", "or", "nor",
+  "of", "than", "by", "with", "without", "left", "saved", "back", "off", "out", "up", "down", "then", "so", "but", "if", "as", "is", "was", "are", "were", "be",
+  "been", "will", "would", "could", "should", "can", "may", "might", "must", "minus", "plus", "net", "gross", "total", "overall", "altogether", "instead", "now",
+  "today", "this", "that", "these", "those", "last", "next", "already", "still", "only", "just", "after", "before", "because", "since", "until", "into", "onto",
+  "there", "here", "you", "your", "it", "its", "we", "they", "he", "she", "i", "which", "who", "while", "when", "where", "monthly", "yearly", "annually", "weekly",
+  "daily", "ago", "later", "earlier", "together", "apiece", "versus", "vs", "compared", "higher", "lower", "cheaper", "too", "also", "again", "roughly",
+  "approximately", "about", "around", "even", "e", "k",
+  "ja", "tai", "kuin", "eli", "on", "oli", "ovat", "olisi", "jää", "jäi", "jäljelle", "lisää", "vähemmän", "enemmän", "kuussa", "kuukaudessa", "vuodessa",
+  "viikossa", "päivässä", "verran", "asti", "saakka", "mennessä", "jälkeen", "ennen", "nyt", "tänään", "vielä", "jo", "vain", "noin", "myös",
+].join("|");
+const COUNTED = new RegExp(`^\\s?(?!(?:${AMOUNT_WORDS})(?![\\p{L}\\p{N}]))\\p{L}`, "iu");
 
 const COMPATIBLE: Record<Exclude<Hint, null>, Fact["unit"][]> = {
   money: ["EUR", "EUR/month", "EUR/year"],
@@ -91,10 +109,11 @@ const COMPATIBLE: Record<Exclude<Hint, null>, Fact["unit"][]> = {
   kwh: ["kWh/year"],
   price: ["c/kWh"],
   time: ["months", "years", "days", "count"],
+  count: ["count"],
 };
 
-// "2027" on its own is a year. "€2,027", "2027 euros" or "2027 kWh" is an amount.
-const isYearToken = (text: string, raw: string, index: number, hint: Hint): boolean => /^20\d{2}$/.test(raw) && hint === null && !/^\s?(a|per)\s+(month|year|week)\b/i.test(text.slice(index + raw.length));
+// "2027" on its own (or "the 2027 prices") is a year. "€2,027", "2027 euros" or "2027 kWh" is an amount.
+const isYearToken = (text: string, raw: string, index: number, hint: Hint): boolean => /^20\d{2}$/.test(raw) && (hint === null || hint === "count") && !/^\s?(a|per)\s+(month|year|week)\b/i.test(text.slice(index + raw.length));
 
 // Numbers in a piece of text, with where they are and what kind of quantity they are. Dates and times are skipped.
 function findNumbers(text: string): Found[] {
@@ -144,9 +163,12 @@ export type Sources = { facts: Fact[]; contextTexts: string[]; userTexts: string
 // some unrelated number that happens to be near it.
 function classify({ value, isYear, hint }: Pick<Found, "value" | "isYear" | "hint">, sources: Sources, contextNumbers: number[]): NumberCheck {
   const kinds = hint === null ? null : COMPATIBLE[hint];
-  const receipt = sources.facts.find((f) => (kinds === null ? sameFigure(value, f.value) : kinds.includes(f.unit) && matches(value, f.value)));
+  // A count is said as it is: no "about" allowance, and in the context only the very same figure counts.
+  const close = hint === "count" ? sameFigure : matches;
+  const inContext = (n: number): boolean => (hint === "count" ? Math.abs(n - value) < 0.005 : sameFigure(value, n));
+  const receipt = sources.facts.find((f) => (kinds === null ? sameFigure(value, f.value) : kinds.includes(f.unit) && close(value, f.value)));
   if (receipt) return { value, status: "receipt", factId: receipt.id };
-  if (contextNumbers.some((n) => sameFigure(value, n))) return { value, status: "context", factId: null };
+  if (contextNumbers.some(inContext)) return { value, status: "context", factId: null };
   if (isYear) return { value, status: "trivial", factId: null }; // "September 2026", "next year, 2027": a date, not an amount
   // The monthly version of a yearly receipt, or the other way round: "about 12 a month" for 139 a year.
   const derived =
@@ -165,6 +187,7 @@ export function correctNumbers(text: string, sources: Sources): { text: string; 
   const corrections: NumberCorrection[] = [];
   let corrected = text;
   for (const found of findNumbers(text).reverse()) {
+    if (found.hint === "count") continue; // a count of things is not a euro figure with a slipped digit
     if (classify(found, sources, contextNumbers).status !== "unverified") continue;
     // Only a figure of some size can have a "slipped digit": 0.05 is not a slip of 0.
     const near = sources.facts.find((f) => Math.abs(f.value) >= 1 && Math.abs(Math.abs(f.value) - found.value) <= Math.max(SLIP_ABSOLUTE, Math.abs(f.value) * SLIP_RELATIVE));
@@ -221,12 +244,14 @@ export function correctNames(text: string, names: string[]): { text: string; cor
 export function checkGrounding(answer: string, facts: Fact[], contextTexts: string[], userTexts: string[], corrections: NumberCorrection[] = []): Grounding {
   const sources = { facts, contextTexts, userTexts };
   const contextNumbers = contextNumbersOf(sources);
-  const first = findNumbers(spelledToDigits(answer)).map((found) => classify(found, sources, contextNumbers));
+  const found = findNumbers(spelledToDigits(answer));
+  const first = found.map((n) => classify(n, sources, contextNumbers));
   // "Yours is 662, the typical figure is 730, so you pay 68 less": the 68 is the difference of two sourced figures
-  // in the same answer. Code can check that sum, so it counts as supported. A wrong sum still fails.
+  // in the same answer. Code can check that sum, so it counts as supported. A wrong sum still fails. A count of
+  // things ("40 countries") is never a sum of amounts.
   const sourced = first.filter((n) => n.status === "receipt" || n.status === "context").map((n) => n.value);
   const fromTwo = (value: number): boolean => sourced.some((a, i) => sourced.some((b, j) => i < j && (sameFigure(value, a + b) || sameFigure(value, Math.abs(a - b)))));
-  const numbers = first.map((n): NumberCheck => (n.status === "unverified" && n.value > TRIVIAL_MAX && fromTwo(n.value) ? { ...n, status: "context" } : n));
+  const numbers = first.map((n, i): NumberCheck => (n.status === "unverified" && n.value > TRIVIAL_MAX && found[i].hint !== "count" && fromTwo(n.value) ? { ...n, status: "context" } : n));
   const unverified = numbers.filter((n) => n.status === "unverified").map((n) => n.value);
   return { ok: unverified.length === 0, checked: numbers.length, unverified, numbers, corrections };
 }
