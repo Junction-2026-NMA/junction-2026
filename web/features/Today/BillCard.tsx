@@ -89,8 +89,8 @@ export function BillCard({ bill, onDone = () => {} }: {
                   enterKeyHint="done" autoComplete="off" aria-label="What is this bill?"
                   onChange={(event) => setDraft(event.target.value)} />
               </form>
-              <SisuButton label="Save the name" style="secondary" enabled={draft !== ""}
-                action={() => { if (draft !== "") save(); }} />
+              <SisuButton label="Save the name" style="secondary" enabled={draft.trim() !== ""}
+                action={() => { if (draft.trim() !== "") save(); }} />
             </>
           ) : !state.isConfirmed ? (
             <>
