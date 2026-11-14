@@ -13,7 +13,8 @@ export function numbersIn(text: string): number[] {
   return [...withoutDates.matchAll(NUMBER)].map((match) => Number(match[0].replace(/[,\u00a0 ]/g, ""))).filter((n) => Number.isFinite(n));
 }
 
-const isRound = (n: number): boolean => Number.isInteger(n) && (n % 5 === 0 || n >= 1000);
+// "About 140" or "about 1,900" is a rounded figure. 1,536 is not: a precise-looking number must match precisely.
+const isRound = (n: number): boolean => Number.isInteger(n) && n % 5 === 0;
 
 // Does a spoken number stand for this value? Exact, rounded to whole euros or one decimal, or a round "about" figure within 3%.
 export function matches(said: number, value: number): boolean {
