@@ -251,6 +251,16 @@ export interface CoachSessionOptions {
  * sentence on the reply (`error`) or in `notice`; nothing here throws. */
 export class CoachSession extends Store<CoachSessionState> {
   static readonly investigateText = "Look into my finances and find the best thing I can do.";
+  /** The question bubble of a voice turn whose recording had no words in it. */
+  static readonly nothingHeardText = "(nothing heard)";
+  /** The question bubble of a voice turn that failed before its words came back. */
+  static readonly unheardText = "(voice question)";
+
+  /** True for the stand-in text of a voice question that was never heard: never send it as a typed question. */
+  static isUnheard(text: string): boolean {
+    const trimmed = text.trim();
+    return trimmed === "" || trimmed === CoachSession.nothingHeardText || trimmed === CoachSession.unheardText;
+  }
 
   focusBill: BillType | null;
   speakReplies: boolean;
@@ -356,7 +366,8 @@ export class CoachSession extends Store<CoachSessionState> {
     return this.runTurn({ kind: "voice", audio, fileName, mimeType, language: language ?? this.language });
   }
 
-  /** Stops whatever Sisu is doing: aborts the stream, stops speech, and leaves what has arrived on screen. */
+  /** Stops whatever Sisu is doing: aborts the stream, stops speech, and leaves what has arrived on screen. A voice
+   *  question stopped before its words came back leaves nothing: no empty bubble, no empty answer. */
   cancel(): void {
     this.turnToken += 1;
     this.turnAbort?.abort();
@@ -365,10 +376,28 @@ export class CoachSession extends Store<CoachSessionState> {
     this.speech?.stop();
     const s = this.state;
     if (s.isThinking || s.messages.some((m) => m.pending)) {
-      this.update({ isThinking: false, task: null, messages: s.messages.map((m) => (m.pending ? { ...m, pending: false } : m)) });
+      this.update({ isThinking: false, task: null, messages: CoachSession.settled(s.messages) });
     } else if (s.task !== null) {
       this.update({ task: null });
     }
+  }
+
+  /** The messages with nothing pending: an unheard voice question (still waiting for its words) goes, with its reply
+   *  when nothing has arrived in it yet. */
+  private static settled(messages: CoachMessage[]): CoachMessage[] {
+    const unheard = new Set(messages.filter((m) => m.role === "user" && m.pending && m.text === "").map((m) => m.id));
+    return messages.flatMap((m, index) => {
+      if (unheard.has(m.id)) return [];
+      const question = index > 0 ? messages[index - 1] : null;
+      if (m.role === "assistant" && question && unheard.has(question.id) && CoachSession.isBlank(m)) return [];
+      return [m.pending ? { ...m, pending: false } : m];
+    });
+  }
+
+  /** A reply in which nothing has arrived yet. */
+  private static isBlank(m: CoachMessage): boolean {
+    return m.text === "" && m.error === null && m.filler === null && m.stages.length === 0 && m.steps.length === 0
+      && m.visuals.length === 0 && m.tools.length === 0 && m.action === null && m.teaching === null;
   }
 
   /** Clears the conversation. Actions and memory belong to the customer and stay. */
@@ -428,16 +457,21 @@ export class CoachSession extends Store<CoachSessionState> {
         }
       } catch (error) {
         if (!live()) return;
-        this.patch(userId, (m) => ({ ...m, pending: false }));
+        this.patch(userId, CoachSession.settledQuestion);
         this.patch(replyId, (m) => ({ ...m, pending: false, error: CoachErrors.sentence(error) }));
       }
       if (this.turnToken !== token) return;
       this.turnTask = null;
       this.turnAbort = null;
-      this.update({ isThinking: false, task: null, messages: this.state.messages.map((m) => (m.pending ? { ...m, pending: false } : m)) });
+      this.update({ isThinking: false, task: null, messages: this.state.messages.map((m) => (!m.pending ? m : m.id === userId ? CoachSession.settledQuestion(m) : { ...m, pending: false })) });
     })();
     this.turnTask = task;
     return task;
+  }
+
+  /** The question of a turn that ended: no longer pending; a voice question whose words never came back says so. */
+  private static settledQuestion(m: CoachMessage): CoachMessage {
+    return { ...m, pending: false, text: m.text === "" ? CoachSession.unheardText : m.text };
   }
 
   private patch(id: string, change: (m: CoachMessage) => CoachMessage): void {
@@ -472,7 +506,7 @@ export class CoachSession extends Store<CoachSessionState> {
       }
       case "transcript":
         turn.question = event.text;
-        this.patch(userId, (m) => ({ ...m, text: event.text === "" ? "(nothing heard)" : event.text, pending: false }));
+        this.patch(userId, (m) => ({ ...m, text: event.text === "" ? CoachSession.nothingHeardText : event.text, pending: false }));
         if (event.language) this.update({ heardLanguage: event.language });
         break;
       case "filler": case "sentence": this.say(event.text, spoken, turn); break;
@@ -481,7 +515,7 @@ export class CoachSession extends Store<CoachSessionState> {
       case "done":
         this.history = [...this.history, { role: "user", content: turn.question }, { role: "assistant", content: event.text }].slice(-12);
         break;
-      case "error": this.patch(userId, (m) => ({ ...m, pending: false })); break;
+      case "error": this.patch(userId, CoachSession.settledQuestion); break;
       default: break;
     }
   }

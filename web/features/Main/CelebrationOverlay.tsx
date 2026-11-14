@@ -1,12 +1,15 @@
 "use client";
 // The full-screen Rive celebration (CelebrationOverlay in ios/Sisu/Features/Main/MainScreen.swift). It fires
 // `fire` 150 ms after it is on screen and goes away on `done`, on a tap, or 4 s later if `done` never arrives.
-// It fades in and out (easeInOut 0.25 s), over the tab bar and under sheets.
+// It fades in and out (easeInOut 0.25 s), over the tab bar and over sheets too: an approval made inside the
+// conversation sheet must be seen, so the overlay is portalled into .sisu-root above the sheet layer.
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Celebration } from "@/web/app/AppTypes";
 import { RiveComponent } from "@/web/rive/RiveComponent";
 import { RiveValues } from "@/web/shared/RiveValues";
 import { riveAccessible } from "@/web/shared/SisuStyle";
+import { useTap } from "@/web/shared/useTap";
 
 const FIRE_AFTER_MS = 150;
 const DISMISS_AFTER_MS = 4000;
@@ -25,11 +28,13 @@ export function CelebrationOverlay({ celebration, onDismiss }: { celebration: Ce
   }, [leaving]);
 
   if (!shown) return null;
-  return (
+  const layer = (
     <div className="sisu-celebration" data-leaving={leaving ? "true" : "false"} style={{ animationDuration: `${FADE_MS}ms` }}>
       <CelebrationContent key={`${shown.headline}|${shown.detail}`} celebration={shown} dismiss={leaving ? noop : onDismiss} />
     </div>
   );
+  const host = typeof document === "undefined" ? null : document.querySelector<HTMLElement>(".sisu-root");
+  return host ? createPortal(layer, host) : layer;
 }
 
 const noop = () => undefined;
@@ -52,8 +57,10 @@ function CelebrationContent({ celebration, dismiss }: { celebration: Celebration
   }, []);
 
   const { headline, detail } = celebration;
+  // A finger tap on the Rive canvas sends no click (RiveCanvas cancels touchend), so dismiss on the pointer tap.
+  const tap = useTap(dismiss);
   return (
-    <div className="sisu-celebration-tap" onClick={dismiss} data-testid="celebration">
+    <div className="sisu-celebration-tap" {...tap} data-testid="celebration">
       <RiveComponent
         component="Celebration"
         values={RiveValues.celebration(headline, detail)}

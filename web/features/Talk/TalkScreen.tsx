@@ -5,7 +5,8 @@
 // travels there), the status sits beside it, and the conversation rises in underneath with every answer in full
 // (the same AssistantAnswer as the Ask screen). "New conversation" clears the chat and brings Liito back to the
 // middle. While Sisu works, Liito does what the backend is doing: listening, searching, calculating, comparing,
-// writing, presenting (web/core/LiitoTask.ts).
+// writing, presenting (web/core/LiitoTask.ts). Each task stays on screen long enough to read, in the order the
+// events came (web/shared/useLiitoMood.ts); both badges draw that one sequenced mood.
 //
 // The conversation is hands-free (web/voice/ConversationController.ts): Sisu listens, notices the pause, answers out
 // loud through the backend's voice turn, then listens again until End. Typing opens the Ask screen as a sheet.
@@ -16,8 +17,10 @@ import { useAppModel, useAppSelector, useCoach, useCoachSessionState, useConvers
 import type { CoachStore } from "@/web/app/CoachStore";
 import { ConversationText } from "@/web/core/AppLogic/Conversation";
 import { FirstInsightPresenter } from "@/web/core/AppLogic/OnboardingCopy";
-import type { CoachSession } from "@/web/core/CoachSession";
+import type { CoachMessage, CoachSession } from "@/web/core/CoachSession";
+import { LiitoTask } from "@/web/core/LiitoTask";
 import { SisuButton } from "@/web/shared/SisuStyle";
+import { useLiitoMood } from "@/web/shared/useLiitoMood";
 import { springEasing } from "@/web/theme/theme";
 import { useReducedMotion } from "@/web/theme/motion";
 import { unlockAudio } from "@/web/voice/AudioUnlock";
@@ -51,6 +54,15 @@ export default function TalkScreen() {
 /** The hero-to-chat move of the badge: a soft spring (SwiftUI .spring(response: 0.6, dampingFraction: 0.86)). */
 const layoutSpring = springEasing(0.6, 0.86);
 
+/** What the answer in progress has done so far (LiitoTask.answering): the session worked on it, Sisu said part of it. */
+const noAnswer = { worked: false, spoke: false };
+
+/** The newest question's id: a new question starts Liito's moods afresh (useLiitoMood's `turn`). */
+function newestQuestion(messages: readonly CoachMessage[]): string | null {
+  for (let index = messages.length - 1; index >= 0; index -= 1) if (messages[index].role === "user") return messages[index].id;
+  return null;
+}
+
 function TalkContent({ session, talk, store }: { session: CoachSession; talk: ConversationController; store: CoachStore }) {
   const model = useAppModel();
   const state = useCoachSessionState(session);
@@ -74,6 +86,29 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
     ? FirstInsightPresenter.state(overview, flaggedBill ? model.confirmedName(flaggedBill) : null)
     : null;
   const screen = talk.screen(session.activity, opening ? { title: opening.eyebrow, detail: opening.headline } : null);
+
+  // Liito's mood: the presenter's, corrected while Sisu answers with what the session really does (real work beats
+  // a filler sentence, the pauses between spoken sentences stay "presenting"), then sequenced so each real task can
+  // be read. `answer` is what this answer has done so far (derived state, reset when Sisu listens again).
+  const isThinking = state?.isThinking ?? false;
+  const task = state?.task ?? null;
+  const answering = flow.phase === "thinking" || flow.phase === "speaking";
+  const [answer, setAnswer] = useState(noAnswer);
+  const nextAnswer = answering
+    ? {
+        worked: answer.worked || isThinking,
+        spoke: answer.spoke || (flow.phase === "speaking" && !(isThinking && LiitoTask.isWork(task))),
+      }
+    : noAnswer;
+  if (nextAnswer.worked !== answer.worked || nextAnswer.spoke !== answer.spoke) setAnswer(nextAnswer);
+  const target = answering
+    ? LiitoTask.answering(screen.mood, {
+        phase: flow.phase === "speaking" ? "speaking" : "thinking", working: isThinking, task,
+        spoke: nextAnswer.spoke, workedThisAnswer: nextAnswer.worked,
+      })
+    : screen.mood;
+  const busy = answering || flow.phase === "hearing" || isThinking || (state?.isSpeaking ?? false) || (state?.isRecording ?? false);
+  const mood = useLiitoMood(target, { busy, turn: newestQuestion(messages) });
 
   // Held while Talk is not what the person sees: the conversation sheet is up or the page is in the background.
   const held = conversationShown || !visible;
@@ -117,6 +152,10 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
     talk.toggle();
   };
 
+  // A voice problem (speech failed, the microphone refused or interrupted) is said in one calm line by the controls.
+  const notice = conversation?.notice ?? null;
+  const noticeLine = notice ? <p className="sisu-talk-notice" role="status" data-testid="talk.notice">{notice}</p> : null;
+
   const controls = (
     <div className="sisu-talk-controls" data-chatting={chatting ? "true" : "false"} data-clips={voice?.clipsPlayed ?? 0}
       data-testid={`talk.clips.${voice?.clipsPlayed ?? 0}`}>
@@ -132,11 +171,12 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
 
   return (
     <div className="sisu-talk" data-testid="screen.talk" data-phase={flow.phase} data-chatting={chatting ? "true" : "false"}
-      data-mood={screen.mood} data-chat-entered={chatEntered ? "true" : "false"} aria-hidden={conversationShown || undefined}>
+      data-mood={mood} data-mood-target={target} data-chat-entered={chatEntered ? "true" : "false"}
+      aria-hidden={conversationShown || undefined}>
       {chatting ? (
         <>
           <header className="sisu-talk-chat-header">
-            <LiitoBadge badgeRef={badge} mood={screen.mood} talk={talk} listening={flow.micOpen} diameter={56} liito={64} filled
+            <LiitoBadge badgeRef={badge} mood={mood} target={target} talk={talk} listening={flow.micOpen} diameter={56} liito={64} filled
               canInterrupt={screen.canInterrupt} onInterrupt={interrupt} />
             <div className="sisu-talk-chat-titles">
               <h2 className="sisu-talk-chat-title" data-testid="talk.title">{screen.title}</h2>
@@ -147,6 +187,7 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
             </RoundIconButton>
           </header>
           {state ? <TalkTranscript session={session} state={state} store={store} reduceMotion={reduceMotion} /> : null}
+          {noticeLine}
           {controls}
         </>
       ) : (
@@ -163,11 +204,12 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
             ) : null}
           </div>
           <div className="sisu-talk-hero-liito">
-            <LiitoBadge badgeRef={badge} mood={screen.mood} talk={talk} listening={flow.micOpen} diameter={236} liito={248}
+            <LiitoBadge badgeRef={badge} mood={mood} target={target} talk={talk} listening={flow.micOpen} diameter={236} liito={248}
               canInterrupt={screen.canInterrupt} onInterrupt={interrupt} />
           </div>
           {controls}
           <StatusLine flow={flow} live={screen.live} statusLine={screen.statusLine} detail={screen.detail} compact={false} />
+          {noticeLine}
           <div className="sisu-talk-spacer" data-min="16" />
         </div>
       )}

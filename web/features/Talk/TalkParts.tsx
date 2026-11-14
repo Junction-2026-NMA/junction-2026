@@ -10,10 +10,17 @@ import { RiveComponent } from "@/web/rive/RiveComponent";
 import { useReducedMotion } from "@/web/theme/motion";
 import { ConversationController } from "@/web/voice/ConversationController";
 
+/** Reduced motion: how long Liito runs after a mood change before it is held still (the blend, plus the one-shot
+ *  arrivals of cheering, found and searching), so the held pose is the new mood's own. */
+const stillAfter: Partial<Record<RiveBindings.LiitoMood, number>> = { cheering: 1400, found: 1400, searching: 800 };
+
 /** Liito in a soft green circle that breathes with the microphone level. Big in the middle before the first
- *  question, a small filled circle at the top of the chat after it. Tapping it interrupts while Sisu answers. */
-export function LiitoBadge({ mood, talk, listening, diameter, liito, filled = false, canInterrupt, onInterrupt, badgeRef }: {
+ *  question, a small filled circle at the top of the chat after it (Liito stands in front of it, not cut by it, so
+ *  every prop of a task shows). Tapping it interrupts while Sisu answers. `mood` is what is drawn (the sequenced
+ *  mood, web/shared/useLiitoMood.ts), `target` what the events say right now. */
+export function LiitoBadge({ mood, target, talk, listening, diameter, liito, filled = false, canInterrupt, onInterrupt, badgeRef }: {
   mood: RiveBindings.LiitoMood;
+  target?: RiveBindings.LiitoMood;
   talk: ConversationController;
   listening: boolean;
   diameter: number;
@@ -25,7 +32,7 @@ export function LiitoBadge({ mood, talk, listening, diameter, liito, filled = fa
 }) {
   const level = useConversationLevel(talk);
   const reduceMotion = useReducedMotion();
-  const size = filled ? diameter : Math.max(diameter, liito);
+  const size = Math.max(diameter, liito);
   const scale = reduceMotion ? 1 : 1 + level * (filled ? 0.12 : 0.16);
   const ringOpacity = filled ? 1 : listening ? 0.55 + level * 0.45 : 0;
   // Rive canvases cancel touchend (no compatibility clicks), so the tap is read from pointer events.
@@ -37,6 +44,7 @@ export function LiitoBadge({ mood, talk, listening, diameter, liito, filled = fa
       className="sisu-talk-badge"
       data-size={filled ? "small" : "hero"}
       data-mood={mood}
+      data-mood-target={target ?? mood}
       data-liito={liito}
       data-listening={listening ? "true" : "false"}
       data-testid="talk.liito"
@@ -60,10 +68,12 @@ export function LiitoBadge({ mood, talk, listening, diameter, liito, filled = fa
       <div className="sisu-talk-ring" aria-hidden="true"
         style={{ width: diameter, height: diameter, transform: `scale(${scale})`, opacity: ringOpacity }} />
       <div className="sisu-talk-liito" aria-hidden="true" style={{ width: liito, height: liito }}>
-        <RiveComponent component="Liito" values={RiveBindings.liito(mood)} sizing="contain" style={{ width: liito, height: liito }} />
+        <RiveComponent component="Liito" values={RiveBindings.liito(mood)} sizing="contain" style={{ width: liito, height: liito }}
+          stillAfterMs={reduceMotion ? stillAfter[mood] ?? 450 : undefined} />
       </div>
       {filled && listening ? (
-        <div className="sisu-talk-badge-stroke" aria-hidden="true" style={{ opacity: 0.35 + level * 0.65 }} />
+        <div className="sisu-talk-badge-stroke" aria-hidden="true"
+          style={{ width: diameter, height: diameter, opacity: 0.35 + level * 0.65 }} />
       ) : null}
     </div>
   );
@@ -119,10 +129,18 @@ export function StatusLine({ flow, live, statusLine, detail, compact }: {
     );
   }
   if (statusLine) {
-    return <p className="sisu-talk-status" data-compact={compact ? "true" : "false"} data-muted="true" data-testid="talk.status">{statusLine}</p>;
+    return (
+      <p className="sisu-talk-status" data-compact={compact ? "true" : "false"} data-muted="true" data-testid="talk.status">
+        <span className="sisu-talk-status-text">{statusLine}</span>
+      </p>
+    );
   }
   if (compact) {
-    return <p className="sisu-talk-status" data-compact="true" data-muted="true">{detail ?? ""}</p>;
+    return (
+      <p className="sisu-talk-status" data-compact="true" data-muted="true">
+        <span className="sisu-talk-status-text">{detail ?? ""}</span>
+      </p>
+    );
   }
   return <p className="sisu-talk-status" aria-hidden="true">{" "}</p>;
 }

@@ -77,7 +77,11 @@ export class CoachClient implements SisuAPI {
   }
 
   /** A client of the real server that switches to the bundled sample, for good, the first time the server cannot
-   * be reached. Sessions built on it publish `fallbackNotice` at that moment. */
+   * be reached. Sessions built on it publish `fallbackNotice` at that moment. Agent turns (`ask`, `investigate`,
+   * `voiceTurn`, `plan`) never cause the switch: once the server has answered, a dropped connection during a turn is
+   * an error with "Try again", because a recorded answer to another question would be wrong (14 Nov QA: one network
+   * failure turned every later spoken question into the sample's electricity question). They use the sample only
+   * when the client had already fallen back, the server being unreachable from the start. */
   static liveWithSampleFallback(baseURL = "", options: { fetchImpl?: typeof fetch; eventDelay?: number; now?: () => Date; fixtures?: FixtureSource } = {}): CoachClient {
     const sample = new ReplayTransport(options.eventDelay ?? 0.02, options.fixtures ?? FixtureAPI.defaultSource);
     return new CoachClient(baseURL, new FallbackTransport(new FetchTransport(options.fetchImpl), sample, options.now));
@@ -95,6 +99,12 @@ export class CoachClient implements SisuAPI {
 
   /** `live` for a real server, `bundledSample` for the recordings ("Sample data"). */
   get kind(): DataSourceKind { return this.transport.kind; }
+
+  /** Where agent turns go: past the fallback while it is live (see `liveWithSampleFallback`). */
+  private get turnTransport(): SisuTransport {
+    const transport = this.transport;
+    return transport instanceof FallbackTransport && transport.fallenBackAt === null ? transport.primary : transport;
+  }
 
   // MARK: Plumbing
 
@@ -126,7 +136,7 @@ export class CoachClient implements SisuAPI {
     if (signal?.aborted) local.abort();
     signal?.addEventListener("abort", onAbort);
     try {
-      const stream = await this.transport.open(request, local.signal);
+      const stream = await this.turnTransport.open(request, local.signal);
       if (stream.status < 200 || stream.status >= 300) {
         const parts: Uint8Array[] = [];
         for await (const chunk of stream.chunks) parts.push(chunk);

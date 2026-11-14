@@ -17,9 +17,13 @@ export interface RiveCanvasProps {
   requestKey: string;
   /** Let a touch drag that starts on the canvas scroll the page (false for press-and-hold controls). */
   touchScroll: boolean;
+  /** Reduced motion: pause this long after loading and after each `stillKey` change (RiveComponent.stillAfterMs). */
+  stillAfterMs?: number;
+  /** Changes with the component's values (RiveComponent's values key). */
+  stillKey?: string;
 }
 
-export function RiveCanvas({ file, artboard, sizing, outTriggers, model, requestKey, touchScroll }: RiveCanvasProps) {
+export function RiveCanvas({ file, artboard, sizing, outTriggers, model, requestKey, touchScroll, stillAfterMs, stillKey }: RiveCanvasProps) {
   // Declared before useRive so its cleanup (stop listening) runs before the runtime instance is cleaned up.
   useEffect(() => {
     model.startLoading();
@@ -67,6 +71,24 @@ export function RiveCanvas({ file, artboard, sizing, outTriggers, model, request
     return () => canvas.removeEventListener("touchend", swallow);
   }, [rive]);
 
+  // Reduced motion: run long enough for the new pose to land, then hold it still. Resumes when switched off.
+  useEffect(() => {
+    if (!rive) return;
+    if (stillAfterMs === undefined) {
+      if (rive.isPaused) safePlay(rive);
+      return;
+    }
+    safePlay(rive);
+    const timer = window.setTimeout(() => {
+      try {
+        rive.pause();
+      } catch {
+        // The instance went away; nothing to hold.
+      }
+    }, stillAfterMs);
+    return () => window.clearTimeout(timer);
+  }, [rive, stillAfterMs, stillKey]);
+
   const appliedSizing = useRef(sizing);
   useEffect(() => {
     if (!rive || appliedSizing.current === sizing) return;
@@ -79,6 +101,14 @@ export function RiveCanvas({ file, artboard, sizing, outTriggers, model, request
       <canvas ref={attachCanvas} aria-hidden="true" />
     </div>
   );
+}
+
+function safePlay(rive: Rive): void {
+  try {
+    rive.play();
+  } catch {
+    // The instance went away mid-change.
+  }
 }
 
 /** Switches the fit of a loaded instance and lays it out again at the current canvas size. */

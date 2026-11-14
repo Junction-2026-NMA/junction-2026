@@ -87,11 +87,16 @@ export class SpeechPlayer implements SpeechOutput {
     })();
   }
 
+  /** Stops at once and drops what is left of the answer. When something was playing or on its way, `onDrained`
+   *  follows: the answer is over (a new question, Safari taking the audio), so a conversation waiting for the end of
+   *  the speech listens again instead of waiting for ever. */
   stop(): void {
+    const wasBusy = !this.isIdle || this.downloads.length > 0;
     this.queue.stop();
     this.downloads.forEach((d) => d.abort());
     this.downloads = [];
     this.pending = 0;
+    this.starting = false;
     this.previousText = null;
     const player = this.current;
     this.current = null;
@@ -104,6 +109,7 @@ export class SpeechPlayer implements SpeechOutput {
       }
     }
     this.session?.setSpeaking(false);
+    if (wasBusy) this.onDrained?.();
   }
 
   // MARK: Playback

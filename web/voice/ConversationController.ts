@@ -15,7 +15,7 @@
 // MediaRecorder's stop is async, so a question is sent a moment after the pause that ends it.
 import { Store, type CoachSession } from "@/web/core/CoachSession";
 import type { SisuActivity } from "@/web/core/Activity";
-import { ConversationFlow, ConversationPresenter, type ConversationCommand, type ConversationEnd, type ConversationScreenState } from "@/web/core/AppLogic/Conversation";
+import { ConversationFlow, ConversationPresenter, ConversationText, type ConversationCommand, type ConversationEnd, type ConversationScreenState } from "@/web/core/AppLogic/Conversation";
 import { VoicePressRule } from "@/web/core/AppLogic/VoiceLogic";
 import type { SpeechPlayer } from "./SpeechPlayer";
 import { VoiceRecorder, VoiceRecording } from "./VoiceRecorder";
@@ -28,6 +28,12 @@ export interface ConversationControllerState {
   /** Bumped when a conversation starts and when it ends (haptics, tests). */
   readonly starts: number;
   readonly ends: number;
+  /** True from the end of an answer's stream until its last sentence has been spoken: the gap before Sisu's voice
+   *  starts shows Sisu answering, not thinking. */
+  readonly answerReady: boolean;
+  /** A sentence for the Talk screen when something went wrong with the voice: a sentence could not be spoken, the
+   *  microphone could not be used. Null when all is well. Cleared by the next Start and the next question. */
+  readonly notice: string | null;
 }
 
 const METER_MS = 50;
@@ -56,10 +62,19 @@ export class ConversationController extends Store<ConversationControllerState> {
   private disposed = false;
   private readonly unsubscribe: () => void;
 
+  /** The speech player's failure callback before this controller joined it (the push-to-talk controller's). */
+  private readonly previousFailure: ((sentence: string) => void) | null;
+
   constructor(readonly session: CoachSession, private readonly player: SpeechPlayer, fixture: VoiceRecording | null = null) {
-    super({ flow: new ConversationFlow(), level: 0, starts: 0, ends: 0 });
+    super({ flow: new ConversationFlow(), level: 0, starts: 0, ends: 0, answerReady: false, notice: null });
     this.fixture = fixture;
     player.onDrained = () => this.speechDrained();
+    // A sentence that could not be spoken: the push-to-talk controller still hears about it; Talk says it too.
+    this.previousFailure = player.onFailure;
+    player.onFailure = (sentence) => {
+      this.previousFailure?.(sentence);
+      if (!this.disposed && this.machine.isOn) this.setNotice(sentence);
+    };
     this.recorder.onAutoStop = (interrupted) => {
       if (!interrupted) {
         // The recorder's own one-minute limit: send what there is.
@@ -89,7 +104,7 @@ export class ConversationController extends Store<ConversationControllerState> {
   get flow(): ConversationFlow { return this.state.flow; }
 
   screen(activity: SisuActivity, opening: { title: string; detail: string } | null, now = ConversationController.now()): ConversationScreenState {
-    return ConversationPresenter.state(this.state.flow, activity, now, opening, this.session.getSnapshot().task);
+    return ConversationPresenter.state(this.state.flow, activity, now, opening, this.session.getSnapshot().task, this.state.answerReady);
   }
 
   // MARK: The person
@@ -103,14 +118,20 @@ export class ConversationController extends Store<ConversationControllerState> {
   start(): void {
     if (this.machine.isOn || this.disposed) return;
     this.fixtureQuestionsLeft = 1;
-    const commands = this.machine.start(ConversationController.now());
-    this.update({ starts: this.state.starts + 1 });
+    // An answer someone else asked for (a question typed in the sheet) is never cut off: the microphone opens when
+    // it is done.
+    const busy = this.sessionBusy();
+    const commands = this.machine.start(ConversationController.now(), !busy);
+    this.resumeWhenQuiet = busy;
+    this.update({ starts: this.state.starts + 1, notice: null });
     haptic(12);
     this.run(commands);
   }
 
   end(): void {
     if (!this.machine.isOn) return;
+    this.forgetIfUnheard();
+    this.resumeWhenQuiet = false;
     this.run(this.machine.end("byUser", ConversationController.now()));
   }
 
@@ -120,15 +141,29 @@ export class ConversationController extends Store<ConversationControllerState> {
 
   /** Tapping Liito while Sisu answers. */
   interrupt(): void {
+    if (this.machine.isAnswering) this.forgetIfUnheard();
     this.run(this.machine.interrupt(ConversationController.now()));
   }
 
+  /** "Try again" on a voice question that was never heard: listen for it again (start the conversation if it is
+   *  off). */
+  listenForAgain(): void {
+    if (this.disposed) return;
+    if (!this.machine.isOn) {
+      this.start();
+      return;
+    }
+    if (this.machine.isAnswering) this.interrupt();
+    else this.run(this.machine.listenAgain(ConversationController.now()));
+  }
+
   /** "New conversation": clears the chat, so Liito comes back to the middle. A running conversation keeps
-   *  listening; an answer on its way stops. */
+   *  listening, counting its questions afresh; an answer on its way stops. */
   newConversation(): void {
-    if (this.machine.isAnswering) this.run(this.machine.interrupt(ConversationController.now()));
+    if (this.machine.isAnswering) this.interrupt();
     this.session.reset();
     this.machine.clearSummary();
+    if (this.machine.isOn) this.machine.restartCount();
     this.publish();
   }
 
@@ -137,10 +172,12 @@ export class ConversationController extends Store<ConversationControllerState> {
   /** The Talk screen is not visible (another tab, the conversation sheet, the app in the background). */
   setHeld(held: boolean): void {
     if (this.disposed) return;
-    const s = this.session.getSnapshot();
-    if (!held && (s.isThinking || s.isSpeaking || !this.player.isIdle) && !this.machine.isAnswering) {
-      // Someone else's turn is still running (a question typed in the sheet): do not cut it off.
-      this.resumeWhenQuiet = true;
+    if (!held && this.sessionBusy() && !this.machine.isAnswering) {
+      // Someone else's turn is still running (a question typed in the sheet): do not cut it off. Talk is on screen
+      // again, so it is no longer "Paused"; the microphone opens when that answer is done.
+      this.machine.releaseHold();
+      this.resumeWhenQuiet = this.machine.isOn;
+      this.publish();
       return;
     }
     this.resumeWhenQuiet = false;
@@ -152,9 +189,30 @@ export class ConversationController extends Store<ConversationControllerState> {
     this.run(this.machine.end("byUser", ConversationController.now()));
     this.disposed = true;
     if (this.player.onDrained) this.player.onDrained = null;
+    this.player.onFailure = this.previousFailure;
     this.unsubscribe();
     this.stopMeter();
     this.recorder.release();
+  }
+
+  /** Sisu is busy with an answer: working on it, saying it, or about to say it. */
+  private sessionBusy(): boolean {
+    const s = this.session.getSnapshot();
+    return s.isThinking || s.isSpeaking || !this.player.isIdle;
+  }
+
+  /** The question on its way was never heard (stopped before its words came back): it does not count. */
+  private forgetIfUnheard(): void {
+    const question = [...this.session.getSnapshot().messages].reverse().find((m) => m.role === "user");
+    if (question?.pending && question.text === "") this.machine.forgetUnheardQuestion();
+  }
+
+  private setNotice(notice: string | null): void {
+    if (notice !== this.state.notice) this.update({ notice });
+  }
+
+  private setAnswerReady(ready: boolean): void {
+    if (ready !== this.state.answerReady) this.update({ answerReady: ready });
   }
 
   // MARK: Commands
@@ -190,6 +248,7 @@ export class ConversationController extends Store<ConversationControllerState> {
         this.token += 1;
         this.turn = null;
         this.waitingForSpeech = false;
+        this.setAnswerReady(false);
         this.session.cancel();
         break;
     }
@@ -227,6 +286,8 @@ export class ConversationController extends Store<ConversationControllerState> {
   }
 
   private fail(reason: ConversationEnd): void {
+    // Said on Talk too: in the chat layout the ended line alone does not explain it.
+    this.setNotice(ConversationText.endedDetail(reason));
     this.run(this.machine.microphoneFailed(reason, ConversationController.now()));
   }
 
@@ -236,6 +297,7 @@ export class ConversationController extends Store<ConversationControllerState> {
     const token = this.token;
     const recording = this.fixture ? Promise.resolve(this.fixture) : this.recorder.stop();
     this.session.setRecording(false);
+    this.setNotice(null);
     void recording.then((heard) => {
       if (token !== this.token || this.machine.phase !== "thinking") return;
       const size = heard ? VoiceRecording.size(heard) : 0;
@@ -257,13 +319,21 @@ export class ConversationController extends Store<ConversationControllerState> {
   private answerArrived(): void {
     this.turn = null;
     if (!this.machine.isAnswering) return;
-    if (this.player.isIdle) this.run(this.machine.replyFinished(ConversationController.now()));
-    else this.waitingForSpeech = true;
+    if (this.player.isIdle) {
+      this.run(this.machine.replyFinished(ConversationController.now()));
+      return;
+    }
+    this.waitingForSpeech = true;
+    this.setAnswerReady(true);
   }
 
+  /** The speech player has nothing left to play: it finished, or it was stopped (a new question typed in the sheet,
+   *  Safari taking the audio away). Either way the answer is over: listen again. */
   private speechDrained(): void {
+    if (this.disposed) return;
     if (this.waitingForSpeech && this.turn === null) {
       this.waitingForSpeech = false;
+      this.setAnswerReady(false);
       this.run(this.machine.replyFinished(ConversationController.now()));
     }
     this.resumeIfQuiet();
@@ -280,10 +350,11 @@ export class ConversationController extends Store<ConversationControllerState> {
   }
 
   private resumeIfQuiet(): void {
-    const s = this.session.getSnapshot();
-    if (!this.resumeWhenQuiet || s.isThinking || s.isSpeaking || !this.player.isIdle) return;
+    if (!this.resumeWhenQuiet || this.disposed || this.sessionBusy()) return;
     this.resumeWhenQuiet = false;
-    this.run(this.machine.setHeld(false, ConversationController.now()));
+    const now = ConversationController.now();
+    // Back on Talk while that answer ran (the hold is already released), or started during it: listen now.
+    this.run(this.machine.held ? this.machine.setHeld(false, now) : this.machine.listenAgain(now));
   }
 
   // MARK: Level
@@ -331,10 +402,15 @@ export class ConversationController extends Store<ConversationControllerState> {
   }
 }
 
-/** A short vibration where the browser can (`.sensoryFeedback(.start / .stop)`; not on iOS Safari). */
+/** A short vibration where the browser can (`.sensoryFeedback(.start / .stop)`; not on iOS Safari). Only after the
+ *  page has had a tap: before that Chromium refuses it and logs an error (a conversation started by a launch option,
+ *  an end after a quiet minute). */
 function haptic(pattern: number | number[]): void {
   try {
-    if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") navigator.vibrate(pattern);
+    if (typeof navigator === "undefined" || typeof navigator.vibrate !== "function") return;
+    const activation = (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }).userActivation;
+    if (activation && !activation.hasBeenActive) return;
+    navigator.vibrate(pattern);
   } catch {
     // Not allowed here.
   }

@@ -8,6 +8,7 @@ import { RiveBindings } from "@/web/core/RiveContract";
 import { RiveComponent } from "@/web/rive/RiveComponent";
 import { TransientNotice } from "@/web/shared/Notice";
 import { Eyebrow, SisuButton, SisuIconButton, riveAccessible } from "@/web/shared/SisuStyle";
+import { useReducedMotion } from "@/web/theme/motion";
 
 const suggestions = [
   "How much do I spend on everyday things?",
@@ -15,12 +16,24 @@ const suggestions = [
   "Can I afford a €200 trip?",
 ];
 
-export function AskHeader({ mood, title = "Ask Sisu", onClose }: { mood: RiveBindings.LiitoMood; title?: string; onClose?: () => void }) {
+/** Reduced motion: how long Liito runs after a mood change before it is held still (the blend, plus the one-shot
+ *  arrivals of cheering, found and searching). */
+const stillAfter: Partial<Record<RiveBindings.LiitoMood, number>> = { cheering: 1400, found: 1400, searching: 800 };
+
+/** The header. `mood` is what Liito draws (sequenced, web/shared/useLiitoMood.ts), `target` what the events say now. */
+export function AskHeader({ mood, target, title = "Ask Sisu", onClose }: {
+  mood: RiveBindings.LiitoMood;
+  target?: RiveBindings.LiitoMood;
+  title?: string;
+  onClose?: () => void;
+}) {
+  const reduceMotion = useReducedMotion();
   return (
     <header className="sisu-ask-header">
       <h1 className="sisu-ask-title">{title}</h1>
-      <span className="sisu-ask-liito" data-mood={mood} data-testid="ask.liito">
+      <span className="sisu-ask-liito" data-mood={mood} data-mood-target={target ?? mood} data-testid="ask.liito">
         <RiveComponent component="Liito" values={RiveBindings.liito(mood)} sizing="contain" style={{ width: 72, height: 72 }}
+          stillAfterMs={reduceMotion ? stillAfter[mood] ?? 450 : undefined}
           {...riveAccessible("Liito the flying squirrel", { value: mood })} />
       </span>
       {onClose ? (

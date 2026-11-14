@@ -27,7 +27,8 @@ export function AssistantAnswer({ message, actions, retry, isNew }: {
   message: CoachMessage;
   /** The session's actions, newest copy of each (an action stage shows the newest). */
   actions: readonly AgentAction[];
-  retry: () => void;
+  /** Asks the question again; null when there is no question to repeat (an unheard voice turn). */
+  retry: (() => void) | null;
   /** True for a card id that arrived after the screen appeared: it comes in with the entrance motion. */
   isNew: (id: string) => boolean;
 }) {
@@ -89,7 +90,7 @@ function extraVisuals(message: CoachMessage, kinds: Set<string>): Visual[] {
   });
 }
 
-function TextCard({ message, retry }: { message: CoachMessage; retry: () => void }) {
+function TextCard({ message, retry }: { message: CoachMessage; retry: (() => void) | null }) {
   const thinking = message.text === "" && message.pending;
   return (
     <SisuCard>
@@ -108,7 +109,7 @@ function TextCard({ message, retry }: { message: CoachMessage; retry: () => void
       {message.error ? (
         <>
           <p className="sisu-ask-body" role="alert">{message.error}</p>
-          <SisuButton label="Try again" style="secondary" action={retry} />
+          {retry ? <SisuButton label="Try again" style="secondary" action={retry} /> : null}
         </>
       ) : null}
     </SisuCard>

@@ -49,6 +49,8 @@ export function BillCard({ bill, onDone = () => {} }: {
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
+    // Same rule as the disabled "Save the name" button: an empty field confirms nothing.
+    if (draft.trim() === "") return;
     save();
   };
 

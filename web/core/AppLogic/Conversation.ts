@@ -12,6 +12,15 @@
 // Web difference: `SpeechEndpointer` and `ConversationFlow` are small mutable classes (Swift: structs with
 // mutating methods), owned by one controller like `VoiceClipQueue`; `copy()` gives the controller an independent
 // value to publish to the screen.
+//
+// The endpointer is hardened against real rooms (found by replaying recorded browser levels, 14 Nov 2026):
+// - Digital silence (at or below `digitalSilence`, e.g. the empty analyser right after a microphone opens) is never
+//   taken for the room: it would drag the floor to -90 and make any background noise "speech".
+// - The room is measured from the first real reading, not from the moment Start was pressed.
+// - A background that rises and falls (voices around a booth) raises the threshold through its median, not only its
+//   quietest moment.
+// - Once someone speaks, a pause is measured against their own loudness, and only sustained loudness (not a spike of
+//   background voices) cuts a pause short.
 import type { SisuActivity } from "@/web/core/Activity";
 import { SisuActivityState } from "@/web/core/Activity";
 import { LiitoTask } from "@/web/core/LiitoTask";
@@ -27,6 +36,8 @@ import { VoiceText } from "./VoiceLogic";
  */
 export class SpeechEndpointer {
   static readonly initialNoiseFloor = -50;
+  /** At or below this (dBFS) nothing reached the meter: an analyser that has no audio yet, or a muted track. */
+  static readonly digitalSilence = -150;
   private static readonly bucket = 0.25;
 
   readonly tuning: SpeechEndpointer.Tuning;
@@ -37,25 +48,35 @@ export class SpeechEndpointer {
   /** True once the question has ended. Nothing more happens until `reset`. */
   isFinished = false;
 
+  /** The median level of the room over the floor window while nobody speaks, or null before enough was heard. */
+  background: number | null = null;
+
   private recordingStart: number;
   private loudSince: number | null = null;
   private pauseSince: number | null = null;
+  /** Since when the level has been back above the loud line during a pause. */
+  private resumeSince: number | null = null;
   private speech = 0;
+  /** How loud the person speaks in this question (smoothed over the readings above the threshold). */
+  private speechLevel: number | null = null;
   private lastTime: number | null = null;
-  /** Until then the room is only measured. */
-  private calibratedAt: number;
+  /** The last reading was digital silence (or there was none yet): the next one's window is still part silence. */
+  private afterSilence = true;
+  /** Until then the room is only measured. Null until the first real reading. */
+  private calibratedAt: number | null = null;
   private calibrationLow = Infinity;
   /** The quietest level of each quarter second of the floor window, oldest first. */
   private lows: number[] = [];
   private bucketLow = Infinity;
   private bucketStart: number | null = null;
+  /** The real readings of the floor window while nobody speaks, oldest first, for `background`. */
+  private recent: { at: number; level: number }[] = [];
 
-  /** A fresh endpointer measures the room first (`Tuning.calibration`). */
+  /** A fresh endpointer measures the room first (`Tuning.calibration`, from its first real reading). */
   constructor(tuning: SpeechEndpointer.Tuning = SpeechEndpointer.tuning(), now = 0) {
     this.tuning = tuning;
     this.noiseFloor = SpeechEndpointer.initialNoiseFloor;
     this.recordingStart = now;
-    this.calibratedAt = now + tuning.calibration;
   }
 
   /** An independent copy (Swift value semantics). */
@@ -63,21 +84,33 @@ export class SpeechEndpointer {
     const copy = new SpeechEndpointer(this.tuning);
     Object.assign(copy, this);
     copy.lows = [...this.lows];
+    copy.recent = [...this.recent];
     return copy;
   }
 
-  /** True while the room is still being measured. */
-  isCalibrating(now: number): boolean { return now < this.calibratedAt; }
+  /** True while the room is still being measured (also before the first real reading). */
+  isCalibrating(now: number): boolean { return this.calibratedAt === null || now < this.calibratedAt; }
 
   /** Levels above this are speech. */
-  get threshold(): number { return Math.max(this.noiseFloor + this.tuning.margin, this.tuning.quietest); }
+  get threshold(): number {
+    const background = this.background === null ? -Infinity : this.background + this.tuning.backgroundMargin;
+    return Math.max(this.noiseFloor + this.tuning.margin, background, this.tuning.quietest);
+  }
+
+  /** Below this, during a question, the person has paused: under the threshold, and well under their own voice. */
+  private get quietLine(): number {
+    const own = this.speechLevel === null ? -Infinity : this.speechLevel - this.tuning.speechDrop;
+    return Math.max(this.threshold - this.tuning.hysteresis, own);
+  }
 
   /** A new recording started at `now`. The noise floor is kept: it is the same room. */
   reset(now: number): void {
     this.recordingStart = now;
     this.loudSince = null;
     this.pauseSince = null;
+    this.resumeSince = null;
     this.speech = 0;
+    this.speechLevel = null;
     this.lastTime = null;
     this.isSpeaking = false;
     this.isFinished = false;
@@ -89,10 +122,20 @@ export class SpeechEndpointer {
     const level = Number.isFinite(reading) ? Math.max(reading, -160) : -160;
     const step = this.lastTime === null ? 0 : Math.min(Math.max(now - this.lastTime, 0), 0.5);
     this.lastTime = now;
-    this.learnRoom(level, now);
+    // Digital silence is no sound at all (the meter has nothing yet): quiet for the pause, never the room. The first
+    // reading after it measured a window that is still part silence, so it does not teach the room either.
+    const sound = level > SpeechEndpointer.digitalSilence;
+    const real = sound && !this.afterSilence;
+    this.afterSilence = !sound;
+    if (real) {
+      if (this.calibratedAt === null) this.calibratedAt = now + this.tuning.calibration;
+      this.learnRoom(level, now);
+      // The background is learned from what is not loud enough to be speech, so a voice never becomes "the room".
+      if (!this.isSpeaking && level <= this.threshold) this.learnBackground(level, now);
+    }
 
-    if (now < this.calibratedAt) {
-      this.calibrationLow = Math.min(this.calibrationLow, level);
+    if (this.calibratedAt === null || now < this.calibratedAt) {
+      if (real) this.calibrationLow = Math.min(this.calibrationLow, level);
       return null;
     }
     if (Number.isFinite(this.calibrationLow)) {
@@ -123,7 +166,13 @@ export class SpeechEndpointer {
     }
 
     if (now - this.recordingStart >= this.tuning.maximumUtterance) return this.finish();
-    if (level < this.threshold - this.tuning.hysteresis) {
+    if (level > this.threshold) {
+      this.speech += step;
+      this.speechLevel = this.speechLevel === null ? level : this.speechLevel + (level - this.speechLevel) * 0.3;
+    }
+    const quiet = this.quietLine;
+    if (level < quiet) {
+      this.resumeSince = null;
       const since = this.pauseSince ?? now;
       this.pauseSince = since;
       if (now - since >= this.tuning.endSilence) {
@@ -131,9 +180,13 @@ export class SpeechEndpointer {
         this.reset(now);
         return "falseStart";
       }
+    } else if (level > quiet + this.tuning.hysteresis) {
+      // Talking again: only when it lasts, so a spike of background voices does not cut the pause short.
+      const since = this.resumeSince ?? now;
+      this.resumeSince = since;
+      if (now - since >= this.tuning.resumeAfter) this.pauseSince = null;
     } else {
-      this.pauseSince = null;
-      if (level > this.threshold) this.speech += step;
+      this.resumeSince = null;
     }
     return null;
   }
@@ -156,7 +209,17 @@ export class SpeechEndpointer {
     if (this.lows.length > keep) this.lows = this.lows.slice(this.lows.length - keep);
     this.bucketLow = Infinity;
     this.bucketStart = now;
-    if (now >= this.calibratedAt && this.lows.length > 0) this.noiseFloor = SpeechEndpointer.clampFloor(Math.min(...this.lows));
+    if (this.calibratedAt !== null && now >= this.calibratedAt && this.lows.length > 0) this.noiseFloor = SpeechEndpointer.clampFloor(Math.min(...this.lows));
+  }
+
+  /** The median of the last `floorWindow` seconds of real readings while nobody speaks (from half a second on). */
+  private learnBackground(level: number, now: number): void {
+    const since = now - this.tuning.floorWindow;
+    this.recent = [...this.recent.filter((r) => r.at > since), { at: now, level }];
+    if (this.recent.length < 2 || now - this.recent[0].at < 0.5) return;
+    const sorted = this.recent.map((r) => r.level).sort((a, b) => a - b);
+    const middle = sorted.length >> 1;
+    this.background = sorted.length % 2 === 1 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
   }
 
   private static clampFloor(level: number): number { return Math.min(Math.max(level, -90), -30); }
@@ -172,7 +235,8 @@ export namespace SpeechEndpointer {
     hysteresis: number;
     /** Sound must stay above the threshold this long to start a question (a click or a knock does not). */
     startAfter: number;
-    /** At least this much speech, or it was not a question: the recording is thrown away. */
+    /** At least this much speech, or it was not a question: the recording is thrown away. 0.33 s on the web: a cough
+     *  measured 0.30 s and a spoken "No." 0.35 s in the browser (14 Nov QA recordings); iOS keeps 0.4 s. */
     minimumSpeech: number;
     /** A pause this long after speech ends the question. */
     endSilence: number;
@@ -184,13 +248,20 @@ export namespace SpeechEndpointer {
     calibration: number;
     /** The noise floor is the quietest level of this long a window. */
     floorWindow: number;
+    /** Speech is also this many dB above the room's median while nobody speaks (a room of voices rises and falls). */
+    backgroundMargin: number;
+    /** During a question, a pause is also anything this many dB below how loud the person speaks. */
+    speechDrop: number;
+    /** A pause ends only when the level stays back up this long (seconds). */
+    resumeAfter: number;
   }
 
   /** Swift `Tuning()`, with optional overrides. */
   export function tuning(overrides: Partial<Tuning> = {}): Tuning {
     return {
-      margin: 12, quietest: -48, hysteresis: 4, startAfter: 0.15, minimumSpeech: 0.4, endSilence: 1.1,
-      maximumUtterance: 50, restartAfter: 20, calibration: 0.4, floorWindow: 3, ...overrides,
+      margin: 12, quietest: -48, hysteresis: 4, startAfter: 0.15, minimumSpeech: 0.33, endSilence: 1.1,
+      maximumUtterance: 50, restartAfter: 20, calibration: 0.4, floorWindow: 3, backgroundMargin: 8, speechDrop: 18,
+      resumeAfter: 0.1, ...overrides,
     };
   }
 
@@ -298,8 +369,12 @@ export class ConversationFlow {
 
   // MARK: The person
 
-  /** Start: the microphone opens (unless the app holds it). */
-  start(now: number): ConversationCommand[] {
+  /**
+   * Start: the microphone opens (unless the app holds it).
+   * @param openNow false while someone else's answer is still running (a question typed in the sheet): the
+   *   conversation is on, and `listenAgain` opens the microphone when that answer is done. Web addition.
+   */
+  start(now: number, openNow = true): ConversationCommand[] {
     if (this.phase !== "off") return [];
     this.phase = "listening";
     this.micMuted = false;
@@ -309,7 +384,31 @@ export class ConversationFlow {
     this.questions = 0;
     this.lastEnded = null;
     this.lastActivity = now;
+    return openNow ? this.openIfListening(now) : [];
+  }
+
+  /** Opens the microphone now if the conversation is listening with it closed (after someone else's answer). Web
+   *  addition. */
+  listenAgain(now: number): ConversationCommand[] {
+    if (this.phase !== "listening") return [];
+    this.lastActivity = now;
     return this.openIfListening(now);
+  }
+
+  /** The Talk screen is back, but someone else's answer is still running: no longer held (not "Paused"), and the
+   *  microphone stays closed until `listenAgain`. Web addition. */
+  releaseHold(): void {
+    this.held = false;
+  }
+
+  /** The question that was just sent was never heard (stopped before its words came back): it does not count. */
+  forgetUnheardQuestion(): void {
+    if (this.isAnswering && this.questions > 0) this.questions -= 1;
+  }
+
+  /** "New conversation" during a conversation: the count (and "Ask a follow-up") starts again. */
+  restartCount(): void {
+    this.questions = 0;
   }
 
   /** End: the microphone closes and any answer stops. */
@@ -462,16 +561,30 @@ export namespace ConversationPresenter {
    * @param activity `CoachSession.activity`, what Sisu is doing (real events only).
    * @param opening Liito's opening line before the first conversation (the first insight), or null.
    * @param task the session's `task` (what Liito visibly does while Sisu works), or null. Web addition.
+   * @param answerReady the answer's stream has ended and its sentences are still to be spoken (the controller's
+   *   `answerReady`): the gap before the voice starts shows Sisu answering, not "Thinking". Web addition.
    */
   export function state(flow: ConversationFlow, activity: SisuActivity, now: number,
-    opening: { title: string; detail: string } | null = null, task: LiitoTask | null = null): ConversationScreenState {
+    opening: { title: string; detail: string } | null = null, task: LiitoTask | null = null,
+    answerReady = false): ConversationScreenState {
     let title: string = ConversationText.idleTitle;
     let detail: string | null = ConversationText.idleDetail;
     let mood: RiveBindings.LiitoMood = "idle";
+    // Sisu has something going on: a running turn, its voice, an approval waiting or just decided.
+    const atWork = activity.state !== "idle" && activity.state !== "listening";
+    // Work Talk did not start itself (a question typed in the sheet, an approval there) shows here too, with Liito
+    // doing it.
+    const showWork = () => {
+      title = activity.label;
+      detail = activity.detail ?? (isWorking(activity) ? ConversationText.thinkingDetail : null);
+      mood = LiitoTask.mood(activity, task, false);
+    };
 
     switch (flow.phase) {
       case "off":
-        if (flow.lastEnded) {
+        if (atWork) {
+          showWork();
+        } else if (flow.lastEnded) {
           const ended = flow.lastEnded;
           title = ConversationText.endedTitle;
           detail = ConversationText.endedDetail(ended.reason);
@@ -488,6 +601,9 @@ export namespace ConversationPresenter {
           title = ConversationText.mutedTitle;
           detail = ConversationText.mutedDetail;
           mood = "cosy";
+        } else if (atWork && (flow.held || !flow.micOpen)) {
+          // Someone else's answer is running: the microphone waits for it (or Talk is behind the sheet).
+          showWork();
         } else if (flow.held) {
           title = ConversationText.pausedTitle;
           detail = ConversationText.pausedDetail;
@@ -506,6 +622,13 @@ export namespace ConversationPresenter {
         mood = "listening";
         break;
       case "thinking": {
+        if (answerReady && !isWorking(activity)) {
+          // The answer is complete; its first sentence is on its way to the speaker.
+          title = ConversationText.speakingTitle;
+          detail = ConversationText.speakingDetail;
+          mood = activity.state === "waiting_for_approval" ? LiitoTask.mood(activity, null, false) : "presenting";
+          break;
+        }
         const early = activity.state === "idle" || activity.state === "listening";
         title = early ? SisuActivityState.defaultLabel("thinking") : activity.label;
         detail = activity.detail ?? ConversationText.thinkingDetail;
@@ -513,6 +636,13 @@ export namespace ConversationPresenter {
         break;
       }
       case "speaking":
+        if (isWorking(activity)) {
+          // A "let me check" line is spoken while the work goes on: the title stays what Sisu is doing.
+          title = activity.label;
+          detail = activity.detail ?? ConversationText.speakingDetail;
+          mood = LiitoTask.mood(activity, task, false);
+          break;
+        }
         title = ConversationText.speakingTitle;
         detail = ConversationText.speakingDetail;
         mood = activity.state === "waiting_for_approval" ? LiitoTask.mood(activity, null, false) : "presenting";
@@ -527,6 +657,17 @@ export namespace ConversationPresenter {
       live: flow.isOn,
       canInterrupt: flow.isAnswering,
     };
+  }
+
+  /** Sisu is working on an answer (a turn is running and not yet saying its answer). */
+  export function isWorking(activity: SisuActivity): boolean {
+    switch (activity.state) {
+      case "thinking": case "reading_account": case "searching_web": case "reading_pages": case "calculating":
+      case "found_something": case "setting_up":
+        return true;
+      default:
+        return false;
+    }
   }
 
   /** "Conversation on · 0:42" (with "microphone off" when muted) during a conversation; "Ended · 2 questions · 1:40"

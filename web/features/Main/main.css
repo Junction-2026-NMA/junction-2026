@@ -17,11 +17,12 @@
   overflow: hidden;
 }
 
-/* Over the tab bar (z-index 40), under sheets (z-index 100). Ignores the safe area, like .ignoresSafeArea(). */
+/* Over the tab bar (z-index 40) and over sheets (z-index 100): it is portalled into .sisu-root, the sheets'
+   layer, so an approval inside the conversation sheet shows its celebration. Ignores the safe area. */
 .sisu-celebration {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: 110;
   animation-name: sisu-celebration-in;
   animation-timing-function: var(--sisu-motion-ease-in-out);
   animation-fill-mode: both;

@@ -45,7 +45,11 @@ export const OnboardingMotion = {
 /** A light haptic where the browser can vibrate (.sensoryFeedback). iOS Safari has none. */
 export function haptic(ms = 8): void {
   try {
-    if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") navigator.vibrate(ms);
+    if (typeof navigator === "undefined" || typeof navigator.vibrate !== "function") return;
+    // Before the first tap Chromium refuses (and logs an error); later it is allowed.
+    const activation = (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }).userActivation;
+    if (activation && !activation.hasBeenActive) return;
+    navigator.vibrate(ms);
   } catch {
     // No haptics here.
   }

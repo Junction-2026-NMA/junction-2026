@@ -1,13 +1,11 @@
-// Checks for the hands-free conversation rules (web/core/AppLogic/Conversation.ts) and the Liito task moods
-// (web/core/LiitoTask.ts). Ports the intent of AppLogicSpeechEndpointerTests, AppLogicConversationFlowTests and
+// Checks for the hands-free conversation rules (web/core/AppLogic/Conversation.ts). Ports the intent of AppLogicSpeechEndpointerTests, AppLogicConversationFlowTests and
 // AppLogicConversationPresenterTests (ios/SisuCore/Tests/SisuCoreTests in the frontend worktree).
 // Run: npx tsx web/core/__checks__/conversation.check.ts
 import { SisuActivity } from "@/web/core/Activity";
 import { ConversationFlow, ConversationPresenter, SpeechEndpointer, type ConversationCommand } from "@/web/core/AppLogic/Conversation";
 import { VoiceText } from "@/web/core/AppLogic/VoiceLogic";
-import { LiitoTask } from "@/web/core/LiitoTask";
-import type { SisuEvent } from "@/web/core/CoachModels";
-import type { PlanEvent } from "@/web/core/PlanModels";
+import type { CoachClient } from "@/web/core/CoachClient";
+import { SpeechPlayer } from "@/web/voice/SpeechPlayer";
 
 // MARK: - A tiny harness
 
@@ -160,10 +158,80 @@ group("endpointer: calibrates only once, reset keeps the floor, odd readings are
   const s = new SpeechEndpointer(undefined, 0);
   eq([s.feed(-Infinity, 0), s.feed(NaN, 0.05)], [null, null], "silence readings");
   ok(s.noiseFloor >= -90, "floor stays sane");
+  feedEndpointer(s, -60, 0.1, 1);
   const copy = s.copy();
   copy.reset(9);
   feedEndpointer(copy, -20, 9, 1);
   ok(!s.isSpeaking && copy.isSpeaking, "a copy is independent");
+});
+
+/** Feeds a list of levels, one every 50 ms from `from`; returns each event with its time. */
+function feedLevels(e: SpeechEndpointer, levels: number[], from: number): [number, SpeechEndpointer.Event][] {
+  const events: [number, SpeechEndpointer.Event][] = [];
+  levels.forEach((level, index) => {
+    const time = from + index * 0.05;
+    const event = e.feed(level, time);
+    if (event) events.push([time, event]);
+  });
+  return events;
+}
+/** `count` readings that rise and fall like voices around a booth: mostly -36 to -48, a -33 now and then. */
+const babble = (count: number) => Array.from({ length: count }, (_, i) => [-36, -41, -38, -47, -33, -44, -39, -48, -37, -43, -46, -40][i % 12]);
+/** Pink-ish steady noise around -40 with small wobbles. */
+const hum = (count: number) => Array.from({ length: count }, (_, i) => -40 + [0, -1.5, 1, -2, 0.5, -1][i % 6]);
+
+group("endpointer: digital silence is never the room (14 Nov QA: background noise started questions)", () => {
+  // Every microphone open starts with empty analyser readings (-160) before the room is heard.
+  const e = new SpeechEndpointer(undefined, 0);
+  const opened = [...Array(6).fill(-160), -69.9, ...hum(200)];
+  eq(kinds(feedLevels(e, opened, 0)), [], "a steady noise after the empty readings is not speech");
+  ok(e.threshold > -38, `the threshold sits above the noise (${e.threshold.toFixed(1)})`);
+  // The same room, a new recording: empty readings again must not drag the floor down.
+  e.reset(12);
+  eq(kinds(feedLevels(e, [...Array(6).fill(-160), -55, ...hum(120)], 12)), [], "a reopened microphone in the same noise stays quiet");
+  ok(e.noiseFloor > -60, `the floor did not fall to -90 (${e.noiseFloor.toFixed(1)})`);
+  // The room is measured from the first real reading, not from when Start was pressed.
+  const late = new SpeechEndpointer(undefined, 0);
+  eq(kinds(feedLevels(late, [...Array(40).fill(-160), ...hum(100)], 0)), [], "a microphone that takes 2 s to start: still no false question");
+  ok(late.isCalibrating(0.5), "no real reading yet, still calibrating at 0.5 s");
+});
+
+group("endpointer: a room of voices is not speech, and does not keep a question open", () => {
+  const e = new SpeechEndpointer(undefined, 0);
+  eq(kinds(feedLevels(e, babble(400), 0)).filter((k) => k !== "restart"), [], "20 s of babble alone starts nothing");
+  ok(e.background !== null && e.threshold >= e.background + 8 - 1e-9, `the threshold rides above the room's median (${e.threshold.toFixed(1)})`);
+  // A question over the babble, then babble again: it ends about endSilence after the voice stops.
+  const q = new SpeechEndpointer(undefined, 0);
+  feedLevels(q, babble(60), 0);
+  const events = feedLevels(q, [...Array(24).fill(-12), ...babble(80)], 3);
+  eq(kinds(events), ["speechStarted", "utteranceEnded"], "the question starts and ends");
+  const ended = events.find(([, k]) => k === "utteranceEnded")?.[0] ?? 99;
+  ok(ended - (3 + 24 * 0.05) <= 1.3, `sent ${(ended - 4.2).toFixed(2)} s after the voice stopped`);
+});
+
+group("endpointer: only sustained loudness cuts a pause short", () => {
+  const e = new SpeechEndpointer(undefined, 0);
+  feedEndpointer(e, -60, 0, 1);
+  eq(kinds(feedEndpointer(e, -20, 1, 1)), ["speechStarted"], "speech");
+  // A pause with one loud spike in it still ends the question on time.
+  const spike = feedLevels(e, [...Array(8).fill(-60), -20, ...Array(20).fill(-60)], 2);
+  eq(kinds(spike), ["utteranceEnded"], "a single spike does not reset the pause");
+  ok(spike[0][0] <= 2 + 1.15, `ended at ${spike[0][0].toFixed(2)} s`);
+  // Talking again for a moment does reset it.
+  const f = new SpeechEndpointer(undefined, 0);
+  feedEndpointer(f, -60, 0, 1);
+  feedEndpointer(f, -20, 1, 1);
+  const resumed = feedLevels(f, [...Array(16).fill(-60), ...Array(6).fill(-20), ...Array(10).fill(-60)], 2);
+  eq(kinds(resumed), [], "a pause, then more words: still the same question");
+});
+
+group("endpointer: a one-word answer counts, a cough does not", () => {
+  const no = new SpeechEndpointer(undefined, 0);
+  feedEndpointer(no, -65, 0, 1);
+  eq(kinds(feedLevels(no, [...Array(8).fill(-15), ...Array(26).fill(-65)], 1)), ["speechStarted", "utteranceEnded"], "a 0.35 s \"No.\" is a question");
+  const cough = new SpeechEndpointer(undefined, 0);
+  feedEndpointer(cough, -65, 0, 1);
+  eq(kinds(feedLevels(cough, [...Array(7).fill(-8), ...Array(26).fill(-65)], 1)), ["speechStarted", "falseStart"], "a 0.30 s cough is thrown away");
 });
 
 // MARK: - ConversationFlow
@@ -379,6 +447,84 @@ group("presenter: muted, paused, ended, a fresh page, waiting actions", () => {
   eq([waiting.title, waiting.mood], ["Listening", "found"], "a waiting action shows while listening");
 });
 
+group("presenter: Talk follows work it did not start (14 Nov QA)", () => {
+  // A question typed in the sheet, then the sheet closed, no conversation: Talk says what Sisu is doing.
+  const off = new ConversationFlow();
+  const typed = ConversationPresenter.state(off, SisuActivity.make("searching_web", "Searching the web with Exa", "electricity offers"), 1, null, "searching");
+  eq([typed.title, typed.detail, typed.mood, typed.live], ["Searching the web with Exa", "electricity offers", "searching", false], "off, Sisu working");
+  const decided = ConversationPresenter.state(off, SisuActivity.make("approved", "Done, as a simulation"), 2);
+  eq([decided.title, decided.mood], ["Done, as a simulation", "cheering"], "an approval made in the sheet shows on Talk");
+  eq(ConversationPresenter.state(off, SisuActivity.idle, 3).title, "Talk to Sisu", "nothing going on: the usual line");
+  // Back on Talk during that answer: no longer "Paused"; the microphone waits for the answer.
+  const back = listening();
+  back.setHeld(true, 2);
+  back.releaseHold();
+  const waiting = ConversationPresenter.state(back, SisuActivity.make("thinking"), 3, null, "writing");
+  eq([waiting.title, waiting.mood], ["Thinking", "writing"], "the running answer, not Paused");
+  eq(ConversationPresenter.state(back, SisuActivity.idle, 4).title, "Listening", "then listening");
+  // Still behind the sheet while the answer runs.
+  const behind = listening();
+  behind.setHeld(true, 2);
+  eq(ConversationPresenter.state(behind, SisuActivity.make("calculating", "Doing the sums"), 3, null, "calculating").mood, "calculating", "held, Sisu working");
+  eq(ConversationPresenter.state(behind, SisuActivity.idle, 3).title, "Paused", "held, nothing going on: Paused");
+});
+
+group("presenter: the gap before Sisu's voice, and a filler said over real work", () => {
+  const flow = thinkingFlow();
+  // The answer's stream has ended; the first sentence is still on its way to the speaker.
+  const gap = ConversationPresenter.state(flow, SisuActivity.idle, 3, null, null, true);
+  eq([gap.title, gap.mood], ["Sisu is answering", "presenting"], "answer ready: answering, not Thinking");
+  eq(ConversationPresenter.state(flow, SisuActivity.idle, 3).title, "Thinking", "question just sent: Thinking");
+  const ready = ConversationPresenter.state(flow, SisuActivity.make("waiting_for_approval", "Switch electricity"), 3, null, null, true);
+  eq(ready.mood, "found", "an action waiting keeps its pose");
+  // "Let me check today's offers" is spoken while the search still runs.
+  flow.sisuSpeaking(true);
+  const filler = ConversationPresenter.state(flow, SisuActivity.make("searching_web", "Searching the web with Exa"), 4, null, "searching");
+  eq([filler.title, filler.mood], ["Searching the web with Exa", "searching"], "the work, not 'Sisu is answering'");
+  eq(ConversationPresenter.state(flow, SisuActivity.make("speaking"), 5, null, null).title, "Sisu is answering", "then the answer itself");
+});
+
+group("flow: a start that waits for another answer, unheard questions, a fresh count", () => {
+  const flow = new ConversationFlow();
+  eq(flow.start(0, false), [], "on, the microphone waits");
+  eq([flow.phase, flow.micOpen], ["listening", false], "listening with the microphone closed");
+  eq(flow.listenAgain(2), ["openMicrophone"], "the other answer is done: listen");
+  eq(flow.listenAgain(2.1), [], "already open");
+  const held = listening();
+  held.setHeld(true, 1);
+  held.releaseHold();
+  eq([held.held, held.micOpen], [false, false], "released without opening");
+  eq(held.listenAgain(3), ["openMicrophone"], "then listens");
+  const asked = thinkingFlow();
+  eq(asked.questions, 1, "one question sent");
+  asked.forgetUnheardQuestion();
+  eq(asked.questions, 0, "stopped before its words came back: not counted");
+  asked.end("byUser", 9);
+  eq(asked.lastEnded?.questions, 0, "the summary does not count it");
+  const counting = thinkingFlow();
+  counting.replyFinished(5);
+  counting.restartCount();
+  eq(ConversationPresenter.state(counting, SisuActivity.idle, 6).detail, "Ask about your money. Pause when you are done.", "a new conversation asks afresh");
+});
+
+group("speech: a stopped answer is a drained answer (14 Nov QA: Talk stuck on Thinking)", () => {
+  // A sentence on its way that never arrives: stop() must still tell the conversation the speech is over.
+  const never = { speech: (_: unknown, signal?: AbortSignal | null) => new Promise((_resolve, reject) => {
+    signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+  }) } as unknown as CoachClient;
+  const player = new SpeechPlayer(never);
+  let drained = 0;
+  player.onDrained = () => { drained += 1; };
+  player.stop();
+  eq(drained, 0, "stopping an idle player says nothing");
+  player.speak("Your rent is the biggest bill.", 0);
+  eq(player.isIdle, false, "a sentence is on its way");
+  player.stop();
+  eq([drained, player.isIdle], [1, true], "stopped: drained once, idle");
+  player.stop();
+  eq(drained, 1, "a second stop says nothing more");
+});
+
 group("presenter: clock, counts, ring", () => {
   eq([0, 5.9, 65, 720, 3723, -3].map((s) => ConversationPresenter.clock(s)), ["0:00", "0:05", "1:05", "12:00", "1:02:03", "0:00"], "clock");
   eq([0, 1, 4].map((n) => ConversationPresenter.questions(n)), ["no questions", "1 question", "4 questions"], "counts");
@@ -388,57 +534,7 @@ group("presenter: clock, counts, ring", () => {
   eq(ConversationPresenter.ringLevel(-Infinity, -50), 0, "silence");
 });
 
-// MARK: - LiitoTask
-
-const ev = (event: object) => event as SisuEvent;
-const plan = (event: object) => event as PlanEvent;
-
-group("task: follows the agent's events", () => {
-  const steps: [SisuEvent, string | null][] = [
-    [ev({ kind: "start", turnId: "t", provider: "mock", model: "m", mock: true }), null],
-    [ev({ kind: "toolStart", id: "1", name: "get_spending", args: null, label: "Reading your spending" }), "searching"],
-    [ev({ kind: "toolStart", id: "2", name: "check_affordability", args: null, label: null }), "calculating"],
-    [ev({ kind: "toolStart", id: "3", name: "mystery_tool", args: null, label: null }), "calculating"],
-    [ev({ kind: "toolStart", id: "4", name: "search_offers", args: null, label: null }), "searching"],
-    [ev({ kind: "research", result: { offers: [], best: null } }), "comparing"],
-    [ev({ kind: "visual", visual: { id: "v", kind: "budget_donut" } }), "presenting"],
-    [ev({ kind: "visual", visual: { id: "w", kind: "offer_bars" } }), "comparing"],
-    [ev({ kind: "toolStart", id: "5", name: "prepare_action", args: null, label: null }), "writing"],
-    [ev({ kind: "action", action: {} }), null],
-    [ev({ kind: "delta", text: "You" }), "writing"],
-    [ev({ kind: "sentence", index: 0, text: "You spend…" }), "presenting"],
-    [ev({ kind: "delta", text: " more" }), "presenting"],
-    [ev({ kind: "done", text: "x", citations: [], timings: null }), null],
-  ];
-  let task: string | null = "listening";
-  steps.forEach(([event, expected], index) => {
-    task = LiitoTask.next(task as never, event);
-    eq(task, expected, `step ${index} ${event.kind}`);
-  });
-  eq(LiitoTask.next("writing", ev({ kind: "stage", stage: { kind: "calculation" } })), "calculating", "calculation stage");
-  eq(LiitoTask.next("writing", ev({ kind: "stage", stage: { kind: "extraction" } })), "searching", "extraction stage");
-  eq(LiitoTask.next("writing", ev({ kind: "stage", stage: { kind: "impact" } })), "presenting", "impact stage");
-  eq(LiitoTask.next("writing", ev({ kind: "stage", stage: { kind: "lead" } })), null, "a lead is Liito's find");
-  eq(LiitoTask.next("writing", ev({ kind: "stage", stage: { kind: "teaching" } })), "writing", "other stages keep the task");
-  eq(LiitoTask.next("searching", ev({ kind: "error", message: "x" })), null, "error");
-});
-
-group("task: the money plan", () => {
-  eq([plan({ kind: "scan" }), plan({ kind: "searchStart" }), plan({ kind: "offers" }), plan({ kind: "calc" }), plan({ kind: "action" }),
-    plan({ kind: "planDone" }), plan({ kind: "summary" }), plan({ kind: "error" })].map((e) => LiitoTask.nextPlan("searching", e)),
-  ["searching", "searching", "comparing", "calculating", "writing", "presenting", "searching", null], "plan tasks");
-});
-
-group("task: the mood to show", () => {
-  eq(LiitoTask.mood(SisuActivity.idle, "searching", true), "listening", "the open microphone wins");
-  eq(LiitoTask.mood(SisuActivity.make("searching_web"), "searching", false), "searching", "task");
-  eq(LiitoTask.mood(SisuActivity.make("thinking"), null, false), "thinking", "plain thinking");
-  eq(LiitoTask.mood(SisuActivity.make("speaking"), "writing", false), "presenting", "speaking presents");
-  eq(LiitoTask.mood(SisuActivity.make("waiting_for_approval"), "writing", false), "found", "waiting keeps its pose");
-  eq(LiitoTask.mood(SisuActivity.make("approved"), null, false), "cheering", "approved");
-  eq(LiitoTask.mood(SisuActivity.make("error"), "calculating", false), "cosy", "error is calm");
-  eq(LiitoTask.allCases, ["listening", "writing", "searching", "calculating", "comparing", "presenting"], "the six tasks");
-});
+// The checks of Liito's task moods and their sequencer are in liito.check.ts.
 
 console.log(`\n${passes} passed, ${failures} failed`);
 if (failures > 0) process.exit(1);

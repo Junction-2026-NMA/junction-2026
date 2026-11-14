@@ -275,6 +275,59 @@ async function main() {
     assert.ok(session.messages.every((m) => !m.pending));
   });
 
+  await check("agent turns never fall back to the sample once live; a voice question stopped early leaves nothing (14 Nov QA)", async () => {
+    const recorded = (await fsSource(`coach/stream-spending-${aino}.sse`))!;
+    let online = true;
+    const urls: string[] = [];
+    const flaky = (async (url: string | URL | Request) => {
+      urls.push(String(url));
+      if (!online) throw new TypeError("Failed to fetch");
+      if (String(url).includes("/api/agent/warm")) return new Response('{"provider":"verda","mock":false,"model":"nemotron"}', { status: 200 });
+      return new Response(new Blob([recorded.slice().buffer as ArrayBuffer]), { status: 200, headers: { "Content-Type": "text/event-stream" } });
+    }) as typeof fetch;
+    const client = CoachClient.liveWithSampleFallback("", { fetchImpl: flaky, eventDelay: 0 });
+    assert.equal((await client.warm()).mock, false);
+    const session = new CoachSession(aino, client);
+    online = false;
+    await session.ask("Where does my money go?");
+    const failed = session.messages[session.messages.length - 1];
+    assert.ok(failed.error && failed.error !== "", "the turn fails with a sentence");
+    assert.equal(client.kind, "live", "still live: no switch to the sample");
+    assert.equal(client.fallbackNotice, null);
+    assert.equal(session.getSnapshot().fallbackNotice, null);
+    online = true;
+    await session.ask("Where does my money go?");
+    const answered = session.messages[session.messages.length - 1];
+    assert.ok(answered.error === null && answered.text.length > 0, "back online: the same live server answers");
+    assert.ok(urls.filter((u) => u.includes("/api/agent/query")).length >= 2, "both questions went to the server");
+
+    // The server was unreachable from the start: turns answer from the recordings, as before.
+    const down = (async () => { throw new TypeError("Failed to fetch"); }) as typeof fetch;
+    const fallback = CoachClient.liveWithSampleFallback("", { fetchImpl: down, eventDelay: 0 });
+    await fallback.warm();
+    const sampled = new CoachSession(aino, fallback);
+    await sampled.ask("Where does my money go?");
+    assert.equal(fallback.kind, "bundledSample");
+    assert.ok(sampled.messages[1].text.length > 0 && sampled.messages[1].error === null, "the sample answers");
+
+    // A voice question stopped before its words came back: no empty bubble, no empty answer.
+    const slow = (async (_url: string | URL | Request, init?: RequestInit) => new Promise<Response>((_, reject) => {
+      init?.signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+    })) as typeof fetch;
+    const voice = new CoachSession(aino, CoachClient.live("", slow));
+    const turn = voice.sendVoice(new Uint8Array([1, 2, 3]), "speech.webm", "audio/webm");
+    assert.equal(voice.messages.length, 2, "a pending question and its reply");
+    voice.cancel();
+    await turn;
+    assert.equal(voice.messages.length, 0, "both gone");
+    // A voice question that failed before its words came back says so instead of an empty bubble.
+    const broken = new CoachSession(aino, CoachClient.live("", down));
+    await broken.sendVoice(new Uint8Array([1, 2, 3]), "speech.webm", "audio/webm");
+    assert.equal(broken.messages[0].text, CoachSession.unheardText);
+    assert.ok(broken.messages[1].error);
+    assert.deepEqual(["", " (nothing heard) ", CoachSession.unheardText, "Where does my money go?"].map(CoachSession.isUnheard), [true, true, true, false]);
+  });
+
   console.log(`\n${passed} checks passed`);
 }
 

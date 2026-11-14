@@ -100,13 +100,15 @@ export function TalkTranscript({ session, state, store, reduceMotion }: {
     follow(true);
   }, [growth, follow]);
 
-  /** Asks the question of a failed answer again (typed, as the Ask screen does). */
+  /** Asks the question of a failed answer again (typed, as the Ask screen does). A voice question that was never
+   *  heard cannot be typed for the person: Sisu listens for it again instead. */
   const retry = (reply: CoachMessage) => {
     const all = session.getSnapshot().messages;
     const index = all.findIndex((m) => m.id === reply.id);
     if (index <= 0) return;
     const question = all[index - 1].text;
-    if (question === CoachSession.investigateText) store.investigate();
+    if (CoachSession.isUnheard(question)) store.conversation?.listenForAgain();
+    else if (question === CoachSession.investigateText) store.investigate();
     else store.ask(question);
   };
 

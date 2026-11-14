@@ -50,6 +50,12 @@ export interface RiveComponentProps {
   touchScroll?: boolean;
   /** data-testid, like accessibilityIdentifier. */
   testId?: string;
+  /**
+   * Reduced motion: let the state machine run this long after the artboard loads and after each change of
+   * `values` (so a blend lands on the new pose), then pause it, so nothing loops. Unset: plays as usual. Opt-in
+   * (Liito's badges); the other components keep their own motion.
+   */
+  stillAfterMs?: number;
 }
 
 const EMPTY: readonly string[] = [];
@@ -138,6 +144,8 @@ export function RiveComponent(props: RiveComponentProps) {
           model={model}
           requestKey={requestKey}
           touchScroll={props.touchScroll ?? component !== "VoiceButton"}
+          stillAfterMs={props.stillAfterMs}
+          stillKey={valuesKey}
         />
       ) : null}
     </div>

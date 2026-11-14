@@ -8,6 +8,7 @@ import { RiveComponent } from "@/web/rive/RiveComponent";
 import { RiveValues } from "@/web/shared/RiveValues";
 import { SisuButton, riveAccessible } from "@/web/shared/SisuStyle";
 import "./today.css";
+import { useTap } from "@/web/shared/useTap";
 
 export function HeroBlock({ overview }: { overview: Overview }) {
   const model = useAppModel();
@@ -22,9 +23,12 @@ export function HeroBlock({ overview }: { overview: Overview }) {
       { from: overview.windowFrom, to: overview.windowTo, basket: "everyday" });
   };
 
+  // A finger tap on the Rive canvas sends no click (RiveCanvas cancels touchend), so open on the pointer tap.
+  const heroTap = useTap(openEveryday);
+
   return (
     <div className="sisu-today-hero">
-      <div className="sisu-today-hero-tap" onClick={openEveryday}>
+      <div className="sisu-today-hero-tap" {...heroTap}>
         <RiveComponent component="HeroNumber" values={RiveValues.hero(hero)} testId="today.hero"
           {...riveAccessible(`${full.eyebrow} ${full.amount} ${full.unit}. ${full.context}`, { isButton: true, action: openEveryday })} />
       </div>

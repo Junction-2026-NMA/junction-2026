@@ -5,10 +5,12 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useAppModel, useAppSelector, useCoach, useCoachSessionState, useVoice } from "@/web/app/AppProvider";
 import type { CoachStore } from "@/web/app/CoachStore";
-import { CoachMood } from "@/web/core/AppLogic/CoachAppLogic";
+import type { LiitoMood } from "@/web/core/Activity";
 import { ActionStatus } from "@/web/core/CoachModels";
 import { CoachSession, type CoachMessage } from "@/web/core/CoachSession";
+import { LiitoTask } from "@/web/core/LiitoTask";
 import { SisuMotion } from "@/web/shared/SisuStyle";
+import { useLiitoMood } from "@/web/shared/useLiitoMood";
 import { useReducedMotion } from "@/web/theme/motion";
 import { AskEmptyState, AskHeader, FallbackNotice, UserBubble } from "./AskParts";
 import { AssistantAnswer } from "./AssistantAnswer";
@@ -42,7 +44,6 @@ export function CoachConversation({ session, store, title = "Ask Sisu", onClose 
   const keyboard = useKeyboardInset();
 
   const [draft, setDraft] = useState("");
-  const [stageJustLanded, setStageJustLanded] = useState(false);
   const input = useRef<HTMLTextAreaElement>(null);
   // Swift `.scrollDismissesKeyboard(.interactively)`: dragging the answers lets the keyboard go.
   const { scroller, follow, setFollowing, scrollToAnchor } = useFollowBottom(reduceMotion, () => {
@@ -82,17 +83,6 @@ export function CoachConversation({ session, store, title = "Ask Sisu", onClose 
   // The keyboard came up while at the bottom: keep the newest line in view.
   useEffect(() => { if (keyboard.bottom > 0) follow(); }, [keyboard.bottom, follow]);
 
-  // Liito finds something for 1.2 s whenever a stage card lands.
-  const lastStageCount = useRef(stageCount);
-  useEffect(() => {
-    const grew = stageCount > lastStageCount.current;
-    lastStageCount.current = stageCount;
-    if (!grew) return;
-    setStageJustLanded(true);
-    const timer = window.setTimeout(() => setStageJustLanded(false), 1200);
-    return () => window.clearTimeout(timer);
-  }, [stageCount]);
-
   // A new turn ends the cheering.
   useEffect(() => { if (isThinking) store.setCheering(false); }, [isThinking, store]);
 
@@ -116,6 +106,13 @@ export function CoachConversation({ session, store, title = "Ask Sisu", onClose 
     store.investigate();
   };
 
+  /** The question before an answer, or null when there is none to repeat (an unheard voice turn). */
+  const questionOf = (reply: CoachMessage): string | null => {
+    const index = messages.findIndex((message) => message.id === reply.id);
+    const question = index > 0 ? messages[index - 1].text : "";
+    return question.trim() === "" || CoachSession.isUnheard(question) ? null : question;
+  };
+
   /** Asks the question of a failed answer again. */
   const retry = (reply: CoachMessage) => {
     const all = session.getSnapshot().messages;
@@ -126,19 +123,19 @@ export function CoachConversation({ session, store, title = "Ask Sisu", onClose 
     else store.ask(question);
   };
 
-  // While Sisu works, Liito does what the backend is doing (searching, calculating, writing…, LiitoTask); a stage
-  // that lands while it only thinks still shows the find.
+  // Liito does what the backend is doing (searching, calculating, comparing, writing, presenting: LiitoTask, from
+  // the real events and the real speaking flag), each task long enough to read (useLiitoMood). Between turns the
+  // session's own activity decides: an action waiting for approval keeps Liito's find until it is decided.
   const busy = isThinking || (state?.isRecording ?? false) || (state?.isSpeaking ?? false);
-  const taskMood = session.liitoMood;
-  const mood = coach.cheering ? "cheering"
-    : busy ? (stageJustLanded && taskMood === "thinking" ? "found" : taskMood)
-      : CoachMood.liito(false, stageJustLanded, false);
+  const target: LiitoMood = coach.cheering ? "cheering"
+    : LiitoTask.mood(session.activity, state?.task ?? null, state?.isRecording ?? false, { speaking: state?.isSpeaking ?? false });
+  const mood = useLiitoMood(target, { busy, turn: newestQuestion(messages) });
   const keyboardStyle = { "--sisu-ask-kb": `${keyboard.bottom}px`, "--sisu-ask-vv-top": `${keyboard.top}px` } as CSSProperties;
 
   return (
     <div className="sisu-ask" style={keyboardStyle} data-testid="screen.ask" data-keyboard={keyboard.bottom > 0 ? "true" : "false"}
       data-sheet={onClose ? "true" : "false"}>
-      <AskHeader mood={mood} title={title} onClose={onClose} />
+      <AskHeader mood={mood} target={target} title={title} onClose={onClose} />
       <FallbackNotice session={session} notice={state?.fallbackNotice ?? null} fellBackToSample={coach.fellBackToSample} />
       <div className="sisu-ask-scroll" ref={scroller}>
         <div className="sisu-ask-stack">
@@ -152,7 +149,7 @@ export function CoachConversation({ session, store, title = "Ask Sisu", onClose 
                 </div>
               ) : (
                 <div key={message.id} data-anchor={message.id} className={isNew(message.id) ? enterClass(reduceMotion) : undefined}>
-                  <AssistantAnswer message={message} actions={state?.actions ?? []} retry={() => retry(message)} isNew={isNew} />
+                  <AssistantAnswer message={message} actions={state?.actions ?? []} retry={questionOf(message) === null ? null : () => retry(message)} isNew={isNew} />
                 </div>
               ),
             )
@@ -165,6 +162,12 @@ export function CoachConversation({ session, store, title = "Ask Sisu", onClose 
         onSend={send} onStop={() => session.cancel()} inputRef={input} />
     </div>
   );
+}
+
+/** The newest question's id: a new question starts Liito's moods afresh (useLiitoMood's `turn`). */
+function newestQuestion(messages: readonly CoachMessage[]): string | null {
+  for (let index = messages.length - 1; index >= 0; index -= 1) if (messages[index].role === "user") return messages[index].id;
+  return null;
 }
 
 /** Calls `action` after a render in which `value` changed (not on the first render). */

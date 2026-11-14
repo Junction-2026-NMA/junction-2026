@@ -119,8 +119,10 @@ export class CoachStore extends Store<CoachStoreState> {
   /** The VoiceButton was released: stop and send what was heard. */
   voiceUp(): void { this.state.voice?.pressUp(); }
 
-  /** A typed question. Typed turns are silent unless the voice controller is set to speak them. */
+  /** A typed question. Typed turns are silent unless the voice controller is set to speak them. The stand-in of a
+   *  voice question that was never heard ("(nothing heard)") is not a question: "Try again" on it sends nothing. */
   ask(text: string): void {
+    if (CoachSession.isUnheard(text)) return;
     this.state.voice?.beginTypedTurn();
     void this.state.session?.ask(text);
   }

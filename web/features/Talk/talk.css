@@ -115,9 +115,10 @@
   box-shadow: 0 0 0 3px var(--sisu-color-outline);
 }
 
+/* The chat header's badge: the filled circle is the ring behind Liito, and Liito stands in front of it, not cut by
+   it, so the props of every task (the easel, the cards, the waves, the thinking dots) show whole at 64 px. */
 .sisu-talk-badge[data-size="small"] {
-  overflow: hidden;
-  background: var(--sisu-color-selection-fill);
+  overflow: visible;
 }
 
 .sisu-talk-ring {
@@ -138,12 +139,14 @@
 }
 
 .sisu-talk-badge[data-size="small"] .sisu-talk-liito {
-  translate: 0 4px;
+  translate: 0 2px;
 }
 
 .sisu-talk-badge-stroke {
   position: absolute;
-  inset: 0;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
   border: 2px solid var(--sisu-green-500);
   border-radius: 50%;
   pointer-events: none;
@@ -158,6 +161,9 @@
 /* MARK: Chat (from the first question on) */
 
 .sisu-talk-chat-header {
+  /* Above the chat, so the badge stays on top while it flies up from the middle (the FLIP in TalkScreen.tsx). */
+  position: relative;
+  z-index: 2;
   flex: none;
   display: flex;
   align-items: center;
@@ -339,7 +345,9 @@
 }
 
 .sisu-talk-status-text {
+  min-width: 0;
   overflow: hidden;
+  white-space: nowrap;
   text-overflow: ellipsis;
 }
 
@@ -374,4 +382,17 @@
   .sisu-talk[data-chat-entered="true"] .sisu-talk-scroll {
     animation: sisu-talk-fade 250ms ease both;
   }
+}
+
+/* MARK: Voice notice (speech failed, microphone refused): one calm line, never red. */
+
+.sisu-talk-notice {
+  flex: none;
+  margin: calc(var(--sisu-space-grid) * 2) var(--sisu-space-margin) 0;
+  padding: calc(var(--sisu-space-grid) * 2) calc(var(--sisu-space-grid) * 3);
+  border-radius: var(--sisu-radius-button);
+  background: var(--sisu-info-background);
+  color: var(--sisu-info-text);
+  font: var(--sisu-type-label);
+  text-align: center;
 }
