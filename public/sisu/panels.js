@@ -1,173 +1,288 @@
-/* Section 4, two small jobs.
-   1. While the three panels stack (wide, tall screens with motion allowed; the media query below
-   is the one in panels.css), the panel being covered recedes a little as the next one slides
-   over it. This sets --cover, from 0 to 1, on each panel that has a panel after it: how far the
-   next panel has travelled from this panel's bottom edge to its own resting place. panels.css
-   turns --cover into a small scale and lift. Everywhere else, and if this script never runs,
-   --cover stays at its CSS default 0 and the panels simply stack.
-   2. It tells panels-motion.css when each half of a panel is well in view (see wireBuilds).
-   Failure paths: no matchMedia or fewer than two panels, nothing happens; without
-   IntersectionObserver the builds are not held and play as page.js reveals the panel. */
+/* Section 4, three jobs on top of panels that are complete without them.
+   1. The deck (wide screens of a usual height with motion allowed; DECK is the media query of
+   panels.css). The stacking itself is plain CSS. This sets --depth on each covered panel, how far
+   the panels after it have slid over it (0 to 2), which panels.css turns into a small recede, and
+   raises --deck-h when a panel's content needs more than the CSS height.
+   2. The builds of panels-motion.css. Each half of a panel waits on its first frame until it gets
+   is-live. In the deck both halves go live when the panel has settled at its rest, or when the
+   reader stops scrolling with nearly all of the panel in view and uncovered. A panel that starts
+   to be covered is finished at once, so nothing builds underneath the next panel. Outside the
+   deck a half goes live when it is mostly in view: its top above 60% of the viewport height.
+   3. The €64 of panel 1 counts up from 0 as its half goes live (data-count-up holds the ms).
+   Failure paths: without matchMedia, requestAnimationFrame or IntersectionObserver, or without
+   panels, nothing is held and nothing counts; the builds then play as page.js reveals a panel. */
 (function () {
   'use strict';
 
-  const STACK = '(min-width: 1024px) and (min-height: 760px) and (prefers-reduced-motion: no-preference)';
-  const LIFT = 12; /* px at --cover 1, the same lift as in panels.css */
-  const QUARTER_MS = 900; /* a half a quarter in view builds after this long */
-  const CAP_MS = 3000; /* and every half builds at most this long after its panel shows */
+  const DECK = '(min-width: 1024px) and (min-height: 760px) and (max-height: 1160px) and (prefers-reduced-motion: no-preference)';
+  const BUILD_MS = 120; /* the --build delay of panels-motion.css */
+  const IDLE_MS = 300; /* no scrolling for this long counts as the reader stopping */
+  const IN_VIEW = 0.85; /* the share of a panel in view and uncovered that a stop needs */
 
-  if (typeof window.matchMedia !== 'function' || typeof window.requestAnimationFrame !== 'function') {
+  if (typeof window.matchMedia !== 'function' || typeof window.requestAnimationFrame !== 'function' ||
+    !('IntersectionObserver' in window)) {
     return;
   }
 
-  const stackQuery = window.matchMedia(STACK);
+  const stack = document.querySelector('.panel-stack');
+  const panels = stack === null ? [] : Array.from(stack.querySelectorAll('.panel'));
+  if (panels.length === 0) {
+    return;
+  }
+
+  const deckQuery = window.matchMedia(DECK);
   const reduceQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-  const panels = Array.from(document.querySelectorAll('.panel-stack > .panel'));
-  const covers = panels.map(function () {
+  const halves = panels.reduce(function (list, panel) {
+    return list.concat(Array.from(panel.children));
+  }, []);
+  const rests = panels.map(function (panel, index) {
+    return 24 * (index + 1);
+  });
+  const depths = panels.map(function () {
     return 0;
   });
+  const finished = panels.map(function () {
+    return false;
+  });
+  let deckOn = false;
   let frame = 0;
-  let active = false;
+  let idleTimer = 0;
+  let stopCount = null;
 
-  if (panels.length < 2) {
-    return;
+  /* Outside the deck: a half builds when it is mostly in view. */
+  const nearObserver = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting && !deckOn) {
+        goLive(entry.target);
+      }
+    });
+  }, { rootMargin: '0px 0px -40% 0px', threshold: 0 });
+
+  function clamp(value) {
+    return Math.min(1, Math.max(0, value));
   }
 
-  function stacking() {
-    return stackQuery.matches && !reduceQuery.matches;
-  }
-
-  function setCover(index, value) {
-    if (covers[index] === value) {
+  /* The count: the HTML holds the final text. While it counts, screen readers get a hidden copy of
+     the final text, and whatever happens it ends on that text. */
+  function countUp(el) {
+    const finalText = el.textContent;
+    const parts = /^(\D*)(\d+)(\D*)$/.exec(finalText);
+    if (parts === null || el.children.length > 0 || reduceQuery.matches || document.hidden || stopCount !== null) {
       return;
     }
-    covers[index] = value;
-    if (value === 0) {
-      panels[index].style.removeProperty('--cover');
-    } else {
-      panels[index].style.setProperty('--cover', String(value));
+    const target = Number(parts[2]);
+    const countMs = Number(el.getAttribute('data-count-up')) || 800;
+    const startAt = window.performance.now() + BUILD_MS;
+    const spoken = document.createElement('span');
+    let tick = 0;
+    let timer = 0;
+
+    function finish() {
+      window.cancelAnimationFrame(tick);
+      window.clearTimeout(timer);
+      el.textContent = finalText;
+      el.removeAttribute('aria-hidden');
+      spoken.remove();
+      stopCount = null;
+    }
+
+    function step(now) {
+      const progress = clamp((now - startAt) / countMs);
+      if (progress >= 1) {
+        finish();
+        return;
+      }
+      el.textContent = parts[1] + Math.round(target * (1 - Math.pow(1 - progress, 3))) + parts[3];
+      tick = window.requestAnimationFrame(step);
+    }
+
+    spoken.className = 'vh';
+    spoken.textContent = finalText;
+    el.setAttribute('aria-hidden', 'true');
+    el.insertAdjacentElement('afterend', spoken);
+    stopCount = finish;
+    tick = window.requestAnimationFrame(step);
+    timer = window.setTimeout(finish, BUILD_MS + countMs + 400);
+  }
+
+  function endCount() {
+    if (stopCount !== null) {
+      stopCount();
     }
   }
 
-  /* Read every panel first, then write. The top is read without the lift this script added
-     (the scale works from the top edge, so it does not move the top). */
+  /* A half goes live once. A count starts only in a panel page.js has revealed, as its build. */
+  function goLive(half) {
+    if (half.classList.contains('is-live')) {
+      return;
+    }
+    half.classList.add('is-live');
+    nearObserver.unobserve(half);
+    const counter = half.querySelector('[data-count-up]');
+    if (counter !== null && half.parentElement.classList.contains('is-in')) {
+      countUp(counter);
+    }
+  }
+
+  function panelLive(index) {
+    Array.from(panels[index].children).forEach(goLive);
+  }
+
+  /* A panel being covered: its build jumps to the end, the count to its final text. A panel not
+     revealed yet keeps waiting instead (under the next panel only its top edge shows). */
+  function finish(index) {
+    if (finished[index] || !panels[index].classList.contains('is-in')) {
+      return;
+    }
+    finished[index] = true;
+    panelLive(index);
+    if (panels[index].querySelector('[data-count-up]') !== null) {
+      endCount();
+    }
+    if (typeof panels[index].getAnimations === 'function') {
+      panels[index].getAnimations({ subtree: true }).forEach(function (animation) {
+        animation.finish();
+      });
+    }
+  }
+
+  function setDepth(index, value) {
+    if (depths[index] === value) {
+      return;
+    }
+    depths[index] = value;
+    if (value === 0) {
+      panels[index].style.removeProperty('--depth');
+    } else {
+      panels[index].style.setProperty('--depth', String(value));
+    }
+  }
+
+  function boxes() {
+    return panels.map(function (panel) {
+      const top = panel.getBoundingClientRect().top;
+      return { top: top, bottom: top + panel.offsetHeight };
+    });
+  }
+
+  /* Cover: how far the next panel has come from this panel's bottom edge to its own rest. The
+     scale of a covered panel works from its top edge, so it does not move the top. */
   function update() {
     frame = 0;
-    if (!active) {
+    if (!deckOn) {
       return;
     }
-    const boxes = panels.map(function (panel, index) {
-      return {
-        top: panel.getBoundingClientRect().top + LIFT * covers[index],
-        height: panel.offsetHeight,
-        rest: parseFloat(window.getComputedStyle(panel).top) || 0,
-      };
+    const box = boxes();
+    const covers = box.map(function (item, index) {
+      const next = box[index + 1];
+      const travel = next === undefined ? 0 : item.bottom - rests[index + 1];
+      return travel > 0 ? clamp((item.bottom - next.top) / travel) : 0;
     });
-    for (let index = 0; index < panels.length - 1; index += 1) {
-      const next = boxes[index + 1];
-      const edge = boxes[index].top + boxes[index].height;
-      const travel = edge - next.rest;
-      const progress = travel > 0 ? (edge - next.top) / travel : 0;
-      setCover(index, Math.round(Math.min(1, Math.max(0, progress)) * 1000) / 1000);
+    let depth = 0;
+    for (let index = panels.length - 1; index >= 0; index -= 1) {
+      depth += covers[index];
+      setDepth(index, Math.round(depth * 1000) / 1000);
+      if (covers[index] > 0) {
+        finish(index);
+      } else if (box[index].top <= rests[index] + 1 && box[index].bottom > 0) {
+        panelLive(index);
+      }
     }
   }
 
-  function schedule() {
+  /* The reader has stopped: a panel nearly all in view and not covered builds where it is. */
+  function onIdle() {
+    idleTimer = 0;
+    if (!deckOn) {
+      return;
+    }
+    const view = window.innerHeight;
+    const box = boxes();
+    box.forEach(function (item, index) {
+      const next = box[index + 1];
+      const end = Math.min(item.bottom, view, next !== undefined && next.top < item.bottom ? next.top : Infinity);
+      if (end - Math.max(item.top, 0) >= IN_VIEW * (item.bottom - item.top)) {
+        panelLive(index);
+      }
+    });
+  }
+
+  function onScroll() {
     if (frame === 0) {
       frame = window.requestAnimationFrame(update);
     }
+    window.clearTimeout(idleTimer);
+    idleTimer = window.setTimeout(onIdle, IDLE_MS);
   }
 
-  /* Listen to scrolling only while the panels stack; otherwise take every --cover back. */
-  function sync() {
-    const next = stacking();
-    if (next === active) {
-      if (active) {
-        schedule();
-      }
+  /* Every panel as tall as the tallest one, and where each one rests (--rest of its slot). */
+  function fitDeck() {
+    stack.style.removeProperty('--deck-h');
+    if (!deckOn) {
       return;
     }
-    active = next;
-    if (active) {
-      window.addEventListener('scroll', schedule, { passive: true });
-      schedule();
-      return;
-    }
-    window.removeEventListener('scroll', schedule);
-    if (frame !== 0) {
-      window.cancelAnimationFrame(frame);
-      frame = 0;
+    const base = parseFloat(window.getComputedStyle(stack).getPropertyValue('--deck-h')) || 0;
+    const tallest = Math.max.apply(null, panels.map(function (panel) {
+      return panel.offsetHeight;
+    }));
+    if (tallest > base + 1) {
+      stack.style.setProperty('--deck-h', tallest + 'px');
     }
     panels.forEach(function (panel, index) {
-      setCover(index, 0);
+      const rest = parseFloat(window.getComputedStyle(panel.parentElement).getPropertyValue('--rest'));
+      rests[index] = Number.isFinite(rest) ? rest : 24 * (index + 1);
     });
   }
 
-  /* The build inside each half of a panel (panels-motion.css) starts with page.js's is-in, which
-     comes as soon as the panel's top edge shows. A reader who stops there would find the build
-     over before the mock-up is in view, so each half's build is held, paused on its first frame,
-     until that half is well in view: its top above 75% of the viewport height, or 900 ms after a
-     quarter of it shows. Whatever happens, both halves go 3 s after the panel first shows, so
-     every build still ends within 5 s of the reveal. The hold only applies once this is wired
-     (panels-wired on the html element). */
-  function wireBuilds() {
-    if (!('IntersectionObserver' in window)) {
-      return;
+  /* Into the deck: listen to scrolling. Out of it: no recede, and every half still waiting is
+     watched again, so one already in view builds now. */
+  function sync() {
+    const next = deckQuery.matches;
+    if (next !== deckOn) {
+      deckOn = next;
+      if (deckOn) {
+        window.addEventListener('scroll', onScroll, { passive: true });
+      } else {
+        window.removeEventListener('scroll', onScroll);
+        panels.forEach(function (panel, index) {
+          setDepth(index, 0);
+        });
+        halves.forEach(function (half) {
+          if (!half.classList.contains('is-live')) {
+            nearObserver.unobserve(half);
+            nearObserver.observe(half);
+          }
+        });
+      }
     }
-
-    function release(half) {
-      half.classList.add('is-near');
-      nearObserver.unobserve(half);
-      quarterObserver.unobserve(half);
+    fitDeck();
+    if (deckOn) {
+      onScroll();
     }
-
-    function releaseLater(halves, ms) {
-      window.setTimeout(function () {
-        halves.forEach(release);
-      }, ms);
-    }
-
-    const nearObserver = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) {
-          release(entry.target);
-        }
-      });
-    }, { rootMargin: '0px 0px -25% 0px', threshold: 0 });
-
-    const quarterObserver = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) {
-          quarterObserver.unobserve(entry.target);
-          releaseLater([entry.target], QUARTER_MS);
-        }
-      });
-    }, { threshold: 0.25 });
-
-    const panelObserver = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) {
-          panelObserver.unobserve(entry.target);
-          releaseLater(Array.from(entry.target.children), CAP_MS);
-        }
-      });
-    }, { threshold: 0 });
-
-    panels.forEach(function (panel) {
-      panelObserver.observe(panel);
-      Array.from(panel.children).forEach(function (half) {
-        nearObserver.observe(half);
-        quarterObserver.observe(half);
-      });
-    });
-    document.documentElement.classList.add('panels-wired');
   }
 
+  halves.forEach(function (half) {
+    nearObserver.observe(half);
+  });
+  document.documentElement.classList.add('panels-wired');
   window.addEventListener('resize', sync, { passive: true });
-  if (typeof stackQuery.addEventListener === 'function') {
-    stackQuery.addEventListener('change', sync);
-    reduceQuery.addEventListener('change', sync);
+  if (typeof deckQuery.addEventListener === 'function') {
+    deckQuery.addEventListener('change', sync);
+    reduceQuery.addEventListener('change', function () {
+      if (reduceQuery.matches) {
+        endCount();
+      }
+    });
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) {
+      endCount();
+    }
+  });
+  window.addEventListener('beforeprint', endCount);
+  window.addEventListener('pagehide', endCount);
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(sync);
   }
   sync();
-  wireBuilds();
 })();
