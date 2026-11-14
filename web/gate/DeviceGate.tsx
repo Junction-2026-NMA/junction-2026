@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import DesktopQr from "./DesktopQr";
+import DesktopQr, { type ServerQr } from "./DesktopQr";
 import InstallSteps from "./InstallSteps";
 import { LaunchScreen } from "./AppLoader";
 import { decideView, type DeviceKind, type GateOverrides, type InstallPlatform } from "./detect";
@@ -20,6 +20,8 @@ interface DeviceGateProps {
   initialStandalone: boolean;
   initialPlatform: InstallPlatform;
   overrides: GateOverrides;
+  /** The QR code the server drew into the page. */
+  qr?: ServerQr;
   /** The app, rendered only on the in-app path. */
   children: ReactNode;
 }
@@ -35,7 +37,7 @@ interface ClientFacts {
  * Computer -> QR page. Phone in a browser tab -> add-to-home-screen steps. Home-screen launch -> the app.
  * Renders the server's guess first (no flash in the common case), then confirms in the browser.
  */
-export default function DeviceGate({ initialKind, initialStandalone, initialPlatform, overrides, children }: DeviceGateProps) {
+export default function DeviceGate({ initialKind, initialStandalone, initialPlatform, overrides, qr, children }: DeviceGateProps) {
   const [facts, setFacts] = useState<ClientFacts>({
     kind: initialKind,
     standalone: initialStandalone,
@@ -62,7 +64,7 @@ export default function DeviceGate({ initialKind, initialStandalone, initialPlat
   // so the app never mounts in a tab that should have shown the install steps.
   if (view === "app" && !confirmed && !overrides.standalone) return <LaunchScreen />;
   if (view === "app") return <>{children}</>;
-  if (view === "qr") return <DesktopQr />;
+  if (view === "qr") return <DesktopQr serverQr={qr} />;
 
   function continueInBrowser() {
     rememberContinuedInBrowser();

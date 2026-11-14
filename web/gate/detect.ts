@@ -128,16 +128,15 @@ export interface GateInput {
 }
 
 /**
- * The decision, in order: ?standalone=1 -> app; ?device=desktop -> QR;
- * running from the home screen -> app; a computer -> QR; a phone that chose the browser -> app;
- * any other phone -> install steps.
+ * The decision, in order: ?standalone=1 -> app; a computer (or ?device=desktop) -> QR, even when the site was
+ * installed as a desktop app (Chrome and Brave offer that) or opened in a standalone window; running from the
+ * home screen -> app; a phone that chose the browser -> app; any other phone -> install steps.
  */
 export function decideView(input: GateInput): GateView {
   const { overrides } = input;
   if (overrides.standalone) return "app";
-  if (overrides.device === "desktop") return "qr";
-  if (input.standalone) return "app";
   const kind = overrides.device ?? input.kind;
   if (kind === "desktop") return "qr";
+  if (input.standalone) return "app";
   return input.continuedInBrowser ? "app" : "install";
 }

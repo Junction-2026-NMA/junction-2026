@@ -7,17 +7,32 @@ export const QR_MESSAGE = "Scan this QR code with your phone to use the demo.";
 
 type QrLib = typeof import("qrcode");
 
+/** The QR code the server drew into the page. Either part may be missing. */
+export interface ServerQr {
+  url: string | null;
+  svg: string | null;
+}
+
 type QrState = { kind: "loading" } | { kind: "ready"; svg: string; url: string } | { kind: "failed"; url: string };
 
-/** The computer view: one sentence and a QR code of this origin's /app. Nothing else. */
-export default function DesktopQr() {
-  const [qr, setQr] = useState<QrState>({ kind: "loading" });
+/** The demo's public address (never a sign-in-protected deployment URL), as the browser sees it. */
+function browserUrl(): string {
+  const base = (process.env.NEXT_PUBLIC_SISU_PUBLIC_URL || window.location.origin).replace(/\/+$/, "");
+  return `${base}/app`;
+}
+
+/**
+ * The computer view: one sentence and a QR code of the demo's /app. Nothing else.
+ * The server normally draws the code into the HTML; the browser draws it only when the server could not.
+ */
+export default function DesktopQr({ serverQr }: { serverQr?: ServerQr }) {
+  const fromServer = serverQr?.svg && serverQr.url ? { kind: "ready" as const, svg: serverQr.svg, url: serverQr.url } : null;
+  const [qr, setQr] = useState<QrState>(fromServer ?? { kind: "loading" });
+  const hasServerQr = fromServer !== null;
 
   useEffect(() => {
-    // The public address, not this tab's: a deployment's own *.vercel.app address can sit behind a Vercel
-    // sign-in, and a phone sent there never reaches the demo. NEXT_PUBLIC_SISU_PUBLIC_URL is set at build time.
-    const base = (process.env.NEXT_PUBLIC_SISU_PUBLIC_URL || window.location.origin).replace(/\/+$/, "");
-    const url = `${base}/app`;
+    if (hasServerQr) return;
+    const url = browserUrl();
     let cancelled = false;
     import("qrcode")
       .then((mod) => {
@@ -39,7 +54,7 @@ export default function DesktopQr() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [hasServerQr]);
 
   return (
     <main className="sisu-gate">
