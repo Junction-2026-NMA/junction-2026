@@ -50,7 +50,10 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSRequiresIPhoneOS: true
-        UILaunchScreen: {}
+        # The launch screen is the pale green screen colour (Resources/Assets.xcassets/LaunchBackground), so the
+        # app never flashes white while it opens.
+        UILaunchScreen:
+          UIColorName: LaunchBackground
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
         UISupportedInterfaceOrientations:

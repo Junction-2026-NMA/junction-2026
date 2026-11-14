@@ -8,8 +8,8 @@ A native SwiftUI app whose interface is drawn by Rive. iPhone, portrait, iOS 17 
 |---|---|
 | `project.yml` | The XcodeGen spec. `Sisu.xcodeproj` is generated from it and committed. |
 | `Sisu/App` | The app entry, the app model (`AppModel`, with the hooks other screens use) and the root view. |
-| `Sisu/Features` | The screens: Picker, Main (tab bar), Today, Ask, Jars, Path, and the sheets. |
-| `Sisu/Shared` | Building blocks the screens share: card, section title, Rive property sets, accessibility. |
+| `Sisu/Features` | The screens: Picker, Main (the four tabs under the floating tab bar), Today, Ask, Jars, Path, and the sheets. |
+| `Sisu/Shared` | Building blocks the screens share: card, section title, the glass tab bar (`GlassTabBar`), the transient notice, Rive property sets, accessibility. |
 | `Sisu/Rive` | The Rive layer: `RiveComponentView`, `RiveLibrary`, `RiveComponentContract`. |
 | `Sisu/Theme` | `SisuTheme`: colours, fonts, spacing and radii from `BRAND.md`. |
 | `Sisu/Resources` | `Fonts/` and `Rive/sisu_ui.riv` (every interface component, all 2D). |
@@ -96,6 +96,18 @@ them against `rive/contract.json`. All interface assets are 2D: there is no 3D f
 Each shot is a fresh launch set up by launch arguments (`-sisu.sample 1`, `-sisu.customer <id>`,
 `-sisu.tab today|ask|jars|path`, and for screenshots `-sisu.scroll`, `-sisu.sheet`, `-sisu.answer`); the
 `testTaps`, `testRenameBill` and `testToggle` tests make real taps on the Rive components.
+
+## The tab bar
+
+`Shared/GlassTabBar.swift` is a custom floating capsule, not the system `TabView`: the iOS 26 system bar cannot
+tint its selection lens green or use Figtree, and on iOS 17 to 25 it is the old flat bar. On iOS 26 it is
+Liquid Glass (`glassEffect`, a `GlassEffectContainer` and `glassEffectID` for the pill that springs between
+tabs); on iOS 17 to 25 a `.regularMaterial` capsule; with Reduce Transparency a solid near-white capsule with a
+hairline. With Reduce Motion the pill slides without the spring. `MainScreen` puts it in a bottom
+`safeAreaInset`, so every scroll view runs under the glass and its last row scrolls clear; it steps aside while
+the keyboard is up. Each tab is a button with its label and the selected trait, inside a tab-bar group; tab
+changes give a selection haptic. `SisuUITests/GlassScreenshotTests.swift` shoots it (see its header), including
+`motion-NNN` frames of the pill (launch arguments `-sisu.tabMotion <scale>` and `-sisu.tabDelay <seconds>`).
 
 ## Rules
 

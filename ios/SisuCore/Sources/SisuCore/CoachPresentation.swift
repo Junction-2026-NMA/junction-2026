@@ -319,6 +319,12 @@ public struct ActionCardState: Equatable, Sendable, Identifiable {
     public var validUntil: String?
     /// The text Sisu drafted for the provider. Never sent.
     public var draftMessage: String?
+    /// What going ahead would do, and the safer amount. Show it prominently whenever it is set; never hide it.
+    public var warning: String?
+    /// After approval: `Done (simulation). Reference SIM-1A2B3C4D.`
+    public var confirmation: String?
+    /// `To your savings` or `To your investments` for a transfer.
+    public var destination: String?
 }
 
 public enum ActionPresenter {
@@ -352,7 +358,11 @@ public enum ActionPresenter {
             canDecide: waiting,
             impactSummary: action.impact?.summary,
             validUntil: waiting ? CoachText.pick(language, "Valid until ", "Voimassa: ") + Dates.shortDateTime(action.expiresAt, language: language, timeZone: timeZone) : nil,
-            draftMessage: action.draftMessage
+            draftMessage: action.draftMessage,
+            warning: action.warning?.isEmpty == false ? action.warning : nil,
+            confirmation: action.confirmation?.isEmpty == false ? action.confirmation : nil,
+            destination: action.destination == "savings" ? CoachText.pick(language, "To your savings", "Säästöihisi")
+                : action.destination == "investments" ? CoachText.pick(language, "To your investments", "Sijoituksiisi") : nil
         )
     }
 

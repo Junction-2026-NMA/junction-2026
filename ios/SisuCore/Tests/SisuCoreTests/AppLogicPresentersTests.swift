@@ -55,7 +55,7 @@ final class AppLogicPresentersTests: XCTestCase {
         XCTAssertEqual(JarsPresenter.bufferFigure(runwayMonths: 1.02), "1 month")
         XCTAssertEqual(JarsPresenter.freedFigure(approvedMonthlySaving: 0), "€0 a month")
         let o = try await overview()
-        XCTAssertEqual(TodayPresenter.basketLegendItems(o).map(\.text), ["Fixed 42%", "Curveballs 18%", "Leaks 40%"])
+        XCTAssertEqual(TodayPresenter.basketLegendItems(o).map(\.text), ["Fixed 42%", "Curveballs 18%", "Leaks 40%", "Saved 0%"])
     }
 
     func testChartAxes() async throws {

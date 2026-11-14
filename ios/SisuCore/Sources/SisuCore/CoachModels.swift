@@ -43,6 +43,7 @@ public struct ActionKind: OpenEnum {
     public init(rawValue: String) { self.rawValue = rawValue }
     public static let switchContract = ActionKind(rawValue: "switch_contract")
     public static let standingTransfer = ActionKind(rawValue: "standing_transfer")
+    public static let oneOffTransfer = ActionKind(rawValue: "one_off_transfer")
 }
 
 /// `awaiting_approval`, `executed_simulated`, `declined` or `expired`.
@@ -150,9 +151,11 @@ public struct Citation: Codable, Equatable, Sendable {
     public var retrievedAt: String
     /// How old the provider's cached copy was in milliseconds, when it said.
     public var cacheAgeMs: Double?
+    /// Which service read the page, when it was read for offers: `context.dev` or `exa`.
+    public var readBy: String?
 
-    public init(title: String, url: String, retrievedAt: String, cacheAgeMs: Double? = nil) {
-        self.title = title; self.url = url; self.retrievedAt = retrievedAt; self.cacheAgeMs = cacheAgeMs
+    public init(title: String, url: String, retrievedAt: String, cacheAgeMs: Double? = nil, readBy: String? = nil) {
+        self.title = title; self.url = url; self.retrievedAt = retrievedAt; self.cacheAgeMs = cacheAgeMs; self.readBy = readBy
     }
 }
 
@@ -256,6 +259,8 @@ public struct TurnTimings: Codable, Equatable, Sendable {
     public var firstSentenceMs: Double?
     public var totalMs: Double
     public var modelSteps: [ModelStep]
+    /// Why Sisu made the model redo a step: `claimed-without-doing`, `unsourced-number`…
+    public var retries: [String]?
 
     /// True when any step of the turn was answered by the backup model.
     public var usedBackup: Bool { modelSteps.contains { $0.usedBackup } }
@@ -498,6 +503,12 @@ public struct AgentAction: Codable, Equatable, Sendable, Identifiable {
     public var decidedAt: String?
     /// Filled in when approved.
     public var impact: ActionImpact?
+    /// Transfers only: where the money goes within the customer's own accounts (`savings` or `investments`).
+    public var destination: String?
+    /// Show this prominently on the card: what going ahead would do, and the safer amount. Never hide it.
+    public var warning: String?
+    /// Filled in when approved: `Done (simulation). Reference SIM-1A2B3C4D.`
+    public var confirmation: String?
 }
 
 /// One entry of the tamper-evident audit log.
@@ -700,7 +711,8 @@ public enum SisuEvent: Codable, Equatable, Sendable {
     case transcript(text: String, tookMs: Double, language: String?, languageProbability: Double?)
     /// The server began research before the model asked for it.
     case speculation(billType: BillType, reason: String)
-    case toolStart(id: String, name: String, args: JSONValue?)
+    /// `label` says what Sisu is doing right now, in plain words written by code.
+    case toolStart(id: String, name: String, args: JSONValue?, label: String?)
     case toolEnd(ToolTrace)
     /// A sentence to show and say while research runs.
     case filler(String)
@@ -715,6 +727,11 @@ public enum SisuEvent: Codable, Equatable, Sendable {
     case memory(MemoryItem)
     /// Sent just before `done`.
     case grounding(Grounding, facts: [Fact])
+    /// A chart to draw with the answer.
+    case visual(Visual)
+    /// The answer so far, after Sisu threw away a sentence that failed a check: show it instead of the
+    /// deltas received so far.
+    case replace(text: String)
     /// `text` is the checked final answer: use it instead of the collected deltas.
     case done(text: String, citations: [Citation], timings: TurnTimings?)
     case error(message: String)
@@ -723,7 +740,7 @@ public enum SisuEvent: Codable, Equatable, Sendable {
 
     enum CodingKeys: String, CodingKey {
         case type, turnId, provider, model, mock, text, tookMs, language, languageProbability, billType, reason, id, name, args, trace,
-             result, index, stage, action, card, item, grounding, facts, citations, timings, message
+             result, index, stage, action, card, item, grounding, facts, citations, timings, message, label, visual
     }
 
     /// The `type` string of the event as the server sends it.
@@ -743,6 +760,8 @@ public enum SisuEvent: Codable, Equatable, Sendable {
         case .teaching: return "teaching"
         case .memory: return "memory"
         case .grounding: return "grounding"
+        case .visual: return "visual"
+        case .replace: return "replace"
         case .done: return "done"
         case .error: return "error"
         case .unknown(let type): return type
@@ -769,7 +788,10 @@ public enum SisuEvent: Codable, Equatable, Sendable {
         case "tool_start":
             self = .toolStart(id: try c.decodeIfPresent(String.self, forKey: .id) ?? "",
                               name: try c.decodeIfPresent(String.self, forKey: .name) ?? "",
-                              args: try c.decodeIfPresent(JSONValue.self, forKey: .args))
+                              args: try c.decodeIfPresent(JSONValue.self, forKey: .args),
+                              label: try c.decodeIfPresent(String.self, forKey: .label))
+        case "visual": self = .visual(try c.decode(Visual.self, forKey: .visual))
+        case "replace": self = .replace(text: try c.decodeIfPresent(String.self, forKey: .text) ?? "")
         case "tool_end": self = .toolEnd(try c.decode(ToolTrace.self, forKey: .trace))
         case "filler": self = .filler(try c.decodeIfPresent(String.self, forKey: .text) ?? "")
         case "research": self = .research(try c.decode(ResearchResult.self, forKey: .result))
@@ -803,8 +825,11 @@ public enum SisuEvent: Codable, Equatable, Sendable {
             try c.encode(text, forKey: .text); try c.encode(tookMs, forKey: .tookMs)
             try c.encodeIfPresent(language, forKey: .language); try c.encodeIfPresent(probability, forKey: .languageProbability)
         case .speculation(let billType, let reason): try c.encode(billType, forKey: .billType); try c.encode(reason, forKey: .reason)
-        case .toolStart(let id, let name, let args):
+        case .toolStart(let id, let name, let args, let label):
             try c.encode(id, forKey: .id); try c.encode(name, forKey: .name); try c.encodeIfPresent(args, forKey: .args)
+            try c.encodeIfPresent(label, forKey: .label)
+        case .visual(let visual): try c.encode(visual, forKey: .visual)
+        case .replace(let text): try c.encode(text, forKey: .text)
         case .toolEnd(let trace): try c.encode(trace, forKey: .trace)
         case .filler(let text), .delta(let text): try c.encode(text, forKey: .text)
         case .research(let result): try c.encode(result, forKey: .result)
@@ -1058,11 +1083,17 @@ public struct PrepareActionRequest: Codable, Equatable, Sendable {
     public var billType: BillType?
     /// Optional: the default is the best offer.
     public var provider: String?
-    /// For `standing_transfer`.
+    /// For `standing_transfer` (the older spelling; `amountEur` works for both transfers).
     public var monthlyAmountEur: Double?
+    /// For `standing_transfer` (each payday) and `one_off_transfer` (once).
+    public var amountEur: Double?
+    /// Transfers only: `savings` (the default) or `investments`.
+    public var destination: String?
 
-    public init(customerId: String, kind: ActionKind, billType: BillType? = nil, provider: String? = nil, monthlyAmountEur: Double? = nil) {
+    public init(customerId: String, kind: ActionKind, billType: BillType? = nil, provider: String? = nil, monthlyAmountEur: Double? = nil,
+                amountEur: Double? = nil, destination: String? = nil) {
         self.customerId = customerId; self.kind = kind; self.billType = billType; self.provider = provider; self.monthlyAmountEur = monthlyAmountEur
+        self.amountEur = amountEur; self.destination = destination
     }
 }
 

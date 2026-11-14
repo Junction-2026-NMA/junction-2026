@@ -107,7 +107,8 @@ struct AssistantAnswer: View {
                         .foregroundStyle(grounding.isWarning ? SisuTheme.Color.amberText : SisuTheme.Color.text)
                         .padding(.horizontal, SisuTheme.Spacing.grid * 3)
                         .padding(.vertical, SisuTheme.Spacing.grid * 1.5)
-                        .background(grounding.isWarning ? SisuTheme.Color.amberBackground : SisuTheme.Color.green100, in: Capsule())
+                        .background(grounding.isWarning ? SisuTheme.Color.amberBackground : SisuTheme.Color.background, in: Capsule())
+                        .overlay { if !grounding.isWarning { Capsule().strokeBorder(SisuTheme.Color.hairline, lineWidth: 1) } }
                 }
                 if hasTrace { TraceDrawer(message: message) }
             }
@@ -202,8 +203,9 @@ private struct StageView: View {
             LinesView(lines: card.lines)
         }
         if card.isMock {
-            RiveComponentView(.tag, values: RiveBindings.tag(text: CoachText.mockDataTag(language), tone: .amber))
-                .riveAccessible("Mock data. These pages are example data.")
+            // Part of the card's source line, not a badge: the server itself says these are example pages.
+            Footnote(text: CoachText.mockDataTag(language))
+                .accessibilityLabel("Mock data. These pages are example data.")
         }
     }
 }
@@ -372,11 +374,8 @@ private struct ResearchCard: View {
                 Text(baseline).font(SisuTheme.Font.body).foregroundStyle(SisuTheme.Color.textMuted)
             }
             OfferTable(rows: OfferPresenter.rows(research, language: language))
+            // The footer's fetched line already ends in "Mock data" when the server says the offers are examples.
             ResearchFooter(research: research)
-            if research.mock {
-                RiveComponentView(.tag, values: RiveBindings.tag(text: CoachText.mockDataTag(language), tone: .amber))
-                    .riveAccessible("Mock data. These offers are example data.")
-            }
         }
     }
 }
@@ -438,7 +437,7 @@ private struct QuizCard: View {
                 }
                 .padding(SisuTheme.Spacing.grid * 3)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(SisuTheme.Color.green100, in: RoundedRectangle(cornerRadius: SisuTheme.Radius.button, style: .continuous))
+                .background(SisuTheme.Color.background, in: RoundedRectangle(cornerRadius: SisuTheme.Radius.button, style: .continuous))
                 .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
             }
         }
@@ -631,6 +630,6 @@ private struct TraceDrawer: View {
         }
         .tint(SisuTheme.Color.primary)
         .padding(SisuTheme.Spacing.card)
-        .background(SisuTheme.Color.green25, in: RoundedRectangle(cornerRadius: SisuTheme.Radius.card, style: .continuous))
+        .background(SisuTheme.Color.background, in: RoundedRectangle(cornerRadius: SisuTheme.Radius.card, style: .continuous))
     }
 }

@@ -65,15 +65,39 @@ public struct CoachMessage: Identifiable, Equatable, Sendable {
     public var grounding: Grounding?
     /// The receipts behind the numbers.
     public var facts: [Fact]
+    /// Charts to draw with this answer (`ChartPresenter.chart(for:)`).
+    public var visuals: [Visual]
+    /// What Sisu is doing, one line per tool call, in order. Show them live while `pending` is true ("What
+    /// Sisu is doing") and keep them under the answer ("What Sisu did"). Empty for a turn answered in words.
+    public var steps: [CoachStep]
 
     public init(id: String, role: Role, text: String = "", pending: Bool = false, filler: String? = nil, startedEarly: BillType? = nil,
                 runningTool: String? = nil, tools: [ToolTrace] = [], research: ResearchResult? = nil, citations: [Citation] = [],
                 timings: TurnTimings? = nil, error: String? = nil, stages: [Stage] = [], action: AgentAction? = nil,
-                teaching: TeachingCard? = nil, remembered: [MemoryItem] = [], grounding: Grounding? = nil, facts: [Fact] = []) {
+                teaching: TeachingCard? = nil, remembered: [MemoryItem] = [], grounding: Grounding? = nil, facts: [Fact] = [],
+                visuals: [Visual] = [], steps: [CoachStep] = []) {
         self.id = id; self.role = role; self.text = text; self.pending = pending; self.filler = filler; self.startedEarly = startedEarly
         self.runningTool = runningTool; self.tools = tools; self.research = research; self.citations = citations; self.timings = timings
         self.error = error; self.stages = stages; self.action = action; self.teaching = teaching; self.remembered = remembered
-        self.grounding = grounding; self.facts = facts
+        self.grounding = grounding; self.facts = facts; self.visuals = visuals; self.steps = steps
+    }
+}
+
+/// One thing Sisu did (or is doing right now) in a turn. The label is written by code on the server.
+public struct CoachStep: Identifiable, Equatable, Sendable {
+    public var id: String
+    /// Plain words: `Searching the web with Exa: average rent one-room apartment Helsinki`.
+    public var label: String
+    /// False while it runs: show a spinner.
+    public var done: Bool
+    /// False if it failed.
+    public var ok: Bool
+    public var tookMs: Double?
+    /// One line on what came back.
+    public var result: String?
+
+    public init(id: String, label: String, done: Bool = false, ok: Bool = true, tookMs: Double? = nil, result: String? = nil) {
+        self.id = id; self.label = label; self.done = done; self.ok = ok; self.tookMs = tookMs; self.result = result
     }
 }
 
@@ -85,8 +109,20 @@ public extension CoachMessage {
         case .speculation(let billType, _): startedEarly = billType
         case .filler(let line): filler = line
         case .delta(let piece): text += piece
-        case .toolStart(_, let name, _): runningTool = name
-        case .toolEnd(let trace): tools.append(trace); runningTool = nil
+        case .toolStart(let id, let name, _, let label):
+            runningTool = name
+            steps.append(CoachStep(id: id, label: label?.isEmpty == false ? label ?? name : name))
+        case .replace(let standing): text = standing
+        case .visual(let visual): visuals = visuals.filter { $0.id != visual.id } + [visual]
+        case .toolEnd(let trace):
+            tools.append(trace)
+            runningTool = nil
+            if let index = steps.firstIndex(where: { $0.id == trace.id }) {
+                steps[index].done = true
+                steps[index].ok = trace.ok
+                steps[index].tookMs = trace.tookMs
+                steps[index].result = trace.summary
+            }
         case .research(let result): research = result
         case .stage(let stage): stages.append(stage)
         case .action(let prepared): action = prepared
@@ -188,6 +224,27 @@ public final class CoachSession: ObservableObject {
     /// Cleared by the next one that works.
     @Published public private(set) var notice: String?
 
+    /// Set once, at the moment this session could not reach the live server and started answering from the
+    /// bundled sample (only for a session built with `liveWithSampleFallback`). Show it where it happens, then
+    /// call `dismissFallbackNotice()`. `dataLabel` is `.sample` from then on.
+    @Published public private(set) var fallbackNotice: String?
+    private var announcedFallback = false
+
+    /// Call when the fallback notice has been shown.
+    public func dismissFallbackNotice() { fallbackNotice = nil }
+
+    /// Publishes the fallback notice the first time the client reports that it fell back.
+    private func noteFallback() {
+        guard !announcedFallback, let notice = client.fallbackNotice else { return }
+        announcedFallback = true
+        fallbackNotice = notice
+    }
+
+    /// The last thing Sisu did in the current turn (from real events only).
+    @Published private var working: SisuActivity = .idle
+    /// A short celebration after an approval, or a quiet "left as it was" after a decline. Cleared by the next turn.
+    @Published private var moment: SisuActivity?
+
     /// The bill card the user has open, if any. Sent with each question.
     public var focusBill: BillType?
     /// True: answers are short and meant to be spoken, and `speech` gets every `filler` and `sentence`.
@@ -222,6 +279,12 @@ public final class CoachSession: ObservableObject {
         CoachSession(customerId: customerId, client: .live(baseURL: baseURL, session: session), speech: speech)
     }
 
+    /// A session against a real server that falls back to the bundled sample, for good, the first time the
+    /// server cannot be reached. `fallbackNotice` is published at that moment.
+    public static func liveWithSampleFallback(customerId: String, baseURL: URL, session: URLSession = .shared, speech: SpeechOutput? = nil) -> CoachSession {
+        CoachSession(customerId: customerId, client: .liveWithSampleFallback(baseURL: baseURL, session: session), speech: speech)
+    }
+
     /// A session against the recordings bundled with the package. No server; label everything "Sample data".
     public static func sample(customerId: String, eventDelay: TimeInterval = 0.02, speech: SpeechOutput? = nil) -> CoachSession {
         CoachSession(customerId: customerId, client: .sample(eventDelay: eventDelay), speech: speech)
@@ -232,6 +295,22 @@ public final class CoachSession: ObservableObject {
     /// `recording` wins over `thinking`, which wins over `speaking`.
     public var status: CoachStatus {
         isRecording ? .recording : isThinking ? .thinking : isSpeaking ? .speaking : .idle
+    }
+
+    /// What Sisu is doing right now, as one value: drive the mascot from `activity.mood` and show
+    /// `activity.label` beside it. It changes only on real events (never on a timer): listening while the
+    /// microphone is open; during a turn, the step the stream last reported; speaking while the app plays
+    /// speech; afterwards a short `approved` or `declined` moment, then an action still waiting for approval
+    /// (its warning is in `detail`), otherwise idle.
+    public var activity: SisuActivity {
+        if isRecording { return SisuActivity(.listening) }
+        if isThinking { return working }
+        if isSpeaking { return SisuActivity(.speaking) }
+        if let moment { return moment }
+        if let waiting = actions.first(where: { $0.status == .awaitingApproval }) {
+            return SisuActivity(.waitingForApproval, label: waiting.title, detail: waiting.warning)
+        }
+        return .idle
     }
 
     /// Euros a month freed by approved switches. Feed it to the futures chart as the monthly bill saving.
@@ -336,6 +415,8 @@ public final class CoachSession: ObservableObject {
         let replyId = makeId()
         messages.append(CoachMessage(id: userId, role: .user, text: userText, pending: userText.isEmpty))
         messages.append(CoachMessage(id: replyId, role: .assistant, pending: true))
+        moment = nil
+        working = SisuActivity(.thinking)
         isThinking = true
 
         let task = Task { [weak self] in
@@ -380,6 +461,9 @@ public final class CoachSession: ObservableObject {
     private func apply(_ event: SisuEvent, userId: String, replyId: String, spoken: Bool, turn: inout TurnProgress) {
         // What only concerns the reply message.
         patch(replyId) { $0.apply(event) }
+        let next = Activity.nextActivity(working, event)
+        if next != working { working = next }
+        noteFallback()
         // What concerns the session.
         switch event {
         case .start(_, let provider, let model, let mock):
@@ -399,7 +483,7 @@ public final class CoachSession: ObservableObject {
             history = Array((history + [ChatTurn(role: "user", content: turn.question), ChatTurn(role: "assistant", content: text)]).suffix(12))
         case .error:
             patch(userId) { $0.pending = false }
-        case .speculation, .delta, .toolStart, .toolEnd, .research, .stage, .teaching, .grounding, .unknown:
+        case .speculation, .delta, .toolStart, .toolEnd, .research, .stage, .teaching, .grounding, .visual, .replace, .unknown:
             break
         }
     }
@@ -410,13 +494,27 @@ public final class CoachSession: ObservableObject {
     /// Returns the action with `impact` filled in, or nil when it failed (the sentence is in `notice`).
     @discardableResult
     public func approve(_ actionId: String) async -> AgentAction? {
-        await decide { try await $0.approveAction(customerId: $1, actionId: actionId) }
+        let action = await decide { try await $0.approveAction(customerId: $1, actionId: actionId) }
+        if let action { moment = SisuActivity(.approved, label: action.confirmation ?? "Done, as a simulation") }
+        return action
     }
 
     /// The Decline button. Returns the updated action, or nil when it failed (the sentence is in `notice`).
     @discardableResult
     public func decline(_ actionId: String) async -> AgentAction? {
-        await decide { try await $0.declineAction(customerId: $1, actionId: actionId) }
+        let action = await decide { try await $0.declineAction(customerId: $1, actionId: actionId) }
+        if action != nil { moment = SisuActivity(.declined) }
+        return action
+    }
+
+    /// Prepares a transfer within the customer's own accounts from a button: once (`oneOff: true`) or each
+    /// payday. The action comes back with a `warning` when the account cannot carry the amount: show it.
+    @discardableResult
+    public func prepareTransfer(amountEur: Double, oneOff: Bool = true, destination: String = "savings") async -> AgentAction? {
+        await decide {
+            try await $0.prepareAction(PrepareActionRequest(customerId: $1, kind: oneOff ? .oneOffTransfer : .standingTransfer,
+                                                            amountEur: amountEur, destination: destination))
+        }
     }
 
     /// Prepares a contract switch from a button (not from the conversation). The action then waits for
@@ -431,6 +529,7 @@ public final class CoachSession: ObservableObject {
     private func decide(_ call: @Sendable (CoachClient, String) async throws -> AgentAction) async -> AgentAction? {
         do {
             let action = try await call(client, customerId)
+            noteFallback()
             put(action)
             notice = nil
             return action
@@ -511,6 +610,7 @@ public final class CoachSession: ObservableObject {
             sync(loadedList.actions)
         }
         if let loadedMemory, memory != loadedMemory { memory = loadedMemory }
+        noteFallback()
     }
 
     /// Call when the app opens: opens the server's connections and learns whether it is in mock mode.
@@ -518,6 +618,7 @@ public final class CoachSession: ObservableObject {
     @discardableResult
     public func warm() async -> ServerInfo? {
         guard let answer = try? await client.warm() else { return nil }
+        noteFallback()
         if server != answer.server { server = answer.server }
         return answer.server
     }

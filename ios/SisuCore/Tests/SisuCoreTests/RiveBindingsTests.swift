@@ -84,6 +84,12 @@ final class RiveBindingsTests: XCTestCase {
         XCTAssertEqual(RiveBindings.berries(count: -3), ["count": .number(0)])
         let shares = BasketShares(fixed: 0.5, curveballs: 0.2, leaks: 0.3, jars: 0)
         XCTAssertEqual(RiveBindings.baskets(shares), RiveBindings.basketBar(shares))
+        XCTAssertEqual(RiveBindings.iconButton(icon: .close, style: .tinted),
+                       ["icon": .enumCase("close"), "style": .enumCase("tinted"), "enabled": .bool(true)])
+        XCTAssertEqual(RiveBindings.iconButton(icon: .soundOff, enabled: false),
+                       ["icon": .enumCase("soundOff"), "style": .enumCase("plain"), "enabled": .bool(false)])
+        XCTAssertEqual(RiveBindings.lessonNode(state: .current, number: "3"), ["state": .enumCase("current"), "number": .string("3")])
+        XCTAssertEqual(RiveBindings.typingDots(active: false), ["active": .bool(false)])
     }
 
     func testTheShortSpellingsGiveTheSameValues() {

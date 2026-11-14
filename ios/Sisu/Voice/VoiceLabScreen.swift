@@ -93,11 +93,12 @@ private struct VoiceLabContent: View {
         .background(SisuTheme.Color.background)
         .animation(SisuMotion.state(reduceMotion: reduceMotion), value: voice.notice)
         .task {
-            guard VoiceLaunch.current.voiceAuto, voice.fixture != nil, !didAutoRun else { return }
+            let launch = VoiceLaunch.current
+            guard launch.voiceAuto, !didAutoRun else { return }
             didAutoRun = true
             try? await Task.sleep(for: .milliseconds(800))
             voice.pressDown()
-            try? await Task.sleep(for: .milliseconds(700))
+            try? await Task.sleep(for: .seconds(launch.voiceHold ?? 0.7))
             voice.pressUp()
         }
     }

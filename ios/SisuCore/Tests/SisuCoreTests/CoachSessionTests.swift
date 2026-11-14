@@ -207,6 +207,110 @@ final class CoachSessionTests: XCTestCase {
         XCTAssertEqual(CoachSamples.teachingCards().count, 7)
     }
 
+    func testStepsChartsAndActivityComeFromTheStream() async throws {
+        let session = sample()
+        XCTAssertEqual(session.activity, .idle)
+        let task = session.investigate()
+        XCTAssertEqual(session.activity, SisuActivity(.thinking))
+        await task.value
+        let reply = session.messages[1]
+        XCTAssertEqual(reply.steps.count, 5)
+        XCTAssertTrue(reply.steps.allSatisfy { $0.done && $0.ok && $0.result != nil })
+        XCTAssertEqual(reply.steps.map(\.id), reply.tools.map(\.id))
+        XCTAssertEqual(reply.visuals.map(\.kind), ["budget_donut", "offer_bars", "futures_lines"])
+        let id = try XCTUnwrap(reply.action?.id)
+        XCTAssertEqual(session.activity, SisuActivity(.waitingForApproval, label: "Switch electricity contract to Example Energia (Fixed 24)"))
+        XCTAssertEqual(session.activity.mood, .found)
+
+        session.setRecording(true)
+        XCTAssertEqual(session.activity, SisuActivity(.listening))
+        session.setRecording(false)
+        session.setSpeaking(true)
+        XCTAssertEqual(session.activity, SisuActivity(.speaking))
+        session.setSpeaking(false)
+
+        let approved = await session.approve(id)
+        XCTAssertEqual(session.activity.state, .approved)
+        XCTAssertEqual(session.activity.liito, .cheering)
+        XCTAssertEqual(session.activity.label, approved?.confirmation ?? "Done, as a simulation")
+        XCTAssertEqual(approved?.confirmation?.hasPrefix("Done (simulation). Reference SIM-"), true)
+
+        await session.ask("How much can I safely spend this week?")?.value
+        XCTAssertEqual(session.messages[3].steps, [])
+        XCTAssertEqual(session.messages[3].visuals, [])
+        XCTAssertEqual(session.activity, .idle)
+
+        let other = sample("CUST04414")
+        await other.investigate().value
+        let otherId = try XCTUnwrap(other.messages[1].action?.id)
+        await other.decline(otherId)
+        XCTAssertEqual(other.activity, SisuActivity(.declined))
+        XCTAssertEqual(other.activity.mood, .cosy)
+    }
+
+    func testReplaceThrowsAwayTheTextSoFarAndStepsFillInLive() async {
+        let transport = ScriptedTransport()
+        let (stream, feed) = AsyncThrowingStream<Data, Error>.makeStream()
+        transport.onOpen = { _ in TransportStream(status: 200, chunks: stream) }
+        let session = scripted(transport)
+        let task = session.ask("Move 500 euros to my savings")
+        feed.yield(ScriptedTransport.sse([#"{"type":"start","turnId":"t","provider":"nvidia","model":"n","mock":false}"#,
+                                          #"{"type":"delta","text":"I've set it up. "}"#, #"{"type":"replace","text":""}"#,
+                                          #"{"type":"tool_start","id":"c1","name":"prepare_action","args":{},"label":"Setting up the transfer for you to approve"}"#]))
+        await wait(for: session, "the step is running") { $0.messages.last?.steps.count == 1 }
+        XCTAssertEqual(session.messages[1].text, "")
+        XCTAssertEqual(session.messages[1].steps, [CoachStep(id: "c1", label: "Setting up the transfer for you to approve")])
+        XCTAssertEqual(session.activity, SisuActivity(.settingUp, label: "Setting up the transfer for you to approve"))
+        feed.yield(ScriptedTransport.sse([#"{"type":"tool_end","trace":{"id":"c1","name":"prepare_action","source":"finance","startedAtMs":1,"tookMs":40,"ok":false,"summary":"Not enough room"}}"#,
+                                          #"{"type":"tool_start","id":"c2","name":"new_tool","args":{}}"#,
+                                          #"{"type":"delta","text":"That would leave you short."}"#, #"{"type":"done","text":"That would leave you short.","citations":[]}"#]))
+        feed.finish()
+        await task?.value
+        let reply = session.messages[1]
+        XCTAssertEqual(reply.text, "That would leave you short.")
+        XCTAssertEqual(reply.steps[0], CoachStep(id: "c1", label: "Setting up the transfer for you to approve", done: true, ok: false, tookMs: 40, result: "Not enough room"))
+        XCTAssertEqual(reply.steps[1].label, "new_tool")
+        XCTAssertFalse(reply.steps[1].done)
+    }
+
+    func testFallingBackFromLiveToTheSampleIsAnnouncedOnce() async {
+        let offline = ScriptedTransport()
+        offline.onSend = { _ in throw SisuError.offline }
+        offline.onOpen = { _ in throw SisuError.offline }
+        let moment = Date(timeIntervalSince1970: 1_794_650_000)
+        let transport = FallbackTransport(primary: offline, sample: ReplayTransport(eventDelay: 0), now: { moment })
+        let session = CoachSession(customerId: aino, client: CoachClient(baseURL: URL(string: "http://localhost:3000")!, transport: transport))
+        XCTAssertEqual(session.dataLabel, .live)
+        XCTAssertNil(session.fallbackNotice)
+        XCTAssertNil(session.client.fallenBackAt)
+
+        await session.ask("How much can I safely spend this week?")?.value
+        XCTAssertEqual(session.fallbackNotice, CoachClient.fallbackSentence)
+        XCTAssertEqual(session.dataLabel, .sample)
+        XCTAssertTrue(session.isSample)
+        XCTAssertEqual(session.client.fallenBackAt, moment)
+        XCTAssertNil(session.messages[1].error)
+        XCTAssertFalse(session.messages[1].text.isEmpty)
+
+        session.dismissFallbackNotice()
+        XCTAssertNil(session.fallbackNotice)
+        await session.open()
+        await session.ask("Where does my money go?")?.value
+        XCTAssertNil(session.fallbackNotice) // announced once
+        XCTAssertEqual(session.dataLabel, .sample)
+        XCTAssertEqual(offline.requests.count, 1) // after the fallback nothing is sent to the server
+
+        // A server that answers, even with an error, is not a reason to fall back.
+        let reachable = ScriptedTransport()
+        reachable.onOpen = { _ in ScriptedTransport.failed(status: 500, body: "{}") }
+        let live = CoachSession(customerId: aino, client: CoachClient(baseURL: URL(string: "http://localhost:3000")!, transport: FallbackTransport(primary: reachable)))
+        await live.ask("Hi")?.value
+        XCTAssertNil(live.fallbackNotice)
+        XCTAssertEqual(live.dataLabel, .live)
+        XCTAssertEqual(live.messages[1].error, CoachErrors.generic)
+        XCTAssertNil(CoachSession.sample(customerId: aino).fallbackNotice)
+    }
+
     func testVoiceTurnStartsWithWhatWasHeard() async {
         let session = sample()
         let task = session.sendVoice(audio: Data([1, 2, 3]), fileName: "speech.m4a", mimeType: "audio/mp4", language: "auto")

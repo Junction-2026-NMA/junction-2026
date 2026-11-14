@@ -14,21 +14,24 @@ struct BasketsSection: View {
             SectionTitle(title: "Where your money goes",
                          detail: "Three baskets, averaged over your last \(overview.windowMonths) months.")
             VStack(spacing: SisuTheme.Spacing.grid * 2) {
+                // The illustration leaves an empty band above the baskets' handles: pull it up under the subtitle.
                 RiveComponentView(.baskets, values: RiveBindings.baskets(BasketMath.shares(for: overview)))
-                HStack(spacing: SisuTheme.Spacing.grid * 4) {
+                    .padding(.top, -40)
+                    .allowsHitTesting(false)
+                LazyVGrid(columns: [GridItem(.flexible(), alignment: .leading), GridItem(.flexible(), alignment: .leading)],
+                          alignment: .leading, spacing: SisuTheme.Spacing.grid * 2) {
                     ForEach(TodayPresenter.basketLegendItems(overview), id: \.kind) { item in
-                        HStack(spacing: SisuTheme.Spacing.grid * 1.5) {
-                            Circle().fill(Self.color(item.kind)).frame(width: 10, height: 10)
+                        HStack(spacing: SisuTheme.Spacing.grid * 2) {
+                            LegendDot(kind: item.kind)
                             Text(item.text)
                                 .font(SisuTheme.Font.label)
                                 .foregroundStyle(SisuTheme.Color.text)
                         }
                     }
-                    Spacer(minLength: 0)
                 }
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Your spending by basket: \(TodayPresenter.basketLegend(overview))")
+            .accessibilityLabel("Your spending by basket: \(TodayPresenter.basketLegendItems(overview).map(\.text).joined(separator: ", "))")
             .padding(.bottom, SisuTheme.Spacing.grid)
             ForEach(overview.baskets, id: \.id) { basket in
                 BasketCard(state: TodayPresenter.basket(basket, peerCount: overview.peerCount)) { title, category in
@@ -51,6 +54,18 @@ extension BasketsSection {
         case .leaks: return SisuTheme.Color.basketLeaks
         case .jars: return SisuTheme.Color.basketJars
         }
+    }
+}
+
+/// A legend dot in the basket's green; the savings jar is mint with an S green ring.
+private struct LegendDot: View {
+    let kind: BasketKind
+
+    var body: some View {
+        Circle()
+            .fill(BasketsSection.color(kind))
+            .overlay { if kind == .jars { Circle().strokeBorder(SisuTheme.Color.green500, lineWidth: 2) } }
+            .frame(width: 12, height: 12)
     }
 }
 
@@ -176,7 +191,7 @@ struct BillCard: View {
                         .foregroundStyle(SisuTheme.Color.text)
                         .padding(.horizontal, SisuTheme.Spacing.grid * 4)
                         .frame(height: SisuTheme.Spacing.touchTarget)
-                        .background(SisuTheme.Color.green25, in: RoundedRectangle(cornerRadius: SisuTheme.Radius.button, style: .continuous))
+                        .background(SisuTheme.Color.inputFill, in: RoundedRectangle(cornerRadius: SisuTheme.Radius.button, style: .continuous))
                         .overlay(RoundedRectangle(cornerRadius: SisuTheme.Radius.button, style: .continuous).stroke(SisuTheme.Color.neutral400))
                         .focused($focused)
                         .submitLabel(.done)
@@ -253,7 +268,7 @@ struct InsightsSection: View {
                         .padding(SisuTheme.Spacing.margin)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .buttonStyle(PressableCardStyle())
+                    .buttonStyle(SisuPressableCardStyle())
                     .accessibilityElement(children: .combine)
                     .accessibilityHint("Shows the transactions")
                 }

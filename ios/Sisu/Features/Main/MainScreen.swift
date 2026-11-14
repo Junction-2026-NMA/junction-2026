@@ -1,27 +1,35 @@
-// The main screen: the four tabs above the Rive tab bar.
+// The main screen: the four tabs under the floating glass tab bar (Shared/GlassTabBar.swift).
 import SisuCore
 import SwiftUI
 
 struct MainScreen: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// The tab bar steps aside while the keyboard is up, so it never floats above the keys.
     @State private var keyboardShown = false
 
     var body: some View {
         @Bindable var model = model
-        VStack(spacing: 0) {
-            Group {
-                switch model.tab {
-                case .today: TodayScreen()
-                case .ask: AskScreen()
-                case .jars: JarsScreen()
-                case .path: PathScreen()
-                }
+        Group {
+            switch model.tab {
+            case .today: TodayScreen()
+            case .ask: AskScreen()
+            case .jars: JarsScreen()
+            case .path: PathScreen()
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            if !keyboardShown { tabBar }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // The bar floats over the screens: the inset lifts every screen's safe area by the bar's height, so
+        // each scroll view runs under the glass and its last row still scrolls clear of the bar.
+        .modifier(BottomBar {
+            if !keyboardShown {
+                GlassTabBar(selection: $model.tab)
+                    .padding(.top, SisuTheme.Spacing.grid * 2)
+                    .padding(.bottom, SisuTheme.TabBar.lift)
+                    .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
+            }
+        })
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: keyboardShown)
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in keyboardShown = true }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in keyboardShown = false }
         .sheet(item: $model.evidence) { request in
@@ -35,30 +43,19 @@ struct MainScreen: View {
         }
         .animation(.easeInOut(duration: 0.25), value: model.celebration?.headline)
     }
+}
 
-    private var tabBar: some View {
-            RiveComponentView(.tabBar, values: RiveValues.tabBar(selected: model.tab.rawValue)) { trigger in
-                if let index = Int(trigger.dropFirst(3)), trigger.hasPrefix("tap"), let tab = AppTab(rawValue: index) {
-                    model.tab = tab
-                }
-            }
-            .accessibilityElement(children: .contain)
-            .overlay { tabAccessibility }
-            .background(SisuTheme.Color.card.ignoresSafeArea(edges: .bottom))
-    }
+/// Puts the tab bar at the bottom as a safe-area bar. On iOS 26 `safeAreaBar` also gives the scroll views
+/// under it the system's soft scroll-edge blur, so text scrolling behind the glass fades instead of colliding
+/// with the labels; earlier systems use a plain `safeAreaInset`.
+private struct BottomBar<Bar: View>: ViewModifier {
+    @ViewBuilder var bar: () -> Bar
 
-    /// Four invisible accessibility buttons over the Rive tab bar, one per tab.
-    private var tabAccessibility: some View {
-        HStack(spacing: 0) {
-            ForEach(AppTab.allCases) { tab in
-                Color.clear
-                    .contentShape(Rectangle())
-                    .allowsHitTesting(false)
-                    .accessibilityElement()
-                    .accessibilityLabel(["Today", "Ask", "Jars", "Path"][tab.rawValue])
-                    .accessibilityAddTraits(model.tab == tab ? [.isButton, .isSelected] : .isButton)
-                    .accessibilityAction { model.tab = tab }
-            }
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content.safeAreaBar(edge: .bottom, spacing: 0, content: bar)
+        } else {
+            content.safeAreaInset(edge: .bottom, spacing: 0, content: bar)
         }
     }
 }

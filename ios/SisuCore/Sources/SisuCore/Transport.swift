@@ -287,10 +287,25 @@ public final class ReplayTransport: SisuTransport, @unchecked Sendable {
             lock.lock(); actionLists = [:]; memories = [:]; decided = []; lock.unlock()
             return Self.encode(["ok": true, "cleared": ["actions": 0, "memoryItems": 0]])
         case ("POST", "/api/actions/prepare"):
+            // Recorded: a 500 euro one-off transfer to savings (it comes with a warning), and an electricity switch.
+            if body["kind"] as? String == "one_off_transfer" {
+                let amount = ((body["amountEur"] ?? body["monthlyAmountEur"]) as? NSNumber)?.doubleValue
+                guard amount == 500, (body["destination"] as? String ?? "savings") == "savings",
+                      Self.fixture("coach/action-transfer-\(customer).json") != nil else { return Self.missing }
+                setActionList(customer, "actions-\(customer)-transfer-pending")
+                return Self.json("coach/action-transfer-\(customer).json", status: 201)
+            }
             guard body["kind"] as? String == "switch_contract", body["billType"] as? String == "electricity",
                   Self.fixture("coach/action-prepare-\(customer).json") != nil else { return Self.missing }
             setActionList(customer, "actions-\(customer)-prepare-pending")
             return Self.json("coach/action-prepare-\(customer).json", status: 201)
+        case ("POST", "/api/agent/plan"):
+            guard Self.fixture("coach/stream-plan-\(customer).sse") != nil else { return Self.missing }
+            setActionList(customer, "actions-\(customer)-plan-pending")
+            return stream("coach/stream-plan-\(customer).sse")
+        case ("POST", "/api/actions/approve-all"):
+            return approveAll(customer, ids: body["actionIds"] as? [String] ?? [], confirm: body["confirm"] as? Bool == true)
+        case ("GET", "/api/agent/visuals"): return Self.json("coach/visuals-\(customer).json")
         case ("POST", "/api/agent/query"):
             guard let kind = Self.recordedTurn(for: body["text"] as? String ?? "", focusBill: body["focusBill"] as? String),
                   Self.fixture("coach/stream-\(kind)-\(customer).sse") != nil else { return Self.missing }
@@ -411,15 +426,51 @@ public final class ReplayTransport: SisuTransport, @unchecked Sendable {
               let years = (body["years"] as? NSNumber)?.doubleValue, bill.isFinite, cut.isFinite, years.isFinite else {
             return Self.error(400, "Scenario values must be numbers.")
         }
-        let input = ScenarioInput(billSavingPerMonth: bill, everydayCutPct: cut, years: Int(min(max(years, 1), 10).rounded()))
+        let oneOff = (body["oneOffEur"] as? NSNumber)?.doubleValue ?? 0
+        let input = ScenarioInput(billSavingPerMonth: bill, everydayCutPct: cut, years: Int(min(max(years, 1), 10).rounded()),
+                                  oneOffEur: oneOff.isFinite ? oneOff : 0)
         guard let data = try? JSONEncoder().encode(ScenarioEngine.run(overview: overview, input: input)) else { return Self.missing }
         return .body(status: 200, data: data, contentType: "application/json")
+    }
+
+    /// The recorded answer of approve-all for the actions of the recorded plan. Each named action that the
+    /// plan set up is approved once; one already decided, or unknown, is listed in `failed`.
+    private func approveAll(_ customer: String, ids: [String], confirm: Bool) -> Answer {
+        guard confirm else { return Self.error(400, "Approval needs confirm: true. Nothing was done.") }
+        let unique = ids.reduce(into: [String]()) { if !$0.contains($1) { $0.append($1) } }
+        guard !unique.isEmpty, unique.count <= 6 else { return Self.error(400, "Name between one and 6 actions to approve. Nothing was done.") }
+        guard let recorded = Self.object(Self.fixture("coach/plan-approve-all-\(customer).json")),
+              let actions = recorded["approved"] as? [[String: Any]] else { return Self.missing }
+        let already = (Self.object(Self.fixture("coach/error-409-already-decided.json"))?["error"] as? String) ?? "This action was already approved."
+        let unknown = (Self.object(Self.fixture("coach/error-404-unknown-action.json"))?["error"] as? String) ?? "We could not find that action."
+        var approved: [[String: Any]] = []
+        var failed: [[String: Any]] = []
+        lock.lock()
+        for id in unique {
+            if let action = actions.first(where: { $0["id"] as? String == id }) {
+                if decided.contains(id) { failed.append(["actionId": id, "reason": already]) } else { decided.insert(id); approved.append(action) }
+            } else {
+                failed.append(["actionId": id, "reason": unknown])
+            }
+        }
+        if approved.count == actions.count { actionLists[customer] = "actions-\(customer)-plan-approved" }
+        lock.unlock()
+        return Self.encode(["approved": approved, "failed": failed], status: approved.isEmpty ? 409 : 200)
     }
 
     private func decide(_ customer: String, actionId: String, approve: Bool, confirm: Bool) -> Answer {
         if approve && !confirm { return Self.error(400, "Approval needs confirm: true. Nothing was done.") }
         let verb = approve ? "approve" : "decline"
-        for origin in ["investigate", "prepare"] {
+        // One action of the recorded plan, approved on its own.
+        if approve, let plan = Self.object(Self.fixture("coach/plan-approve-all-\(customer).json")),
+           let action = (plan["approved"] as? [[String: Any]])?.first(where: { $0["id"] as? String == actionId }) {
+            lock.lock()
+            let already = decided.contains(actionId)
+            if !already { decided.insert(actionId) }
+            lock.unlock()
+            return already ? Self.json("coach/error-409-already-decided.json", status: 409) : Self.encode(["action": action])
+        }
+        for origin in ["investigate", "prepare", "transfer"] {
             let path = "coach/action-\(origin)-\(customer)-\(verb).json"
             guard let recorded = Self.object(Self.fixture(path)), let action = recorded["action"] as? [String: Any],
                   action["id"] as? String == actionId else { continue }
@@ -477,6 +528,60 @@ public final class ReplayTransport: SisuTransport, @unchecked Sendable {
                 continuation.finish()
             }
             continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+}
+
+/// A live transport that falls back to the bundled sample when the server cannot be reached.
+///
+/// It starts live. The first request that fails with `SisuError.offline` switches it, for good, to the
+/// recordings (`ReplayTransport`): that request and every later one is answered from the sample, `kind`
+/// becomes `.bundledSample`, and `fallenBackAt` holds the moment. Nothing switches silently: sessions publish
+/// a `fallbackNotice` when it happens. An HTTP error from a reachable server is not a reason to fall back.
+public final class FallbackTransport: SisuTransport, @unchecked Sendable {
+    public let primary: SisuTransport
+    public let sample: ReplayTransport
+    private let now: @Sendable () -> Date
+    private let lock = NSLock()
+    private var fellBackAt: Date?
+
+    /// - Parameter now: the clock, for `fallenBackAt`. Inject a fixed one in tests.
+    public init(primary: SisuTransport, sample: ReplayTransport = ReplayTransport(), now: @escaping @Sendable () -> Date = { Date() }) {
+        self.primary = primary
+        self.sample = sample
+        self.now = now
+    }
+
+    /// When the transport switched to the sample. Nil while it is live.
+    public var fallenBackAt: Date? {
+        lock.lock(); defer { lock.unlock() }
+        return fellBackAt
+    }
+
+    public var kind: DataSourceKind { fallenBackAt == nil ? primary.kind : .bundledSample }
+
+    private func fallBack() {
+        lock.lock(); defer { lock.unlock() }
+        if fellBackAt == nil { fellBackAt = now() }
+    }
+
+    public func send(_ request: URLRequest) async throws -> TransportResponse {
+        if fallenBackAt != nil { return try await sample.send(request) }
+        do {
+            return try await primary.send(request)
+        } catch SisuError.offline {
+            fallBack()
+            return try await sample.send(request)
+        }
+    }
+
+    public func open(_ request: URLRequest) async throws -> TransportStream {
+        if fallenBackAt != nil { return try await sample.open(request) }
+        do {
+            return try await primary.open(request)
+        } catch SisuError.offline {
+            fallBack()
+            return try await sample.open(request)
         }
     }
 }

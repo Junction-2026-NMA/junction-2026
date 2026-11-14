@@ -2,7 +2,8 @@
 //
 //   -sisu.voicelab 1        the Path tab shows the voice lab instead of the path
 //   -sisu.voicefixture 1    the talk button sends a bundled one-second clip instead of the microphone
-//   -sisu.voiceauto 1       with the fixture: run one push-to-talk turn by itself once the lab is on screen
+//   -sisu.voiceauto 1       run one push-to-talk turn by itself once the lab is on screen (fixture or microphone)
+//   -sisu.voicehold <s>     how long that automatic press holds, in seconds (default 0.7)
 //   -sisu.lesson <n>        open lesson n (1 to 7) when the path has loaded
 //   -sisu.lessonAnswer <n>  and answer it with option n (1 to 3)
 //   -sisu.lessonsDone <n>   start with the first n lessons done (screenshots only)
@@ -12,6 +13,7 @@ struct VoiceLaunch {
     var voiceLab = false
     var voiceFixture = false
     var voiceAuto = false
+    var voiceHold: Double?
     var lesson: Int?
     var lessonAnswer: Int?
     var lessonsDone: Int?
@@ -26,6 +28,7 @@ struct VoiceLaunch {
         options.voiceLab = value("sisu.voicelab") == "1"
         options.voiceFixture = value("sisu.voicefixture") == "1"
         options.voiceAuto = value("sisu.voiceauto") == "1"
+        options.voiceHold = value("sisu.voicehold").flatMap(Double.init)
         options.lesson = value("sisu.lesson").flatMap(Int.init)
         options.lessonAnswer = value("sisu.lessonAnswer").flatMap(Int.init)
         options.lessonsDone = value("sisu.lessonsDone").flatMap(Int.init)

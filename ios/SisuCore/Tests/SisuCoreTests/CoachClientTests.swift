@@ -165,6 +165,50 @@ final class CoachClientTests: XCTestCase {
         XCTAssertNil(ReplayTransport.firstNumber("no number"))
     }
 
+    func testChartsApproveAllAndATransferWithAWarning() async throws {
+        let client = CoachClient.sample(eventDelay: 0)
+        let visuals = try await client.visuals(customerId: aino)
+        XCTAssertEqual(visuals.map(\.kind), ["budget_donut", "peer_bars", "month_bars", "waterfall", "futures_lines"])
+
+        let transfer = try await client.prepareAction(PrepareActionRequest(customerId: aino, kind: .oneOffTransfer, amountEur: 500, destination: "savings"))
+        XCTAssertEqual(transfer.kind, .oneOffTransfer)
+        XCTAssertEqual(transfer.destination, "savings")
+        XCTAssertNotNil(transfer.warning)
+        let done = try await client.approveAction(customerId: aino, actionId: transfer.id)
+        XCTAssertEqual(done.confirmation?.hasPrefix("Done (simulation). Reference SIM-"), true)
+        await assertThrows(.server(status: 404, message: ReplayTransport.notInSample)) {
+            try await client.prepareAction(PrepareActionRequest(customerId: self.aino, kind: .oneOffTransfer, amountEur: 20))
+        }
+
+        var ids: [String] = []
+        for try await event in client.plan(customerId: sanna) {
+            if case .planDone(let plan) = event { ids = plan.actions.map(\.id) }
+        }
+        XCTAssertEqual(ids.count, 4)
+        let result = try await client.approveAll(customerId: sanna, actionIds: ids + ["nope"])
+        XCTAssertEqual(result.approved.map(\.id), ids)
+        XCTAssertEqual(result.failed, [ApproveAllResult.Failure(actionId: "nope", reason: "We could not find that action.")])
+        let again = try await client.approveAll(customerId: sanna, actionIds: ids)
+        XCTAssertEqual(again.approved, [])
+        XCTAssertEqual(again.failed.map(\.reason), Array(repeating: "This action was already approved.", count: 4))
+        await assertThrows(.server(status: 400, message: "Name between one and 6 actions to approve. Nothing was done.")) {
+            try await client.approveAll(customerId: self.sanna, actionIds: [])
+        }
+
+        let base = URL(string: "http://localhost:3000")!
+        let request = CoachEndpoints.approveAll(baseURL: base, customerId: "C", actionIds: ["a", "b"])
+        XCTAssertEqual(request.url?.path, "/api/actions/approve-all")
+        let body = ScriptedTransport.json(request)
+        XCTAssertEqual(body["confirm"] as? Bool, true)
+        XCTAssertEqual(body["actionIds"] as? [String], ["a", "b"])
+        XCTAssertEqual(CoachEndpoints.visuals(baseURL: base, customerId: "C").url?.absoluteString, "http://localhost:3000/api/agent/visuals?customerId=C")
+        let plan = CoachEndpoints.agentPlan(baseURL: base, PlanRequest(customerId: "C", fresh: false, language: "fi"))
+        XCTAssertEqual(plan.url?.path, "/api/agent/plan")
+        XCTAssertEqual(plan.value(forHTTPHeaderField: "Accept"), "text/event-stream")
+        XCTAssertEqual(ScriptedTransport.json(plan)["fresh"] as? Bool, false)
+        XCTAssertEqual(ScriptedTransport.json(plan)["language"] as? String, "fi")
+    }
+
     func testBillPhoto() async throws {
         let client = CoachClient.sample(eventDelay: 0)
         let result = try await client.readBillPhoto(customerId: aino, image: Data([0x89, 0x50]), fileName: "bill.png", mimeType: "image/png")

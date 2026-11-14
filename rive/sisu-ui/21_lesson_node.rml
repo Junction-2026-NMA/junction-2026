@@ -15,8 +15,9 @@
                   and blends for 160 ms when `state` changes later.
        Life       the motion. rest (upcoming) is still. inviting (current) loops: a ring pulses out slowly and the node hops
                   a little every 2.2 s, which invites a tap. win plays once when `state` goes from current to done: the node
-                  dips and pops, the check lands with an overshoot, a ring bursts out and six sparkles fly. A node that is
-                  already done when it appears, or goes from upcoming straight to done, is `done still`: no fanfare.
+                  dips and pops, the check lands with an overshoot, a ring bursts out and six sparkles fly. A node that
+                  goes from upcoming straight to done only pops its check in (check pop). A node that is already done
+                  when it appears is `done still`: nothing moves, so a path full of finished lessons opens calmly.
        Press      up <-> down on the private boolean _down: the face goes down 4 pt and the edge fades out in 80 ms, and it
                   springs back in 320 ms (elastic), like Button.
        pressed    fired by the click listener, once per completed tap, in every state. -->
@@ -121,27 +122,11 @@
             <StateMachineListenerSingle targetId="21:13" listenerTypeValue="click" name="Tap" id="21:44">  <!-- on Hit -->
                 <ListenerViewModelChange><BindablePropertyTrigger propertyValue="1"><DataBindContext sourcePathIds="21:1-21:4" propertyKey="686" direction="true"/></BindablePropertyTrigger></ListenerViewModelChange>  <!-- fires pressed -->
             </StateMachineListenerSingle>
+            <!-- The look. No AnyState here: an AnyState transition with a duration would blend from the authored (upcoming) look on
+                 the first frame, so a node that starts as current or done would fade in. The entry picks the state at once;
+                 the states are joined to each other with a 160 ms blend for changes that happen on screen. -->
             <StateMachineLayer name="State" id="21:45">
-                <AnyState x="0" y="-140" id="21:46">
-                    <StateTransition stateToId="21:49" duration="160">  <!-- to upcoming -->
-                        <TransitionViewModelCondition>  <!-- state is upcoming -->
-                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="21:1-21:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
-                            <TransitionValueEnumComparator value="0:341"/>
-                        </TransitionViewModelCondition>
-                    </StateTransition>
-                    <StateTransition stateToId="21:50" duration="160">  <!-- to current -->
-                        <TransitionViewModelCondition>  <!-- state is current -->
-                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="21:1-21:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
-                            <TransitionValueEnumComparator value="0:342"/>
-                        </TransitionViewModelCondition>
-                    </StateTransition>
-                    <StateTransition stateToId="21:51" duration="160">  <!-- to done -->
-                        <TransitionViewModelCondition>  <!-- state is done -->
-                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="21:1-21:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
-                            <TransitionValueEnumComparator value="0:343"/>
-                        </TransitionViewModelCondition>
-                    </StateTransition>
-                </AnyState>
+                <AnyState x="0" y="-140" id="21:46"/>
                 <ExitState x="0" y="-280" id="21:47"/>
                 <EntryState x="0" y="0" id="21:48">
                     <StateTransition stateToId="21:51">  <!-- starts in done if the condition holds -->
@@ -158,9 +143,48 @@
                     </StateTransition>
                     <StateTransition stateToId="21:49"/>  <!-- otherwise starts in upcoming -->
                 </EntryState>
-                <AnimationState animationId="21:75" stateName="upcoming" x="240" y="0" id="21:49"/>
-                <AnimationState animationId="21:76" stateName="current" x="240" y="110" id="21:50"/>
-                <AnimationState animationId="21:77" stateName="done" x="240" y="220" id="21:51"/>
+                <AnimationState animationId="21:75" stateName="upcoming" x="240" y="0" id="21:49">
+                    <StateTransition stateToId="21:50" duration="160">  <!-- to current -->
+                        <TransitionViewModelCondition>  <!-- state is current -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="21:1-21:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:342"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="21:51" duration="160">  <!-- to done -->
+                        <TransitionViewModelCondition>  <!-- state is done -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="21:1-21:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:343"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState animationId="21:76" stateName="current" x="240" y="110" id="21:50">
+                    <StateTransition stateToId="21:51" duration="160">  <!-- to done -->
+                        <TransitionViewModelCondition>  <!-- state is done -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="21:1-21:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:343"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="21:49" duration="160">  <!-- to upcoming -->
+                        <TransitionViewModelCondition>  <!-- state is upcoming -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="21:1-21:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:341"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState animationId="21:77" stateName="done" x="240" y="220" id="21:51">
+                    <StateTransition stateToId="21:50" duration="160">  <!-- to current -->
+                        <TransitionViewModelCondition>  <!-- state is current -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="21:1-21:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:342"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="21:49" duration="160">  <!-- to upcoming -->
+                        <TransitionViewModelCondition>  <!-- state is upcoming -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="21:1-21:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:341"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
             </StateMachineLayer>
             <StateMachineLayer name="Life" id="21:55">
                 <AnyState x="0" y="-140" id="21:56"/>
@@ -187,7 +211,7 @@
                             <TransitionValueEnumComparator value="0:342"/>
                         </TransitionViewModelCondition>
                     </StateTransition>
-                    <StateTransition stateToId="21:62">  <!-- to done still (no win without having been current) -->
+                    <StateTransition stateToId="21:63">  <!-- to check pop (upcoming straight to done: the check pops in, without the fanfare) -->
                         <TransitionViewModelCondition>  <!-- state is done -->
                             <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="21:1-21:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
                             <TransitionValueEnumComparator value="0:343"/>
@@ -209,6 +233,20 @@
                     </StateTransition>
                 </AnimationState>
                 <AnimationState animationId="21:82" stateName="win" x="720" y="0" id="21:61">
+                    <StateTransition stateToId="21:60">  <!-- to inviting -->
+                        <TransitionViewModelCondition>  <!-- state is current -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="21:1-21:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:342"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="21:59">  <!-- to rest -->
+                        <TransitionViewModelCondition>  <!-- state is upcoming -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="21:1-21:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:341"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState animationId="21:83" stateName="check pop" x="720" y="220" id="21:63">
                     <StateTransition stateToId="21:60">  <!-- to inviting -->
                         <TransitionViewModelCondition>  <!-- state is current -->
                             <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="21:1-21:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
@@ -593,6 +631,49 @@
                     <KeyFrameDouble value="1.2" frame="38" interpolationType="linear"/>
                 </KeyedProperty>
             </KeyedObject>
+        </LinearAnimation>
+        <!-- 0.5 s, once: the check pops in and the node swells a little. For upcoming -> done, where there is no win to celebrate. -->
+        <LinearAnimation duration="32" name="life: check pop" id="21:83">
+            <KeyedObject objectId="21:20">  <!-- Bouncer -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="56" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.07" frame="10" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.98" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="26" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.07" frame="10" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.98" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="26" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="21:25">  <!-- Check -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="4" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.35" frame="14" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.92" frame="21" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="28" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="4" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.35" frame="14" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.92" frame="21" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="28" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="21:29"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Pulse Ring -->
+            <KeyedObject objectId="21:14"><KeyedProperty property="scaleX"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Sparkle 1 -->
+            <KeyedObject objectId="21:15"><KeyedProperty property="scaleX"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Sparkle 2 -->
+            <KeyedObject objectId="21:16"><KeyedProperty property="scaleX"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Sparkle 3 -->
+            <KeyedObject objectId="21:17"><KeyedProperty property="scaleX"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Sparkle 4 -->
+            <KeyedObject objectId="21:18"><KeyedProperty property="scaleX"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Sparkle 5 -->
+            <KeyedObject objectId="21:19"><KeyedProperty property="scaleX"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Sparkle 6 -->
         </LinearAnimation>
         <LinearAnimation duration="1" name="press: up" id="21:85">
             <KeyedObject objectId="21:21"><KeyedProperty property="y"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Face -->

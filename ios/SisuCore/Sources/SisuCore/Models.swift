@@ -289,14 +289,28 @@ public struct TransactionList: Codable, Equatable, Sendable {
 
 /// What the user changes in the futures simulator.
 public struct ScenarioInput: Codable, Equatable, Sendable {
+    /// Euros freed per month by any change: a cheaper contract, spending less on a category.
     public var billSavingPerMonth: Double
     public var everydayCutPct: Double
     public var years: Int
+    /// A lump sum (a gift, a bonus) that the "invest" future moves into investments on day one. 0 when none.
+    public var oneOffEur: Double
 
-    public init(billSavingPerMonth: Double, everydayCutPct: Double, years: Int) {
+    public init(billSavingPerMonth: Double, everydayCutPct: Double, years: Int, oneOffEur: Double = 0) {
         self.billSavingPerMonth = billSavingPerMonth
         self.everydayCutPct = everydayCutPct
         self.years = years
+        self.oneOffEur = oneOffEur
+    }
+
+    enum CodingKeys: String, CodingKey { case billSavingPerMonth, everydayCutPct, years, oneOffEur }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        billSavingPerMonth = try c.decode(Double.self, forKey: .billSavingPerMonth)
+        everydayCutPct = try c.decode(Double.self, forKey: .everydayCutPct)
+        years = try c.decode(Int.self, forKey: .years)
+        oneOffEur = try c.decodeIfPresent(Double.self, forKey: .oneOffEur) ?? 0
     }
 }
 

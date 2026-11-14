@@ -1,8 +1,8 @@
-data: {"type":"start","turnId":"7d81f7ef-1e60-4179-8f2d-ddec0f0eef5e","provider":"mock","model":"mock","mock":true}
+data: {"type":"start","turnId":"41f4666f-116a-43c0-a9ad-276838334027","provider":"mock","model":"mock","mock":true}
 
-data: {"type":"tool_start","id":"mock_get_mortgage_jip75l","name":"get_mortgage","args":{}}
+data: {"type":"tool_start","id":"mock_get_mortgage_szq4vj","name":"get_mortgage","args":{},"label":"Opening your mortgage application"}
 
-data: {"type":"tool_end","trace":{"id":"mock_get_mortgage_jip75l","name":"get_mortgage","args":{},"source":"finance","startedAtMs":254,"tookMs":1,"ok":true,"summary":"No mortgage application on record","joinedPrefetch":false}}
+data: {"type":"tool_end","trace":{"id":"mock_get_mortgage_szq4vj","name":"get_mortgage","args":{},"source":"finance","startedAtMs":253,"tookMs":1,"ok":true,"summary":"No mortgage application on record","joinedPrefetch":false}}
 
 data: {"type":"delta","text":"Mock "}
 
@@ -30,5 +30,5 @@ data: {"type":"sentence","index":0,"text":"Mock answer. There is no mortgage app
 
 data: {"type":"grounding","grounding":{"ok":true,"checked":0,"unverified":[],"numbers":[],"corrections":[]},"facts":[]}
 
-data: {"type":"done","text":"Mock answer. There is no mortgage application on record for you.","citations":[],"timings":{"sttMs":null,"firstTokenMs":281,"firstSentenceMs":545,"totalMs":548,"modelSteps":[{"model":"mock","provider":"mock","usedBackup":false,"firstTokenMs":250,"totalMs":250},{"model":"mock","provider":"mock","usedBackup":false,"firstTokenMs":26,"totalMs":291}]}}
+data: {"type":"done","text":"Mock answer. There is no mortgage application on record for you.","citations":[],"timings":{"sttMs":null,"firstTokenMs":282,"firstSentenceMs":540,"totalMs":541,"modelSteps":[{"model":"mock","provider":"mock","usedBackup":false,"firstTokenMs":250,"totalMs":250},{"model":"mock","provider":"mock","usedBackup":false,"firstTokenMs":26,"totalMs":284}]}}
 

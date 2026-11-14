@@ -79,7 +79,7 @@ struct LessonSheet: View {
                 .padding(.bottom, SisuTheme.Spacing.section)
             }
             .scrollIndicators(.hidden)
-            .background(SisuTheme.Color.green25)
+            .background(SisuTheme.Color.background)
             .onChange(of: quiz.isRevealed) { _, revealed in
                 guard revealed else { return }
                 Task {

@@ -55,7 +55,7 @@ private struct LessonPathScreen: View {
                 .onDisappear { autoAnswer = nil }
                 .presentationDragIndicator(.visible)
                 .presentationCornerRadius(SisuTheme.Radius.sheet)
-                .presentationBackground(SisuTheme.Color.green25)
+                .presentationBackground(SisuTheme.Color.background)
         }
         .task(id: loadKey) {
             guard model.customersState == .loaded || model.customersState == .idle || model.sampleOnly else { return }
@@ -99,25 +99,24 @@ private struct PathHeader: View {
                     .minimumScaleFactor(0.7)
                     .accessibilityAddTraits(.isHeader)
                 Spacer(minLength: 0)
-                RiveComponentView(.statPill, values: RiveBindings.statPill(kind: .streak, value: model.progress.streakText))
-                    .sizing(.contain).frame(width: 72, height: 36)
-                    .riveAccessible("Streak", value: "\(model.progress.streakText) days")
+                // The same tight pills as Today's header: each hugs its text, side by side.
                 let berries = LessonPathPresenter.berriesText(daily: model.progress, lessons: path.progress)
-                RiveComponentView(.statPill, values: RiveBindings.statPill(kind: .berries, value: berries))
-                    .sizing(.contain).frame(width: 72, height: 36)
-                    .riveAccessible("Berries", value: berries)
+                HStack(spacing: SisuTheme.Spacing.grid * 2) {
+                    RiveComponentView(.statPill, values: RiveValues.statPill("streak", value: model.progress.streakText))
+                        .hugging(width: RiveHug.statPill(model.progress.streakText))
+                        .riveAccessible("Streak", value: "\(model.progress.streakText) days")
+                    RiveComponentView(.statPill, values: RiveValues.statPill("berries", value: berries))
+                        .hugging(width: RiveHug.statPill(berries, kind: "berries"))
+                        .riveAccessible("Berries", value: berries)
+                }
             }
             if path.state == .loaded {
-                HStack(spacing: SisuTheme.Spacing.grid * 2) {
-                    if let tag = path.dataTag {
-                        RiveComponentView(.tag, values: RiveBindings.tag(text: tag, tone: .amber))
-                            .riveAccessible("\(tag). These lessons are not built from live figures.")
-                    }
-                    Text(LessonPathPresenter.subtitle(path.cards, progress: path.progress))
-                        .font(SisuTheme.Font.caption)
-                        .foregroundStyle(SisuTheme.Color.textMuted)
-                        .lineLimit(2)
-                }
+                // Where the lessons come from is in Settings > Data and sources; no badge here.
+                Text(LessonPathPresenter.subtitle(path.cards, progress: path.progress))
+                    .font(SisuTheme.Font.caption)
+                    .foregroundStyle(SisuTheme.Color.textMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 VStack(alignment: .leading, spacing: SisuTheme.Spacing.grid * 2) {
                     let text = LessonPathPresenter.progressText(path.cards, progress: path.progress)
                     RiveComponentView(.progressBar, values: RiveBindings.progressBar(progress: LessonPathPresenter.fraction(path.cards, progress: path.progress)))

@@ -49,6 +49,7 @@ private struct CoachConversation: View {
     var body: some View {
         VStack(spacing: 0) {
             header
+            fallbackNotice
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: SisuTheme.Spacing.card) {
@@ -155,10 +156,6 @@ private struct CoachConversation: View {
                     .font(SisuTheme.Font.h1)
                     .foregroundStyle(SisuTheme.Color.text)
                     .accessibilityAddTraits(.isHeader)
-                if let tag = store.dataTag {
-                    RiveComponentView(.tag, values: RiveBindings.tag(text: tag, tone: .amber))
-                        .riveAccessible(tag + (store.fellBackToSample ? ". Sisu's server is not reachable, so these are recorded answers." : ". These answers are not live."))
-                }
             }
             Spacer(minLength: 0)
             RiveComponentView(.liito, values: RiveBindings.liito(mood: mood))
@@ -170,6 +167,22 @@ private struct CoachConversation: View {
         .padding(.top, SisuTheme.Spacing.grid * 2)
         .padding(.bottom, SisuTheme.Spacing.grid * 2)
         .background(SisuTheme.Color.background)
+    }
+
+    /// Said once, in place, when Sisu switches from the live server to the recorded answers (or starts on them
+    /// because the app already found the server unreachable). Not a permanent badge: Settings has the details.
+    @ViewBuilder private var fallbackNotice: some View {
+        if let notice = session.fallbackNotice {
+            TransientNotice(id: "coach-fallback-\(session.customerId)", text: notice)
+                .padding(.horizontal, SisuTheme.Spacing.margin)
+                .padding(.bottom, SisuTheme.Spacing.grid * 2)
+                .onDisappear { session.dismissFallbackNotice() }
+        } else if store.fellBackToSample {
+            TransientNotice(id: "coach-unreachable-\(session.customerId)",
+                            text: "Sisu's server could not be reached, so you see recorded sample answers.")
+                .padding(.horizontal, SisuTheme.Spacing.margin)
+                .padding(.bottom, SisuTheme.Spacing.grid * 2)
+        }
     }
 
     private var mood: RiveBindings.LiitoMood {
@@ -184,12 +197,6 @@ private struct CoachConversation: View {
                 .font(SisuTheme.Font.h2)
                 .foregroundStyle(SisuTheme.Color.text)
                 .fixedSize(horizontal: false, vertical: true)
-            if store.fellBackToSample {
-                Text("Sisu's server is not reachable right now, so you see recorded sample answers.")
-                    .font(SisuTheme.Font.body)
-                    .foregroundStyle(SisuTheme.Color.textMuted)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
             Eyebrow(text: "Try one of these")
                 .padding(.top, SisuTheme.Spacing.grid * 2)
             ForEach(Self.suggestions, id: \.self) { question in
@@ -235,6 +242,8 @@ private struct CoachConversation: View {
             .riveAccessible(store.voice?.accessibilityLabel ?? "Talk to Sisu", isButton: true, value: store.voiceState.rawValue) {
                 store.voice?.toggleFromAccessibility()
             }
+            // For the UI tests: the spoken clips so far (identifiers are never read out).
+            .accessibilityIdentifier("ask.voice.clips.\(store.voice?.clipsPlayed ?? 0)")
         }
         .padding(.horizontal, SisuTheme.Spacing.margin)
         .padding(.vertical, SisuTheme.Spacing.grid * 2)
@@ -359,7 +368,6 @@ struct PlaceholderScreen: View {
             HStack {
                 Text(title).font(SisuTheme.Font.h1).foregroundStyle(SisuTheme.Color.text)
                 Spacer()
-                if !model.isLive { SampleDataTag() }
             }
             Spacer()
             RiveComponentView(.liito, values: RiveValues.liito(mood))

@@ -31,6 +31,26 @@ public struct CoachClient: Sendable {
         CoachClient(baseURL: sampleBaseURL, transport: ReplayTransport(eventDelay: eventDelay))
     }
 
+    /// A client of a real server that switches to the bundled sample, for good, the first time the server
+    /// cannot be reached. Sessions built on it publish `fallbackNotice` at that moment.
+    public static func liveWithSampleFallback(baseURL: URL, session: URLSession = .shared, eventDelay: TimeInterval = 0.02,
+                                              now: @escaping @Sendable () -> Date = { Date() }) -> CoachClient {
+        CoachClient(baseURL: baseURL, transport: FallbackTransport(primary: URLSessionTransport(session: session),
+                                                                   sample: ReplayTransport(eventDelay: eventDelay), now: now))
+    }
+
+    /// The sentence to show once when this client has fallen back from the live server to the bundled sample;
+    /// nil while it is live (and for a client that was a sample from the start, which is disclosed up front).
+    public var fallbackNotice: String? {
+        guard let fallback = transport as? FallbackTransport, fallback.fallenBackAt != nil else { return nil }
+        return Self.fallbackSentence
+    }
+
+    /// When this client fell back to the sample, for the freshness line in Settings. Nil while it is live.
+    public var fallenBackAt: Date? { (transport as? FallbackTransport)?.fallenBackAt }
+
+    public static let fallbackSentence = "The server could not be reached. Showing sample data recorded on 14 Nov 2026."
+
     /// The placeholder address of the sample client. Nothing is ever sent to it.
     public static let sampleBaseURL = URL(string: "https://sample.invalid")!
 
@@ -63,8 +83,17 @@ public struct CoachClient: Sendable {
     /// Opens an agent stream and gives its events as they arrive. An HTTP error or a dropped connection ends
     /// the stream by throwing (`SisuError.server` or `.offline`). Cancel the task that reads it to abort the turn.
     public func events(for request: URLRequest) -> AsyncThrowingStream<SisuEvent, Error> {
+        messages(for: request) { SisuEvent.decode($0) }
+    }
+
+    /// Opens the money plan's stream and gives its events as they arrive. Errors as for `events(for:)`.
+    public func planEvents(for request: URLRequest) -> AsyncThrowingStream<PlanEvent, Error> {
+        messages(for: request) { PlanEvent.decode($0) }
+    }
+
+    func messages<Event: Sendable>(for request: URLRequest, decode: @escaping @Sendable (Data) -> Event?) -> AsyncThrowingStream<Event, Error> {
         let transport = self.transport
-        return AsyncThrowingStream<SisuEvent, Error> { continuation in
+        return AsyncThrowingStream<Event, Error> { continuation in
             let task = Task {
                 do {
                     let stream = try await transport.open(request)
@@ -73,11 +102,15 @@ public struct CoachClient: Sendable {
                         for try await chunk in stream.chunks { body.append(chunk) }
                         throw SisuError.server(status: stream.status, message: Self.errorMessage(body))
                     }
-                    var parser = SisuEventStreamParser()
+                    var parser = SSEParser()
                     for try await chunk in stream.chunks {
-                        for event in parser.feed(chunk) { continuation.yield(event) }
+                        for message in parser.feed(chunk) {
+                            if let event = decode(Data(message.data.utf8)) { continuation.yield(event) }
+                        }
                     }
-                    for event in parser.finish() { continuation.yield(event) }
+                    for message in parser.finish() {
+                        if let event = decode(Data(message.data.utf8)) { continuation.yield(event) }
+                    }
                     continuation.finish()
                 } catch {
                     continuation.finish(throwing: error)
@@ -223,6 +256,31 @@ public struct CoachClient: Sendable {
     /// `toConfirm`, and when the user agrees call `rememberKwh` with `reading.yearlyKwh`.
     public func readBillPhoto(customerId: String, image: Data, fileName: String = "bill.jpg", mimeType: String = "image/jpeg") async throws -> BillPhotoResult {
         try await call(CoachEndpoints.billPhoto(baseURL: baseURL, customerId: customerId, image: image, fileName: fileName, mimeType: mimeType), as: BillPhotoResult.self)
+    }
+
+    // MARK: The money plan and charts
+
+    /// `POST /api/agent/plan` as a stream of events, one per real step of the server's work.
+    /// - Parameter fresh: false reuses a recent search instead of searching now.
+    public func plan(customerId: String, fresh: Bool? = nil, language: String? = nil) -> AsyncThrowingStream<PlanEvent, Error> {
+        planEvents(for: CoachEndpoints.agentPlan(baseURL: baseURL, PlanRequest(customerId: customerId, fresh: fresh, language: language)))
+    }
+
+    /// `POST /api/actions/approve-all`: one tap approves everything the plan set up (one to six actions).
+    /// The server answers 409 when none could be approved; that answer still comes back here, with the reasons
+    /// in `failed`, and is not thrown. Other errors as for every call.
+    public func approveAll(customerId: String, actionIds: [String]) async throws -> ApproveAllResult {
+        let response = try await transport.send(CoachEndpoints.approveAll(baseURL: baseURL, customerId: customerId, actionIds: actionIds))
+        if let result = try? JSONDecoder().decode(ApproveAllResult.self, from: response.body) { return result }
+        guard (200..<300).contains(response.status) else {
+            throw SisuError.server(status: response.status, message: Self.errorMessage(response.body))
+        }
+        throw SisuError.invalidResponse
+    }
+
+    /// `GET /api/agent/visuals`: every chart for a customer at once, with no model call.
+    public func visuals(customerId: String) async throws -> [Visual] {
+        try await call(CoachEndpoints.visuals(baseURL: baseURL, customerId: customerId), as: VisualList.self).visuals
     }
 
     // MARK: Voice

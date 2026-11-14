@@ -5,6 +5,7 @@ import SwiftUI
 
 struct TodayScreen: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var didApplyLaunch = false
 
     var body: some View {
@@ -20,6 +21,9 @@ struct TodayScreen: View {
                 LoadingState()
             }
         }
+        .onChange(of: model.overviewState, initial: true) { _, state in
+            if state == .loaded { DataFreshness.shared.overviewLoaded(model.overview) }
+        }
         .sheet(item: $model.todaySheet) { sheet in
             switch sheet {
             case .maths: if let overview = model.overview { MathsSheet(overview: overview) }
@@ -32,6 +36,7 @@ struct TodayScreen: View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: SisuTheme.Spacing.card) {
+                    FirstInsightCallout()
                     HeroBlock(overview: overview)
                     DailyActionsCard { proxy.scrollTo("bill", anchor: .top) }
                         .padding(.bottom, SisuTheme.Spacing.section - SisuTheme.Spacing.card)
@@ -44,7 +49,7 @@ struct TodayScreen: View {
                         BillCard(bill: bill) {
                             Task {
                                 try? await Task.sleep(for: .milliseconds(350))
-                                withAnimation { proxy.scrollTo("bill", anchor: .top) }
+                                withAnimation(SisuMotion.state(reduceMotion: reduceMotion)) { proxy.scrollTo("bill", anchor: .top) }
                             }
                         }
                             .id("bill")
@@ -108,27 +113,24 @@ private struct TodayHeader: View {
                     .minimumScaleFactor(0.7)
                     .accessibilityAddTraits(.isHeader)
                 Spacer(minLength: 0)
-                RiveComponentView(.statPill, values: RiveValues.statPill("streak", value: model.progress.streakText))
-                    .sizing(.contain).frame(width: 72, height: 36)
-                    .riveAccessible("Streak", value: "\(model.progress.streakText) days")
-                RiveComponentView(.statPill, values: RiveValues.statPill("berries", value: model.berriesText))
-                    .sizing(.contain).frame(width: 72, height: 36)
-                    .riveAccessible("Berries", value: model.berriesText)
-                Button { model.todaySheet = .settings } label: {
-                    Image(systemName: "gearshape")
-                        .font(SisuTheme.Font.h3)
-                        .foregroundStyle(SisuTheme.Color.green700)
-                        .frame(width: SisuTheme.Spacing.touchTarget - 8, height: SisuTheme.Spacing.touchTarget - 8)
-                        .background(SisuTheme.Color.card, in: Circle())
+                HStack(spacing: SisuTheme.Spacing.grid * 2) {
+                    RiveComponentView(.statPill, values: RiveValues.statPill("streak", value: model.progress.streakText))
+                        .hugging(width: RiveHug.statPill(model.progress.streakText))
+                        .riveAccessible("Streak", value: "\(model.progress.streakText) days")
+                    RiveComponentView(.statPill, values: RiveValues.statPill("berries", value: model.berriesText))
+                        .hugging(width: RiveHug.statPill(model.berriesText, kind: "berries"))
+                        .riveAccessible("Berries", value: model.berriesText)
                 }
-                .accessibilityLabel("Settings")
+                SisuIconButton(icon: .settings, style: .tinted, label: "Settings") { model.todaySheet = .settings }
             }
             if let overview = model.overview {
-                HStack(spacing: SisuTheme.Spacing.grid * 2) {
-                    if !model.isLive { SampleDataTag() }
-                    Text(TodayPresenter.dataDate(overview))
-                        .font(SisuTheme.Font.caption)
-                        .foregroundStyle(SisuTheme.Color.textMuted)
+                Text(TodayPresenter.dataDate(overview))
+                    .font(SisuTheme.Font.caption)
+                    .foregroundStyle(SisuTheme.Color.textMuted)
+                // Said once, at the moment the app fell back from the live backend to the demo data.
+                if model.backendAnswered == false, !model.sampleOnly {
+                    TransientNotice(id: "overview-fallback-\(model.customer?.customerId ?? "")",
+                                    text: "Sisu's server did not answer, so you see the demo data.")
                 }
             }
         }

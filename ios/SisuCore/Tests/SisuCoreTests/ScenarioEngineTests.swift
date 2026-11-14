@@ -46,6 +46,29 @@ final class ScenarioEngineTests: XCTestCase {
         }
     }
 
+    func testALumpSumGoesIntoInvestmentsOnDayOneInTheInvestFutureOnly() throws {
+        let overview = try FixtureAPI.load("overview-CUST04974", as: Overview.self)
+        let plain = ScenarioEngine.run(overview: overview, input: ScenarioInput(billSavingPerMonth: 100, everydayCutPct: 0, years: 5))
+        let lump = ScenarioEngine.run(overview: overview, input: ScenarioInput(billSavingPerMonth: 100, everydayCutPct: 0, years: 5, oneOffEur: 1000))
+        XCTAssertEqual(plain.input.oneOffEur, 0)
+        XCTAssertEqual(plain.assumptions.count, 5)
+        XCTAssertEqual(lump.assumptions.count, 6)
+        XCTAssertEqual(lump.assumptions.last, "In the \"invest it\" future, €1000 is moved from the account into investments on day one. In the other two it stays in the account.")
+        XCTAssertEqual(lump.branches[0], plain.branches[0])
+        XCTAssertEqual(lump.branches[1], plain.branches[1])
+        let start = lump.branches[2].points[0]
+        XCTAssertEqual(start.cash, overview.balance - 1000, accuracy: 0.001)
+        XCTAssertEqual(start.invested, 1000)
+        XCTAssertEqual(start.total, overview.balance)
+        XCTAssertGreaterThan(lump.branches[2].endTotal, plain.branches[2].endTotal)
+        XCTAssertEqual(ScenarioEngine.clean(ScenarioInput(billSavingPerMonth: 1, everydayCutPct: 1, years: 1, oneOffEur: 250_000.555)).oneOffEur, 100_000)
+        XCTAssertEqual(ScenarioEngine.clean(ScenarioInput(billSavingPerMonth: 1, everydayCutPct: 1, years: 1, oneOffEur: -5)).oneOffEur, 0)
+        let body = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(Endpoints.scenario(baseURL: URL(string: "http://localhost:3000")!, customerId: "C",
+                                                                                             input: ScenarioInput(billSavingPerMonth: 1, everydayCutPct: 1, years: 1, oneOffEur: 300)).httpBody)) as? [String: Any])
+        XCTAssertEqual(body["oneOffEur"] as? Double, 300)
+        XCTAssertEqual(try JSONDecoder().decode(ScenarioInput.self, from: Data(#"{"billSavingPerMonth":1,"everydayCutPct":2,"years":3}"#.utf8)).oneOffEur, 0)
+    }
+
     func testFixtureAPIComputesScenariosOffline() async throws {
         let api = FixtureAPI()
         XCTAssertEqual(api.kind, .bundledSample)

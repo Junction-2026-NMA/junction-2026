@@ -80,8 +80,11 @@ public enum TodayPresenter {
     }
 
     /// The legend under the basket bar, one entry per basket, left to right: (`fixed`, `Fixed 42%`), …
+    /// The fourth entry is the savings jar as `Saved 0%`, with the `jars` share of `BasketMath.shares`, as the
+    /// `Baskets` illustration draws four containers.
     public static func basketLegendItems(_ overview: Overview) -> [(kind: BasketKind, text: String)] {
-        overview.baskets.map { ($0.id.kind, "\($0.id.kind.label(.en)) \(NumberText.percent($0.share))") }
+        let baskets = overview.baskets.map { ($0.id.kind, "\($0.id.kind.label(.en)) \(NumberText.percent($0.share))") }
+        return baskets + [(.jars, "Saved \(NumberText.percent(BasketMath.shares(for: overview).jars))")]
     }
 
     /// The legend under the basket picture, left to right: `Fixed 42% · Curveballs 18% · Leaks 40%`.

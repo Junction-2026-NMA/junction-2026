@@ -55,6 +55,9 @@ public enum RiveComponent: String, CaseIterable, Sendable {
     case tag = "Tag"
     case baskets = "Baskets"
     case berries = "Berries"
+    case iconButton = "IconButton"
+    case lessonNode = "LessonNode"
+    case typingDots = "TypingDots"
 
     /// The file the artboard lives in: always `.ui`.
     public var file: RiveFile { .ui }
@@ -81,6 +84,9 @@ public enum RiveComponent: String, CaseIterable, Sendable {
         case .tag: return (200, 28)
         case .baskets: return (350, 220)
         case .berries: return (320, 200)
+        case .iconButton: return (48, 48)
+        case .lessonNode: return (120, 120)
+        case .typingDots: return (56, 28)
         }
     }
 
@@ -89,9 +95,9 @@ public enum RiveComponent: String, CaseIterable, Sendable {
         switch self {
         case .button, .heroNumber, .basketBar, .progressBar, .tabBar, .actionRow, .choiceCard, .stageIndicator, .baskets:
             return .flexibleWidth
-        case .basketChip, .statPill, .voiceButton, .toggle, .tag:
+        case .basketChip, .statPill, .voiceButton, .toggle, .tag, .iconButton, .typingDots:
             return .fixed
-        case .liito, .jar, .sticker, .berries:
+        case .liito, .jar, .sticker, .berries, .lessonNode:
             return .contain
         case .celebration:
             return .fill
@@ -102,7 +108,7 @@ public enum RiveComponent: String, CaseIterable, Sendable {
     /// `rive/contract.json`), in contract order. Empty when there are none.
     public var outTriggers: [String] {
         switch self {
-        case .button, .actionRow, .choiceCard: return ["pressed"]
+        case .button, .actionRow, .choiceCard, .iconButton, .lessonNode: return ["pressed"]
         case .tabBar: return ["tap0", "tap1", "tap2", "tap3"]
         case .voiceButton: return ["pressDown", "pressUp"]
         case .celebration: return ["done"]
@@ -135,6 +141,9 @@ public enum RiveBindings {
     public enum StatKind: String, CaseIterable, Sendable { case streak, berries }
     public enum TagTone: String, CaseIterable, Sendable { case neutral, amber, info }
     public enum StickerKind: String, CaseIterable, Sendable { case firstJar, leakPlugged, streak, lesson }
+    public enum IconKind: String, CaseIterable, Sendable { case settings, close, back, forward, info, soundOn, soundOff, more }
+    public enum IconStyle: String, CaseIterable, Sendable { case plain, tinted, filled }
+    public enum LessonState: String, CaseIterable, Sendable { case upcoming, current, done }
 
     /// The tab labels of the contract's defaults: Today, Ask, Jars, Path.
     public static let defaultTabLabels = ["Today", "Ask", "Jars", "Path"]
@@ -257,6 +266,21 @@ public enum RiveBindings {
 
     /// `fixed`, `curveballs`, `leaks`, `jars` for the `Baskets` illustration (the same set as `basketBar`).
     public static func baskets(_ shares: BasketShares) -> [String: RiveValue] { basketBar(shares) }
+
+    /// `icon`, `style`, `enabled`. For `IconButton`.
+    public static func iconButton(icon: IconKind, style: IconStyle = .plain, enabled: Bool = true) -> [String: RiveValue] {
+        ["icon": .enumCase(icon.rawValue), "style": .enumCase(style.rawValue), "enabled": .bool(enabled)]
+    }
+
+    /// `state` and `number` (the text on the node, for example `1`). For `LessonNode`.
+    public static func lessonNode(state: LessonState, number: String) -> [String: RiveValue] {
+        ["state": .enumCase(state.rawValue), "number": .string(number)]
+    }
+
+    /// `active`. For `TypingDots`.
+    public static func typingDots(active: Bool = true) -> [String: RiveValue] {
+        ["active": .bool(active)]
+    }
 
     /// The same as `voiceButton(state:)`.
     public static func voiceButton(_ state: VoiceState) -> [String: RiveValue] { voiceButton(state: state) }

@@ -1,12 +1,12 @@
-data: {"type":"start","turnId":"a2c16c05-55cc-4f4e-87a7-543d09f96e3e","provider":"mock","model":"mock","mock":true}
+data: {"type":"start","turnId":"f614d784-38d9-4b11-b73d-3ade25767c21","provider":"mock","model":"mock","mock":true}
 
-data: {"type":"tool_start","id":"mock_remember_846293","name":"remember","args":{"kind":"yearly_kwh","value":"3500"}}
+data: {"type":"tool_start","id":"mock_remember_fi20qc","name":"remember","args":{"kind":"yearly_kwh","value":"3500"},"label":"Saving that so I remember it next time"}
 
-data: {"type":"tool_end","trace":{"id":"mock_remember_846293","name":"remember","args":{"kind":"yearly_kwh","value":"3500"},"source":"finance","startedAtMs":254,"tookMs":2,"ok":true,"summary":"Remembered yearly_kwh: 3500","joinedPrefetch":false}}
+data: {"type":"tool_end","trace":{"id":"mock_remember_fi20qc","name":"remember","args":{"kind":"yearly_kwh","value":"3500"},"source":"finance","startedAtMs":255,"tookMs":2,"ok":true,"summary":"Remembered yearly_kwh: 3500","joinedPrefetch":false}}
 
-data: {"type":"stage","stage":{"kind":"memory","title":"Remembered","summary":"yearly kwh: 3500","source":"customer-stated","data":{"kind":"memory","item":{"id":"f356c76d-fb5b-445e-8017-c2a8e5d79ace","kind":"yearly_kwh","key":"electricity","value":"3500","billType":null,"source":"user-said-in-chat","savedAt":"2026-11-14T09:50:30.124Z"}},"id":"a2c16c05-55cc-4f4e-87a7-543d09f96e3e:0","toolCallId":"mock_remember_846293","atMs":256,"facts":[]}}
+data: {"type":"stage","stage":{"kind":"memory","title":"Remembered","summary":"yearly kwh: 3500","source":"customer-stated","data":{"kind":"memory","item":{"id":"ccad8e28-a210-4b77-90c2-6ad29c637e3f","kind":"yearly_kwh","key":"electricity","value":"3500","billType":null,"source":"user-said-in-chat","savedAt":"2026-11-14T11:30:30.763Z"}},"id":"f614d784-38d9-4b11-b73d-3ade25767c21:0","toolCallId":"mock_remember_fi20qc","atMs":257,"facts":[]}}
 
-data: {"type":"memory","item":{"id":"f356c76d-fb5b-445e-8017-c2a8e5d79ace","kind":"yearly_kwh","key":"electricity","value":"3500","billType":null,"source":"user-said-in-chat","savedAt":"2026-11-14T09:50:30.124Z"}}
+data: {"type":"memory","item":{"id":"ccad8e28-a210-4b77-90c2-6ad29c637e3f","kind":"yearly_kwh","key":"electricity","value":"3500","billType":null,"source":"user-said-in-chat","savedAt":"2026-11-14T11:30:30.763Z"}}
 
 data: {"type":"delta","text":"Mock "}
 
@@ -46,5 +46,5 @@ data: {"type":"sentence","index":1,"text":"You can ask me to forget it at any ti
 
 data: {"type":"grounding","grounding":{"ok":true,"checked":0,"unverified":[],"numbers":[],"corrections":[]},"facts":[]}
 
-data: {"type":"done","text":"Mock answer. I will remember that. You can ask me to forget it at any time.","citations":[],"timings":{"sttMs":null,"firstTokenMs":281,"firstSentenceMs":411,"totalMs":674,"modelSteps":[{"model":"mock","provider":"mock","usedBackup":false,"firstTokenMs":250,"totalMs":250},{"model":"mock","provider":"mock","usedBackup":false,"firstTokenMs":25,"totalMs":418}]}}
+data: {"type":"done","text":"Mock answer. I will remember that. You can ask me to forget it at any time.","citations":[],"timings":{"sttMs":null,"firstTokenMs":284,"firstSentenceMs":413,"totalMs":675,"modelSteps":[{"model":"mock","provider":"mock","usedBackup":false,"firstTokenMs":250,"totalMs":250},{"model":"mock","provider":"mock","usedBackup":false,"firstTokenMs":27,"totalMs":418}]}}
 

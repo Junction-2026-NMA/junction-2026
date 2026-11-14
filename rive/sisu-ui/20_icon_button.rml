@@ -104,9 +104,9 @@
                 </Node>
                 <Node name="more" id="20:28">
                     <Shape name="more drawing">
-                        <Ellipse width="0.8" height="0.8" x="-7" name="Dot 1"/>
-                        <Ellipse width="0.8" height="0.8" name="Dot 2"/>
-                        <Ellipse width="0.8" height="0.8" x="7" name="Dot 3"/>
+                        <Ellipse width="1.6" height="1.6" x="-7" name="Dot 1"/>
+                        <Ellipse width="1.6" height="1.6" name="Dot 2"/>
+                        <Ellipse width="1.6" height="1.6" x="7" name="Dot 3"/>
                         <Stroke thickness="2.2" cap="round" join="round" name="Stroke"><SolidColor colorValue="FF004628" name="Color" id="20:38"/></Stroke>
                     </Shape>
                 </Node>

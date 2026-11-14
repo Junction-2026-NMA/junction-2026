@@ -11,7 +11,11 @@
 //                               Ask tab, completes the "let Sisu look into it" action and bumps
 //                               `investigationRequests`, which AskScreen can watch with .onChange to start a run.
 //   resetDemo()                 "Start the demo over" in settings: clears progress, confirmed names and the
-//                               approved saving, and goes back to the customer picker.
+//                               approved saving, and starts the first-run onboarding again from its first screen.
+//   onboarding                  The first-run flow (SisuCore's OnboardingFlow), stored in UserDefaults. RootView
+//                               shows it while `onboarding.isActive`; onboardingContinue/Back/Skip(),
+//                               chooseInOnboarding(_:), finishOnboarding() move it. `firstInsightPending` makes
+//                               Today show FirstInsightCallout until dismissFirstInsight().
 //   approvedMonthlySaving       Published euros a month the user approved through switches (0 for now). The
 //                               Jars tab's "Freed by switches" jar is bound to it. Set it when an approval lands.
 //   flaggedBill                 The bill Today flags (SisuCore's TodayPresenter.flaggedBill).
@@ -88,6 +92,8 @@ final class AppModel {
     // MARK: Navigation
 
     var tab: AppTab = .today
+    /// The first-run flow. Complete after the first visit; "Start the demo over" restarts it.
+    private(set) var onboarding: OnboardingFlow
     var evidence: EvidenceRequest?
     var todaySheet: TodaySheet?
 
@@ -125,6 +131,15 @@ final class AppModel {
         self.calendar = calendar
         let defaults = launch.defaults
         self.defaults = defaults
+        if launch.onboarding == .reset {
+            // As on a clean install: no progress, names, rewards, chosen customer or finished first run.
+            for key in [Keys.progress, Keys.billNames, Keys.coachRewards, Keys.customer, Keys.onboarding] {
+                defaults.removeObject(forKey: key)
+            }
+        }
+        let storedFlow = defaults.data(forKey: Keys.onboarding).flatMap { try? JSONDecoder().decode(OnboardingFlow.self, from: $0) }
+        onboarding = OnboardingFlow.atLaunch(stored: storedFlow, launch: launch.onboarding,
+                                             skipsByDefault: launch.skipsOnboardingByDefault)
         baseURLString = launch.baseURL ?? defaults.string(forKey: Keys.baseURL) ?? Self.defaultBaseURL
         sampleOnly = launch.sampleOnly ?? defaults.bool(forKey: Keys.sample)
         progress = (defaults.data(forKey: Keys.progress)).flatMap { try? JSONDecoder().decode(DailyProgress.self, from: $0) } ?? DailyProgress()
@@ -144,7 +159,8 @@ final class AppModel {
     /// Loads the customers (live, falling back to the bundled sample), then the chosen customer if one is set.
     func start() async {
         await loadCustomers()
-        if let id = launch.customerId ?? defaults.string(forKey: Keys.customer),
+        // While the first run is on screen the user chooses the customer in it.
+        if !onboarding.isActive, let id = launch.customerId ?? defaults.string(forKey: Keys.customer),
            let match = customers.first(where: { $0.customerId == id }) {
             await choose(match)
         }
@@ -316,6 +332,45 @@ final class AppModel {
         for key in [Keys.progress, Keys.billNames, Keys.coachRewards] { defaults.removeObject(forKey: key) }
         todaySheet = nil
         switchCustomer()
+        onboarding.restart()
+        saveOnboarding()
+    }
+
+    // MARK: Onboarding
+
+    func onboardingContinue() { onboarding.advance(); saveOnboarding() }
+    func onboardingBack() { onboarding.back(); saveOnboarding() }
+    func onboardingSkip() { onboarding.skipIntro(); saveOnboarding() }
+
+    /// The profile step's choice: show the reading moment and load the profile's overview.
+    func chooseInOnboarding(_ customer: DemoCustomer) {
+        onboarding.profileChosen()
+        saveOnboarding()
+        Task { await choose(customer) }
+    }
+
+    /// The profile could not be read: back to the profile step, with no customer chosen.
+    func onboardingReadingFailed() {
+        onboarding.readingFailed()
+        saveOnboarding()
+        switchCustomer()
+    }
+
+    /// The overview is read and the user goes on: Today, with the first insight highlighted.
+    func finishOnboarding() {
+        tab = .today
+        onboarding.finish()
+        saveOnboarding()
+    }
+
+    /// The first-insight callout on Today was tapped away.
+    func dismissFirstInsight() {
+        onboarding.dismissFirstInsight()
+        saveOnboarding()
+    }
+
+    private func saveOnboarding() {
+        if let data = try? JSONEncoder().encode(onboarding) { defaults.set(data, forKey: Keys.onboarding) }
     }
 
     private static func billKey(_ customerId: String, _ billId: String) -> String { "\(customerId)/\(billId)" }
@@ -327,5 +382,7 @@ final class AppModel {
         static let progress = "sisu.progress"
         static let billNames = "sisu.billNames"
         static let coachRewards = "sisu.coachRewards"
+        /// Not "sisu.onboarding": that name is the launch argument, which would shadow the stored value.
+        static let onboarding = "sisu.onboardingFlow"
     }
 }

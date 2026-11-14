@@ -15,7 +15,6 @@ struct JarsScreen: View {
                     .foregroundStyle(SisuTheme.Color.text)
                     .accessibilityAddTraits(.isHeader)
                 Spacer()
-                if !model.isLive { SampleDataTag() }
             }
             .padding(.horizontal, SisuTheme.Spacing.margin)
             .padding(.vertical, SisuTheme.Spacing.grid * 2)
@@ -118,7 +117,7 @@ private struct JarTile: View {
         }
         .padding(SisuTheme.Spacing.card)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(SisuTheme.Color.card, in: RoundedRectangle(cornerRadius: SisuTheme.Radius.card, style: .continuous))
+        .sisuCardSurface()
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(title): \(figure) \(detail)")
     }
@@ -170,7 +169,7 @@ private struct FuturesSection: View {
             if guess != nil {
                 reveal(branches)
                     .id("futures")
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    .transition(SisuMotion.entrance(reduceMotion: reduceMotion))
             }
         }
         .animation(SisuMotion.state(reduceMotion: reduceMotion), value: guess)
@@ -267,8 +266,7 @@ private struct SliderRow: View {
                 Spacer()
                 Text(text).font(SisuTheme.Font.button).foregroundStyle(SisuTheme.Color.text)
             }
-            Slider(value: $value, in: range, step: step)
-                .tint(SisuTheme.Color.green700)
+            SisuSlider(value: $value, range: range, step: step)
                 .accessibilityLabel(title)
                 .accessibilityValue(text)
         }
@@ -327,6 +325,51 @@ private struct FuturesChart: View {
         case .nothing: return SisuTheme.Color.neutral400
         case .save: return SisuTheme.Color.green900
         case .invest: return SisuTheme.Color.green500
+        }
+    }
+}
+
+/// The app's slider: a 14 pt rounded pale-mint track, a deep green fill, and a white knob with a deep green ring
+/// and the 4 pt darker edge of anything pressable. Adjustable with VoiceOver.
+private struct SisuSlider: View {
+    @Binding var value: Double
+    let range: ClosedRange<Double>
+    let step: Double
+
+    private let track: CGFloat = 14
+    private let knob: CGFloat = 30
+
+    var body: some View {
+        GeometryReader { geometry in
+            let width = max(geometry.size.width - knob, 1)
+            let span = max(range.upperBound - range.lowerBound, step)
+            let fraction = CGFloat((min(max(value, range.lowerBound), range.upperBound) - range.lowerBound) / span)
+            ZStack(alignment: .leading) {
+                Capsule().fill(SisuTheme.Color.green100).frame(height: track)
+                Capsule().fill(SisuTheme.Color.green700).frame(width: knob / 2 + fraction * width, height: track)
+                Circle()
+                    .fill(SisuTheme.Color.white)
+                    .overlay(Circle().strokeBorder(SisuTheme.Color.green700, lineWidth: 4))
+                    .background(Circle().fill(SisuTheme.Color.green900).offset(y: SisuTheme.Spacing.pressEdge / 2))
+                    .frame(width: knob, height: knob)
+                    .offset(x: fraction * width)
+            }
+            .frame(maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
+                let raw = Double((drag.location.x - knob / 2) / width) * span + range.lowerBound
+                let stepped = (raw / step).rounded() * step
+                value = min(max(stepped, range.lowerBound), range.upperBound)
+            })
+        }
+        .frame(height: SisuTheme.Spacing.touchTarget - 8)
+        .accessibilityElement()
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment: value = min(value + step, range.upperBound)
+            case .decrement: value = max(value - step, range.lowerBound)
+            @unknown default: break
+            }
         }
     }
 }

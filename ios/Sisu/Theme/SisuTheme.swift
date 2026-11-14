@@ -1,4 +1,4 @@
-// Colours, type, spacing and radii from ios/BRAND.md. Style the app with these and nothing else.
+// Colours, type, spacing and radii from ios/BRAND.md (light look and glass rules of 2026-11-14). Style the app with these and nothing else.
 // Type weights come from the full kit (brand/tokens.json on the brand-kit branch), which BRAND.md summarises.
 import SwiftUI
 import UIKit
@@ -38,14 +38,35 @@ enum SisuTheme {
         static let darkOutline = SwiftUI.Color(hex: 0x1B6B43)
 
         // Roles: light value, dark value.
-        static let background = SwiftUI.Color(light: 0xEBF7EC, dark: 0x00301B)
+        // The light look (2026-11-14): a near-white screen, white cards with a hairline, dark readable text.
+        // S-Pankki green is kept for the primary action, selected states, progress and the basket colours.
+        /// The screen, sheets and the launch screen: a near-white with a hint of green-grey.
+        static let background = SwiftUI.Color(light: 0xF6F8F7, dark: 0x00301B)
         static let card = SwiftUI.Color(light: 0xFFFFFF, dark: 0x004628)
+        /// The hairline that separates a white card from the near-white screen. No shadows.
+        static let hairline = SwiftUI.Color(light: 0xE3E8E5, dark: 0x1B6B43)
+        /// The 4 pt bottom edge of a pressable white card.
+        static let pressEdge = SwiftUI.Color(light: 0xDCE3DF, dark: 0x1B6B43)
+        /// A text field's fill on a white card.
+        static let inputFill = SwiftUI.Color(light: 0xF6F8F7, dark: 0x00301B)
         static let outline = SwiftUI.Color(light: 0x99D59F, dark: 0x1B6B43)
-        static let text = SwiftUI.Color(light: 0x004628, dark: 0xF7FCF7)
-        static let textMuted = SwiftUI.Color(light: 0x666666, dark: 0x99D59F)
+        static let text = SwiftUI.Color(light: 0x18211C, dark: 0xF7FCF7)
+        static let textMuted = SwiftUI.Color(light: 0x5E6662, dark: 0x99D59F)
         /// The primary button: deep green with a white label, mint with a dark label in dark mode.
         static let primary = SwiftUI.Color(light: 0x007841, dark: 0x91FA9B)
         static let onPrimary = SwiftUI.Color(light: 0xFFFFFF, dark: 0x00301B)
+
+        // The glass tab bar.
+        /// The selected tab's icon and label.
+        static let tabSelected = SwiftUI.Color(light: 0x004628, dark: 0x91FA9B)
+        /// An unselected tab's icon and label: dark enough to read over scrolling content behind the glass.
+        static let tabIdle = SwiftUI.Color(light: 0x3B4440, dark: 0xD2FCD5)
+        /// The soft green of the selected-tab pill (glass tint, at a low opacity).
+        static let selectionTint = SwiftUI.Color(light: 0x00AA46, dark: 0x91FA9B)
+        /// The selected-tab pill where there is no glass (iOS 17 to 25, Reduce Transparency).
+        static let selectionFill = SwiftUI.Color(light: 0xDDF3E2, dark: 0x1B6B43)
+        /// The bar with Reduce Transparency on: a solid near-white surface.
+        static let barSolid = SwiftUI.Color(light: 0xFCFDFC, dark: 0x004628)
 
         // Baskets, dark to light. Always shown with an icon and a label.
         static let basketFixed = green900
@@ -87,6 +108,9 @@ enum SisuTheme {
         static let card: CGFloat = 16
         /// Between two sections.
         static let section: CGFloat = 32
+        /// Room under a screen's last row so it scrolls clear of the floating tab bar (added on top of the
+        /// safe-area inset the bar already makes).
+        static let tabBarClearance: CGFloat = 16
         /// The smallest touch target.
         static let touchTarget: CGFloat = 48
         /// The darker bottom edge of anything pressable.
@@ -99,6 +123,23 @@ enum SisuTheme {
         static let card: CGFloat = 24
         static let sheet: CGFloat = 32
         static let hero: CGFloat = 32
+    }
+
+    /// The floating glass tab bar: a capsule above the home indicator with a moving selection pill.
+    enum TabBar {
+        /// The bar's height, pill included.
+        static let height: CGFloat = 64
+        /// The gap between the bar's edge and the selection pill.
+        static let inset: CGFloat = 5
+        /// The bar's distance from the screen's sides.
+        static let sideMargin: CGFloat = 20
+        /// Where the bar's bottom edge sits relative to the bottom safe-area edge. Negative: a little into the home
+        /// indicator's band, like the system's floating bar, still about 12 pt above the indicator itself.
+        static let lift: CGFloat = -10
+        static let icon: CGFloat = 20
+        /// Label size: Figtree SemiBold, scales with Dynamic Type up to a cap so the bar keeps its shape.
+        static let label = SwiftUI.Font.custom(Font.figtreeSemiBold, size: 12, relativeTo: .caption2)
+        static let labelSelected = SwiftUI.Font.custom(Font.figtreeBold, size: 12, relativeTo: .caption2)
     }
 }
 

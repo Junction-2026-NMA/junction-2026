@@ -194,6 +194,19 @@ public enum CoachEndpoints {
         return multipart(baseURL, "/api/agent/bill-photo", form, timeout: voiceTimeout)
     }
 
+    /// `POST {base}/api/agent/plan` with `{ customerId, fresh?, language? }`: the money plan as an event stream.
+    public static func agentPlan(baseURL: URL, _ body: PlanRequest) -> URLRequest { stream(baseURL, "/api/agent/plan", body) }
+
+    /// `GET {base}/api/agent/visuals?customerId=`: every chart for a customer, with no model call.
+    public static func visuals(baseURL: URL, customerId: String) -> URLRequest {
+        get(baseURL, "/api/agent/visuals", query: [("customerId", customerId)])
+    }
+
+    /// `POST {base}/api/actions/approve-all` with `{ customerId, actionIds, confirm: true }`.
+    public static func approveAll(baseURL: URL, customerId: String, actionIds: [String]) -> URLRequest {
+        post(baseURL, "/api/actions/approve-all", ApproveAllRequest(customerId: customerId, actionIds: actionIds))
+    }
+
     // MARK: Voice
 
     /// `GET {base}/api/voice/tts`: voices, models and the languages for a picker.

@@ -100,19 +100,22 @@ public enum Endpoints {
     }
 
     /// `POST {base}/api/scenarios` with header `Content-Type: application/json` and a JSON body holding
-    /// exactly the keys `customerId`, `billSavingPerMonth`, `everydayCutPct` and `years`.
+    /// exactly the keys `customerId`, `billSavingPerMonth`, `everydayCutPct` and `years`
+    /// (and `oneOffEur`, only when the input has a lump sum above zero).
     public static func scenario(baseURL: URL, customerId: String, input: ScenarioInput) -> URLRequest {
         struct Body: Encodable {
             let customerId: String
             let billSavingPerMonth: Double
             let everydayCutPct: Double
             let years: Int
+            let oneOffEur: Double?
         }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
         let finite: (Double) -> Double = { $0.isFinite ? $0 : 0 }
         let body = Body(customerId: customerId, billSavingPerMonth: finite(input.billSavingPerMonth),
-                        everydayCutPct: finite(input.everydayCutPct), years: input.years)
+                        everydayCutPct: finite(input.everydayCutPct), years: input.years,
+                        oneOffEur: input.oneOffEur.isFinite && input.oneOffEur > 0 ? input.oneOffEur : nil)
         return postJSON(url(baseURL, "/api/scenarios"), body: (try? encoder.encode(body)) ?? Data("{}".utf8))
     }
 }
@@ -246,14 +249,15 @@ public enum ScenarioEngine {
     static let fundFee = 0.002
 
     /// The limits the server clamps to: bill saving 0...500 a month, everyday cut 0...50 percent, 1...10 years
-    /// (years are rounded to a whole number after clamping).
+    /// (years are rounded to a whole number after clamping), a lump sum 0...100,000 rounded to cents.
     public static func clean(_ input: ScenarioInput) -> ScenarioInput {
         func clamp(_ value: Double, _ lo: Double, _ hi: Double) -> Double {
             Swift.min(Swift.max(value.isFinite ? value : lo, lo), hi)
         }
         return ScenarioInput(billSavingPerMonth: clamp(input.billSavingPerMonth, 0, 500),
                              everydayCutPct: clamp(input.everydayCutPct, 0, 50),
-                             years: Swift.min(Swift.max(input.years, 1), 10))
+                             years: Swift.min(Swift.max(input.years, 1), 10),
+                             oneOffEur: round2(clamp(input.oneOffEur, 0, 100_000)))
     }
 
     /// JavaScript's `Math.round(x * 100) / 100` (halves go up).
@@ -270,13 +274,14 @@ public enum ScenarioEngine {
         }
     }
 
-    static func project(_ id: BranchId, overview: Overview, toCash: Double, toInvested: Double, months: Int) -> Branch {
+    /// `invested` is money already in investments on day one (a lump sum the customer moves there).
+    static func project(_ id: BranchId, overview: Overview, toCash: Double, toInvested: Double, months: Int, invested: Double = 0) -> Branch {
         func grow(_ invested: Double, _ yearlyReturn: Double) -> Double {
             (invested + toInvested) * (1 + (yearlyReturn - fundFee) / 12)
         }
         let balance = overview.balance
-        var cash = balance, low = 0.0, mid = 0.0, high = 0.0
-        var points = [BranchPoint(month: 0, cash: balance, invested: 0, total: balance, totalLow: balance, totalHigh: balance)]
+        var cash = balance - invested, low = invested, mid = invested, high = invested
+        var points = [BranchPoint(month: 0, cash: cash, invested: invested, total: balance, totalLow: balance, totalHigh: balance)]
         for month in 0..<Swift.max(months, 0) {
             cash += toCash
             low = grow(low, returnLow)
@@ -310,7 +315,7 @@ public enum ScenarioEngine {
             branches: [
                 project(.nothing, overview: overview, toCash: netToCash, toInvested: saved, months: months),
                 project(.save, overview: overview, toCash: netToCash + freed, toInvested: saved, months: months),
-                project(.invest, overview: overview, toCash: netToCash, toInvested: saved + freed, months: months),
+                project(.invest, overview: overview, toCash: netToCash, toInvested: saved + freed, months: months, invested: input.oneOffEur),
             ],
             assumptions: [
                 "Income and spending stay at their last-12-month averages. Real life will differ.",
@@ -318,7 +323,9 @@ public enum ScenarioEngine {
                 "A fund fee of \(percent(fundFee))% a year is taken off. Taxes and inflation are not included.",
                 "Investments already held elsewhere are not visible in the bank data, so the invested pot starts at €0.",
                 "Cash in the account earns no interest here.",
-            ]
+            ] + (input.oneOffEur != 0
+                ? ["In the \"invest it\" future, €\(Int(input.oneOffEur.rounded(.toNearestOrAwayFromZero))) is moved from the account into investments on day one. In the other two it stays in the account."]
+                : [])
         )
     }
 }

@@ -27,10 +27,13 @@ final class RiveContractTests: XCTestCase {
         Row(name: "Tag", file: .ui, width: 200, height: 28, sizing: .fixed, out: []),
         Row(name: "Baskets", file: .ui, width: 350, height: 220, sizing: .flexibleWidth, out: []),
         Row(name: "Berries", file: .ui, width: 320, height: 200, sizing: .contain, out: []),
+        Row(name: "IconButton", file: .ui, width: 48, height: 48, sizing: .fixed, out: ["pressed"]),
+        Row(name: "LessonNode", file: .ui, width: 120, height: 120, sizing: .contain, out: ["pressed"]),
+        Row(name: "TypingDots", file: .ui, width: 56, height: 28, sizing: .fixed, out: []),
     ]
 
     func testEveryComponentMatchesTheContract() throws {
-        XCTAssertEqual(RiveComponent.allCases.count, 19)
+        XCTAssertEqual(RiveComponent.allCases.count, 22)
         XCTAssertEqual(RiveComponent.allCases.map(\.rawValue), table.map(\.name))
         for row in table {
             let component = try XCTUnwrap(RiveComponent(rawValue: row.name))
@@ -52,5 +55,9 @@ final class RiveContractTests: XCTestCase {
         XCTAssertEqual(RiveComponent.berries.inTriggers, ["drop"])
         XCTAssertEqual(RiveComponent.baskets.inTriggers, [])
         XCTAssertEqual(RiveComponent.button.inTriggers, [])
+        XCTAssertEqual(RiveComponent.iconButton.inTriggers, [])
+        XCTAssertEqual(RiveBindings.IconKind.allCases.map(\.rawValue), ["settings", "close", "back", "forward", "info", "soundOn", "soundOff", "more"])
+        XCTAssertEqual(RiveBindings.IconStyle.allCases.map(\.rawValue), ["plain", "tinted", "filled"])
+        XCTAssertEqual(RiveBindings.LessonState.allCases.map(\.rawValue), ["upcoming", "current", "done"])
     }
 }

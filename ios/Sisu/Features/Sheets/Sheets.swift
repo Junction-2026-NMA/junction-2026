@@ -2,7 +2,7 @@
 import SisuCore
 import SwiftUI
 
-/// A sheet's frame: near-white green, a title and a close button.
+/// A sheet's frame: the near-white screen colour, a title and a close button.
 private struct SheetFrame<Content: View>: View {
     @Environment(\.dismiss) private var dismiss
     let title: String
@@ -17,14 +17,7 @@ private struct SheetFrame<Content: View>: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
                 Spacer(minLength: SisuTheme.Spacing.card)
-                Button { dismiss() } label: {
-                    Image(systemName: "xmark")
-                        .font(SisuTheme.Font.button)
-                        .foregroundStyle(SisuTheme.Color.green700)
-                        .frame(width: 40, height: 40)
-                        .background(SisuTheme.Color.green100, in: Circle())
-                }
-                .accessibilityLabel("Close")
+                SisuIconButton(icon: .close, style: .tinted, label: "Close") { dismiss() }
             }
             .padding(.horizontal, SisuTheme.Spacing.margin)
             .padding(.top, SisuTheme.Spacing.margin + SisuTheme.Spacing.grid)
@@ -32,7 +25,7 @@ private struct SheetFrame<Content: View>: View {
             content
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(SisuTheme.Color.green25.ignoresSafeArea())
+        .background(SisuTheme.Color.background.ignoresSafeArea())
         .presentationCornerRadius(SisuTheme.Radius.sheet)
         .presentationDragIndicator(.visible)
     }
@@ -48,7 +41,6 @@ struct MathsSheet: View {
         SheetFrame(title: "How safe to spend is worked out") {
             ScrollView {
                 VStack(alignment: .leading, spacing: SisuTheme.Spacing.card) {
-                    if !model.isLive { SampleDataTag() }
                     SisuCard {
                         ForEach(Array(TodayPresenter.mathsLines(overview).enumerated()), id: \.offset) { index, line in
                             if index > 0 { Divider().overlay(line.isResult ? SisuTheme.Color.green900 : SisuTheme.Color.neutral200) }
@@ -121,7 +113,6 @@ struct TransactionsSheet: View {
     private func rows(_ list: TransactionList) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: SisuTheme.Spacing.grid * 2) {
-                if !model.isLive { SampleDataTag() }
                 Text(TodayPresenter.transactionsTotal(list))
                     .font(SisuTheme.Font.h3)
                     .foregroundStyle(SisuTheme.Color.text)
@@ -150,7 +141,7 @@ struct TransactionsSheet: View {
                     }
                 }
                 .padding(.horizontal, SisuTheme.Spacing.margin)
-                .background(SisuTheme.Color.card, in: RoundedRectangle(cornerRadius: SisuTheme.Radius.card, style: .continuous))
+                .sisuCardSurface()
                 .padding(.horizontal, SisuTheme.Spacing.margin)
                 .padding(.bottom, SisuTheme.Spacing.section)
             }
@@ -187,6 +178,7 @@ struct SettingsSheet: View {
         SheetFrame(title: "Settings") {
             ScrollView {
                 VStack(alignment: .leading, spacing: SisuTheme.Spacing.card) {
+                    DataSourcesCard()
                     SisuCard {
                         Text("Backend address").font(SisuTheme.Font.label).foregroundStyle(SisuTheme.Color.textMuted)
                         TextField("http://localhost:3000", text: $address)
@@ -230,7 +222,7 @@ struct SettingsSheet: View {
                 .padding(.bottom, SisuTheme.Spacing.section)
             }
         }
-        .presentationDetents([.height(480), .large])
+        .presentationDetents([.large])
         .onAppear { address = model.baseURLString }
     }
 
@@ -250,5 +242,88 @@ struct SettingsSheet: View {
     private func toggleSample() {
         model.sampleOnly.toggle()
         Task { await model.applySettings() }
+    }
+}
+
+// MARK: - Data and sources
+
+/// Settings > Data and sources: where the figures come from, whether the backend answered and when, the data
+/// date, and that the profiles are fictional. The one place the screens' source and freshness are spelled out
+/// (the demo itself is disclosed once, at profile selection).
+private struct DataSourcesCard: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        SisuCard {
+            Text("Data and sources")
+                .font(SisuTheme.Font.h3)
+                .foregroundStyle(SisuTheme.Color.text)
+                .accessibilityAddTraits(.isHeader)
+            row("Figures", source)
+            Divider().overlay(SisuTheme.Color.neutral200)
+            row("Backend", backend)
+            if let fetched {
+                Divider().overlay(SisuTheme.Color.neutral200)
+                row("Last fetched", fetched)
+            }
+            if let overview = model.overview {
+                Divider().overlay(SisuTheme.Color.neutral200)
+                row("Data date", TodayPresenter.dataDate(overview))
+            }
+            Divider().overlay(SisuTheme.Color.neutral200)
+            row("Coach answers", coach)
+            Divider().overlay(SisuTheme.Color.neutral200)
+            row("Profiles", profiles)
+        }
+    }
+
+    private func row(_ title: String, _ text: String) -> some View {
+        VStack(alignment: .leading, spacing: SisuTheme.Spacing.grid) {
+            Text(title).font(SisuTheme.Font.label).foregroundStyle(SisuTheme.Color.textMuted)
+            Text(text).font(SisuTheme.Font.body).foregroundStyle(SisuTheme.Color.text)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var profiles: String {
+        let names = ListFormatter.localizedString(byJoining: model.customers.map(\.displayName))
+        let who = names.isEmpty ? "The demo profiles" : "The demo profiles (\(names))"
+        return "\(who) are fictional people built on synthetic S-Pankki data. No real customer's data is shown."
+    }
+
+    private var source: String {
+        if model.isLive { return "Live from the Sisu backend at \(model.baseURLString)." }
+        if model.sampleOnly { return "The demo data bundled with the app. Sisu is not asking a server." }
+        return "The demo data bundled with the app, because the backend at \(model.baseURLString) did not answer."
+    }
+
+    private var backend: String {
+        switch model.backendAnswered {
+        case .some(true): return "Answered."
+        case .some(false): return "Did not answer, so Sisu switched to the demo data."
+        case .none: return "Not asked (demo data only)."
+        }
+    }
+
+    private var fetched: String? {
+        var parts: [String] = []
+        if let at = DataFreshness.shared.overviewFetchedAt {
+            parts.append("Figures \(at.formatted(date: .abbreviated, time: .shortened)).")
+        }
+        if let at = model.coach.fallenBackAt {
+            parts.append("Coach switched to recorded answers \(at.formatted(date: .omitted, time: .shortened)).")
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " ")
+    }
+
+    private var coach: String {
+        switch model.coach.session?.dataLabel {
+        case .live?: return "Live answers from the Sisu server."
+        case .mock?: return "Mock data: the server says its answers are examples."
+        case .sample?: return "Sample data: answers recorded from the Sisu server."
+        case nil: return "Not started yet."
+        }
     }
 }

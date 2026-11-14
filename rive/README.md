@@ -1,6 +1,6 @@
 # Sisu Rive library
 
-`rive/sisu-ui` is the source of `ios/Sisu/Resources/Rive/sisu_ui.riv`: 19 artboards written as text (RML) and built with the Rive CLI. `rive/contract.json` is the contract with the Swift app. Artboard, view model, property and enum names, types and defaults are fixed by it. Visuals are free. There are no scripts in the file, so it loads unsigned.
+`rive/sisu-ui` is the source of `ios/Sisu/Resources/Rive/sisu_ui.riv`: 22 artboards written as text (RML) and built with the Rive CLI. `rive/contract.json` is the contract with the Swift app. Artboard, view model, property and enum names, types and defaults are fixed by it. Visuals are free. There are no scripts in the file, so it loads unsigned.
 
 ## Build
 
@@ -10,11 +10,14 @@
 
     rive/sisu-ui/
       rive.yaml             project name (sisu_ui) and default artboard
-      00_shared.rml         fonts, the 10 enums, shared converters           ids 0:n
-      01_button.rml ...     one artboard and its view model per file         ids 1:n ... 19:n
+      00_shared.rml         fonts, the 13 enums, shared converters           ids 0:n
+      01_button.rml ...     one artboard and its view model per file         ids 1:n ... 22:n
       17_tag.rml            (file order = contract order = artboard order in the .riv)
       18_baskets.rml        Baskets: three baskets and a jam jar, each filled to its share
       19_berries.rml        Berries: a pile of berries in a dish, with a `drop` trigger
+      20_icon_button.rml    IconButton: round pressable icon button, eight icons, three styles
+      21_lesson_node.rml    LessonNode: one node of the learning path (upcoming, current, done)
+      22_typing_dots.rml    TypingDots: three dots that bounce in turn while Sisu is thinking
       fonts/                Figtree Regular, SemiBold, Bold; Bricolage Grotesque ExtraBold
       build/                ignored: sisu_ui.riv, logs, shots/
 
@@ -48,6 +51,10 @@ Neither `--verify` nor `inspect` looks at a pixel or clicks anything. After a ch
 - **A boolean with a real slide (Toggle).** Four states: `off`, `turning on`, `on`, `turning off`. The two `turning` states are timelines, so the knob can overshoot and stretch; they leave at exit time 100 %, or blend for 120 ms into the other one when the value flips mid-slide.
 - **Sliding or shaking something that lives in a layout.** Keying `x` / `y` on a `LayoutComponent` offsets it from its laid-out place (HeroNumber's lines, ChoiceCard's shake). A `Text` goes into a box of its own for that.
 - **Speeding up a timeline without re-keying it.** `speed` on the `LinearAnimation` (Celebration plays its 170 frames at 2.2, about 1.3 s). Exit time 100 % still means the end.
+- **A pill that hugs its text inside a fixed artboard (Tag, BasketChip, StatPill).** The pill box is `hug` wide and `fixed` high, and it is the artboard's only layout child, so it sits at the left edge of the fixed frame the app gives it. The text keeps a `maxWidth` in points that adds up to a full-width pill; past it the font shrinks.
+- **Many icons in one component (IconButton).** A `Solo` holds the eight drawings; one layer has a state per `icon` value whose pose keys `activeComponentId`; the `Style` layer's poses key the disc, the edge and every drawing's stroke colour (a Shape owns its paint, so there is one colour key per drawing).
+- **Look and motion on separate layers, wired state to state (LessonNode).** `State` blends the colours. `Life` has no `AnyState` transitions: `rest`, `inviting`, `win`, `check pop` and `done still` are joined one by one, so the same value (`done`) arrives with a different motion depending on where it came from (a win after `current`, a plain check pop after `upcoming`, nothing on load). `State` is joined the same way, with a conditional entry, because an `AnyState` transition with a duration fades in from the authored look on the first frame: a node that starts as `done` showed pale mint for a few frames until the states were joined one by one.
+- **A looping indicator with an off switch (TypingDots).** `bouncing` (a loop) and `resting` (a pose), with a conditional entry and a short blend back to the baseline. Each dot is drawn from its foot, so the landing squash stays on the line.
 - **Accessibility.** One `SemanticData` child on the node that best covers the component: `role`, and `label` bound to the component's own string (`propertyKey="983"`); `value` is 984, `isToggled` 1000, `isDisabled` 1002. `rive <dir> --artboard=X --semantics=-` prints the tree. There is no progress role, so ProgressBar is a read-only slider whose value is the percentage. The listeners are still pointer listeners only: VoiceOver's "activate" is not wired in the file.
 - **`out` triggers.** A transparent `Hit` box (or shape) over the artboard is the listener target. `StateMachineListenerSingle listenerTypeValue="click"` holds `ListenerViewModelChange > BindablePropertyTrigger propertyValue="1" > DataBindContext propertyKey="686" direction="true"`. `click` means down and up on the same target, so one fire per completed tap.
 - **Press feedback.** `down`, `up` and `exit` listeners write the private boolean `_down`; a `Press` layer moves the face down 4 and fades the edge. Button's `disabled` and `loading` poses key `Hit.x` / `Hit.y` to -10000, so no listener can fire while they hold.
@@ -62,7 +69,7 @@ Neither `--verify` nor `inspect` looks at a pixel or clicks anything. After a ch
 | Artboard | Property | Why |
 |---|---|---|
 | TabBar | `label0`..`label3` (string; Today, Ask, Jars, Path) | added so the captions are bound, not hard-coded |
-| Button, ActionRow, ChoiceCard | `_down` (boolean) | private: pointer is held on the control |
+| Button, ActionRow, ChoiceCard, IconButton, LessonNode | `_down` (boolean) | private: pointer is held on the control |
 | VoiceButton | `_touchDown`, `_touchUp` (trigger) | private: raw pointer events for the Hold layer |
 
 The app should not read or write the properties that start with an underscore. The motion pass (Baskets, Berries, easing, feedback) added no properties to existing view models.
@@ -85,6 +92,8 @@ Seen while building this file. Each one built clean and inspected clean.
 - **A component that fills its artboard cannot pop above 100 %.** The artboard clips it. ChoiceCard dips to 95 % and springs back instead; small things inside (ticks, checks) can overshoot freely.
 - **An inset in percent did nothing; a percent `maxWidth` did nothing inside a `stack` layout.** ActionRow's strike line is pinned in points, and its title sits in an ordinary `hug` box with `maxWidth` 100 %, which is what lets `fitFontSize` shrink a long title.
 - **An eased value leaves its range.** With an overshoot a height or a flex weight goes below 0 or above its maximum for a few frames. Clamp after the interpolator, or make sure a clip hides it.
+- **A percent `maxWidth` has nothing to measure against inside a `hug` box.** When Tag's pill became `hug`, its text's 100 % limit stopped working; the limit is 176 pt now.
+- **A fixed artboard is not scaled by `--viewport`.** It renders at 1x in the top left corner of a bigger viewport. To look closer, upscale the PNG.
 - **To see a value change mid-run, write it from a click.** `--data` cannot. In a scratch copy, add a transparent shape and a click listener holding `ListenerViewModelChange > BindablePropertyNumber propertyValue=".." > DataBindContext propertyKey="636" direction="true"` (634 for a boolean, 637 for an enum with the value's id), then render `--advance=20 --pointer=click@x,y --advance=N` for several N.
 
 Known from the CLI docs or the runtime source, and designed around:

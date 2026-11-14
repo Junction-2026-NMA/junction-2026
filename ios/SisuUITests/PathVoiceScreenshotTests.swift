@@ -84,15 +84,107 @@ final class PathVoiceScreenshotTests: XCTestCase {
         held.terminate()
     }
 
+    /// The real microphone (no test clip) in the voice lab, against the mock backend, whose speech to text answers
+    /// with a fixed transcript whatever the audio. Accepts the microphone alert the first time.
+    @MainActor
+    func testRealMicrophone() {
+        let app = launch(Self.customer + Self.mock + ["-sisu.tab", "path", "-sisu.voicelab", "1"])
+        let button = app.descendants(matching: .any)["voicelab.button"]
+        XCTAssertTrue(button.waitForExistence(timeout: 8))
+        let transcript = app.staticTexts["voicelab.transcript"]
+        holdToTalk(button, app: app, heard: transcript)
+        attach("p13-real-mic-lab-result")
+        let clips = app.staticTexts["voicelab.clips"]
+        let played = NSPredicate(format: "NOT (label BEGINSWITH '0 ')")
+        XCTAssertEqual(XCTWaiter.wait(for: [expectation(for: played, evaluatedWith: clips)], timeout: 20), .completed,
+                       "at least one spoken clip played after a real recording")
+        let notice = app.staticTexts["voicelab.notice"]
+        if notice.exists { XCTFail("notice after a real recording: \(notice.label)") }
+        Thread.sleep(forTimeInterval: 1)
+        attach("p14-real-mic-lab-spoken")
+        app.terminate()
+
+        // The recording state, held by the app itself for 4 seconds so a screenshot can be taken meanwhile.
+        let held = launch(Self.customer + Self.mock + ["-sisu.tab", "path", "-sisu.voicelab", "1", "-sisu.voiceauto", "1", "-sisu.voicehold", "4"], settle: 1.8)
+        attach("p15-real-mic-recording")
+        let state = held.staticTexts["voicelab.state"]
+        XCTAssertEqual(state.label, "Listening", "the lab shows the recording state while the microphone is open")
+        let heard = held.staticTexts["voicelab.transcript"]
+        let electricity = NSPredicate(format: "label CONTAINS[c] 'electricity'")
+        XCTAssertEqual(XCTWaiter.wait(for: [expectation(for: electricity, evaluatedWith: heard)], timeout: 20), .completed)
+        Thread.sleep(forTimeInterval: 1.5)
+        attach("p16-real-mic-auto-result")
+        held.terminate()
+    }
+
+    /// The Ask tab's composer voice button with a real recording: the reply is spoken; a typed question right
+    /// after it stays silent.
+    @MainActor
+    func testAskVoice() {
+        let app = launch(Self.customer + Self.mock + ["-sisu.tab", "ask"])
+        let voice = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'ask.voice.clips.'")).firstMatch
+        XCTAssertTrue(voice.waitForExistence(timeout: 10), "the composer's voice button is on screen")
+        let heard = app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'cheaper electricity deal'")).firstMatch
+        holdToTalk(voice, app: app, heard: heard)
+        let spoken = NSPredicate(format: "identifier != 'ask.voice.clips.0'")
+        XCTAssertEqual(XCTWaiter.wait(for: [expectation(for: spoken, evaluatedWith: voice)], timeout: 25), .completed,
+                       "the voice reply on the Ask tab is spoken")
+        Thread.sleep(forTimeInterval: 3)
+        attach("p17-ask-voice-result")
+        let clipsAfterVoice = voice.identifier
+
+        let field = app.textFields["Your question"].exists ? app.textFields["Your question"] : app.textViews["Your question"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5), "the composer's text field")
+        field.tap()
+        field.typeText("How much can I safely spend this week?")
+        let send = app.buttons.matching(NSPredicate(format: "label == 'Send'")).firstMatch
+        if send.waitForExistence(timeout: 3) { send.tap() }
+        let typed = app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'safely spend this week'")).firstMatch
+        XCTAssertTrue(typed.waitForExistence(timeout: 8), "the typed question was sent")
+        Thread.sleep(forTimeInterval: 10)
+        XCTAssertEqual(voice.identifier, clipsAfterVoice, "a typed question after a voice turn starts no new clip")
+        attach("p18-ask-typed-silent")
+        app.terminate()
+    }
+
     // MARK: Helpers
 
+    /// Presses and holds the voice button for 1.5 s. When the microphone alert appears, allows it and presses
+    /// again (the first press is then spent on the alert). Waits for `heard` to say "electricity".
     @MainActor
-    private func launch(_ arguments: [String]) -> XCUIApplication {
+    private func holdToTalk(_ button: XCUIElement, app: XCUIApplication, heard: XCUIElement) {
+        let electricity = NSPredicate(format: "label CONTAINS[c] 'electricity'")
+        for attempt in 1...3 {
+            button.press(forDuration: 1.5)
+            let alertAnswered = allowMicrophone()
+            if attempt == 1 { attach("p00-mic-press-\(alertAnswered ? "alert" : "no-alert")") }
+            if XCTWaiter.wait(for: [expectation(for: electricity, evaluatedWith: heard)], timeout: alertAnswered ? 3 : 15) == .completed {
+                return
+            }
+        }
+        XCTFail("no transcript after three presses with the real microphone")
+    }
+
+    /// Taps Allow on the system microphone alert if it is up. Returns true when it was.
+    private func allowMicrophone() -> Bool {
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let alert = springboard.alerts.firstMatch
+        guard alert.waitForExistence(timeout: 2) else { return false }
+        for label in ["Allow", "OK", "Allow While Using App"] where alert.buttons[label].exists {
+            alert.buttons[label].tap()
+            return true
+        }
+        alert.buttons.element(boundBy: alert.buttons.count - 1).tap()
+        return true
+    }
+
+    @MainActor
+    private func launch(_ arguments: [String], settle: TimeInterval = 3) -> XCUIApplication {
         let app = XCUIApplication()
         let sample = arguments.contains("-sisu.sample") ? [] : ["-sisu.sample", "1"]
         app.launchArguments = sample + ["-sisu.screenshots", "1"] + arguments
         app.launch()
-        Thread.sleep(forTimeInterval: 3)
+        Thread.sleep(forTimeInterval: settle)
         return app
     }
 
