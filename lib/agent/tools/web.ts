@@ -112,14 +112,15 @@ export function sanitiseQuery(query: string): string {
   return query
     .replace(/CUST\d+/gi, "")
     .replace(/(€\s?\d[\d.,]*|\d[\d.,]*\s?(€|eur|euros?)\b)/gi, "")
-    .replace(/\b\d{5}\b/g, "") // postal codes
+    .replace(/\b(?!20\d{2}\b)\d{3,}(?:[.,]\d+)?\b/g, "") // any other figure of three digits or more (a balance, a salary, a postal code); years stay
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, 200);
 }
 
 export async function webSearch(args: Record<string, unknown>, ctx: ToolContext): Promise<ToolOutcome> {
-  const query = typeof args.query === "string" ? sanitiseQuery(args.query.replace(new RegExp(ctx.overview.displayName, "gi"), "")) : "";
+  const withoutName = typeof args.query === "string" ? args.query.split(new RegExp(`\\b${ctx.overview.displayName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i")).join(" ") : "";
+  const query = sanitiseQuery(withoutName);
   if (query.length < 3) return failure("exa", "web_search needs a query.");
   try {
     const results = (await exaSearch(query, { numResults: 4, highlights: true, signal: ctx.signal })).slice(0, 4);

@@ -9,6 +9,7 @@ import { groupBy, round2, sum } from "./math";
 const SMALL_PURCHASE_EUR = 10;
 const CREEP_MIN_PCT = 5;
 const CREEP_MIN_EUR_PER_MONTH = 2;
+const MIN_PRIOR_MONTHS = 11;
 const DRIFT_MIN_PCT = 15;
 const DRIFT_MIN_EUR_PER_MONTH = 20;
 const SPIKE_SHARE = 0.33; // 7 of about 30 days is 0.23 if spending were even
@@ -19,17 +20,20 @@ const GUESS_BILL_TYPE: Record<string, BillType> = { Electricity: "electricity", 
 const spent = (rows: Transaction[]): number => -sum(rows.filter((row) => row.amount < 0).map((row) => row.amount));
 const pct = (now: number, before: number): number => (before > 0 ? round2(((now - before) / before) * 100) : 0);
 
-type Windows = { now: Transaction[]; before: Transaction[]; evidence: EvidenceFilter; priorFrom: string };
+type Windows = { now: Transaction[]; before: Transaction[]; evidence: EvidenceFilter; priorFrom: string; priorTo: string };
 
 // The 12 months the overview covers, and the 12 months before them.
 function windows(overview: Overview): Windows {
   const rows = transactionsFor(overview.customerId);
   const priorFrom = `${Number(overview.windowFrom.slice(0, 4)) - 1}${overview.windowFrom.slice(4)}`;
+  // The day before the current window starts, so the two periods never share a day.
+  const priorTo = new Date(new Date(`${overview.windowFrom}T00:00:00Z`).getTime() - 86_400_000).toISOString().slice(0, 10);
   return {
     now: rows.filter((row) => row.date >= overview.windowFrom && row.date <= overview.windowTo),
     before: rows.filter((row) => row.date >= priorFrom && row.date < overview.windowFrom),
     evidence: { from: overview.windowFrom, to: overview.windowTo },
     priorFrom,
+    priorTo,
   };
 }
 
@@ -81,7 +85,7 @@ function billPatterns(overview: Overview, w: Windows, billTypeOf: (billId: strin
         billType,
         evidence: { from: w.priorFrom, to: overview.windowTo, category: "Utilities" },
         facts: [
-          fact(`${bill.id}:prior-monthly`, `${bill.guessLabel}, average per month a year earlier`, priorAvg, "EUR/month", `average of ${priorAmounts.length} payments in the 12 months before`, { evidence: { from: w.priorFrom, to: overview.windowFrom, category: "Utilities" } }),
+          fact(`${bill.id}:prior-monthly`, `${bill.guessLabel}, average per month a year earlier`, priorAvg, "EUR/month", `average of ${priorAmounts.length} payments in the 12 months before`, { evidence: { from: w.priorFrom, to: w.priorTo, category: "Utilities" } }),
           fact(`${bill.id}:rise-pct`, `${bill.guessLabel}, rise in a year`, risePct, "percent", "last 12 months against the 12 months before", { source: "calculation" }),
           fact(`${bill.id}:rise-yearly`, `${bill.guessLabel}, extra cost per year`, rise * 12, "EUR/year", "monthly rise times 12", { source: "calculation" }),
         ],
@@ -94,6 +98,8 @@ function billPatterns(overview: Overview, w: Windows, billTypeOf: (billId: strin
 function everydayPatterns(overview: Overview, w: Windows): Pattern[] {
   const everydayNow = w.now.filter((row) => row.amount < 0 && basketOf(row.category)?.basket === "everyday");
   const everydayBefore = w.before.filter((row) => row.amount < 0 && basketOf(row.category)?.basket === "everyday");
+  // "Up on a year ago" needs a year to compare with. With less history the earlier average would be understated.
+  const priorMonthsCovered = new Set(w.before.map((row) => row.date.slice(0, 7))).size;
   const nowBy = groupBy(everydayNow, (row) => row.category);
   const beforeBy = groupBy(everydayBefore, (row) => row.category);
   const patterns: Pattern[] = [];
@@ -101,7 +107,7 @@ function everydayPatterns(overview: Overview, w: Windows): Pattern[] {
   // Has a category grown much faster than a year ago?
   const drift = Object.entries(nowBy)
     .map(([category, rows]) => ({ category, now: round2(spent(rows) / 12), before: round2(spent(beforeBy[category] ?? []) / 12) }))
-    .filter((c) => c.before > 0 && pct(c.now, c.before) >= DRIFT_MIN_PCT && c.now - c.before >= DRIFT_MIN_EUR_PER_MONTH)
+    .filter((c) => priorMonthsCovered >= MIN_PRIOR_MONTHS && c.before > 0 && pct(c.now, c.before) >= DRIFT_MIN_PCT && c.now - c.before >= DRIFT_MIN_EUR_PER_MONTH)
     .sort((a, b) => b.now - b.before - (a.now - a.before))[0];
   if (drift) {
     const extra = round2((drift.now - drift.before) * 12);
@@ -116,7 +122,7 @@ function everydayPatterns(overview: Overview, w: Windows): Pattern[] {
       evidence: { ...w.evidence, category: drift.category },
       facts: [
         fact(`drift:${drift.category}:now`, `${drift.category}, per month now`, drift.now, "EUR/month", "last 12 months", { evidence: { ...w.evidence, category: drift.category } }),
-        fact(`drift:${drift.category}:before`, `${drift.category}, per month a year earlier`, drift.before, "EUR/month", "the 12 months before", { evidence: { from: w.priorFrom, to: overview.windowFrom, category: drift.category } }),
+        fact(`drift:${drift.category}:before`, `${drift.category}, per month a year earlier`, drift.before, "EUR/month", "the 12 months before", { evidence: { from: w.priorFrom, to: w.priorTo, category: drift.category } }),
         fact(`drift:${drift.category}:extra`, `${drift.category}, extra per year`, extra, "EUR/year", "difference times 12", { source: "calculation" }),
       ],
       nextSteps: ["get_spending", "run_scenario"],

@@ -10,7 +10,8 @@ export const CONCEPTS: ConceptId[] = ["three-baskets", "safe-to-spend", "fixed-v
 const euros = (value: number): string => `€${Math.round(value).toLocaleString("en-US")}`;
 
 // A stable way to place the right answer among the options, so the same customer always sees the same card.
-function placeCorrect(seed: string, correct: string, wrong: string[]): { options: string[]; correctIndex: number } {
+function placeCorrect(seed: string, correct: string, candidates: string[]): { options: string[]; correctIndex: number } {
+  const wrong = [...new Set(candidates)].filter((option) => option !== correct); // an edge case must not produce two identical options
   const hash = [...seed].reduce((total, char) => (total * 31 + char.charCodeAt(0)) % 9973, 7);
   const correctIndex = hash % (wrong.length + 1);
   return { options: [...wrong.slice(0, correctIndex), correct, ...wrong.slice(correctIndex)], correctIndex };

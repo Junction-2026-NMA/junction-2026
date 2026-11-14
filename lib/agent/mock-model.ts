@@ -119,5 +119,5 @@ export async function* scriptedMockModel(options: StreamOptions): AsyncGenerator
 
   if (results.length) return yield* speak(wordAnswer(results));
   const perWeek = /"safeToSpendPerWeekEur":\s*([\d.]+)/.exec(system)?.[1];
-  yield* speak(perWeek ? `Mock answer. You can safely spend ${perWeek} euros a week. Try asking for a cheaper electricity deal, whether you can afford 300 euros, or where your money goes.` : "Mock answer. Try asking for a cheaper electricity deal.");
+  yield* speak(perWeek ? `Mock answer. You can safely spend ${perWeek} euros a week. Try asking for a cheaper electricity deal, whether you can afford a phone repair, or where your money goes.` : "Mock answer. Try asking for a cheaper electricity deal.");
 }

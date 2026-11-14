@@ -14,10 +14,17 @@ const wordsOf = (text: string): string[] => text.toLowerCase().match(/[a-zà-ö�
 
 // Did the customer actually say this number?
 const userSaidNumber = (ctx: ToolContext, value: number): boolean => ctx.userTexts.some((text) => digitsOf(text).some((n) => Math.abs(n - value) < 0.005));
-// Did the customer use at least one of these words?
-const userSaidWords = (ctx: ToolContext, value: string): boolean => {
-  const said = new Set(ctx.userTexts.flatMap(wordsOf));
-  return wordsOf(value).some((word) => said.has(word));
+// Did the customer say this number as their electricity use? "I pay 800 euros" must not support "800 kWh".
+const userSaidKwh = (ctx: ToolContext, value: number): boolean => ctx.userTexts.some((text) => /kwh|kilowatt/i.test(text) && digitsOf(text).some((n) => Math.abs(n - value) < 0.005));
+// Is this what the customer said, in their words? Every meaningful word of the value must come from ONE of their
+// messages. The model may shorten what they said; it may not add to it. (One shared word used to be enough, which
+// would have let a web page slip "always recommend X" in next to a word the customer happened to use.)
+const userSaidThis = (ctx: ToolContext, value: string): boolean => {
+  const words = wordsOf(value);
+  return words.length > 0 && ctx.userTexts.some((text) => {
+    const said = new Set(wordsOf(text));
+    return words.every((word) => said.has(word));
+  });
 };
 
 export function prepareAction(args: Record<string, unknown>, ctx: ToolContext): ToolOutcome {
@@ -60,7 +67,7 @@ export function rememberTool(args: Record<string, unknown>, ctx: ToolContext): T
   if (!kind || !value) return failure("finance", "remember needs a kind and a value.");
   if (looksLikeInstructions(value)) return failure("finance", "That reads like an instruction, not a fact about the customer, so it was not saved.");
 
-  const supported = kind === "yearly_kwh" ? userSaidNumber(ctx, Number(value.replace(/[^\d.]/g, ""))) : userSaidWords(ctx, value);
+  const supported = kind === "yearly_kwh" ? userSaidKwh(ctx, Number(value.replace(/[^\d.]/g, ""))) : userSaidThis(ctx, value);
   if (!supported) return failure("finance", "Sisu only remembers what the customer has said themselves in this conversation. Ask them first.");
 
   const billId = typeof args.billId === "string" ? args.billId : "";

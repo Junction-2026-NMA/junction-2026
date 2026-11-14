@@ -92,6 +92,9 @@ describe("what leaves for the web", () => {
   it("strips customer IDs, euro amounts and postal codes from a search query", () => {
     assert.equal(sanitiseQuery("housing allowance for CUST04974 earning 1932 euros in 00220 Helsinki"), "housing allowance for earning in Helsinki");
     assert.equal(sanitiseQuery("rent €661.70 Kela"), "rent Kela");
+    // Regression: independent review, finding 7. A bare balance or salary used to pass straight through.
+    assert.equal(sanitiseQuery("loan with 3200 monthly salary and 12450.50 balance"), "loan with monthly salary and balance");
+    assert.equal(sanitiseQuery("Kela housing allowance 2026 rules"), "Kela housing allowance 2026 rules"); // a year is not personal
   });
 
   let restore = () => {};

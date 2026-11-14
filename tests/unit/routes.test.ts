@@ -166,6 +166,27 @@ describe("HTTP routes: validation, approval and isolation", () => {
     assert.equal((await json<ActionList>(await listRoute(request(`/api/actions?customerId=${AINO}`)))).actions.length, 0);
   });
 
+  // Regression: independent review, finding 5. Anyone who found the URL could wipe every action and the audit log.
+  it("on a deployed site the demo reset needs its token", async () => {
+    const env = process.env as Record<string, string | undefined>;
+    const before = { node: env.NODE_ENV, token: env.SISU_RESET_TOKEN };
+    await prepared();
+    try {
+      env.NODE_ENV = "production";
+      delete env.SISU_RESET_TOKEN;
+      assert.equal((await reset(request("/api/demo/reset", {}))).status, 403);
+      env.SISU_RESET_TOKEN = "booth-token";
+      assert.equal((await reset(request("/api/demo/reset", {}))).status, 403);
+      assert.equal((await json<ActionList>(await listRoute(request(`/api/actions?customerId=${AINO}`)))).actions.length, 1, "nothing was cleared");
+      const withToken = new Request("http://test.local/api/demo/reset", { method: "POST", headers: { "x-sisu-reset-token": "booth-token", "x-forwarded-for": "198.51.100.251" } });
+      assert.equal((await reset(withToken)).status, 200);
+    } finally {
+      env.NODE_ENV = before.node;
+      if (before.token === undefined) delete env.SISU_RESET_TOKEN;
+      else env.SISU_RESET_TOKEN = before.token;
+    }
+  });
+
   it("the rate limit is per visitor: one busy visitor does not block another", () => {
     const from = (ip: string) => new Request("http://test.local/", { headers: { "x-forwarded-for": ip } });
     const results = Array.from({ length: 6 }, () => allowRequest(from("203.0.113.9"), "test-bucket", 5));

@@ -44,7 +44,7 @@ describe("number verifier", () => {
   });
 
   it("accepts numbers the user said, numbers in tool output, and monthly/yearly versions of a receipt", () => {
-    const result = checkGrounding("Saving 50 euros a month for 5 years; the offer is 34.27 a month, and the extra is about 62 a month.", facts, ['{"estimatedMonthlyCostEur":34.27}'], ["What if I save 50 euros a month for 5 years?"]);
+    const result = checkGrounding("Saving 50 euros a month for 5 years; the offer is 34.27 a month, and the extra is about 62 euros a month.", facts, ['{"estimatedMonthlyCostEur":34.27}'], ["What if I save 50 euros a month for 5 years?"]);
     assert.equal(result.ok, true);
     assert.deepEqual(result.numbers.map((n) => n.status), ["context", "trivial", "context", "context"].map((s, i) => (i === 1 ? "context" : s)));
   });
@@ -89,6 +89,44 @@ describe("number verifier", () => {
     const untouched = "Vaasan Sähkö Myynti Oy and Oomi and Helen are listed. Pohjois-Karjalan Sähkö Oy too. Your bill is modest.";
     assert.deepEqual(correctNames(untouched, names), { text: untouched, corrections: [] });
     assert.equal(correctNames("Fortum is not in the list, and neither is Helsingin Energia.", names).corrections.length, 0);
+  });
+
+  // Regression: independent review, finding 2. A made-up round figure was "verified" about half the time,
+  // because any multiple of 5 within 3% of ANY number in the customer's data counted as a match.
+  it("an invented saving is almost never mistaken for a real figure", () => {
+    const overview = buildOverview(AINO)!;
+    const receipts = overviewFacts(overview);
+    const sweep = (sentence: (n: number) => string) => {
+      const amounts = Array.from({ length: 581 }, (_, i) => 100 + i * 5);
+      return amounts.filter((n) => checkGrounding(sentence(n), receipts, [], []).ok).length / amounts.length;
+    };
+    const yearly = sweep((n) => `Switching would save you ${n} euros a year.`);
+    const monthly = sweep((n) => `You could save about ${n} euros a month.`);
+    const bare = sweep((n) => `The figure is ${n}.`);
+    // Measured after the fix: 3.6%, 6.9% and 4.6% (before: about 51%). What remains is an invented figure that
+    // happens to equal one of the customer's real figures; a receipts check cannot tell those apart.
+    assert.ok(yearly < 0.05, `yearly savings accepted: ${(yearly * 100).toFixed(1)}%`);
+    assert.ok(monthly < 0.09, `monthly figures accepted: ${(monthly * 100).toFixed(1)}%`);
+    assert.ok(bare < 0.06, `bare numbers accepted: ${(bare * 100).toFixed(1)}%`);
+  });
+
+  it("a figure is only checked against receipts of its own kind", () => {
+    const mixed = [fact("pct", "Share", 40, "percent", "test"), fact("monthly", "Restaurants per month", 276.52, "EUR/month", "test"), fact("yearly", "Extra per year", 746.16, "EUR/year", "test")];
+    assert.equal(checkGrounding("You could save 40 euros a year.", mixed, [], []).ok, false); // 40 is a percentage, not euros
+    assert.equal(checkGrounding("That is 40% of your spending.", mixed, [], []).ok, true);
+    assert.equal(checkGrounding("You spend about 280 euros a month on restaurants.", mixed, [], []).ok, true);
+    assert.equal(checkGrounding("You spend about 280 euros a year on restaurants.", mixed, [], []).ok, false); // monthly figure said as yearly
+    assert.equal(checkGrounding("It adds up to about 750 euros a year.", mixed, [], []).ok, true);
+    assert.equal(checkGrounding("It adds up to about 62 euros a month.", mixed, [], []).ok, true); // the yearly receipt, per month
+  });
+
+  // Regression: independent review, finding 3.
+  it("reads Finnish decimals as one number, and a year followed by a unit as an amount", () => {
+    assert.deepEqual(numbersIn("Maksat 139,47 euroa kuussa, yhteensä 1 932,43 euroa."), [139.47, 1932.43]);
+    assert.deepEqual(numbersIn("3,500 kWh and 1,932.43 euros and 2,5 percent"), [3500, 1932.43, 2.5]);
+    const bill = [fact("bill", "Bill", 139.47, "EUR/month", "test")];
+    assert.equal(checkGrounding("Maksat 139,47 euroa kuussa.", bill, [], []).ok, true);
+    assert.deepEqual(checkGrounding("You use 2025 kWh, which costs 2027 a month.", bill, [], []).unverified, [2025, 2027]);
   });
 
   it("treats small counts as trivial, not as financial claims", () => {

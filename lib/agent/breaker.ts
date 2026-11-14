@@ -4,7 +4,7 @@
 // model is back, so no customer's question is ever used as the test.
 import type { ModelEndpoint } from "./config";
 
-const COOLDOWN_MS = 10_000; // how long to leave the main model alone before probing it
+const COOLDOWN_MS = 5_000; // how long to leave the main model alone before probing it. Short, so a false alarm under load costs little.
 const PROBE_TIMEOUT_MS = 1_500;
 
 type State = { openedAt: number | null; probing: boolean; lastProbeAt: number; trips: number };

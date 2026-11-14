@@ -149,3 +149,32 @@ describe("finance engine: scenarios and affordability", () => {
     assert.equal(nextDayOfMonth("2026-09-10", 15), "2026-09-15");
   });
 });
+
+describe("finance engine: edge cases found in review", () => {
+  it("teaching options stay distinct even when a wrong option would equal the right one", async () => {
+    const o = overviewOf(AINO);
+    // A customer whose everyday share is so low that "share minus 25, floored at 5" would repeat the answer.
+    const skewed = { ...o, baskets: o.baskets.map((b) => (b.id === "everyday" ? { ...b, share: 0.05 } : b)), safeToSpend: { ...o.safeToSpend, perWeek: 0 }, runwayMonths: 0, monthlySaved: 0 };
+    for (const concept of CONCEPTS) {
+      const card = teachingCard(concept, skewed);
+      assert.equal(new Set(card.options).size, card.options.length, `${concept}: ${card.options.join(" | ")}`);
+      assert.ok(card.correctIndex < card.options.length);
+    }
+  });
+});
+
+describe("finance engine: receipts open exactly the rows they describe", () => {
+  it("a 'year earlier' receipt never includes a day from the current year's window", () => {
+    for (const id of ALL) {
+      const o = overviewOf(id);
+      const priorFacts = findPatterns(o, buildCashFlow(o)).flatMap((p) => p.facts).filter((f) => /year earlier/.test(f.label) && f.evidence);
+      for (const f of priorFacts) {
+        assert.ok(f.evidence!.to < o.windowFrom, `${f.id} ends before the current window starts`);
+        const rows = filterTransactions(id, f.evidence!).filter((t) => t.amount < 0);
+        const months = new Set(rows.map((t) => t.date.slice(0, 7))).size;
+        if (f.id.startsWith("drift:")) close(f.value, -rows.reduce((total, t) => total + t.amount, 0) / 12, 0.01);
+        assert.ok(months <= 12);
+      }
+    }
+  });
+});

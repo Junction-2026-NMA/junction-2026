@@ -58,7 +58,7 @@ export function buildSwitchDraft(customerId: string, billType: BillType, options
   if (!customer || !overview) return { ok: false, status: 404, reason: "We could not find that customer." };
 
   const raw = peekResearch(`${billType}:${customer.area.toLowerCase()}`);
-  if (!raw || (raw.status !== "done" && raw.status !== "partial")) return { ok: false, status: 409, reason: `Look up today's ${billType} offers first (search_offers), then prepare the switch.` };
+  if (!raw || raw.status !== "done") return { ok: false, status: 409, reason: `Look up today's ${billType} offers first (search_offers), then prepare the switch.` };
 
   const memory = getMemory(customerId);
   const match = billFor(overview, memory, billType);

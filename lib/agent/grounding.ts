@@ -7,53 +7,110 @@ import { lastMonthSpending } from "@/lib/finance/recent";
 import type { Fact, Grounding, NumberCheck, NumberCorrection, Overview } from "@/lib/types";
 
 const TRIVIAL_MAX = 12; // small counts ("three offers", "12 months") are not financial claims
-// Digits glued to letters (an ID such as CUST04414) are a name, not a number.
-const NUMBER = /(?<![A-Za-z\d.])(?:\d{1,3}(?:[,\u00a0 ]\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)/g;
+// Numbers as people write them, in English and Finnish: 1,932.43 · 1 932,43 · 139,47 · 40. Digits glued to
+// letters (an ID such as CUST04414) are a name, not a number.
+const NUMBER = /(?<![A-Za-z\d.,])(?:\d{1,3}(?:[  ]\d{3})+(?:[.,]\d{1,2})?|\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+[.,]\d{1,2}|\d+)(?![\d])/g;
 const DATES = /\b\d{4}-\d{2}(?:-\d{2})?\b|\b\d{1,2}:\d{2}\b/g;
 // A figure this close to a receipt is the same figure with a slipped digit, not a different claim.
 const SLIP_ABSOLUTE = 0.05;
 const SLIP_RELATIVE = 0.001;
 
-type Found = { value: number; raw: string; index: number; isYear: boolean };
+// What kind of quantity the words around a number say it is. A figure said as "euros a year" may only be
+// checked against yearly euro receipts, never against a percentage or a monthly figure that happens to be close.
+type Hint = "money" | "money-month" | "money-year" | "percent" | "kwh" | "price" | "time" | null;
+type Found = { value: number; raw: string; index: number; isYear: boolean; hint: Hint };
 
-// "2027" on its own is a year. "€2,027" or "2027 euros" is an amount.
-const isYearToken = (text: string, raw: string, index: number): boolean =>
-  /^20\d{2}$/.test(raw) && text[index - 1] !== "€" && !/^\s?(€|eur\b|euros?\b)/i.test(text.slice(index + raw.length));
+function toNumber(raw: string): number {
+  if (/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(raw)) return Number(raw.replace(/,/g, "")); // 1,932.43
+  return Number(raw.replace(/[  ]/g, "").replace(",", ".")); // 1 932,43 and 139,47
+}
 
-// Numbers in a piece of text, with where they are. "1,932.43", "1 932" and "40" all work. Dates and times are skipped.
+const MONEY_AFTER = /^\s?(€|eur\b|euros?\b|euroa\b)/i;
+const PER_MONTH = /\b(a|per|each|every)\s+month\b|\bmonthly\b|\/\s?(mo|month|kk)\b|kuukaudessa|kuussa/i;
+const PER_YEAR = /\b(a|per|each|every)\s+year\b|\byearly\b|\bannual(ly)?\b|\/\s?(yr|year|v)\b|vuodessa/i;
+
+function hintFor(text: string, raw: string, index: number): Hint {
+  const after = text.slice(index + raw.length, index + raw.length + 40);
+  const isMoney = text[index - 1] === "€" || text.slice(Math.max(0, index - 2), index) === "€ " || MONEY_AFTER.test(after);
+  if (isMoney) {
+    const clause = after.split(/[.;!?]|,\s/)[0];
+    return PER_MONTH.test(clause) ? "money-month" : PER_YEAR.test(clause) ? "money-year" : "money";
+  }
+  if (/^\s?(%|percent\b|prosent)/i.test(after)) return "percent";
+  if (/^\s?kwh\b/i.test(after)) return "kwh";
+  if (/^\s?(c\b|cents?\b|snt\b)/i.test(after)) return "price";
+  if (/^\s?(days?|months?|years?|weeks?|purchases?|transactions?|payments?|kk\b|pv\b)/i.test(after)) return "time";
+  return null;
+}
+
+const COMPATIBLE: Record<Exclude<Hint, null>, Fact["unit"][]> = {
+  money: ["EUR", "EUR/month", "EUR/year"],
+  "money-month": ["EUR/month", "EUR"],
+  "money-year": ["EUR/year", "EUR"],
+  percent: ["percent"],
+  kwh: ["kWh/year"],
+  price: ["c/kWh"],
+  time: ["months", "years", "days", "count"],
+};
+
+// "2027" on its own is a year. "€2,027", "2027 euros" or "2027 kWh" is an amount.
+const isYearToken = (text: string, raw: string, index: number, hint: Hint): boolean => /^20\d{2}$/.test(raw) && hint === null && !/^\s?(a|per)\s+(month|year|week)\b/i.test(text.slice(index + raw.length));
+
+// Numbers in a piece of text, with where they are and what kind of quantity they are. Dates and times are skipped.
 function findNumbers(text: string): Found[] {
   const blanked = text.replace(DATES, (match) => " ".repeat(match.length)); // same length, so positions still line up
   return [...blanked.matchAll(NUMBER)]
-    .map((match) => ({ value: Number(match[0].replace(/[,\u00a0 ]/g, "")), raw: match[0], index: match.index, isYear: isYearToken(blanked, match[0], match.index) }))
+    .map((match) => {
+      const hint = hintFor(blanked, match[0], match.index);
+      return { value: toNumber(match[0]), raw: match[0], index: match.index, hint, isYear: isYearToken(blanked, match[0], match.index, hint) };
+    })
     .filter((n) => Number.isFinite(n.value));
 }
 
 export const numbersIn = (text: string): number[] => findNumbers(text).map((n) => n.value);
 
-// "About 140" or "about 1,900" is a rounded figure. 1,536 is not: a precise-looking number must match precisely.
-const isRound = (n: number): boolean => Number.isInteger(n) && n % 5 === 0;
-
-// Does a spoken number stand for this value? Exact, rounded to whole euros or one decimal, or a round "about" figure within 3%.
-export function matches(said: number, value: number): boolean {
+// The same figure, written exactly or rounded to whole euros or one decimal.
+function sameFigure(said: number, value: number): boolean {
   const v = Math.abs(value);
   const s = Math.abs(said);
-  if (Math.abs(s - v) < 0.005) return true;
-  if (s === Math.round(v) || s === Math.floor(v) || s === Math.round(v * 10) / 10) return true;
-  if (isRound(s) && Math.abs(s - v) <= Math.max(v * 0.03, 2.5)) return true;
-  return false;
+  return Math.abs(s - v) < 0.005 || s === Math.round(v) || s === Math.floor(v) || s === Math.round(v * 10) / 10;
 }
 
-// Monthly and yearly versions of the same figure count as supported: "about 12 a month" for 139 a year.
-const matchesDerived = (said: number, value: number): boolean => matches(said, value * 12) || matches(said, value / 12);
+// How far an "about" figure may sit from the real one: half the step it was rounded to.
+// "About 140" (nearest 10) may stand for 135 to 145. "About 1,900" (nearest 100) only for a figure in the thousands.
+function roundingSlack(said: number, value: number): number {
+  if (!Number.isInteger(said)) return 0;
+  if (said % 1000 === 0 && value >= 10_000) return 500;
+  if (said % 100 === 0 && value >= 1_000) return 50;
+  if (said % 10 === 0) return 5;
+  if (said % 5 === 0) return 2.5;
+  return 0;
+}
+
+// Does a spoken number stand for this value? The same figure, or an honest rounding of it.
+export function matches(said: number, value: number): boolean {
+  if (sameFigure(said, value)) return true;
+  const slack = roundingSlack(Math.abs(said), Math.abs(value));
+  return slack > 0 && Math.abs(Math.abs(said) - Math.abs(value)) <= slack;
+}
 
 export type Sources = { facts: Fact[]; contextTexts: string[]; userTexts: string[] };
 
-function classify({ value, isYear }: Pick<Found, "value" | "isYear">, sources: Sources, contextNumbers: number[]): NumberCheck {
-  const receipt = sources.facts.find((f) => matches(value, f.value));
+// A number is checked in order of how strong the support is:
+// 1. receipt: a fact of the right kind (yearly euros against yearly euros) that it equals or honestly rounds;
+// 2. context: the exact figure appears in the summary, a tool result, or what the customer said;
+// 3. trivial: a year or a small count.
+// The "about" allowance applies only to receipts of the right kind, so an invented round figure cannot ride on
+// some unrelated number that happens to be near it.
+function classify({ value, isYear, hint }: Pick<Found, "value" | "isYear" | "hint">, sources: Sources, contextNumbers: number[]): NumberCheck {
+  const kinds = hint === null ? null : COMPATIBLE[hint];
+  const receipt = sources.facts.find((f) => (kinds === null ? sameFigure(value, f.value) : kinds.includes(f.unit) && matches(value, f.value)));
   if (receipt) return { value, status: "receipt", factId: receipt.id };
-  if (contextNumbers.some((n) => matches(value, n))) return { value, status: "context", factId: null };
+  if (contextNumbers.some((n) => sameFigure(value, n))) return { value, status: "context", factId: null };
   if (isYear) return { value, status: "trivial", factId: null }; // "September 2026", "next year, 2027": a date, not an amount
-  const derived = sources.facts.find((f) => (f.unit === "EUR/month" || f.unit === "EUR/year" || f.unit === "EUR") && matchesDerived(value, f.value));
+  // The monthly version of a yearly receipt, or the other way round: "about 12 a month" for 139 a year.
+  const derived =
+    hint === "money-month" ? sources.facts.find((f) => f.unit === "EUR/year" && sameFigure(value, f.value / 12)) : hint === "money-year" ? sources.facts.find((f) => f.unit === "EUR/month" && sameFigure(value, f.value * 12)) : undefined;
   if (derived) return { value, status: "context", factId: derived.id };
   if (Number.isInteger(value) && value <= TRIVIAL_MAX) return { value, status: "trivial", factId: null };
   return { value, status: "unverified", factId: null };
@@ -71,7 +128,7 @@ export function correctNumbers(text: string, sources: Sources): { text: string; 
     if (classify(found, sources, contextNumbers).status !== "unverified") continue;
     const near = sources.facts.find((f) => Math.abs(Math.abs(f.value) - found.value) <= Math.max(SLIP_ABSOLUTE, Math.abs(f.value) * SLIP_RELATIVE));
     if (!near) continue;
-    const decimals = found.raw.includes(".") ? found.raw.split(".")[1].length : 0;
+    const decimals = /[.,]\d{1,2}$/.test(found.raw) ? found.raw.split(/[.,]/).pop()!.length : 0;
     const replacement = Math.abs(near.value).toFixed(decimals);
     corrected = corrected.slice(0, found.index) + replacement + corrected.slice(found.index + found.raw.length);
     corrections.unshift({ said: found.value, corrected: Number(replacement), factId: near.id });

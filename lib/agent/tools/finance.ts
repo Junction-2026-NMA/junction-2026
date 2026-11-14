@@ -38,8 +38,8 @@ export function getSpending(args: Record<string, unknown>, ctx: ToolContext): To
   // Untruncated rows, so totals, splits and "largest" always cover the whole period.
   const matched: Transaction[] = filters.flatMap((filter) => filterTransactions(ctx.customerId, filter));
   const rows = matched.filter((row) => row.amount < 0);
-  const count = matched.length;
-  const totalEur = round2(-sum(matched.map((row) => row.amount)));
+  const count = rows.length;
+  const totalEur = round2(-sum(rows.map((row) => row.amount))); // money out only, the same rows the split and "largest" use
   const what = merchantType ?? category ?? basket ?? "all spending";
   const evidence: EvidenceFilter = filters.length === 1 ? filters[0] : { from, to, category };
 
