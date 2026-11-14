@@ -10,7 +10,7 @@
 import XCTest
 
 final class GlassScreenshotTests: XCTestCase {
-    private static let base = ["-sisu.sample", "1", "-sisu.screenshots", "1",
+    private static let base = ["-sisu.screenshots", "1",
                                "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryL"]
     private static let customer = ["-sisu.customer", "CUST04974"]
 
@@ -33,6 +33,20 @@ final class GlassScreenshotTests: XCTestCase {
         shot("g08-path", Self.customer + ["-sisu.tab", "path", "-sisu.lessonsDone", "3"])
         shot("g09-maths-sheet", Self.customer + ["-sisu.tab", "today", "-sisu.sheet", "maths"])
         shot("g10-transactions-sheet", Self.customer + ["-sisu.tab", "today", "-sisu.sheet", "transactions"])
+    }
+
+    /// The backend cannot be reached: Today and Ask each say so once, in place, with a notice that goes away.
+    @MainActor
+    func testFallbackNotices() {
+        let offline = ["-sisu.sample", "0", "-sisu.baseURL", "http://localhost:9"]
+        let today = launch(offline + Self.customer + ["-sisu.tab", "today"])
+        XCTAssertTrue(today.descendants(matching: .any)["notice.overview-fallback-CUST04974"].exists, "Today says it fell back")
+        attach("g14-offline-today-notice")
+        Thread.sleep(forTimeInterval: 7)
+        XCTAssertFalse(today.descendants(matching: .any)["notice.overview-fallback-CUST04974"].exists, "The notice goes away")
+        attach("g15-offline-today-after")
+        today.terminate()
+        shot("g16-offline-ask-notice", offline + Self.customer + ["-sisu.tab", "ask"], wait: 4)
     }
 
     /// The Ask tab with the keyboard up: the bar steps aside and the composer sits on the keys.
@@ -94,11 +108,24 @@ final class GlassScreenshotTests: XCTestCase {
     /// end before a tap returns. Play the frames back at the slow-down factor times the capture rate.
     @MainActor
     func testTabPillMotionFrames() {
-        let slow = 4.0
+        filmPill(prefix: "motion", extra: [])
+    }
+
+    /// The same with the solid bar that Reduce Transparency gets (`-sisu.solidBar 1`, because a UI test cannot
+    /// switch the setting itself): `solid-NNN`, plus one full screen.
+    @MainActor
+    func testSolidBarPreview() {
+        shot("g17-solid-bar-preview", Self.customer + ["-sisu.tab", "jars", "-sisu.solidBar", "1"])
+        filmPill(prefix: "solid", extra: ["-sisu.solidBar", "1"], tabs: ["ask"])
+    }
+
+    @MainActor
+    private func filmPill(prefix: String, extra: [String], tabs: [String] = ["ask", "jars", "path", "today"]) {
+        let slow = Double(ProcessInfo.processInfo.environment["SISU_SLOW"] ?? "") ?? 4.0
         let delay = 0.9
-        let app = launch(Self.customer + ["-sisu.tab", "today", "-sisu.tabMotion", "\(slow)", "-sisu.tabDelay", "\(delay)"])
+        let app = launch(Self.customer + extra + ["-sisu.tab", "today", "-sisu.tabMotion", "\(slow)", "-sisu.tabDelay", "\(delay)"])
         var index = 0
-        for tab in ["ask", "jars", "path", "today"] {
+        for tab in tabs {
             let button = app.buttons["tab.\(tab)"]
             guard button.waitForExistence(timeout: 5) else { XCTFail("No \(tab) tab"); continue }
             let tapped = Date()
@@ -113,13 +140,13 @@ final class GlassScreenshotTests: XCTestCase {
             }
             for (frame, time) in zip(frames, times) {
                 let attachment = XCTAttachment(image: Self.bottom(frame, points: 200))
-                attachment.name = String(format: "motion-%03d", index)
+                attachment.name = prefix + String(format: "-%03d", index)
                 attachment.lifetime = .keepAlways
                 add(attachment)
-                print(String(format: "[motion] motion-%03d to=%@ t=%.3f", index, tab, time))
+                print("[motion] \(prefix)-" + String(format: "%03d to=%@ t=%.3f", index, tab, time))
                 index += 1
             }
-            print("[motion] switch to \(tab): \(frames.count) frames")
+            print("[motion] \(prefix) switch to \(tab): \(frames.count) frames")
             XCTAssertGreaterThanOrEqual(frames.count, 8, "At least 8 frames for the switch to \(tab)")
         }
         app.terminate()
@@ -140,7 +167,9 @@ final class GlassScreenshotTests: XCTestCase {
     @MainActor
     private func launch(_ arguments: [String], wait: TimeInterval = 3) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = Self.base + arguments
+        // Sample data only unless the shot says otherwise.
+        let sample = arguments.contains("-sisu.sample") ? [] : ["-sisu.sample", "1"]
+        app.launchArguments = sample + Self.base + arguments
         app.launch()
         Thread.sleep(forTimeInterval: wait)
         return app

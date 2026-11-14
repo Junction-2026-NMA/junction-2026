@@ -68,7 +68,7 @@ final class SisuThemeTests: XCTestCase {
     }
 
     func testRoleColoursFollowLightAndDarkMode() {
-        XCTAssertEqual(hex(of: SisuTheme.Color.background, in: .light), 0xEBF7EC)
+        XCTAssertEqual(hex(of: SisuTheme.Color.background, in: .light), 0xF6F8F7) // near-white since 14 Nov (BRAND.md)
         XCTAssertEqual(hex(of: SisuTheme.Color.background, in: .dark), 0x00301B)
         XCTAssertEqual(hex(of: SisuTheme.Color.card, in: .light), 0xFFFFFF)
         XCTAssertEqual(hex(of: SisuTheme.Color.card, in: .dark), 0x004628)

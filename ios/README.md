@@ -103,11 +103,14 @@ Each shot is a fresh launch set up by launch arguments (`-sisu.sample 1`, `-sisu
 tint its selection lens green or use Figtree, and on iOS 17 to 25 it is the old flat bar. On iOS 26 it is
 Liquid Glass (`glassEffect`, a `GlassEffectContainer` and `glassEffectID` for the pill that springs between
 tabs); on iOS 17 to 25 a `.regularMaterial` capsule; with Reduce Transparency a solid near-white capsule with a
-hairline. With Reduce Motion the pill slides without the spring. `MainScreen` puts it in a bottom
-`safeAreaInset`, so every scroll view runs under the glass and its last row scrolls clear; it steps aside while
-the keyboard is up. Each tab is a button with its label and the selected trait, inside a tab-bar group; tab
+hairline. With Reduce Motion the pill slides without the spring. `MainScreen` reserves the bar's room with a
+bottom `safeAreaBar` (iOS 26, which also gives the soft scroll-edge blur) or `safeAreaInset`, so every scroll
+view runs under the glass and its last row scrolls clear, and draws the bar itself as an overlay so it keeps its
+state across tabs (the tabs sit in a `ZStack`: a `Group` would hand the overlay to each tab and rebuild it). The
+bar steps aside while the keyboard is up. Each tab is a button with its label and the selected trait, inside a tab-bar group; tab
 changes give a selection haptic. `SisuUITests/GlassScreenshotTests.swift` shoots it (see its header), including
-`motion-NNN` frames of the pill (launch arguments `-sisu.tabMotion <scale>` and `-sisu.tabDelay <seconds>`).
+`motion-NNN` frames of the pill (launch arguments `-sisu.tabMotion <scale>`, `-sisu.tabDelay <seconds>`, and
+`-sisu.solidBar 1` for the Reduce Transparency look, which a UI test cannot switch on).
 
 ## Rules
 

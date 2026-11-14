@@ -11,21 +11,46 @@ struct OnboardingView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// Whether the last move went forward, so screens slide in from the right and out to the left.
     @State private var forward = true
+    /// The sorting moment shows only when the load takes longer than a blink; until then the chosen profile
+    /// card stays on screen. Nothing waits for this: Today opens the moment the overview is loaded.
+    @State private var showReading = false
 
     private var flow: OnboardingFlow { model.onboarding }
+
+    /// The screen on show: the profile choice stays up for the first moments of a load.
+    private var shownStep: OnboardingStep { flow.step == .reading && !showReading ? .profile : flow.step }
 
     var body: some View {
         VStack(spacing: 0) {
             topBar
             ZStack {
-                screen(flow.step)
-                    .id(flow.step)
+                screen(shownStep)
+                    .id(shownStep)
                     .transition(transition)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .clipped()
         }
         .background(SisuTheme.Color.background.ignoresSafeArea())
+        .task(id: flow.step) {
+            guard flow.step == .reading else { showReading = false; return }
+            try? await Task.sleep(for: .milliseconds(400))
+            guard !Task.isCancelled, flow.step == .reading, flow.isActive else { return }
+            move(forward: true) { showReading = true }
+        }
+        .task(id: model.overviewState) {
+            guard flow.step == .reading else { return }
+            switch model.overviewState {
+            case .loaded where model.overview?.customerId == model.customer?.customerId:
+                withAnimation(OnboardingMotion.page(reduceMotion: reduceMotion, scale: model.launch.motionScale)) {
+                    model.finishOnboarding()
+                }
+            case .failed:
+                move(forward: true) { showReading = true }
+            default:
+                break
+            }
+        }
     }
 
     @ViewBuilder
@@ -45,7 +70,7 @@ struct OnboardingView: View {
     private var topBar: some View {
         HStack(spacing: SisuTheme.Spacing.grid * 3) {
             ZStack {
-                if flow.canGoBack {
+                if flow.canGoBack || shownStep == .profile && flow.step == .reading {
                     SisuIconButton(icon: .back, style: .plain, label: OnboardingCopy.back) {
                         move(forward: false, model.onboardingBack)
                     }
@@ -77,7 +102,7 @@ struct OnboardingView: View {
         }
         .padding(.horizontal, SisuTheme.Spacing.margin - SisuTheme.Spacing.grid * 2)
         .padding(.top, SisuTheme.Spacing.grid)
-        .opacity(flow.step == .reading ? 0 : 1)
+        .opacity(shownStep == .reading ? 0 : 1)
     }
 
     // MARK: Motion
@@ -251,7 +276,8 @@ private extension View {
 
 // MARK: - 4. The sorting moment
 
-/// Lasts exactly as long as the overview takes to load: when it is loaded the flow finishes and Today shows.
+/// Shown while a slow load is running (OnboardingView finishes the flow the moment the overview is loaded),
+/// and with a way back if the profile could not be read.
 private struct ReadingStep: View {
     @Environment(AppModel.self) private var model
 
@@ -286,10 +312,5 @@ private struct ReadingStep: View {
         }
         .padding(.horizontal, SisuTheme.Spacing.margin)
         .padding(.bottom, SisuTheme.Spacing.card)
-        .task(id: model.overviewState) {
-            if model.overviewState == .loaded, model.overview?.customerId == model.customer?.customerId {
-                model.finishOnboarding()
-            }
-        }
     }
 }

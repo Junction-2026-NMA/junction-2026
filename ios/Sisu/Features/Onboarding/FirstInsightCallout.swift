@@ -95,7 +95,7 @@ private struct FirstInsightCard: View {
         guard !arrived else { return }
         if reduceMotion { arrived = true; return }
         let scale = model.launch.motionScale
-        try? await Task.sleep(for: .milliseconds(Int(250 * scale)))
+        // Comes in with Today itself (no wait, so its space is never empty), then the ring fades.
         withAnimation(.spring(response: 0.45 * scale, dampingFraction: 0.78)) { arrived = true; spotlight = true }
         try? await Task.sleep(for: .milliseconds(Int(1000 * scale)))
         withAnimation(.easeOut(duration: 0.6 * scale)) { spotlight = false }
