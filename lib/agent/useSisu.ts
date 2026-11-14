@@ -3,10 +3,10 @@
 // One hook for the whole conversation: type or hold-to-talk, streamed answers, spoken replies, interruption.
 // Usage is shown in context/frontend-integration.md and app/dev/agent/page.tsx.
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { AgentAction, BillType, ChatTurn, Citation, CustomerMemory, Fact, Grounding, MemoryItem, PropertyWatch, ResearchResult, Stage, SisuActivity, TeachingCard, ToolTrace, TurnTimings, Visual, WatchCheck, WatchNotification } from "@/lib/types";
+import type { AgentAction, BillType, ChatTurn, Citation, CustomerMemory, Fact, Grounding, MemoryItem, PropertyWatch, ResearchResult, Stage, SisuActivity, Suggestion, TeachingCard, ToolTrace, TurnTimings, Visual, WatchCheck, WatchNotification } from "@/lib/types";
 import { freedByApprovedSwitches } from "@/lib/actions/freed";
 import { IDLE, activity as makeActivity, nextActivity } from "./activity";
-import { type Recorder, type Speaker, type VoiceChoice, approveAction, checkWatches as pollWatches, confirmBill as saveBillName, createRecorder, createSpeaker, declineAction, fetchActions, fetchMemory, fetchWatches, simulateWatchDrop, stopWatch as endWatch, streamTurn, warmAgent } from "./client";
+import { type Recorder, type Speaker, type VoiceChoice, approveAction, checkWatches as pollWatches, confirmBill as saveBillName, createRecorder, createSpeaker, declineAction, fetchActions, fetchMemory, fetchSuggestions, fetchWatches, simulateWatchDrop, stopWatch as endWatch, streamTurn, warmAgent } from "./client";
 
 const WATCH_CHECK_EVERY_MS = 60_000;
 
@@ -33,6 +33,7 @@ export type SisuMessage = {
   grounding: Grounding | null; // every number in the answer and whether it has a source
   facts: Fact[]; // the receipts: what each number is, where it came from, how to open its rows
   steps: SisuStep[]; // what Sisu is doing, one line per tool call, in order. Show these live while `pending` is true
+  suggestions: Suggestion[]; // 2-3 next steps as buttons under the answer. Tap: ask(prompt), or investigate() for kind "investigate"
 };
 
 // One thing Sisu did (or is doing right now) in this turn.
@@ -65,6 +66,7 @@ const blank = (role: "user" | "assistant", text = "", pending = true): SisuMessa
   grounding: null,
   facts: [],
   steps: [],
+  suggestions: [],
 });
 
 export function useSisu({ customerId, focusBill, speakReplies = true, language = "auto" }: SisuOptions) {
@@ -81,6 +83,7 @@ export function useSisu({ customerId, focusBill, speakReplies = true, language =
   const [memory, setMemory] = useState<CustomerMemory | null>(null);
   const [watches, setWatches] = useState<PropertyWatch[]>([]);
   const [notifications, setNotifications] = useState<WatchNotification[]>([]);
+  const [starters, setStarters] = useState<Suggestion[]>([]); // buttons for an empty Talk screen; refreshed after every turn
   const [heardLanguage, setHeardLanguage] = useState<string | null>(null); // the language of the last spoken question, when it was recognised
 
   const speaker = useRef<Speaker | null>(null);
@@ -107,14 +110,15 @@ export function useSisu({ customerId, focusBill, speakReplies = true, language =
   // Actions and memory belong to the customer, not to one conversation, so they load when the customer changes.
   const refresh = useCallback(async () => {
     if (!customerId) return;
-    const [list, remembered, watching] = await Promise.all([fetchActions(customerId), fetchMemory(customerId), fetchWatches(customerId)]);
+    const [list, remembered, watching, ideas] = await Promise.all([fetchActions(customerId), fetchMemory(customerId), fetchWatches(customerId), fetchSuggestions(customerId, language === "auto" ? null : language)]);
     if (list) setActions(list.actions);
+    setStarters(ideas);
     if (remembered) setMemory(remembered);
     if (watching) {
       setWatches(watching.watches);
       setNotifications(watching.notifications);
     }
-  }, [customerId]);
+  }, [customerId, language]);
 
   useEffect(() => {
     setActions([]);
@@ -242,6 +246,9 @@ export function useSisu({ customerId, focusBill, speakReplies = true, language =
             case "research":
               patch(reply.id, (m) => ({ ...m, research: event.result }));
               break;
+            case "suggestions":
+              patch(reply.id, (m) => ({ ...m, suggestions: event.items }));
+              break;
             case "visual":
               patch(reply.id, (m) => ({ ...m, visuals: [...m.visuals.filter((v) => v.id !== event.visual.id), event.visual] }));
               break;
@@ -265,6 +272,7 @@ export function useSisu({ customerId, focusBill, speakReplies = true, language =
             case "done":
               patch(reply.id, (m) => ({ ...m, text: event.text || m.text, pending: false, citations: event.citations, timings: event.timings }));
               history.current = [...history.current, { role: "user" as const, content: question }, { role: "assistant" as const, content: event.text }].slice(-12);
+              void refresh(); // the starters change once something has been set up
               break;
             case "error":
               patch(user.id, (m) => ({ ...m, pending: false }));
@@ -395,5 +403,5 @@ export function useSisu({ customerId, focusBill, speakReplies = true, language =
       : speaking
         ? makeActivity("speaking")
         : (moment ?? (waiting ? makeActivity("waiting_for_approval", waiting.title, waiting.warning ?? null) : IDLE));
-  return { activity, status, messages, server, micError, voiceError, heardLanguage, ask, startTalking, stopTalking, testVoice, setVoice, cancel, reset, investigate, approve, decline, confirmBill, actions, memory, approvedMonthlySaving, refresh, watches, notifications, checkWatches, stopWatch, simulatePriceDrop };
+  return { activity, status, messages, starters, server, micError, voiceError, heardLanguage, ask, startTalking, stopTalking, testVoice, setVoice, cancel, reset, investigate, approve, decline, confirmBill, actions, memory, approvedMonthlySaving, refresh, watches, notifications, checkWatches, stopWatch, simulatePriceDrop };
 }

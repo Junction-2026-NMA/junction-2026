@@ -1,7 +1,7 @@
 // Browser side of the agent. No React here, so any UI can use it.
 // It does three things: reads the event stream, records the microphone, and plays speech in order.
 import type { VoiceLanguage } from "./languages";
-import type { ActionList, AgentAction, BillPhotoResult, BillType, ChatTurn, CustomerMemory, MemoryKind, PropertyWatch, ResearchResult, SisuEvent, WatchCheck, WatchList, WatchNotification } from "@/lib/types";
+import type { ActionList, AgentAction, BillPhotoResult, BillType, ChatTurn, CustomerMemory, MemoryKind, PropertyWatch, ResearchResult, SisuEvent, Suggestion, WatchCheck, WatchList, WatchNotification } from "@/lib/types";
 
 export type TurnInput = {
   customerId: string;
@@ -89,6 +89,12 @@ export const declineAction = (customerId: string, actionId: string) => postJson<
 export async function fetchActions(customerId: string): Promise<ActionList | null> {
   const response = await fetch(`/api/actions?customerId=${customerId}`).catch(() => null);
   return response?.ok ? ((await response.json()) as ActionList) : null;
+}
+
+// Buttons for an empty Talk screen: what Sisu can do for this customer right now.
+export async function fetchSuggestions(customerId: string, language?: string | null): Promise<Suggestion[]> {
+  const response = await fetch(`/api/agent/suggestions?customerId=${customerId}${language ? `&language=${language}` : ""}`).catch(() => null);
+  return response?.ok ? ((await response.json()) as { suggestions: Suggestion[] }).suggestions : [];
 }
 
 // --- Property watches: what Sisu is watching for this visitor, and what it has found. ---

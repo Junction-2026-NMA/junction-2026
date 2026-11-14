@@ -502,7 +502,14 @@ export type AgentExtraEvent =
   | { type: "memory"; item: MemoryItem }
   | { type: "grounding"; grounding: Grounding; facts: Fact[] } // sent just before "done"
   | { type: "visual"; visual: Visual } // a chart to draw with the answer (see Visual below, and app/visuals/)
-  | { type: "replace"; text: string }; // the answer so far, after Sisu threw away a sentence that failed a check. Show this instead of the deltas received so far
+  | { type: "replace"; text: string } // the answer so far, after Sisu threw away a sentence that failed a check. Show this instead of the deltas received so far
+  | { type: "suggestions"; items: Suggestion[] }; // 2-3 tappable next steps for this answer, sent just before "grounding"
+
+// A tappable next step: under an answer (the "suggestions" event) or on an empty Talk screen (GET /api/agent/suggestions).
+// On tap, send `prompt` as the customer's question, or call investigate() when kind is "investigate".
+// agentic: tapping it makes Sisu do something (search, set up a transfer or a watch), not only answer.
+export type SuggestionKind = "ask" | "show" | "act" | "watch" | "investigate";
+export type Suggestion = { id: string; label: string; prompt: string; kind: SuggestionKind; agentic: boolean };
 
 export type SisuEvent = AgentEvent | AgentExtraEvent;
 
