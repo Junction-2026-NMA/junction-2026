@@ -17,7 +17,8 @@ const categoryAverage = (overview: Overview, category: string): number => catego
 
 type ListingFacts = Pick<Listing, "priceEur"> & Partial<Pick<Listing, "depositEur" | "utilitiesPerMonthEur" | "url">>;
 
-export function housingEffect(overview: Overview, listing: ListingFacts, requirements: WatchRequirements = {}, prefix = "housing"): HousingEffect {
+// simulated: the rent was made up by the demo's simulate button, so its receipt says so instead of "read from the listing".
+export function housingEffect(overview: Overview, listing: ListingFacts, requirements: WatchRequirements = {}, prefix = "housing", options: { simulated?: boolean } = {}): HousingEffect {
   const fit = rentFit(overview, listing.priceEur);
   const rent = fit.rentEur;
   const housingNow = currentHousing(overview);
@@ -41,7 +42,7 @@ export function housingEffect(overview: Overview, listing: ListingFacts, require
   const transportToday = categoryAverage(overview, "Transportation");
   const missing = [
     ...(utilities === null ? ["Water and other monthly charges at this flat: the listing does not state them."] : []),
-    `Transport after the move: not known (today about ${eur(transportToday)} a month in your bank data).`,
+    `Transport after the move: not known (${transportToday > 0 ? `today about ${eur(transportToday)} a month in your bank data` : "your bank data shows no transport spending today"}).`,
     ...(deposit === null ? ["The deposit: the listing does not state it."] : []),
     ...(moving === null ? ["Moving costs: you have not given an estimate."] : []),
     ...(keep === null ? ["How much you want to keep in the account after moving: not given."] : []),
@@ -52,13 +53,13 @@ export function housingEffect(overview: Overview, listing: ListingFacts, require
     ...(assumed ? [`Assumption, not from the listing: deposits are usually ${USUAL_DEPOSIT_MONTHS[0]} to ${USUAL_DEPOSIT_MONTHS[1]} months' rent (${eur(assumed.low)} to ${eur(assumed.high)}).`] : []),
   ];
 
-  const monthly = knownChange === 0 ? "the same as housing costs you today" : `${eur(Math.abs(knownChange))} a month ${knownChange > 0 ? "more" : "less"} than housing costs you today`;
+  const monthly = knownChange === 0 ? "the same as your housing today" : `${eur(Math.abs(knownChange))} a month ${knownChange > 0 ? "more" : "less"} than your housing today`;
   const upfrontText = range.low === range.high ? `${eur(range.low)} upfront` : `${eur(range.low)} to ${eur(range.high)} upfront${assumed ? " (the deposit is assumed)" : ""}`;
-  const sentence = `Rent ${eur(rent)} is ${monthly}${utilities === null ? " before water and other charges" : ""}; an average month would leave ${leftOverAfter < 0 ? `${eur(-leftOverAfter)} short` : `about ${eur(leftOverAfter)} over`}. Moving in would take ${upfrontText}.`;
+  const sentence = `Rent ${eur(rent)} is ${monthly}${utilities === null ? " (water and other charges not stated)" : ", charges included"}; an average month would leave ${leftOverAfter < 0 ? `${eur(-leftOverAfter)} short` : `about ${eur(leftOverAfter)} over`}. Moving in would take ${upfrontText}.`;
 
   const url = listing.url ? { url: listing.url } : {};
   const facts: Fact[] = [
-    fact(`${prefix}:rent`, "Rent of this flat per month", rent, "EUR/month", "read from the listing", { source: "context.dev", ...url }),
+    options.simulated ? fact(`${prefix}:rent`, "Rent of this flat per month (simulated)", rent, "EUR/month", "made up by the demo's simulate button", { source: "assumption" }) : fact(`${prefix}:rent`, "Rent of this flat per month", rent, "EUR/month", "read from the listing", { source: "context.dev", ...url }),
     fact(`${prefix}:housing-now`, "Housing cost per month today", housingNow, "EUR/month", "Housing payments, 12-month average", { evidence: { from: overview.windowFrom, to: overview.windowTo, category: "Housing" } }),
     fact(`${prefix}:change`, "Known change per month", knownChange, "EUR/month", utilities === null ? "rent minus housing today" : "rent plus stated charges minus housing today", { source: "calculation" }),
     fact(`${prefix}:left-over-now`, "Left over in an average month today", fit.leftOverNowEur, "EUR/month", "safe to spend minus actual everyday spending", { source: "calculation" }),

@@ -64,6 +64,12 @@ describe("the housing effect of a listing is worked out in code, and nothing unk
     assert.ok(!effect.missing.some((gap) => /deposit|Moving|charges|keep/i.test(gap)));
     assert.ok(effect.facts.some((fact) => fact.source === "customer-stated" && fact.value === 300));
   });
+
+  it("a simulated rent is never receipted as read from the listing, and no transport spending is said plainly", () => {
+    const effect = housingEffect(overview, flat(), {}, "sim", { simulated: true });
+    assert.deepEqual([effect.facts[0].source, effect.facts[0].basis], ["assumption", "made up by the demo's simulate button"]);
+    assert.match(effect.missing.join(" "), /your bank data shows no transport spending today/); // Aino has none
+  });
 });
 
 describe("requirements are cleaned and applied to listings", () => {

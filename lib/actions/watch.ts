@@ -93,7 +93,7 @@ export function buildWatchDraft(customerId: string, request: WatchRequest): Draf
       title: monthly ? `Keep checking for homes in ${city} at €${budget} a month or less${minRooms ? ` with ${minRooms}+ rooms` : ""}` : `Keep checking prices for ${topic} at €${budget} or less`,
       summary: [
         ask,
-        request.goal ? `Goal: ${request.goal}.` : null,
+        request.goal ? `Goal: ${request.goal}${/[.!?]$/.test(request.goal) ? "" : "."}` : null,
         `${fitting.length ? `${fitting.length} of the ${seen.length} ${things} read today fit` : `None of the ${seen.length} ${things} read today fit`} (${what}${extra.length ? `; ${extra.join("; ")}` : ""}).`,
         housing && nearest ? `${fitting.length ? "The cheapest that fits" : "The nearest"}, ${nearest.title}: ${housing.sentence}` : null,
         `${monitoringSentence(search.pages.length, !search.mock)}${search.mock ? " (Example data here: no key is set, so nothing is watched on the web.)" : ""}`,

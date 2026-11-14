@@ -90,7 +90,7 @@ export function toNotification(watch: PropertyWatch, overview: Overview, event: 
   const checked = checkAgainstFigures(id, monthly, price, overview);
   const details = describe(listing);
   // Flats: the whole effect of moving in (recurring and upfront), in place of the rent-only sentence.
-  const housing = monthly ? housingEffect(overview, listing, watch.requirements ?? {}, `watch:${id}:housing`) : null;
+  const housing = monthly ? housingEffect(overview, listing, watch.requirements ?? {}, `watch:${id}:housing`, { simulated }) : null;
   const unchecked = watch.requirements ? checkRequirements(listing, watch.requirements, todayOf(now)).unchecked : [];
   const limit = monthly ? "your budget" : "the price you set";
   const what = monthly ? "rent per month" : "price";
