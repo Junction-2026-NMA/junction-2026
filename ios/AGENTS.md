@@ -13,7 +13,8 @@ judging rules) before you write anything. The team rules in the repository's roo
   `RiveBindings`. SwiftUI itself is for layout, scrolling, text entry, lists, sheets and charts.
 - **Rive files: `rive/`** sources, built into `ios/Sisu/Resources/Rive`. The names in `rive/contract.json` are
   fixed. The Rive files are authored separately: do not edit `rive/` or `ios/Sisu/Resources/Rive` unless your
-  task is the Rive library itself.
+  task is the Rive library itself. Every interface asset is a 2D Rive animation in `sisu_ui.riv`; there is no
+  3D file and no fallback between components.
 
 ## Testing
 
@@ -31,6 +32,7 @@ inject time. Bundled sample JSON is reached through `FixtureAPI` or `Bundle.modu
 | `sh ios/scripts/build-check.sh` | Any change under `ios/Sisu` | Compiles the app for the iOS Simulator. About two minutes. Uses the Swift package cache in `~/Library/Caches/sisu-ios-packages`. |
 | `sh ios/scripts/test-app.sh` | Changes to the Rive layer or the Rive files | Boots a simulator. Run it by hand, not in automated checks. |
 | `sh rive/build.sh` | Changes to `rive/sisu-ui` | Rebuilds `sisu_ui.riv`. |
+| `sh ios/scripts/screenshots.sh` | Changes to screens | Screenshots of every screen into `ios/.derived-app/screens/`. Look at them. |
 
 ## Do not
 

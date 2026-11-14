@@ -6,7 +6,8 @@
        tone        enum TagTone       in     default "amber"
 
      How it works
-       Pill       fixed-size layout box, text centred.
+       Pill       hugs its text (12 pt padding each side) and is anchored to the left edge of the fixed 200 x 28 artboard.
+                  The text is at most 176 pt wide; a longer one shrinks its font.
        Tone       AnyState -> neutral | amber | info on `tone`; the pose keys the pill and text colours. -->
 <Rive version="1" kind="fragment">
     <!-- View model -->
@@ -24,13 +25,16 @@
         <LayoutComponentStyle name="Artboard Style" id="17:8"/>
 
         <!-- Scene. The first sibling draws on top. -->
-        <!-- Pill fixed at the artboard's 200 x 28 with the text centred. The text shrinks its font rather than being cut. -->
-        <LayoutComponent width="200" height="28" clip="true" styleId="17:10" name="Pill" id="17:9">
-            <LayoutComponentStyle flexDirectionValue="row" layoutAlignmentType="center" cornerRadiusTL="14" paddingLeft="12"
-                    paddingLeftUnitsValue="points" paddingRight="12" paddingRightUnitsValue="points" name="Pill Style" id="17:10"/>
+        <!-- The pill hugs its text and sits at the artboard's left edge, so a short tag is a short pill inside the app's fixed
+             200 x 28 frame. The text is at most 176 pt wide (a full-width pill); past that it shrinks its font rather than being cut. -->
+        <LayoutComponent height="28" clip="true" styleId="17:10" name="Pill" id="17:9">
+            <SemanticData role="text" name="Semantics"><DataBindContext sourcePathIds="17:1-17:2" propertyKey="983"/></SemanticData>  <!-- for VoiceOver: role, label <- the component's text -->
+            <LayoutComponentStyle layoutWidthScaleType="hug" layoutHeightScaleType="fixed" flexDirectionValue="row"
+                    layoutAlignmentType="center" cornerRadiusTL="14" paddingLeft="12" paddingLeftUnitsValue="points" paddingRight="12"
+                    paddingRightUnitsValue="points" name="Pill Style" id="17:10"/>
             <Fill name="Fill"><SolidColor colorValue="FFFFF1D8" name="Color" id="17:11"/></Fill>
             <Text wrapValue="noWrap" overflowValue="fitFontSize" name="Text" id="17:12">
-                <LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" maxWidth="100" maxWidthUnitsValue="percent" name="Layout"/>
+                <LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" maxWidth="176" maxWidthUnitsValue="points" name="Layout"/>
                 <TextStylePaint fontSize="12" fontAssetId="0:11" familyName="Figtree" styleName="SemiBold" name="Text Style" id="17:13">
                     <Fill name="Fill"><SolidColor colorValue="FF885600" name="Color" id="17:14"/></Fill>
                 </TextStylePaint>

@@ -1,0 +1,170 @@
+<!-- TypingDots  (56x28, fixed)
+     Three dots that bounce in turn: "Sisu is thinking", inside the conversation. Dark green on transparent.
+
+     View model TypingDotsVM  (names and types are fixed by rive/contract.json):
+       active      boolean            in     default true    false shows the dots at rest
+
+     How it works
+       Dots       three 8 pt dots on a baseline, drawn from their feet so the landing squash stays on the line.
+       Active     resting <-> bouncing on `active`. bouncing is a 1 s loop: each dot hops 9 pt in turn, stretches at the top,
+                  squashes when it lands and settles with a tiny second hop. The layer starts in the right state (conditional
+                  entry); turning it off blends the dots back to the baseline in 160 ms. -->
+<Rive version="1" kind="fragment">
+    <!-- View model -->
+    <ViewModel defaultInstanceId="22:3" name="TypingDotsVM" id="22:1">
+        <ViewModelPropertyBoolean name="active" id="22:2"/>
+        <ViewModelInstance exports="true" name="Default" id="22:3">
+            <ViewModelInstanceBoolean propertyValue="true" viewModelPropertyId="22:2" id="22:4"/>  <!-- active -->
+        </ViewModelInstance>
+    </ViewModel>
+
+    <Artboard defaultStateMachineId="22:10" viewModelId="22:1" viewModelInstanceId="22:3" clip="true" width="56" height="28"
+            x="1600" y="840" styleId="22:6" name="TypingDots" id="22:5">
+        <LayoutComponentStyle name="Artboard Style" id="22:6"/>
+
+        <!-- Scene. The first sibling draws on top. -->
+        <!-- Each dot is a shape whose origin is the dot's foot (the path sits 4 pt above it), so scaling squashes it onto the baseline. -->
+        <Node name="Dots" id="22:20">
+            <SemanticData role="image" name="Semantics"/>  <!-- for VoiceOver: an image; the app gives it its label ("Sisu is thinking") -->
+            <Shape x="14" y="17" name="Dot 1" id="22:7">
+                <Ellipse width="8" height="8" y="-4" name="Dot Path"/>
+                <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+            </Shape>
+            <Shape x="28" y="17" name="Dot 2" id="22:8">
+                <Ellipse width="8" height="8" y="-4" name="Dot Path"/>
+                <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+            </Shape>
+            <Shape x="42" y="17" name="Dot 3" id="22:9">
+                <Ellipse width="8" height="8" y="-4" name="Dot Path"/>
+                <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+            </Shape>
+        </Node>
+
+        <!-- State machine. Declared before the timelines so the editor opens it first. -->
+        <StateMachine name="Main" id="22:10">
+            <StateMachineLayer name="Active" id="22:11">
+                <AnyState x="0" y="-140" id="22:12"/>
+                <ExitState x="0" y="-280" id="22:13"/>
+                <EntryState x="0" y="0" id="22:14">
+                    <StateTransition stateToId="22:15">  <!-- starts in bouncing if the condition holds -->
+                        <TransitionViewModelCondition>  <!-- active is true -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="22:1-22:2" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="22:16"/>  <!-- otherwise starts in resting -->
+                </EntryState>
+                <AnimationState animationId="22:17" stateName="bouncing" x="240" y="0" id="22:15">
+                    <StateTransition stateToId="22:16" duration="160">  <!-- to resting -->
+                        <TransitionViewModelCondition>  <!-- active is false -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="22:1-22:2" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="false"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState animationId="22:18" stateName="resting" x="480" y="0" id="22:16">
+                    <StateTransition stateToId="22:15" duration="100">  <!-- to bouncing -->
+                        <TransitionViewModelCondition>  <!-- active is true -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="22:1-22:2" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+            </StateMachineLayer>
+        </StateMachine>
+
+        <!-- Timelines -->
+        <!-- 1 s loop: the dots hop one after the other, 8 frames apart. -->
+        <LinearAnimation duration="60" loopValue="loop" name="active: bouncing" id="22:17">
+            <KeyedObject objectId="22:7">  <!-- Dot 1 -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="17" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="8" frame="8" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="17" frame="16" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="15" frame="20" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="17" frame="24" interpolationType="linear"/>
+                    <KeyFrameDouble value="17" frame="60" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.12" frame="8" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.82" frame="17" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.04" frame="21" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="25" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="60" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.94" frame="8" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.16" frame="17" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.98" frame="21" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="25" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="60" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="22:8">  <!-- Dot 2 -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="17" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="17" frame="8" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="8" frame="16" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="17" frame="24" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="15" frame="28" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="17" frame="32" interpolationType="linear"/>
+                    <KeyFrameDouble value="17" frame="60" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="8" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.12" frame="16" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.82" frame="25" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.04" frame="29" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="33" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="60" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="8" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.94" frame="16" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.16" frame="25" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.98" frame="29" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="33" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="60" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="22:9">  <!-- Dot 3 -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="17" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="17" frame="16" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="8" frame="24" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="17" frame="32" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="15" frame="36" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="17" frame="40" interpolationType="linear"/>
+                    <KeyFrameDouble value="17" frame="60" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="16" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.12" frame="24" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.82" frame="33" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.04" frame="37" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="41" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="60" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="16" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.94" frame="24" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.16" frame="33" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.98" frame="37" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="41" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="60" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="active: resting" id="22:18">
+            <KeyedObject objectId="22:7"><KeyedProperty property="y"><KeyFrameDouble value="17" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 1 -->
+            <KeyedObject objectId="22:8"><KeyedProperty property="y"><KeyFrameDouble value="17" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 2 -->
+            <KeyedObject objectId="22:9"><KeyedProperty property="y"><KeyFrameDouble value="17" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dot 3 -->
+        </LinearAnimation>
+    </Artboard>
+</Rive>

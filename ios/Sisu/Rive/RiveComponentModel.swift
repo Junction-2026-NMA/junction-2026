@@ -8,9 +8,9 @@ import SisuCore
 final class RiveComponentModel: ObservableObject {
     enum Phase: Equatable {
         case loading
-        /// On screen. `shown` is the requested component or, when its file is missing, its fallback.
+        /// On screen. `shown` is the requested component.
         case ready(shown: RiveComponent)
-        /// Neither the component nor a fallback could be loaded. The view draws a placeholder.
+        /// The component could not be loaded. The view draws a placeholder.
         case unavailable
     }
 
@@ -71,15 +71,10 @@ final class RiveComponentModel: ObservableObject {
         }
     }
 
-    /// The component whose design size the view takes right now: the one on screen, or while loading the first
-    /// candidate whose file is there, so the layout does not jump when a fallback is used.
+    /// The component whose design size the view takes right now: the one on screen, otherwise the requested one.
     func sizedAs(_ request: RiveComponentRequest, in library: RiveLibrary? = nil) -> RiveComponent {
-        let library = library ?? self.library
-        switch phase {
-        case .ready(let shown): return shown
-        case .unavailable: return request.component
-        case .loading: return request.candidates.first { library.canLoad($0.contract.file) } ?? request.component
-        }
+        if case .ready(let shown) = phase { return shown }
+        return request.component
     }
 
     /// The values the artboard should show. Only properties whose value changed are written.
@@ -107,16 +102,15 @@ final class RiveComponentModel: ObservableObject {
     // MARK: - Loading
 
     private func run(_ request: RiveComponentRequest, generation: Int) async {
-        for candidate in request.candidates {
-            do {
-                let loaded = try await build(candidate, sizing: request.sizing(for: candidate))
-                guard generation == self.generation else { return }
-                adopt(loaded, shown: candidate, request: request)
-                return
-            } catch {
-                guard generation == self.generation else { return }
-                Self.log("\(candidate.rawValue) cannot be shown: \(error)")
-            }
+        let component = request.component
+        do {
+            let loaded = try await build(component, sizing: request.sizing(for: component))
+            guard generation == self.generation else { return }
+            adopt(loaded, shown: component, request: request)
+            return
+        } catch {
+            guard generation == self.generation else { return }
+            Self.log("\(component.rawValue) cannot be shown: \(error)")
         }
         queuedTriggers = []
         phase = .unavailable
@@ -191,7 +185,7 @@ final class RiveComponentModel: ObservableObject {
             case .enumCase(let caseName) where has(name, .enum):
                 instance.setValue(of: EnumProperty(path: name), to: caseName)
             default:
-                // Expected on a fallback (Jar3D → Jar has no such key); otherwise a contract mismatch.
+                // A contract mismatch: the app sets a property the artboard does not have.
                 Self.log("no \(value) property named '\(name)' on this artboard; value skipped")
             }
         }

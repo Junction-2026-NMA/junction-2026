@@ -6,7 +6,8 @@
        label       string             in     default "Fixed"
 
      How it works
-       Pill       fixed-size layout box (it does not reflow), content centred. The label shrinks its font past 112 pt wide.
+       Pill       hugs its icon and label and is anchored to the left edge of the fixed 160 x 32 artboard.
+                  The label shrinks its font past 112 pt wide (a full-width pill).
        Icon       a Solo holding four drawn icons, each in its basket's green: anchor, lightning, drop, jar.
        Basket     AnyState -> fixed | curveballs | leaks | jars on `basket`; the pose keys Solo.activeComponentId. -->
 <Rive version="1" kind="fragment">
@@ -25,11 +26,12 @@
         <LayoutComponentStyle name="Artboard Style" id="4:8"/>
 
         <!-- Scene. The first sibling draws on top. -->
-        <!-- Pale mint pill, fixed at the artboard's 160 x 32. Icon and label sit centred as one group. -->
-        <LayoutComponent width="160" height="32" clip="true" styleId="4:10" name="Pill" id="4:9">
-            <LayoutComponentStyle flexDirectionValue="row" layoutAlignmentType="center" cornerRadiusTL="16" paddingLeft="12"
-                    paddingLeftUnitsValue="points" paddingRight="12" paddingRightUnitsValue="points" gapHorizontal="6"
-                    gapHorizontalUnitsValue="points" name="Pill Style" id="4:10"/>
+        <!-- Pale mint pill that hugs its icon and label and sits at the artboard's left edge, inside the app's fixed 160 x 32 frame. -->
+        <LayoutComponent height="32" clip="true" styleId="4:10" name="Pill" id="4:9">
+            <SemanticData role="text" name="Semantics"><DataBindContext sourcePathIds="4:1-4:3" propertyKey="983"/></SemanticData>  <!-- for VoiceOver: role, label <- the component's text -->
+            <LayoutComponentStyle layoutWidthScaleType="hug" layoutHeightScaleType="fixed" flexDirectionValue="row"
+                    layoutAlignmentType="center" cornerRadiusTL="16" paddingLeft="12" paddingLeftUnitsValue="points" paddingRight="12"
+                    paddingRightUnitsValue="points" gapHorizontal="6" gapHorizontalUnitsValue="points" name="Pill Style" id="4:10"/>
             <Fill name="Fill"><SolidColor colorValue="FFD2FCD5" name="Color"/></Fill>
             <LayoutComponent width="18" height="18" clip="false" styleId="4:12" name="Icon Slot" id="4:11">
                 <LayoutComponentStyle name="Icon Slot Style" id="4:12"/>

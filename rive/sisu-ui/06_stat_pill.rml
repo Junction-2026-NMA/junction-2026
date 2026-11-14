@@ -6,7 +6,9 @@
        value       string             in     default "12"
 
      How it works
-       Pill       fixed-size layout box, content centred. The value shrinks its font past 48 pt wide.
+       Pill       hugs its icon and value and is anchored to the left edge of the fixed 96 x 36 artboard.
+                  The value shrinks its font past 48 pt wide (a full-width pill).
+       Flame      the streak flame flickers in a slow 1.6 s loop (its own layer).
        Kind       AnyState -> streak | berries on `kind`. The pose keys the pill colour, the value colour and which icon the Solo shows.
                   streak = amber background, amber flame. berries = pale mint background, S green berry. -->
 <Rive version="1" kind="fragment">
@@ -25,17 +27,18 @@
         <LayoutComponentStyle name="Artboard Style" id="6:8"/>
 
         <!-- Scene. The first sibling draws on top. -->
-        <!-- Pill fixed at the artboard's 96 x 36, icon and value centred as one group. -->
-        <LayoutComponent width="96" height="36" clip="true" styleId="6:10" name="Pill" id="6:9">
-            <LayoutComponentStyle flexDirectionValue="row" layoutAlignmentType="center" cornerRadiusTL="18" paddingLeft="10"
-                    paddingLeftUnitsValue="points" paddingRight="12" paddingRightUnitsValue="points" gapHorizontal="6"
-                    gapHorizontalUnitsValue="points" name="Pill Style" id="6:10"/>
+        <!-- The pill hugs its icon and value and sits at the artboard's left edge, inside the app's fixed 96 x 36 frame. -->
+        <LayoutComponent height="36" clip="true" styleId="6:10" name="Pill" id="6:9">
+            <SemanticData role="text" name="Semantics"><DataBindContext sourcePathIds="6:1-6:3" propertyKey="983"/></SemanticData>  <!-- for VoiceOver: role, label <- the component's text -->
+            <LayoutComponentStyle layoutWidthScaleType="hug" layoutHeightScaleType="fixed" flexDirectionValue="row"
+                    layoutAlignmentType="center" cornerRadiusTL="18" paddingLeft="10" paddingLeftUnitsValue="points" paddingRight="12"
+                    paddingRightUnitsValue="points" gapHorizontal="6" gapHorizontalUnitsValue="points" name="Pill Style" id="6:10"/>
             <Fill name="Fill"><SolidColor colorValue="FFFFF1D8" name="Color" id="6:11"/></Fill>
             <LayoutComponent width="18" height="20" clip="false" styleId="6:13" name="Icon Slot" id="6:12">
                 <LayoutComponentStyle name="Icon Slot Style" id="6:13"/>
                 <Solo x="9" y="10" activeComponentId="6:15" name="Icon" id="6:14">
                     <Node name="Streak: flame" id="6:15">
-                        <Shape name="Inner Flame">
+                        <Shape name="Inner Flame" id="6:30">
                             <PointsPath isClosed="true" name="Inner Flame">
                                 <StraightVertex x="0.4" y="-1.2" radius="0.6"/>
                                 <CubicDetachedVertex x="3.3" y="5" inRotation="-1.5708" inDistance="2.4" outRotation="1.5708" outDistance="1.9"/>
@@ -44,7 +47,7 @@
                             </PointsPath>
                             <Fill name="Fill"><SolidColor colorValue="FFFFF1D8" name="Color"/></Fill>
                         </Shape>
-                        <Shape name="Flame">
+                        <Shape name="Flame" id="6:31">
                             <PointsPath isClosed="true" name="Flame">
                                 <StraightVertex x="2" y="-9.6" radius="1"/>
                                 <CubicDetachedVertex x="7" y="3" inRotation="-1.85" inDistance="5.6" outRotation="1.5708" outDistance="3.5"/>
@@ -101,6 +104,15 @@
                 <AnimationState animationId="6:27" stateName="streak" x="240" y="0" id="6:25"/>
                 <AnimationState animationId="6:28" stateName="berries" x="240" y="110" id="6:26"/>
             </StateMachineLayer>
+            <!-- The streak flame is alive: one looping state. (It also runs while the berry is shown; the Solo hides the flame then.) -->
+            <StateMachineLayer name="Flame" id="6:32">
+                <AnyState x="0" y="-140" id="6:33"/>
+                <ExitState x="0" y="-280" id="6:34"/>
+                <EntryState x="0" y="0" id="6:35">
+                    <StateTransition stateToId="6:36"/>  <!-- starts in flicker -->
+                </EntryState>
+                <AnimationState animationId="6:37" stateName="flicker" x="240" y="0" id="6:36"/>
+            </StateMachineLayer>
         </StateMachine>
 
         <!-- Timelines. Most are one-key poses: the state transitions do the blending. -->
@@ -113,6 +125,55 @@
             <KeyedObject objectId="6:11"><KeyedProperty property="colorValue"><KeyFrameColor value="FFD2FCD5" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Pill Color -->
             <KeyedObject objectId="6:19"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Value Color -->
             <KeyedObject objectId="6:14"><KeyedProperty property="activeComponentId"><KeyFrameId value="6:16" frame="0"/></KeyedProperty></KeyedObject>  <!-- Icon -->
+        </LinearAnimation>
+        <!-- 1.6 s loop, slow and small: the flame stretches, leans and settles; the inner flame flickers against it. -->
+        <LinearAnimation duration="96" loopValue="loop" name="flame: flicker" id="6:37">
+            <KeyedObject objectId="6:31">  <!-- Flame -->
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.08" frame="22" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.97" frame="46" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.05" frame="70" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="96" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.96" frame="22" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.03" frame="46" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.98" frame="70" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="96" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-0.06" frame="24" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.05" frame="50" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-0.025" frame="74" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="96" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="6:30">  <!-- Inner Flame -->
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.88" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.12" frame="40" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.94" frame="64" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="96" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.06" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.94" frame="40" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.03" frame="64" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="96" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.6" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-0.5" frame="40" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.3" frame="64" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="96" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
         </LinearAnimation>
     </Artboard>
 </Rive>

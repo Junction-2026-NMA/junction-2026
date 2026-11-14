@@ -9,15 +9,6 @@ struct RiveComponentRequest: Equatable {
     /// Replaces the component's own sizing when set.
     var sizing: RiveSizing?
 
-    /// The component itself, then its fallbacks, in the order they are tried.
-    var candidates: [RiveComponent] {
-        var chain = [component]
-        while let next = chain.last?.contract.fallback, !chain.contains(next) {
-            chain.append(next)
-        }
-        return chain
-    }
-
     func sizing(for shown: RiveComponent) -> RiveSizing {
         sizing ?? shown.contract.sizing
     }

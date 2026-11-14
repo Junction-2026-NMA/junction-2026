@@ -12,6 +12,8 @@
        Hit        transparent box over the artboard; the listeners target it.
        Done       to do <-> done on `done`. `done` turns the row pale mint, fills the check deep green with a white tick,
                   shows the strike line across the title and tints the title deep green.
+       Done pop   a second layer on `done`: the check pops once (dips, 140 %, settles) when the row becomes done.
+                  A row that is already done when it appears does not pop.
        Press      up <-> down on the private boolean _down: the row shrinks to 97 % around its centre while held.
        pressed    fired by the click listener, once per completed tap. -->
 <Rive version="1" kind="fragment">
@@ -44,8 +46,10 @@
                     positionTopUnitsValue="points" positionBottom="0" positionBottomUnitsValue="points" name="Hit Style" id="8:16"/>
             <Fill name="Fill"><SolidColor colorValue="00FFFFFF" name="Color"/></Fill>
         </LayoutComponent>
-        <!-- The row. Title And Strike hugs the title, so the strike line is exactly as wide as the text; Title Slot clips a title that is too long. -->
+        <!-- The row. Title And Strike hugs the title, and the strike line is pinned across it, so it is exactly as wide as the text.
+             A title wider than Title Slot shrinks its font to fit (both boxes have a 100 % max width). -->
         <LayoutComponent clip="false" styleId="8:18" name="Card" id="8:17">
+            <SemanticData role="button" name="Semantics"><DataBindContext sourcePathIds="8:1-8:2" propertyKey="983"/><DataBindContext sourcePathIds="8:1-8:3" propertyKey="984"/></SemanticData>  <!-- for VoiceOver: role, label <- the component's text -->
             <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" flexDirectionValue="row"
                     layoutAlignmentType="centerLeft" cornerRadiusTL="18" paddingLeft="16" paddingLeftUnitsValue="points"
                     paddingRight="16" paddingRightUnitsValue="points" gapHorizontal="12" gapHorizontalUnitsValue="points"
@@ -54,6 +58,7 @@
             <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color" id="8:19"/></Fill>
             <LayoutComponent width="24" height="24" clip="false" styleId="8:21" name="Check" id="8:20">
                 <LayoutComponentStyle cornerRadiusTL="12" name="Check Style" id="8:21"/>
+                <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
                 <Fill name="Fill"><SolidColor colorValue="00007841" name="Color" id="8:22"/></Fill>
                 <Stroke thickness="2" position="inside" name="Ring"><SolidColor colorValue="FF99D59F" name="Color" id="8:23"/></Stroke>
                 <Node x="12" y="12" name="Tick Holder">
@@ -71,15 +76,19 @@
                 <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="hug" flexDirectionValue="row"
                         layoutAlignmentType="centerLeft" name="Title Slot Style" id="8:26"/>
                 <LayoutComponent clip="false" styleId="8:28" name="Title And Strike" id="8:27">
-                    <LayoutComponentStyle layoutWidthScaleType="hug" layoutHeightScaleType="hug" layoutTypeValue="stack"
-                            layoutAlignmentType="centerLeft" name="Title And Strike Style" id="8:28"/>
+                    <LayoutComponentStyle layoutWidthScaleType="hug" layoutHeightScaleType="hug"
+                            layoutAlignmentType="centerLeft" maxWidth="100" maxWidthUnitsValue="percent"
+                            name="Title And Strike Style" id="8:28"/>
                     <LayoutComponent height="2" opacity="0" clip="false" styleId="8:30" name="Strike" id="8:29">
-                        <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fixed" cornerRadiusTL="1"
-                                name="Strike Style" id="8:30"/>
+                        <LayoutComponentStyle positionTypeValue="absolute" widthUnitsValue="auto" positionLeft="0"
+                                positionLeftUnitsValue="points" positionRight="0" positionRightUnitsValue="points" positionTop="9.5"
+                                positionTopUnitsValue="points" cornerRadiusTL="1" name="Strike Style" id="8:30"/>
                         <Fill name="Fill"><SolidColor colorValue="FF007841" name="Color"/></Fill>
                     </LayoutComponent>
-                    <Text wrapValue="noWrap" name="Title" id="8:31">
-                        <LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" name="Layout"/>
+                    <!-- A title that is too long shrinks its font to fit the slot (it used to be cut off without a sign). -->
+                    <Text wrapValue="noWrap" overflowValue="fitFontSize" name="Title" id="8:31">
+                        <LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" maxWidth="100"
+                                maxWidthUnitsValue="percent" name="Layout"/>
                         <TextStylePaint fontSize="16" fontAssetId="0:11" familyName="Figtree" styleName="SemiBold" name="Title Style" id="8:32">
                             <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color" id="8:33"/></Fill>
                         </TextStylePaint>
@@ -164,6 +173,45 @@
                     </StateTransition>
                 </AnimationState>
             </StateMachineLayer>
+            <!-- Done pop: the check pops once when the row becomes done. A row that is already done when it appears starts in
+                 `done at start` and does not pop. The colours are the Done layer's job; this layer only moves the check. -->
+            <StateMachineLayer name="Done pop" id="8:60">
+                <AnyState x="0" y="-140" id="8:61"/>
+                <ExitState x="0" y="-280" id="8:62"/>
+                <EntryState x="0" y="0" id="8:63">
+                    <StateTransition stateToId="8:66">  <!-- starts in done at start if the condition holds -->
+                        <TransitionViewModelCondition>  <!-- done is true -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="8:1-8:4" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="8:64"/>  <!-- otherwise starts in to do -->
+                </EntryState>
+                <AnimationState animationId="8:67" stateName="to do" x="240" y="0" id="8:64">
+                    <StateTransition stateToId="8:65">  <!-- to pop -->
+                        <TransitionViewModelCondition>  <!-- done is true -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="8:1-8:4" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState animationId="8:68" stateName="pop" x="480" y="0" id="8:65">
+                    <StateTransition stateToId="8:64">  <!-- to to do -->
+                        <TransitionViewModelCondition>  <!-- done is false -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="8:1-8:4" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="false"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState animationId="8:67" stateName="done at start" x="480" y="110" id="8:66">
+                    <StateTransition stateToId="8:64">  <!-- to to do -->
+                        <TransitionViewModelCondition>  <!-- done is false -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="8:1-8:4" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="false"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+            </StateMachineLayer>
         </StateMachine>
 
         <!-- Timelines. Most are one-key poses: the state transitions do the blending. -->
@@ -188,6 +236,30 @@
         </LinearAnimation>
         <LinearAnimation duration="1" name="press: down" id="8:57">
             <KeyedObject objectId="8:17"><KeyedProperty property="scaleX"><KeyFrameDouble value="0.97" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="0.97" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Card -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="done pop: rest" id="8:67">
+            <KeyedObject objectId="8:20"><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Check -->
+        </LinearAnimation>
+        <!-- 0.45 s: the check dips, pops to 140 % and settles. -->
+        <LinearAnimation duration="28" name="done pop: pop" id="8:68">
+            <KeyedObject objectId="8:20">  <!-- Check -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.7" frame="3" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.4" frame="11" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.92" frame="17" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.04" frame="22" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="27" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.7" frame="3" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.4" frame="11" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.92" frame="17" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.04" frame="22" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="27" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
         </LinearAnimation>
     </Artboard>
 </Rive>

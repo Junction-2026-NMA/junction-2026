@@ -7,7 +7,8 @@
 
      How it works
        Track      clipped, rounded layout row. Value (weight = progress) and Rest (weight = 1 - progress) share it.
-                  Both binds go through an eased converter, so the bar animates to a new value over 0.45 s.
+                  Both binds go through an eased converter, so the bar springs to a new value in 0.6 s with a slight overshoot
+                  (clamped, so the fill never leaves the track).
        Tone       AnyState -> green | streak on `tone`; the pose keys the fill colour (S green or amber).
        Appear     plays once on load: the fill grows from the left edge to its value in half a second (Value.scaleX 0 -> 1). -->
 <Rive version="1" kind="fragment">
@@ -21,6 +22,15 @@
         </ViewModelInstance>
     </ViewModel>
 
+    <!-- Converters used only by this artboard: progress as a whole percentage, for VoiceOver ("66"). -->
+    <DataConverterRangeMapper minInput="0" maxInput="1" minOutput="0" maxOutput="100" clampLower="true" clampUpper="true"
+            name="to percent" id="5:31"/>
+    <DataConverterToString decimals="0" round="true" name="as whole number text" id="5:32"/>
+    <DataConverterGroup name="progress to percent text" id="5:33">
+        <DataConverterGroupItem converterId="5:31"/>
+        <DataConverterGroupItem converterId="5:32"/>
+    </DataConverterGroup>
+
     <Artboard defaultStateMachineId="5:16" viewModelId="5:1" viewModelInstanceId="5:4" clip="true" width="350" height="14" x="520"
             y="280" styleId="5:8" name="ProgressBar" id="5:7">
         <LayoutComponentStyle name="Artboard Style" id="5:8"/>
@@ -28,6 +38,7 @@
         <!-- Scene. The first sibling draws on top. -->
         <!-- Pale mint track. Value and Rest are two `fill` boxes whose flex weights are progress and 1 - progress, so the fill is right at any width. -->
         <LayoutComponent clip="true" styleId="5:10" name="Track" id="5:9">
+            <SemanticData role="slider" isReadOnly="true" name="Semantics"><DataBindContext sourcePathIds="5:1-5:2" propertyKey="984" converterId="5:33"/></SemanticData>  <!-- for VoiceOver: there is no progress role, so a read-only slider; value <- progress as a percentage -->
             <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" flexDirectionValue="row"
                     cornerRadiusTL="7" name="Track Style" id="5:10"/>
             <Fill name="Fill"><SolidColor colorValue="FFD2FCD5" name="Color"/></Fill>

@@ -82,6 +82,8 @@ final class RiveBindingsTests: XCTestCase {
         XCTAssertEqual(RiveBindings.berries(count: 12), ["count": .number(12)])
         XCTAssertEqual(RiveBindings.berries(count: 99), ["count": .number(60)])
         XCTAssertEqual(RiveBindings.berries(count: -3), ["count": .number(0)])
+        let shares = BasketShares(fixed: 0.5, curveballs: 0.2, leaks: 0.3, jars: 0)
+        XCTAssertEqual(RiveBindings.baskets(shares), RiveBindings.basketBar(shares))
     }
 
     func testTheShortSpellingsGiveTheSameValues() {

@@ -70,6 +70,26 @@
       "neutral",
       "amber",
       "info"
+    ],
+    "IconKind": [
+      "settings",
+      "close",
+      "back",
+      "forward",
+      "info",
+      "soundOn",
+      "soundOff",
+      "more"
+    ],
+    "IconStyle": [
+      "plain",
+      "tinted",
+      "filled"
+    ],
+    "LessonState": [
+      "upcoming",
+      "current",
+      "done"
     ]
   },
   "files": {
@@ -628,77 +648,15 @@
               "default": "amber"
             }
           ]
-        }
-      ]
-    },
-    "sisu_3d": {
-      "source": "rive/sisu-3d",
-      "output": "ios/Sisu/Resources/Rive/sisu_3d.riv",
-      "scripts": true,
-      "signed": true,
-      "note": "Scripted 3D. Needs a signed build (`rive <dir> --publish`, after `rive login`). The app must work without this file: each 3D artboard names the 2D artboard that replaces it.",
-      "artboards": [
-        {
-          "name": "Jar3D",
-          "size": [
-            320,
-            360
-          ],
-          "sizing": "contain",
-          "fallback": "Jar",
-          "purpose": "A glass jar in 3D that fills with green jam and berries.",
-          "properties": [
-            {
-              "name": "fill",
-              "type": "number",
-              "direction": "in",
-              "default": 0.4,
-              "range": [
-                0,
-                1
-              ]
-            },
-            {
-              "name": "full",
-              "type": "boolean",
-              "direction": "in",
-              "default": false
-            },
-            {
-              "name": "celebrate",
-              "type": "trigger",
-              "direction": "in"
-            }
-          ]
         },
         {
-          "name": "Liito3D",
-          "size": [
-            320,
-            320
-          ],
-          "sizing": "contain",
-          "fallback": "Liito",
-          "purpose": "Liito as a 3D character.",
-          "properties": [
-            {
-              "name": "mood",
-              "type": "enum",
-              "enum": "LiitoMood",
-              "direction": "in",
-              "default": "idle"
-            }
-          ]
-        },
-        {
-          "name": "Baskets3D",
+          "name": "Baskets",
           "size": [
             350,
-            260
+            220
           ],
-          "sizing": "contain",
-          "fallback": "BasketBar",
-          "purpose": "The three baskets and the jar as 3D volumes sized by share.",
+          "sizing": "flexibleWidth",
+          "purpose": "The three spending baskets and the savings jar as one illustration, each filled to its share, dark to light green. No text inside: the app writes the labels under it.",
           "properties": [
             {
               "name": "fixed",
@@ -743,14 +701,13 @@
           ]
         },
         {
-          "name": "Berries3D",
+          "name": "Berries",
           "size": [
             320,
-            240
+            200
           ],
           "sizing": "contain",
-          "fallback": "StatPill",
-          "purpose": "A pile of 3D berries for effort points.",
+          "purpose": "A pile of berries in a shallow dish for effort points. Shows up to 20 berries: one per point up to 10, then one more for every 5.",
           "properties": [
             {
               "name": "count",
@@ -767,6 +724,90 @@
               "type": "trigger",
               "direction": "in",
               "meaning": "Drops one more berry onto the pile."
+            }
+          ]
+        },
+        {
+          "name": "IconButton",
+          "size": [
+            48,
+            48
+          ],
+          "sizing": "fixed",
+          "purpose": "Round pressable icon button. Goes down and springs back like Button.",
+          "properties": [
+            {
+              "name": "icon",
+              "type": "enum",
+              "enum": "IconKind",
+              "direction": "in",
+              "default": "settings"
+            },
+            {
+              "name": "style",
+              "type": "enum",
+              "enum": "IconStyle",
+              "direction": "in",
+              "default": "plain"
+            },
+            {
+              "name": "enabled",
+              "type": "boolean",
+              "direction": "in",
+              "default": true
+            },
+            {
+              "name": "pressed",
+              "type": "trigger",
+              "direction": "out",
+              "meaning": "Fired once per completed tap while enabled."
+            }
+          ]
+        },
+        {
+          "name": "LessonNode",
+          "size": [
+            120,
+            120
+          ],
+          "sizing": "contain",
+          "purpose": "One node of the learning path: upcoming, current (a pulsing ring and a small bounce that invite a tap) or done (a check). Presses down like a button; going from current to done plays a small win.",
+          "properties": [
+            {
+              "name": "state",
+              "type": "enum",
+              "enum": "LessonState",
+              "direction": "in",
+              "default": "upcoming"
+            },
+            {
+              "name": "number",
+              "type": "string",
+              "direction": "in",
+              "default": "1"
+            },
+            {
+              "name": "pressed",
+              "type": "trigger",
+              "direction": "out",
+              "meaning": "Fired once per completed tap, in every state."
+            }
+          ]
+        },
+        {
+          "name": "TypingDots",
+          "size": [
+            56,
+            28
+          ],
+          "sizing": "fixed",
+          "purpose": "Three dots that bounce in turn while Sisu is thinking. Dark green on transparent.",
+          "properties": [
+            {
+              "name": "active",
+              "type": "boolean",
+              "direction": "in",
+              "default": true
             }
           ]
         }

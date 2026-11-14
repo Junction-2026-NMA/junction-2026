@@ -67,6 +67,23 @@ public enum TodayPresenter {
         return lines
     }
 
+    /// The month labels the cash-flow chart writes under its bars: every other month, starting with the first.
+    public static func chartMonthTicks(_ overview: Overview) -> [String] {
+        overview.months.enumerated().filter { $0.offset % 2 == 0 }.map { NumberText.monthShort($0.element.month) }
+    }
+
+    /// The top of the cash-flow chart's euro axis: the largest month (money in, or the three baskets stacked)
+    /// plus a tenth, so nothing touches the top edge. At least 100.
+    public static func chartTop(_ overview: Overview) -> Double {
+        let largest = overview.months.map { max($0.income, $0.regular + $0.irregular + $0.everyday) }.max() ?? 0
+        return max((largest * 1.1).isFinite ? largest * 1.1 : 0, 100)
+    }
+
+    /// The legend under the basket bar, one entry per basket, left to right: (`fixed`, `Fixed 42%`), …
+    public static func basketLegendItems(_ overview: Overview) -> [(kind: BasketKind, text: String)] {
+        overview.baskets.map { ($0.id.kind, "\($0.id.kind.label(.en)) \(NumberText.percent($0.share))") }
+    }
+
     /// The legend under the basket picture, left to right: `Fixed 42% · Curveballs 18% · Leaks 40%`.
     public static func basketLegend(_ overview: Overview) -> String {
         overview.baskets.map { "\($0.id.kind.label(.en)) \(NumberText.percent($0.share))" }.joined(separator: " · ")
@@ -201,6 +218,26 @@ public enum JarsPresenter {
     }
 
     /// `Your balance covers about 1.1 months of must-pay costs. The goal is 3.`
+    /// The buffer jar's figure: `1.1 months`.
+    public static func bufferFigure(runwayMonths: Double) -> String {
+        var text = NumberText.oneDecimal(runwayMonths)
+        if text.hasSuffix(".0") { text.removeLast(2) }
+        return text == "1" ? "1 month" : "\(text) months"
+    }
+
+    /// The line under the buffer figure: `of must-pay costs covered. The goal is 3.`
+    public static let bufferDetail = "of must-pay costs covered by your balance. The goal is 3."
+
+    /// The switches jar's figure: `€0 a month`.
+    public static func freedFigure(approvedMonthlySaving: Double) -> String {
+        "\(TodayPresenter.money(max(approvedMonthlySaving.isFinite ? approvedMonthlySaving : 0, 0))) a month"
+    }
+
+    /// The line under the switches figure.
+    public static func freedDetail(approvedMonthlySaving: Double) -> String {
+        approvedMonthlySaving > 0 ? "freed by switches you approved." : "freed so far. Approve a switch in Ask and it lands here."
+    }
+
     public static func bufferCaption(runwayMonths: Double) -> String {
         "Your balance covers about \(NumberText.oneDecimal(runwayMonths)) months of must-pay costs. The goal is 3."
     }
@@ -230,6 +267,24 @@ public enum JarsPresenter {
     public static func axisLabel(month: Int) -> String {
         month <= 0 ? "Now" : yearsText(month / 12)
     }
+    /// The month indexes the futures chart labels: one per year up to six years, then one every two years.
+    public static func futuresTicks(_ branches: [Branch]) -> [Int] {
+        let last = branches.flatMap(\.points).map(\.month).max() ?? 0
+        return Array(stride(from: 0, through: max(last, 0), by: last > 72 ? 24 : 12))
+    }
+
+    /// The last month of the futures chart (at least 12).
+    public static func futuresLastMonth(_ branches: [Branch]) -> Int {
+        max(branches.flatMap(\.points).map(\.month).max() ?? 0, 12)
+    }
+
+    /// The top of the futures chart's euro axis: the highest point of any future (its high band included)
+    /// plus a tenth. At least 100.
+    public static func futuresTop(_ branches: [Branch]) -> Double {
+        let highest = branches.flatMap(\.points).map { max($0.total, $0.totalHigh) }.max() ?? 0
+        return max(highest.isFinite ? highest * 1.1 : 0, 100)
+    }
+
     /// A euro axis label: `€2,500`.
     public static func axisMoney(_ value: Double) -> String { TodayPresenter.money(value) }
     public static func yearsText(_ value: Int) -> String { value == 1 ? "1 year" : "\(value) years" }
@@ -275,6 +330,6 @@ public enum FuturesQuiz {
         }
         let lead = guess == answerId ? "Right." : "Good guess, and here is the twist."
         return "\(lead) Cash in the account pays the rent straight away, so \u{201C}\(best.label.lowercased())\u{201D} covers "
-            + "must-pay costs for about \(NumberText.oneDecimal(best.runwayMonthsAtYear1)) months."
+            + "must-pay costs for about \(JarsPresenter.bufferFigure(runwayMonths: best.runwayMonthsAtYear1))."
     }
 }

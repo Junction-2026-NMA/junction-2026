@@ -1,0 +1,752 @@
+<!-- Berries  (320x200, contain)
+     A pile of round S green berries with tiny dark green leaves in a shallow pale dish: the effort points.
+
+     View model BerriesVM  (names and types are fixed by rive/contract.json):
+       count       number             in     default 12     0..60
+       drop        trigger            in                    drops one berry onto the pile with a bounce
+
+     How it works
+       Pile       20 berries in four rows (7, 6, 4, 3), numbered in the order they appear: from the middle of a row outwards,
+                  bottom row first. Berry n has its scale bound to `count` through its own range mapper (0 below its threshold,
+                  1 from it), then `pop to new value`, so a berry pops in when `count` passes its threshold and shrinks away
+                  when it drops back. Thresholds: one berry per count up to 10, then one more for every 5 (15, 20 ... 60),
+                  so small numbers can be counted and big ones still read as "more".
+       Drop       idle -> drop on `drop`, back to idle when the timeline ends. Twin states A and B play the same timeline, so
+                  firing `drop` again mid-fall restarts it. A spare berry falls from above the artboard onto the pile, squashes,
+                  bounces twice and sinks into the pile; the pile squashes under it and the rows jiggle.
+                  The landing height follows `count` (the Landing nodes' y are bound), so the berry always lands on top of the pile. -->
+<Rive version="1" kind="fragment">
+    <!-- View model -->
+    <ViewModel defaultInstanceId="19:4" name="BerriesVM" id="19:1">
+        <ViewModelPropertyNumber name="count" id="19:2"/>
+        <ViewModelPropertyTrigger name="drop" id="19:3"/>
+        <ViewModelInstance exports="true" name="Default" id="19:4">
+            <ViewModelInstanceNumber propertyValue="12" viewModelPropertyId="19:2" id="19:5"/>  <!-- count -->
+            <ViewModelInstanceTrigger viewModelPropertyId="19:3" id="19:6"/>  <!-- drop -->
+        </ViewModelInstance>
+    </ViewModel>
+
+    <!-- Converters used only by this artboard -->
+    <!-- A pop: eases to the new value in 0.4 s and overshoots it slightly on the way. -->
+    <DataConverterInterpolator duration="0.4" interpolationType="cubic" name="pop to new value" id="19:20">
+        <CubicEaseInterpolator x1="0.34" y1="1.56" x2="0.64" y2="1"/>
+    </DataConverterInterpolator>
+    <!-- Keeps a scale from going below 0 when a berry shrinks away (the overshoot would flip it for a frame or two). -->
+    <DataConverterRangeMapper minInput="0" maxInput="2" minOutput="0" maxOutput="2" clampLower="true" name="not below 0" id="19:21"/>
+    <!-- Where a dropped berry lands: the pile gets taller as count grows. -->
+    <!-- Where a dropped berry lands. The pile grows a row at counts 1, 8, 30 and 50, so the landing point climbs one row (29 pt)
+         at each of them: four nested nodes, each lifted by its own step. -->
+    <DataConverterRangeMapper minInput="0" maxInput="1" minOutput="151" maxOutput="122" clampLower="true" clampUpper="true"
+            name="landing: on row 1 from count 1" id="19:22"/>
+    <DataConverterGroup name="landing: on row 1 from count 1, eased" id="19:23">
+        <DataConverterGroupItem converterId="19:22"/>
+        <DataConverterGroupItem converterId="0:61"/>  <!-- shared: ease to new value -->
+    </DataConverterGroup>
+    <DataConverterRangeMapper minInput="7" maxInput="8" minOutput="0" maxOutput="-29" clampLower="true" clampUpper="true"
+            name="landing: on row 2 from count 8" id="19:24"/>
+    <DataConverterGroup name="landing: on row 2 from count 8, eased" id="19:25">
+        <DataConverterGroupItem converterId="19:24"/>
+        <DataConverterGroupItem converterId="0:61"/>
+    </DataConverterGroup>
+    <DataConverterRangeMapper minInput="29" maxInput="30" minOutput="0" maxOutput="-29" clampLower="true" clampUpper="true"
+            name="landing: on row 3 from count 30" id="19:26"/>
+    <DataConverterGroup name="landing: on row 3 from count 30, eased" id="19:27">
+        <DataConverterGroupItem converterId="19:26"/>
+        <DataConverterGroupItem converterId="0:61"/>
+    </DataConverterGroup>
+    <DataConverterRangeMapper minInput="49" maxInput="50" minOutput="0" maxOutput="-29" clampLower="true" clampUpper="true"
+            name="landing: on row 4 from count 50" id="19:28"/>
+    <DataConverterGroup name="landing: on row 4 from count 50, eased" id="19:29">
+        <DataConverterGroupItem converterId="19:28"/>
+        <DataConverterGroupItem converterId="0:61"/>
+    </DataConverterGroup>
+    <!-- One step per berry: 0 below its threshold, 1 from it. -->
+    <DataConverterRangeMapper minInput="0" maxInput="1" minOutput="0" maxOutput="1" clampLower="true" clampUpper="true" name="berry 1 from count 1" id="19:101"/>
+    <DataConverterGroup name="berry 1 from count 1, popped" id="19:131"><DataConverterGroupItem converterId="19:101"/><DataConverterGroupItem converterId="19:20"/><DataConverterGroupItem converterId="19:21"/></DataConverterGroup>
+    <DataConverterRangeMapper minInput="1" maxInput="2" minOutput="0" maxOutput="1" clampLower="true" clampUpper="true" name="berry 2 from count 2" id="19:102"/>
+    <DataConverterGroup name="berry 2 from count 2, popped" id="19:132"><DataConverterGroupItem converterId="19:102"/><DataConverterGroupItem converterId="19:20"/><DataConverterGroupItem converterId="19:21"/></DataConverterGroup>
+    <DataConverterRangeMapper minInput="2" maxInput="3" minOutput="0" maxOutput="1" clampLower="true" clampUpper="true" name="berry 3 from count 3" id="19:103"/>
+    <DataConverterGroup name="berry 3 from count 3, popped" id="19:133"><DataConverterGroupItem converterId="19:103"/><DataConverterGroupItem converterId="19:20"/><DataConverterGroupItem converterId="19:21"/></DataConverterGroup>
+    <DataConverterRangeMapper minInput="3" maxInput="4" minOutput="0" maxOutput="1" clampLower="true" clampUpper="true" name="berry 4 from count 4" id="19:104"/>
+    <DataConverterGroup name="berry 4 from count 4, popped" id="19:134"><DataConverterGroupItem converterId="19:104"/><DataConverterGroupItem converterId="19:20"/><DataConverterGroupItem converterId="19:21"/></DataConverterGroup>
+    <DataConverterRangeMapper minInput="4" maxInput="5" minOutput="0" maxOutput="1" clampLower="true" clampUpper="true" name="berry 5 from count 5" id="19:105"/>
+    <DataConverterGroup name="berry 5 from count 5, popped" id="19:135"><DataConverterGroupItem converterId="19:105"/><DataConverterGroupItem converterId="19:20"/><DataConverterGroupItem converterId="19:21"/></DataConverterGroup>
+    <DataConverterRangeMapper minInput="5" maxInput="6" minOutput="0" maxOutput="1" clampLower="true" clampUpper="true" name="berry 6 from count 6" id="19:106"/>
+    <DataConverterGroup name="berry 6 from count 6, popped" id="19:136"><DataConverterGroupItem converterId="19:106"/><DataConverterGroupItem converterId="19:20"/><DataConverterGroupItem converterId="19:21"/></DataConverterGroup>
+    <DataConverterRangeMapper minInput="6" maxInput="7" minOutput="0" maxOutput="1" clampLower="true" clampUpper="true" name="berry 7 from count 7" id="19:107"/>
+    <DataConverterGroup name="berry 7 from count 7, popped" id="19:137"><DataConverterGroupItem converterId="19:107"/><DataConverterGroupItem converterId="19:20"/><DataConverterGroupItem converterId="19:21"/></DataConverterGroup>
+    <DataConverterRangeMapper minInput="7" maxInput="8" minOutput="0" maxOutput="1" clampLower="true" clampUpper="true" name="berry 8 from count 8" id="19:108"/>
+    <DataConverterGroup name="berry 8 from count 8, popped" id="19:138"><DataConverterGroupItem converterId="19:108"/><DataConverterGroupItem converterId="19:20"/><DataConverterGroupItem converterId="19:21"/></DataConverterGroup>
+    <DataConverterRangeMapper minInput="8" maxInput="9" minOutput="0" maxOutput="1" clampLower="true" clampUpper="true" name="berry 9 from count 9" id="19:109"/>
+    <DataConverterGroup name="berry 9 from count 9, popped" id="19:139"><DataConverterGroupItem converterId="19:109"/><DataConverterGroupItem converterId="19:20"/><DataConverterGroupItem converterId="19:21"/></DataConverterGroup>
+    <DataConverterRangeMapper minInput="9" maxInput="10" minOutput="0" maxOutput="1" clampLower="true" clampUpper="true" name="berry 10 from count 10" id="19:110"/>
+    <DataConverterGroup name="berry 10 from count 10, popped" id="19:140"><DataConverterGroupItem converterId="19:110"/><DataConverterGroupItem converterId="19:20"/><DataConverterGroupItem converterId="19:21"/></DataConverterGroup>
+    <DataConverterRangeMapper minInput="14" maxInput="15" minOutput="0" maxOutput="1" clampLower="true" clampUpper="true" name="berry 11 from count 15" id="19:111"/>
+    <DataConverterGroup name="berry 11 from count 15, popped" id="19:141"><DataConverterGroupItem converterId="19:111"/><DataConverterGroupItem converterId="19:20"/><DataConverterGroupItem converterId="19:21"/></DataConverterGroup>
+    <DataConverterRangeMapper minInput="19" maxInput="20" minOutput="0" maxOutput="1" clampLower="true" clampUpper="true" name="berry 12 from count 20" id="19:112"/>
+    <DataConverterGroup name="berry 12 from count 20, popped" id="19:142"><DataConverterGroupItem converterId="19:112"/><DataConverterGroupItem converterId="19:20"/><DataConverterGroupItem converterId="19:21"/></DataConverterGroup>
+    <DataConverterRangeMapper minInput="24" maxInput="25" minOutput="0" maxOutput="1" clampLower="true" clampUpper="true" name="berry 13 from count 25" id="19:113"/>
+    <DataConverterGroup name="berry 13 from count 25, popped" id="19:143"><DataConverterGroupItem converterId="19:113"/><DataConverterGroupItem converterId="19:20"/><DataConverterGroupItem converterId="19:21"/></DataConverterGroup>
+    <DataConverterRangeMapper minInput="29" maxInput="30" minOutput="0" maxOutput="1" clampLower="true" clampUpper="true" name="berry 14 from count 30" id="19:114"/>
+    <DataConverterGroup name="berry 14 from count 30, popped" id="19:144"><DataConverterGroupItem converterId="19:114"/><DataConverterGroupItem converterId="19:20"/><DataConverterGroupItem converterId="19:21"/></DataConverterGroup>
+    <DataConverterRangeMapper minInput="34" maxInput="35" minOutput="0" maxOutput="1" clampLower="true" clampUpper="true" name="berry 15 from count 35" id="19:115"/>
+    <DataConverterGroup name="berry 15 from count 35, popped" id="19:145"><DataConverterGroupItem converterId="19:115"/><DataConverterGroupItem converterId="19:20"/><DataConverterGroupItem converterId="19:21"/></DataConverterGroup>
+    <DataConverterRangeMapper minInput="39" maxInput="40" minOutput="0" maxOutput="1" clampLower="true" clampUpper="true" name="berry 16 from count 40" id="19:116"/>
+    <DataConverterGroup name="berry 16 from count 40, popped" id="19:146"><DataConverterGroupItem converterId="19:116"/><DataConverterGroupItem converterId="19:20"/><DataConverterGroupItem converterId="19:21"/></DataConverterGroup>
+    <DataConverterRangeMapper minInput="44" maxInput="45" minOutput="0" maxOutput="1" clampLower="true" clampUpper="true" name="berry 17 from count 45" id="19:117"/>
+    <DataConverterGroup name="berry 17 from count 45, popped" id="19:147"><DataConverterGroupItem converterId="19:117"/><DataConverterGroupItem converterId="19:20"/><DataConverterGroupItem converterId="19:21"/></DataConverterGroup>
+    <DataConverterRangeMapper minInput="49" maxInput="50" minOutput="0" maxOutput="1" clampLower="true" clampUpper="true" name="berry 18 from count 50" id="19:118"/>
+    <DataConverterGroup name="berry 18 from count 50, popped" id="19:148"><DataConverterGroupItem converterId="19:118"/><DataConverterGroupItem converterId="19:20"/><DataConverterGroupItem converterId="19:21"/></DataConverterGroup>
+    <DataConverterRangeMapper minInput="54" maxInput="55" minOutput="0" maxOutput="1" clampLower="true" clampUpper="true" name="berry 19 from count 55" id="19:119"/>
+    <DataConverterGroup name="berry 19 from count 55, popped" id="19:149"><DataConverterGroupItem converterId="19:119"/><DataConverterGroupItem converterId="19:20"/><DataConverterGroupItem converterId="19:21"/></DataConverterGroup>
+    <DataConverterRangeMapper minInput="59" maxInput="60" minOutput="0" maxOutput="1" clampLower="true" clampUpper="true" name="berry 20 from count 60" id="19:120"/>
+    <DataConverterGroup name="berry 20 from count 60, popped" id="19:150"><DataConverterGroupItem converterId="19:120"/><DataConverterGroupItem converterId="19:20"/><DataConverterGroupItem converterId="19:21"/></DataConverterGroup>
+
+    <Artboard defaultStateMachineId="19:60" viewModelId="19:1" viewModelInstanceId="19:4" clip="true" width="320" height="200"
+            x="1600" y="300" styleId="19:11" name="Berries" id="19:10">
+        <LayoutComponentStyle name="Artboard Style" id="19:11"/>
+
+        <!-- Scene. The first sibling draws on top. -->
+        <!-- The dish: a shallow pale bowl. Its front wall hides the feet of the bottom row. -->
+        <Shape x="160" name="Dish Rim">
+            <Rectangle width="276" height="9" cornerRadiusTL="4.5" y="152" name="Rim Path"/>
+            <Fill name="Fill"><SolidColor colorValue="FF99D59F" name="Color"/></Fill>
+        </Shape>
+        <Shape x="160" name="Dish Foot">
+            <Rectangle width="92" height="7" cornerRadiusTL="3.5" y="193" name="Foot Path"/>
+            <Fill name="Fill"><SolidColor colorValue="FF99D59F" name="Color"/></Fill>
+        </Shape>
+        <Shape x="160" name="Dish Bowl">
+            <Rectangle width="264" height="40" linkCornerRadius="false" cornerRadiusTL="4" cornerRadiusTR="4" cornerRadiusBL="36"
+                    cornerRadiusBR="36" y="172" name="Bowl Path"/>
+            <Fill name="Fill"><SolidColor colorValue="FFD2FCD5" name="Color"/></Fill>
+        </Shape>
+
+        <!-- The dropped berry. Landing.y follows count; Dropper is keyed by `drop: play` and has its origin at the berry's foot. -->
+        <Node x="160" y="93" name="Landing" id="19:30">
+            <DataBindContext sourcePathIds="19:1-19:2" propertyKey="14" converterId="19:23"/>  <!-- y <- count: the dish floor, or on row 1 -->
+            <Node name="Landing row 2">
+            <DataBindContext sourcePathIds="19:1-19:2" propertyKey="14" converterId="19:25"/>  <!-- y <- count: up a row from 8 -->
+            <Node name="Landing row 3">
+            <DataBindContext sourcePathIds="19:1-19:2" propertyKey="14" converterId="19:27"/>  <!-- y <- count: up a row from 30 -->
+            <Node name="Landing row 4">
+            <DataBindContext sourcePathIds="19:1-19:2" propertyKey="14" converterId="19:29"/>  <!-- y <- count: up a row from 50 -->
+            <Node y="-220" scaleX="0" scaleY="0" name="Dropper" id="19:31">
+                <Node y="-17" name="Dropped Berry">
+                    <Shape x="8" y="-17" rotation="-0.75" name="Leaf">
+                        <PointsPath isClosed="true" name="Leaf Path">
+                            <StraightVertex x="-8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="-5" rotation="0" distance="4.4"/>
+                            <StraightVertex x="8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="5" rotation="3.14159" distance="4.4"/>
+                        </PointsPath>
+                        <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+                    </Shape>
+                    <Shape x="-6.5" y="-6.5" rotation="-0.7" name="Shine">
+                        <Ellipse width="8" height="5" name="Shine Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Body">
+                        <Ellipse width="34" height="34" name="Body Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                        <Stroke thickness="2" name="Outline"><SolidColor colorValue="FF007841" name="Color"/></Stroke>
+                    </Shape>
+                </Node>
+            </Node>
+            </Node>
+            </Node>
+            </Node>
+        </Node>
+
+        <!-- The pile. Its origin is the dish floor, so the squash on landing presses it into the dish. Rows are separate nodes so they can jiggle. -->
+        <Node x="160" y="153" name="Pile" id="19:32">
+            <SemanticData role="image" name="Semantics"/>  <!-- for VoiceOver: role -->
+            <Node y="-17" name="Row 1" id="19:33">
+                <Node x="0" name="Berry 1">
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="16" converterId="19:131"/>  <!-- scaleX <- count: shows from 1 -->
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="17" converterId="19:131"/>  <!-- scaleY <- count -->
+                    <Shape x="8" y="-17" rotation="-0.75" name="Leaf">
+                        <PointsPath isClosed="true" name="Leaf Path">
+                            <StraightVertex x="-8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="-5" rotation="0" distance="4.4"/>
+                            <StraightVertex x="8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="5" rotation="3.14159" distance="4.4"/>
+                        </PointsPath>
+                        <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+                    </Shape>
+                    <Shape x="-6.5" y="-6.5" rotation="-0.7" name="Shine">
+                        <Ellipse width="8" height="5" name="Shine Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Body">
+                        <Ellipse width="34" height="34" name="Body Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                        <Stroke thickness="2" name="Outline"><SolidColor colorValue="FF007841" name="Color"/></Stroke>
+                    </Shape>
+                </Node>
+                <Node x="-36" name="Berry 2">
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="16" converterId="19:132"/>  <!-- scaleX <- count: shows from 2 -->
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="17" converterId="19:132"/>  <!-- scaleY <- count -->
+                    <Shape x="8" y="-17" rotation="-0.75" name="Leaf">
+                        <PointsPath isClosed="true" name="Leaf Path">
+                            <StraightVertex x="-8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="-5" rotation="0" distance="4.4"/>
+                            <StraightVertex x="8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="5" rotation="3.14159" distance="4.4"/>
+                        </PointsPath>
+                        <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+                    </Shape>
+                    <Shape x="-6.5" y="-6.5" rotation="-0.7" name="Shine">
+                        <Ellipse width="8" height="5" name="Shine Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Body">
+                        <Ellipse width="34" height="34" name="Body Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                        <Stroke thickness="2" name="Outline"><SolidColor colorValue="FF007841" name="Color"/></Stroke>
+                    </Shape>
+                </Node>
+                <Node x="36" name="Berry 3">
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="16" converterId="19:133"/>  <!-- scaleX <- count: shows from 3 -->
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="17" converterId="19:133"/>  <!-- scaleY <- count -->
+                    <Shape x="8" y="-17" rotation="-0.75" name="Leaf">
+                        <PointsPath isClosed="true" name="Leaf Path">
+                            <StraightVertex x="-8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="-5" rotation="0" distance="4.4"/>
+                            <StraightVertex x="8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="5" rotation="3.14159" distance="4.4"/>
+                        </PointsPath>
+                        <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+                    </Shape>
+                    <Shape x="-6.5" y="-6.5" rotation="-0.7" name="Shine">
+                        <Ellipse width="8" height="5" name="Shine Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Body">
+                        <Ellipse width="34" height="34" name="Body Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                        <Stroke thickness="2" name="Outline"><SolidColor colorValue="FF007841" name="Color"/></Stroke>
+                    </Shape>
+                </Node>
+                <Node x="-72" name="Berry 4">
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="16" converterId="19:134"/>  <!-- scaleX <- count: shows from 4 -->
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="17" converterId="19:134"/>  <!-- scaleY <- count -->
+                    <Shape x="8" y="-17" rotation="-0.75" name="Leaf">
+                        <PointsPath isClosed="true" name="Leaf Path">
+                            <StraightVertex x="-8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="-5" rotation="0" distance="4.4"/>
+                            <StraightVertex x="8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="5" rotation="3.14159" distance="4.4"/>
+                        </PointsPath>
+                        <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+                    </Shape>
+                    <Shape x="-6.5" y="-6.5" rotation="-0.7" name="Shine">
+                        <Ellipse width="8" height="5" name="Shine Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Body">
+                        <Ellipse width="34" height="34" name="Body Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                        <Stroke thickness="2" name="Outline"><SolidColor colorValue="FF007841" name="Color"/></Stroke>
+                    </Shape>
+                </Node>
+                <Node x="72" name="Berry 5">
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="16" converterId="19:135"/>  <!-- scaleX <- count: shows from 5 -->
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="17" converterId="19:135"/>  <!-- scaleY <- count -->
+                    <Shape x="8" y="-17" rotation="-0.75" name="Leaf">
+                        <PointsPath isClosed="true" name="Leaf Path">
+                            <StraightVertex x="-8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="-5" rotation="0" distance="4.4"/>
+                            <StraightVertex x="8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="5" rotation="3.14159" distance="4.4"/>
+                        </PointsPath>
+                        <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+                    </Shape>
+                    <Shape x="-6.5" y="-6.5" rotation="-0.7" name="Shine">
+                        <Ellipse width="8" height="5" name="Shine Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Body">
+                        <Ellipse width="34" height="34" name="Body Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                        <Stroke thickness="2" name="Outline"><SolidColor colorValue="FF007841" name="Color"/></Stroke>
+                    </Shape>
+                </Node>
+                <Node x="-108" name="Berry 6">
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="16" converterId="19:136"/>  <!-- scaleX <- count: shows from 6 -->
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="17" converterId="19:136"/>  <!-- scaleY <- count -->
+                    <Shape x="8" y="-17" rotation="-0.75" name="Leaf">
+                        <PointsPath isClosed="true" name="Leaf Path">
+                            <StraightVertex x="-8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="-5" rotation="0" distance="4.4"/>
+                            <StraightVertex x="8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="5" rotation="3.14159" distance="4.4"/>
+                        </PointsPath>
+                        <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+                    </Shape>
+                    <Shape x="-6.5" y="-6.5" rotation="-0.7" name="Shine">
+                        <Ellipse width="8" height="5" name="Shine Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Body">
+                        <Ellipse width="34" height="34" name="Body Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                        <Stroke thickness="2" name="Outline"><SolidColor colorValue="FF007841" name="Color"/></Stroke>
+                    </Shape>
+                </Node>
+                <Node x="108" name="Berry 7">
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="16" converterId="19:137"/>  <!-- scaleX <- count: shows from 7 -->
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="17" converterId="19:137"/>  <!-- scaleY <- count -->
+                    <Shape x="8" y="-17" rotation="-0.75" name="Leaf">
+                        <PointsPath isClosed="true" name="Leaf Path">
+                            <StraightVertex x="-8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="-5" rotation="0" distance="4.4"/>
+                            <StraightVertex x="8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="5" rotation="3.14159" distance="4.4"/>
+                        </PointsPath>
+                        <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+                    </Shape>
+                    <Shape x="-6.5" y="-6.5" rotation="-0.7" name="Shine">
+                        <Ellipse width="8" height="5" name="Shine Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Body">
+                        <Ellipse width="34" height="34" name="Body Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                        <Stroke thickness="2" name="Outline"><SolidColor colorValue="FF007841" name="Color"/></Stroke>
+                    </Shape>
+                </Node>
+            </Node>
+            <Node y="-46" name="Row 2" id="19:34">
+                <Node x="-18" name="Berry 8">
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="16" converterId="19:138"/>  <!-- scaleX <- count: shows from 8 -->
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="17" converterId="19:138"/>  <!-- scaleY <- count -->
+                    <Shape x="8" y="-17" rotation="-0.75" name="Leaf">
+                        <PointsPath isClosed="true" name="Leaf Path">
+                            <StraightVertex x="-8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="-5" rotation="0" distance="4.4"/>
+                            <StraightVertex x="8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="5" rotation="3.14159" distance="4.4"/>
+                        </PointsPath>
+                        <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+                    </Shape>
+                    <Shape x="-6.5" y="-6.5" rotation="-0.7" name="Shine">
+                        <Ellipse width="8" height="5" name="Shine Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Body">
+                        <Ellipse width="34" height="34" name="Body Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                        <Stroke thickness="2" name="Outline"><SolidColor colorValue="FF007841" name="Color"/></Stroke>
+                    </Shape>
+                </Node>
+                <Node x="18" name="Berry 9">
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="16" converterId="19:139"/>  <!-- scaleX <- count: shows from 9 -->
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="17" converterId="19:139"/>  <!-- scaleY <- count -->
+                    <Shape x="8" y="-17" rotation="-0.75" name="Leaf">
+                        <PointsPath isClosed="true" name="Leaf Path">
+                            <StraightVertex x="-8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="-5" rotation="0" distance="4.4"/>
+                            <StraightVertex x="8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="5" rotation="3.14159" distance="4.4"/>
+                        </PointsPath>
+                        <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+                    </Shape>
+                    <Shape x="-6.5" y="-6.5" rotation="-0.7" name="Shine">
+                        <Ellipse width="8" height="5" name="Shine Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Body">
+                        <Ellipse width="34" height="34" name="Body Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                        <Stroke thickness="2" name="Outline"><SolidColor colorValue="FF007841" name="Color"/></Stroke>
+                    </Shape>
+                </Node>
+                <Node x="-54" name="Berry 10">
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="16" converterId="19:140"/>  <!-- scaleX <- count: shows from 10 -->
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="17" converterId="19:140"/>  <!-- scaleY <- count -->
+                    <Shape x="8" y="-17" rotation="-0.75" name="Leaf">
+                        <PointsPath isClosed="true" name="Leaf Path">
+                            <StraightVertex x="-8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="-5" rotation="0" distance="4.4"/>
+                            <StraightVertex x="8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="5" rotation="3.14159" distance="4.4"/>
+                        </PointsPath>
+                        <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+                    </Shape>
+                    <Shape x="-6.5" y="-6.5" rotation="-0.7" name="Shine">
+                        <Ellipse width="8" height="5" name="Shine Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Body">
+                        <Ellipse width="34" height="34" name="Body Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                        <Stroke thickness="2" name="Outline"><SolidColor colorValue="FF007841" name="Color"/></Stroke>
+                    </Shape>
+                </Node>
+                <Node x="54" name="Berry 11">
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="16" converterId="19:141"/>  <!-- scaleX <- count: shows from 15 -->
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="17" converterId="19:141"/>  <!-- scaleY <- count -->
+                    <Shape x="8" y="-17" rotation="-0.75" name="Leaf">
+                        <PointsPath isClosed="true" name="Leaf Path">
+                            <StraightVertex x="-8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="-5" rotation="0" distance="4.4"/>
+                            <StraightVertex x="8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="5" rotation="3.14159" distance="4.4"/>
+                        </PointsPath>
+                        <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+                    </Shape>
+                    <Shape x="-6.5" y="-6.5" rotation="-0.7" name="Shine">
+                        <Ellipse width="8" height="5" name="Shine Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Body">
+                        <Ellipse width="34" height="34" name="Body Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                        <Stroke thickness="2" name="Outline"><SolidColor colorValue="FF007841" name="Color"/></Stroke>
+                    </Shape>
+                </Node>
+                <Node x="-90" name="Berry 12">
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="16" converterId="19:142"/>  <!-- scaleX <- count: shows from 20 -->
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="17" converterId="19:142"/>  <!-- scaleY <- count -->
+                    <Shape x="8" y="-17" rotation="-0.75" name="Leaf">
+                        <PointsPath isClosed="true" name="Leaf Path">
+                            <StraightVertex x="-8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="-5" rotation="0" distance="4.4"/>
+                            <StraightVertex x="8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="5" rotation="3.14159" distance="4.4"/>
+                        </PointsPath>
+                        <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+                    </Shape>
+                    <Shape x="-6.5" y="-6.5" rotation="-0.7" name="Shine">
+                        <Ellipse width="8" height="5" name="Shine Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Body">
+                        <Ellipse width="34" height="34" name="Body Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                        <Stroke thickness="2" name="Outline"><SolidColor colorValue="FF007841" name="Color"/></Stroke>
+                    </Shape>
+                </Node>
+                <Node x="90" name="Berry 13">
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="16" converterId="19:143"/>  <!-- scaleX <- count: shows from 25 -->
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="17" converterId="19:143"/>  <!-- scaleY <- count -->
+                    <Shape x="8" y="-17" rotation="-0.75" name="Leaf">
+                        <PointsPath isClosed="true" name="Leaf Path">
+                            <StraightVertex x="-8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="-5" rotation="0" distance="4.4"/>
+                            <StraightVertex x="8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="5" rotation="3.14159" distance="4.4"/>
+                        </PointsPath>
+                        <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+                    </Shape>
+                    <Shape x="-6.5" y="-6.5" rotation="-0.7" name="Shine">
+                        <Ellipse width="8" height="5" name="Shine Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Body">
+                        <Ellipse width="34" height="34" name="Body Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                        <Stroke thickness="2" name="Outline"><SolidColor colorValue="FF007841" name="Color"/></Stroke>
+                    </Shape>
+                </Node>
+            </Node>
+            <Node y="-75" name="Row 3" id="19:35">
+                <Node x="-18" name="Berry 14">
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="16" converterId="19:144"/>  <!-- scaleX <- count: shows from 30 -->
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="17" converterId="19:144"/>  <!-- scaleY <- count -->
+                    <Shape x="8" y="-17" rotation="-0.75" name="Leaf">
+                        <PointsPath isClosed="true" name="Leaf Path">
+                            <StraightVertex x="-8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="-5" rotation="0" distance="4.4"/>
+                            <StraightVertex x="8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="5" rotation="3.14159" distance="4.4"/>
+                        </PointsPath>
+                        <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+                    </Shape>
+                    <Shape x="-6.5" y="-6.5" rotation="-0.7" name="Shine">
+                        <Ellipse width="8" height="5" name="Shine Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Body">
+                        <Ellipse width="34" height="34" name="Body Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                        <Stroke thickness="2" name="Outline"><SolidColor colorValue="FF007841" name="Color"/></Stroke>
+                    </Shape>
+                </Node>
+                <Node x="18" name="Berry 15">
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="16" converterId="19:145"/>  <!-- scaleX <- count: shows from 35 -->
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="17" converterId="19:145"/>  <!-- scaleY <- count -->
+                    <Shape x="8" y="-17" rotation="-0.75" name="Leaf">
+                        <PointsPath isClosed="true" name="Leaf Path">
+                            <StraightVertex x="-8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="-5" rotation="0" distance="4.4"/>
+                            <StraightVertex x="8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="5" rotation="3.14159" distance="4.4"/>
+                        </PointsPath>
+                        <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+                    </Shape>
+                    <Shape x="-6.5" y="-6.5" rotation="-0.7" name="Shine">
+                        <Ellipse width="8" height="5" name="Shine Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Body">
+                        <Ellipse width="34" height="34" name="Body Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                        <Stroke thickness="2" name="Outline"><SolidColor colorValue="FF007841" name="Color"/></Stroke>
+                    </Shape>
+                </Node>
+                <Node x="-54" name="Berry 16">
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="16" converterId="19:146"/>  <!-- scaleX <- count: shows from 40 -->
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="17" converterId="19:146"/>  <!-- scaleY <- count -->
+                    <Shape x="8" y="-17" rotation="-0.75" name="Leaf">
+                        <PointsPath isClosed="true" name="Leaf Path">
+                            <StraightVertex x="-8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="-5" rotation="0" distance="4.4"/>
+                            <StraightVertex x="8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="5" rotation="3.14159" distance="4.4"/>
+                        </PointsPath>
+                        <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+                    </Shape>
+                    <Shape x="-6.5" y="-6.5" rotation="-0.7" name="Shine">
+                        <Ellipse width="8" height="5" name="Shine Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Body">
+                        <Ellipse width="34" height="34" name="Body Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                        <Stroke thickness="2" name="Outline"><SolidColor colorValue="FF007841" name="Color"/></Stroke>
+                    </Shape>
+                </Node>
+                <Node x="54" name="Berry 17">
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="16" converterId="19:147"/>  <!-- scaleX <- count: shows from 45 -->
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="17" converterId="19:147"/>  <!-- scaleY <- count -->
+                    <Shape x="8" y="-17" rotation="-0.75" name="Leaf">
+                        <PointsPath isClosed="true" name="Leaf Path">
+                            <StraightVertex x="-8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="-5" rotation="0" distance="4.4"/>
+                            <StraightVertex x="8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="5" rotation="3.14159" distance="4.4"/>
+                        </PointsPath>
+                        <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+                    </Shape>
+                    <Shape x="-6.5" y="-6.5" rotation="-0.7" name="Shine">
+                        <Ellipse width="8" height="5" name="Shine Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Body">
+                        <Ellipse width="34" height="34" name="Body Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                        <Stroke thickness="2" name="Outline"><SolidColor colorValue="FF007841" name="Color"/></Stroke>
+                    </Shape>
+                </Node>
+            </Node>
+            <Node y="-104" name="Row 4" id="19:36">
+                <Node x="0" name="Berry 18">
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="16" converterId="19:148"/>  <!-- scaleX <- count: shows from 50 -->
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="17" converterId="19:148"/>  <!-- scaleY <- count -->
+                    <Shape x="8" y="-17" rotation="-0.75" name="Leaf">
+                        <PointsPath isClosed="true" name="Leaf Path">
+                            <StraightVertex x="-8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="-5" rotation="0" distance="4.4"/>
+                            <StraightVertex x="8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="5" rotation="3.14159" distance="4.4"/>
+                        </PointsPath>
+                        <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+                    </Shape>
+                    <Shape x="-6.5" y="-6.5" rotation="-0.7" name="Shine">
+                        <Ellipse width="8" height="5" name="Shine Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Body">
+                        <Ellipse width="34" height="34" name="Body Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                        <Stroke thickness="2" name="Outline"><SolidColor colorValue="FF007841" name="Color"/></Stroke>
+                    </Shape>
+                </Node>
+                <Node x="-36" name="Berry 19">
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="16" converterId="19:149"/>  <!-- scaleX <- count: shows from 55 -->
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="17" converterId="19:149"/>  <!-- scaleY <- count -->
+                    <Shape x="8" y="-17" rotation="-0.75" name="Leaf">
+                        <PointsPath isClosed="true" name="Leaf Path">
+                            <StraightVertex x="-8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="-5" rotation="0" distance="4.4"/>
+                            <StraightVertex x="8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="5" rotation="3.14159" distance="4.4"/>
+                        </PointsPath>
+                        <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+                    </Shape>
+                    <Shape x="-6.5" y="-6.5" rotation="-0.7" name="Shine">
+                        <Ellipse width="8" height="5" name="Shine Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Body">
+                        <Ellipse width="34" height="34" name="Body Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                        <Stroke thickness="2" name="Outline"><SolidColor colorValue="FF007841" name="Color"/></Stroke>
+                    </Shape>
+                </Node>
+                <Node x="36" name="Berry 20">
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="16" converterId="19:150"/>  <!-- scaleX <- count: shows from 60 -->
+                    <DataBindContext sourcePathIds="19:1-19:2" propertyKey="17" converterId="19:150"/>  <!-- scaleY <- count -->
+                    <Shape x="8" y="-17" rotation="-0.75" name="Leaf">
+                        <PointsPath isClosed="true" name="Leaf Path">
+                            <StraightVertex x="-8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="-5" rotation="0" distance="4.4"/>
+                            <StraightVertex x="8.5" y="0" radius="1"/>
+                            <CubicMirroredVertex x="0" y="5" rotation="3.14159" distance="4.4"/>
+                        </PointsPath>
+                        <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+                    </Shape>
+                    <Shape x="-6.5" y="-6.5" rotation="-0.7" name="Shine">
+                        <Ellipse width="8" height="5" name="Shine Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+                    </Shape>
+                    <Shape name="Body">
+                        <Ellipse width="34" height="34" name="Body Path"/>
+                        <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                        <Stroke thickness="2" name="Outline"><SolidColor colorValue="FF007841" name="Color"/></Stroke>
+                    </Shape>
+                </Node>
+            </Node>
+        </Node>
+
+        <!-- State machine. Declared before the timelines so the editor opens it first. -->
+        <StateMachine name="Main" id="19:60">
+            <StateMachineLayer name="Drop" id="19:61">
+                <AnyState x="0" y="-140" id="19:62"/>
+                <ExitState x="0" y="-280" id="19:63"/>
+                <EntryState x="0" y="0" id="19:64">
+                    <StateTransition stateToId="19:65"/>  <!-- starts in idle -->
+                </EntryState>
+                <AnimationState animationId="19:70" stateName="idle" x="240" y="0" id="19:65">
+                    <StateTransition stateToId="19:66">  <!-- to drop A -->
+                        <TransitionViewModelCondition>  <!-- drop fired -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyTrigger><DataBindContext sourcePathIds="19:1-19:3" propertyKey="686"/></BindablePropertyTrigger></TransitionPropertyViewModelComparator>
+                            <TransitionValueTriggerComparator/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState animationId="19:71" stateName="drop A" x="480" y="-110" id="19:66">
+                    <StateTransition stateToId="19:67">  <!-- to drop B -->
+                        <TransitionViewModelCondition>  <!-- drop fired -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyTrigger><DataBindContext sourcePathIds="19:1-19:3" propertyKey="686"/></BindablePropertyTrigger></TransitionPropertyViewModelComparator>
+                            <TransitionValueTriggerComparator/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="19:65" enableExitTime="true" exitTimeIsPercetange="true" exitTime="100"/>  <!-- to idle -->
+                </AnimationState>
+                <AnimationState animationId="19:71" stateName="drop B" x="480" y="110" id="19:67">
+                    <StateTransition stateToId="19:66">  <!-- to drop A -->
+                        <TransitionViewModelCondition>  <!-- drop fired -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyTrigger><DataBindContext sourcePathIds="19:1-19:3" propertyKey="686"/></BindablePropertyTrigger></TransitionPropertyViewModelComparator>
+                            <TransitionValueTriggerComparator/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="19:65" enableExitTime="true" exitTimeIsPercetange="true" exitTime="100"/>  <!-- to idle -->
+                </AnimationState>
+            </StateMachineLayer>
+        </StateMachine>
+
+        <!-- Timelines -->
+        <LinearAnimation duration="1" name="drop: idle" id="19:70">
+            <KeyedObject objectId="19:31"><KeyedProperty property="scaleX"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="y"><KeyFrameDouble value="-220" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Dropper -->
+            <KeyedObject objectId="19:32"><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Pile -->
+            <KeyedObject objectId="19:33"><KeyedProperty property="rotation"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Row 1 -->
+            <KeyedObject objectId="19:34"><KeyedProperty property="rotation"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Row 2 -->
+            <KeyedObject objectId="19:35"><KeyedProperty property="rotation"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Row 3 -->
+            <KeyedObject objectId="19:36"><KeyedProperty property="rotation"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Row 4 -->
+        </LinearAnimation>
+        <!-- 0.93 s: falls for 14 frames, lands, bounces twice, then sinks into the pile. -->
+        <LinearAnimation duration="56" name="drop: play" id="19:71">
+            <KeyedObject objectId="19:31">  <!-- Dropper -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="-220" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.5" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="14" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.4" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-18" frame="22" interpolationType="cubic"><CubicEaseInterpolator x1="0.6" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="30" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.4" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-5" frame="35" interpolationType="cubic"><CubicEaseInterpolator x1="0.6" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="40" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1.08" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.08" frame="13" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.76" frame="17" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.05" frame="22" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.9" frame="31" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="37" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="44" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="54" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0.94" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.94" frame="13" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.2" frame="17" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.97" frame="22" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.08" frame="31" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="37" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="44" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="54" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="19:32">  <!-- Pile: squashes under the berry and springs back -->
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="14" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.94" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.04" frame="25" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.985" frame="32" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="39" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="14" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.03" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.985" frame="25" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.005" frame="32" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="39" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="19:36">  <!-- Row 4: jiggles -->
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="14" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.07" frame="19" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-0.042" frame="26" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.021" frame="33" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="40" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="19:35">  <!-- Row 3: jiggles -->
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="15" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-0.055" frame="20" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.033" frame="27" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-0.0165" frame="34" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="41" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="19:34">  <!-- Row 2: jiggles -->
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="16" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.04" frame="21" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-0.024" frame="28" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.012" frame="35" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="42" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="19:33">  <!-- Row 1: jiggles -->
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="17" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-0.025" frame="22" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.015" frame="29" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-0.0075" frame="36" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="43" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+    </Artboard>
+</Rive>

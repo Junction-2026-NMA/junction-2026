@@ -11,6 +11,8 @@
        Hit        transparent box over the artboard; the listeners target it.
        State      AnyState -> idle | selected | correct | wrong on `state`. Each pose keys face, outline, edge and label colours.
                   selected = deep green outline and edge. correct = pale mint face with a tick. wrong = neutral grey outline, never red.
+       Feedback   a second layer on `state` that plays the motion once: selected = a small pop, correct = the card pops and the
+                  tick lands with an overshoot, wrong = a small sideways shake (neutral, never red).
        Press      up <-> down on the private boolean _down: Face.y 0 -> 4, Edge fades out, springs back.
        pressed    fired by the click listener, once per completed tap, in every state. -->
 <Rive version="1" kind="fragment">
@@ -43,10 +45,12 @@
         </LayoutComponent>
         <!-- The face: 60 tall, moves down 4 while pressed. The label wraps to two lines, then ends in an ellipsis. -->
         <LayoutComponent height="60" clip="false" styleId="9:16" name="Face" id="9:15">
+            <SemanticData role="button" name="Semantics"><DataBindContext sourcePathIds="9:1-9:2" propertyKey="983"/></SemanticData>  <!-- for VoiceOver: role, label <- the component's text -->
             <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fixed" flexDirectionValue="row"
                     layoutAlignmentType="centerLeft" cornerRadiusTL="18" paddingLeft="20" paddingLeftUnitsValue="points"
                     paddingRight="16" paddingRightUnitsValue="points" gapHorizontal="12" gapHorizontalUnitsValue="points"
                     name="Face Style" id="9:16"/>
+            <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
             <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color" id="9:17"/></Fill>
             <Stroke thickness="2" position="inside" name="Outline"><SolidColor colorValue="FF99D59F" name="Color" id="9:18"/></Stroke>
             <Text wrapValue="wrap" overflowValue="ellipsis" verticalAlignValue="middle" sizingValue="fixed" name="Label" id="9:19">
@@ -59,6 +63,7 @@
             </Text>
             <LayoutComponent width="24" height="24" opacity="0" clip="false" styleId="9:23" name="Correct Mark" id="9:22">
                 <LayoutComponentStyle cornerRadiusTL="12" name="Correct Mark Style" id="9:23"/>
+                <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
                 <Fill name="Fill"><SolidColor colorValue="FF007841" name="Color"/></Fill>
                 <Node x="12" y="12" name="Tick Holder">
                     <Shape name="Tick" id="9:24">
@@ -77,6 +82,7 @@
             <LayoutComponentStyle positionTypeValue="absolute" widthUnitsValue="auto" positionLeft="0"
                     positionLeftUnitsValue="points" positionRight="0" positionRightUnitsValue="points" positionTop="4"
                     positionTopUnitsValue="points" cornerRadiusTL="18" name="Edge Style" id="9:26"/>
+            <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
             <Fill name="Fill"><SolidColor colorValue="FF99D59F" name="Color" id="9:27"/></Fill>
         </LayoutComponent>
 
@@ -154,6 +160,44 @@
                     </StateTransition>
                 </AnimationState>
             </StateMachineLayer>
+            <!-- Feedback: the motion that answers a change of `state`. The State layer above only blends colours; this layer plays
+                 a one-shot timeline when the state arrives (AnyState does not re-enter a state, so each plays once and then holds its last frame, which is the rest pose). -->
+            <StateMachineLayer name="Feedback" id="9:60">
+                <AnyState x="0" y="-140" id="9:61">
+                    <StateTransition stateToId="9:64">  <!-- to rest -->
+                        <TransitionViewModelCondition>  <!-- state is idle -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="9:1-9:3" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:181"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="9:65">  <!-- to selected pop -->
+                        <TransitionViewModelCondition>  <!-- state is selected -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="9:1-9:3" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:182"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="9:66">  <!-- to correct pop -->
+                        <TransitionViewModelCondition>  <!-- state is correct -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="9:1-9:3" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:183"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="9:67">  <!-- to wrong shake -->
+                        <TransitionViewModelCondition>  <!-- state is wrong -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="9:1-9:3" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:184"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnyState>
+                <ExitState x="0" y="-280" id="9:62"/>
+                <EntryState x="0" y="0" id="9:63">
+                    <StateTransition stateToId="9:64"/>  <!-- starts in rest -->
+                </EntryState>
+                <AnimationState animationId="9:70" stateName="rest" x="240" y="0" id="9:64"/>
+                <AnimationState animationId="9:71" stateName="selected pop" x="240" y="110" id="9:65"/>
+                <AnimationState animationId="9:72" stateName="correct pop" x="240" y="220" id="9:66"/>
+                <AnimationState animationId="9:73" stateName="wrong shake" x="240" y="330" id="9:67"/>
+            </StateMachineLayer>
         </StateMachine>
 
         <!-- Timelines. Most are one-key poses: the state transitions do the blending. -->
@@ -192,6 +236,148 @@
         <LinearAnimation duration="1" name="press: down" id="9:52">
             <KeyedObject objectId="9:15"><KeyedProperty property="y"><KeyFrameDouble value="4" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Face -->
             <KeyedObject objectId="9:25"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Edge -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="feedback: rest" id="9:70">
+            <KeyedObject objectId="9:15"><KeyedProperty property="x"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Face -->
+            <KeyedObject objectId="9:25"><KeyedProperty property="x"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Edge -->
+            <KeyedObject objectId="9:22"><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Correct Mark -->
+        </LinearAnimation>
+        <!-- 0.2 s: a small pop that says "taken". -->
+        <LinearAnimation duration="14" name="feedback: selected pop" id="9:71">
+            <KeyedObject objectId="9:15">  <!-- Face -->
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.97" frame="5" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="12" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.97" frame="5" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="12" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="9:25">  <!-- Edge -->
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.97" frame="5" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="12" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.97" frame="5" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="12" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="9:22">  <!-- Correct Mark -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+        <!-- 0.4 s: the card dips to 95 % and springs back (never much above 100 %: it fills the artboard, so a bigger pop would be clipped), and the tick lands just after it with an overshoot. -->
+        <LinearAnimation duration="26" name="feedback: correct pop" id="9:72">
+            <KeyedObject objectId="9:15">  <!-- Face -->
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.955" frame="6" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.012" frame="13" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="20" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.955" frame="6" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.012" frame="13" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="20" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="9:25">  <!-- Edge -->
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.955" frame="6" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.012" frame="13" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="20" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.955" frame="6" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.012" frame="13" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="20" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="9:22">  <!-- Correct Mark -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="4" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.35" frame="12" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.92" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="24" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="4" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.35" frame="12" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.92" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="24" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+        <!-- 0.4 s: a small sideways shake that dies out. Neutral: no red, no flash. -->
+        <LinearAnimation duration="24" name="feedback: wrong shake" id="9:73">
+            <KeyedObject objectId="9:15">  <!-- Face -->
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-5" frame="3" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="4" frame="8" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-2.5" frame="13" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.5" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="23" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="9:25">  <!-- Edge -->
+                <KeyedProperty property="x">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-5" frame="3" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="4" frame="8" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-2.5" frame="13" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.5" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="23" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="9:22">  <!-- Correct Mark -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
         </LinearAnimation>
     </Artboard>
 </Rive>

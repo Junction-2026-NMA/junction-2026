@@ -15,9 +15,8 @@ import SwiftUI
 /// - `triggers`: requests to fire `in` triggers. See `RiveTriggerRequest` for the rules; in short,
 ///   `triggers: ["celebrate#\(count)"]` fires `celebrate` each time `count` changes.
 /// - `onTrigger`: called on the main actor with the name of each `out` trigger the artboard fires.
-/// - Fallback: when the component's file is missing (the 3D file is optional), its 2D fallback is shown with
-///   the same values. When nothing can be shown, a pale-mint placeholder with the component's name is drawn.
-///   A placeholder for a component with exactly one `out` trigger fires it when tapped, so a flow still works.
+/// - Placeholder: when the component cannot be shown (its file or artboard is missing), a pale-mint placeholder
+///   with the component's name is drawn. A placeholder for a component with exactly one `out` trigger fires it when tapped, so a flow still works.
 /// - Size: taken from the contract. `fixed` is exactly the design size; `flexibleWidth` fills the width at the
 ///   design height; `contain` scales to fit the frame it is given and keeps its proportions (in a scroll view,
 ///   where nothing limits the height, it takes its design size); `fill` fills the frame. So a `.frame` from the

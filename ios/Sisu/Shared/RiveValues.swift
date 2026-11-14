@@ -60,8 +60,8 @@ enum RiveValues {
         ["headline": .string(headline), "detail": .string(detail)]
     }
 
+    /// The berries pile (`Berries`): `count`.
     static func berries(count: Int) -> [String: RiveValue] {
-        // Berries3D reads `count` (0...60); its 2D fallback (StatPill) reads `kind` and `value`.
-        ["count": .number(Double(min(max(count, 0), 60))), "kind": .enumCase("berries"), "value": .string("\(count)")]
+        RiveBindings.berries(count: count)
     }
 }

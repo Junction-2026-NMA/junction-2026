@@ -2,12 +2,10 @@
 // view model properties. Pure data, so it is testable without the Rive runtime.
 import Foundation
 
-/// The two Rive files the app ships.
+/// The Rive file the app ships: every interface component, in 2D.
 public enum RiveFile: String, CaseIterable, Sendable {
-    /// 2D interface components. No scripts, loads unsigned.
+    /// The 2D interface components. No scripts, loads unsigned.
     case ui = "sisu_ui"
-    /// Scripted 3D scenes. Needs a signed build; the app must work without it.
-    case threeD = "sisu_3d"
 }
 
 /// A value written to a view model property.
@@ -55,30 +53,11 @@ public enum RiveComponent: String, CaseIterable, Sendable {
     case sticker = "Sticker"
     case toggle = "Toggle"
     case tag = "Tag"
-    case jar3D = "Jar3D"
-    case liito3D = "Liito3D"
-    case baskets3D = "Baskets3D"
-    case berries3D = "Berries3D"
+    case baskets = "Baskets"
+    case berries = "Berries"
 
-    /// The file the artboard lives in. The four `…3D` components are in `.threeD`, all others in `.ui`.
-    public var file: RiveFile {
-        switch self {
-        case .jar3D, .liito3D, .baskets3D, .berries3D: return .threeD
-        default: return .ui
-        }
-    }
-
-    /// The 2D component shown when the 3D file cannot be loaded: Jar3D → Jar, Liito3D → Liito,
-    /// Baskets3D → BasketBar, Berries3D → StatPill. Nil for 2D components.
-    public var fallback: RiveComponent? {
-        switch self {
-        case .jar3D: return .jar
-        case .liito3D: return .liito
-        case .baskets3D: return .basketBar
-        case .berries3D: return .statPill
-        default: return nil
-        }
-    }
+    /// The file the artboard lives in: always `.ui`.
+    public var file: RiveFile { .ui }
 
     /// The design size in points, exactly as `size` in `rive/contract.json`.
     public var designSize: (width: Double, height: Double) {
@@ -100,21 +79,19 @@ public enum RiveComponent: String, CaseIterable, Sendable {
         case .sticker: return (120, 120)
         case .toggle: return (64, 36)
         case .tag: return (200, 28)
-        case .jar3D: return (320, 360)
-        case .liito3D: return (320, 320)
-        case .baskets3D: return (350, 260)
-        case .berries3D: return (320, 240)
+        case .baskets: return (350, 220)
+        case .berries: return (320, 200)
         }
     }
 
     /// Exactly as `sizing` in `rive/contract.json`.
     public var sizing: RiveSizing {
         switch self {
-        case .button, .heroNumber, .basketBar, .progressBar, .tabBar, .actionRow, .choiceCard, .stageIndicator:
+        case .button, .heroNumber, .basketBar, .progressBar, .tabBar, .actionRow, .choiceCard, .stageIndicator, .baskets:
             return .flexibleWidth
         case .basketChip, .statPill, .voiceButton, .toggle, .tag:
             return .fixed
-        case .liito, .jar, .sticker, .jar3D, .liito3D, .baskets3D, .berries3D:
+        case .liito, .jar, .sticker, .berries:
             return .contain
         case .celebration:
             return .fill
@@ -135,13 +112,13 @@ public enum RiveComponent: String, CaseIterable, Sendable {
     }
 
     /// The names of the trigger properties the app may fire (direction `in`), in contract order:
-    /// `reveal` (HeroNumber), `celebrate` (Jar, Jar3D), `fire` (Celebration), `drop` (Berries3D).
+    /// `reveal` (HeroNumber), `celebrate` (Jar), `fire` (Celebration), `drop` (Berries).
     public var inTriggers: [String] {
         switch self {
         case .heroNumber: return ["reveal"]
-        case .jar, .jar3D: return ["celebrate"]
+        case .jar: return ["celebrate"]
         case .celebration: return ["fire"]
-        case .berries3D: return ["drop"]
+        case .berries: return ["drop"]
         default: return []
         }
     }
@@ -178,7 +155,7 @@ public enum RiveBindings {
         ["eyebrow": .string(state.eyebrow), "amount": .string(state.amount), "unit": .string(state.unit), "context": .string(state.context)]
     }
 
-    /// `fixed`, `curveballs`, `leaks`, `jars` as numbers 0...1. Works for both `BasketBar` and `Baskets3D`.
+    /// `fixed`, `curveballs`, `leaks`, `jars` as numbers 0...1. For `BasketBar` and `Baskets`.
     public static func basketBar(_ shares: BasketShares) -> [String: RiveValue] {
         ["fixed": .number(clamp(shares.fixed)), "curveballs": .number(clamp(shares.curveballs)),
          "leaks": .number(clamp(shares.leaks)), "jars": .number(clamp(shares.jars))]
@@ -216,8 +193,8 @@ public enum RiveBindings {
         ["stage": .enumCase(stage.rawValue), "label": .string(stageLabel(stage, language: language))]
     }
 
-    /// `fill` clamped to 0...1, `label`, and `full` (true when `fill` is 1 or more). Works for `Jar`; `Jar3D`
-    /// ignores the extra `label` key. A fill that is not finite counts as 0, so `full` is false for it.
+    /// `fill` clamped to 0...1, `label`, and `full` (true when `fill` is 1 or more). For `Jar`.
+    /// A fill that is not finite counts as 0, so `full` is false for it.
     public static func jar(fill: Double, label: String) -> [String: RiveValue] {
         let finite = fill.isFinite ? fill : 0
         return ["fill": .number(clamp(finite)), "label": .string(label), "full": .bool(finite >= 1)]
@@ -248,7 +225,7 @@ public enum RiveBindings {
         ["state": .enumCase(state.rawValue)]
     }
 
-    /// `mood`. Works for both `Liito` and `Liito3D`.
+    /// `mood`. For `Liito`.
     public static func liito(mood: LiitoMood) -> [String: RiveValue] {
         ["mood": .enumCase(mood.rawValue)]
     }
@@ -278,6 +255,9 @@ public enum RiveBindings {
         ["headline": .string(headline), "detail": .string(detail)]
     }
 
+    /// `fixed`, `curveballs`, `leaks`, `jars` for the `Baskets` illustration (the same set as `basketBar`).
+    public static func baskets(_ shares: BasketShares) -> [String: RiveValue] { basketBar(shares) }
+
     /// The same as `voiceButton(state:)`.
     public static func voiceButton(_ state: VoiceState) -> [String: RiveValue] { voiceButton(state: state) }
 
@@ -287,12 +267,12 @@ public enum RiveBindings {
     /// The same as `tag(text:tone:)`.
     public static func tag(_ text: String, tone: TagTone) -> [String: RiveValue] { tag(text: text, tone: tone) }
 
-    /// `count` for `Berries3D`, clamped to 0...60.
+    /// `count` for `Berries`, clamped to 0...60.
     public static func berries(count: Int) -> [String: RiveValue] {
         ["count": .number(Double(min(max(count, 0), 60)))]
     }
 
-    /// `count` for `Berries3D`, clamped to 0...60 (a value that is not finite counts as 0).
+    /// `count` for `Berries`, clamped to 0...60 (a value that is not finite counts as 0).
     public static func berries(count: Double) -> [String: RiveValue] {
         ["count": .number(clamp(count, 0...60))]
     }

@@ -111,9 +111,9 @@ private struct TodayHeader: View {
                 RiveComponentView(.statPill, values: RiveValues.statPill("streak", value: model.progress.streakText))
                     .sizing(.contain).frame(width: 72, height: 36)
                     .riveAccessible("Streak", value: "\(model.progress.streakText) days")
-                RiveComponentView(.statPill, values: RiveValues.statPill("berries", value: model.progress.berriesText))
+                RiveComponentView(.statPill, values: RiveValues.statPill("berries", value: model.berriesText))
                     .sizing(.contain).frame(width: 72, height: 36)
-                    .riveAccessible("Berries", value: model.progress.berriesText)
+                    .riveAccessible("Berries", value: model.berriesText)
                 Button { model.todaySheet = .settings } label: {
                     Image(systemName: "gearshape")
                         .font(SisuTheme.Font.h3)
@@ -134,7 +134,7 @@ private struct TodayHeader: View {
         }
         .padding(.horizontal, SisuTheme.Spacing.margin)
         .padding(.top, SisuTheme.Spacing.grid * 2)
-        .padding(.bottom, SisuTheme.Spacing.grid * 2)
+        .padding(.bottom, SisuTheme.Spacing.grid * 3)
         .background(SisuTheme.Color.background)
     }
 }
@@ -146,9 +146,9 @@ private struct HeroBlock: View {
     let overview: Overview
 
     var body: some View {
+        // The Rive hero wraps its context line to two lines, so it gets the full sentence.
         let full = XrayPresenter.hero(for: overview, language: .en)
-        var hero = full
-        hero.context = TodayPresenter.heroContext(overview)
+        let hero = full
         return VStack(spacing: SisuTheme.Spacing.grid) {
             RiveComponentView(.heroNumber, values: RiveValues.hero(hero))
                 .onTapGesture { openEveryday() }
@@ -178,7 +178,7 @@ private struct DailyActionsCard: View {
                     .font(SisuTheme.Font.h3)
                     .foregroundStyle(SisuTheme.Color.text)
                 Spacer()
-                Text(JarsPresenter.berriesCaption(model.progress.berries))
+                Text(JarsPresenter.berriesCaption(model.berries))
                     .font(SisuTheme.Font.label)
                     .foregroundStyle(SisuTheme.Color.green700)
             }

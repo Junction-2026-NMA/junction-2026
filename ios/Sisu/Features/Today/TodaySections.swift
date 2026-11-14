@@ -14,15 +14,22 @@ struct BasketsSection: View {
             SectionTitle(title: "Where your money goes",
                          detail: "Three baskets, averaged over your last \(overview.windowMonths) months.")
             VStack(spacing: SisuTheme.Spacing.grid * 2) {
-                RiveComponentView(.baskets3D, values: RiveValues.baskets(BasketMath.shares(for: overview)))
-                    .frame(maxHeight: 200)
-                    .frame(maxWidth: .infinity)
-                Text(TodayPresenter.basketLegend(overview))
-                    .font(SisuTheme.Font.label)
-                    .foregroundStyle(SisuTheme.Color.text)
+                RiveComponentView(.baskets, values: RiveBindings.baskets(BasketMath.shares(for: overview)))
+                HStack(spacing: SisuTheme.Spacing.grid * 4) {
+                    ForEach(TodayPresenter.basketLegendItems(overview), id: \.kind) { item in
+                        HStack(spacing: SisuTheme.Spacing.grid * 1.5) {
+                            Circle().fill(Self.color(item.kind)).frame(width: 10, height: 10)
+                            Text(item.text)
+                                .font(SisuTheme.Font.label)
+                                .foregroundStyle(SisuTheme.Color.text)
+                        }
+                    }
+                    Spacer(minLength: 0)
+                }
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Your spending by basket: \(TodayPresenter.basketLegend(overview))")
+            .padding(.bottom, SisuTheme.Spacing.grid)
             ForEach(overview.baskets, id: \.id) { basket in
                 BasketCard(state: TodayPresenter.basket(basket, peerCount: overview.peerCount)) { title, category in
                     model.evidence = EvidenceRequest(
@@ -31,6 +38,18 @@ struct BasketsSection: View {
                                                category: category, basket: category == nil ? basket.id : nil))
                 }
             }
+        }
+    }
+}
+
+extension BasketsSection {
+    /// The basket's colour from the brand ramp, for the legend dots.
+    static func color(_ kind: BasketKind) -> Color {
+        switch kind {
+        case .fixed: return SisuTheme.Color.basketFixed
+        case .curveballs: return SisuTheme.Color.basketCurveballs
+        case .leaks: return SisuTheme.Color.basketLeaks
+        case .jars: return SisuTheme.Color.basketJars
         }
     }
 }
@@ -284,8 +303,9 @@ struct CashflowSection: View {
                         .font(SisuTheme.Font.caption).foregroundStyle(SisuTheme.Color.textMuted)
                     }
                 }
+                .chartYScale(domain: 0...TodayPresenter.chartTop(overview))
                 .chartXAxis {
-                    AxisMarks { _ in
+                    AxisMarks(values: TodayPresenter.chartMonthTicks(overview)) { _ in
                         AxisValueLabel().font(SisuTheme.Font.caption).foregroundStyle(SisuTheme.Color.textMuted)
                     }
                 }

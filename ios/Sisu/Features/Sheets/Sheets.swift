@@ -119,37 +119,43 @@ struct TransactionsSheet: View {
     }
 
     private func rows(_ list: TransactionList) -> some View {
-        List {
-            Section {
-                ForEach(Array(list.transactions.enumerated()), id: \.offset) { _, transaction in
-                    let row = TodayPresenter.transactionRow(transaction)
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(row.category).font(SisuTheme.Font.body).foregroundStyle(SisuTheme.Color.text)
-                            Text(row.date).font(SisuTheme.Font.caption).foregroundStyle(SisuTheme.Color.textMuted)
-                        }
-                        Spacer()
-                        Text(row.amount).font(SisuTheme.Font.button).foregroundStyle(SisuTheme.Color.text)
-                    }
-                    .accessibilityElement(children: .combine)
-                    .listRowBackground(SisuTheme.Color.card)
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: SisuTheme.Spacing.grid * 2) {
+                if !model.isLive { SampleDataTag() }
+                Text(TodayPresenter.transactionsTotal(list))
+                    .font(SisuTheme.Font.h3)
+                    .foregroundStyle(SisuTheme.Color.text)
+                if let note = TodayPresenter.truncatedNote(list) {
+                    Text(note).font(SisuTheme.Font.caption).foregroundStyle(SisuTheme.Color.textMuted)
                 }
-            } header: {
-                VStack(alignment: .leading, spacing: SisuTheme.Spacing.grid * 2) {
-                    if !model.isLive { SampleDataTag() }
-                    Text(TodayPresenter.transactionsTotal(list))
-                        .font(SisuTheme.Font.h3)
-                        .foregroundStyle(SisuTheme.Color.text)
-                    if let note = TodayPresenter.truncatedNote(list) {
-                        Text(note).font(SisuTheme.Font.caption).foregroundStyle(SisuTheme.Color.textMuted)
-                    }
-                }
-                .textCase(nil)
-                .padding(.bottom, SisuTheme.Spacing.grid * 2)
             }
+            .padding(.horizontal, SisuTheme.Spacing.margin)
+            .padding(.bottom, SisuTheme.Spacing.grid * 3)
+
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(Array(list.transactions.enumerated()), id: \.offset) { index, transaction in
+                        let row = TodayPresenter.transactionRow(transaction)
+                        if index > 0 { Divider().overlay(SisuTheme.Color.neutral200) }
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(row.category).font(SisuTheme.Font.body).foregroundStyle(SisuTheme.Color.text)
+                                Text(row.date).font(SisuTheme.Font.caption).foregroundStyle(SisuTheme.Color.textMuted)
+                            }
+                            Spacer()
+                            Text(row.amount).font(SisuTheme.Font.button).foregroundStyle(SisuTheme.Color.text)
+                        }
+                        .padding(.vertical, SisuTheme.Spacing.grid * 3)
+                        .accessibilityElement(children: .combine)
+                    }
+                }
+                .padding(.horizontal, SisuTheme.Spacing.margin)
+                .background(SisuTheme.Color.card, in: RoundedRectangle(cornerRadius: SisuTheme.Radius.card, style: .continuous))
+                .padding(.horizontal, SisuTheme.Spacing.margin)
+                .padding(.bottom, SisuTheme.Spacing.section)
+            }
+            .scrollIndicators(.hidden)
         }
-        .listStyle(.insetGrouped)
-        .scrollContentBackground(.hidden)
     }
 
     private func message(_ text: String) -> some View {
@@ -224,7 +230,7 @@ struct SettingsSheet: View {
                 .padding(.bottom, SisuTheme.Spacing.section)
             }
         }
-        .presentationDetents([.large])
+        .presentationDetents([.height(480), .large])
         .onAppear { address = model.baseURLString }
     }
 

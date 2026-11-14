@@ -15,6 +15,13 @@
 //   approvedMonthlySaving       Published euros a month the user approved through switches (0 for now). The
 //                               Jars tab's "Freed by switches" jar is bound to it. Set it when an approval lands.
 //   flaggedBill                 The bill Today flags (SisuCore's TodayPresenter.flaggedBill).
+//   coach                       The CoachStore: the CoachSession for the chosen customer (live, or the bundled
+//                               sample), its data tag and the voice seam (voiceState, voiceDown(), voiceUp()).
+//                               billConfirmed also saves the name on the server and starts offer research;
+//                               startInvestigation also starts the session's investigate(); resetDemo also
+//                               resets the backend's demo state; approvedMonthlySaving follows the session.
+//   coachMoment(_:id:)          Berries for answering a quiz or deciding on an action (once per card/action).
+//   berries, berriesText        Daily-action berries plus coach berries: what the berries pill should show.
 //   api / isLive                The data source in use. Anything not live must show the "Sample data" tag.
 import Foundation
 import Observation
@@ -97,6 +104,16 @@ final class AppModel {
     /// Set when the last of today's actions is done; MainScreen shows the Rive celebration and clears it.
     var celebration: (headline: String, detail: String)?
 
+    // MARK: Coach
+
+    /// The coach session for the chosen customer and the voice seam.
+    let coach = CoachStore()
+    /// Berries earned in the coach (quiz answered, action decided).
+    private(set) var coachRewards: CoachRewards
+    /// Every berry: today's actions plus the coach's.
+    var berries: Int { progress.berries + coachRewards.berries }
+    var berriesText: String { "\(berries)" }
+
     let launch: LaunchOptions
     private let defaults: UserDefaults
     private let now: () -> Date
@@ -112,7 +129,12 @@ final class AppModel {
         sampleOnly = launch.sampleOnly ?? defaults.bool(forKey: Keys.sample)
         progress = (defaults.data(forKey: Keys.progress)).flatMap { try? JSONDecoder().decode(DailyProgress.self, from: $0) } ?? DailyProgress()
         confirmedBillNames = (defaults.dictionary(forKey: Keys.billNames) as? [String: String]) ?? [:]
+        coachRewards = (defaults.data(forKey: Keys.coachRewards)).flatMap { try? JSONDecoder().decode(CoachRewards.self, from: $0) } ?? CoachRewards()
         if let tab = launch.tab { self.tab = tab }
+        coach.onApprovedSaving = { [weak self] saving in
+            guard let self, self.approvedMonthlySaving != saving else { return }
+            self.approvedMonthlySaving = saving
+        }
     }
 
     private var today: DayStamp { DayStamp(now(), calendar: calendar) }
@@ -158,6 +180,14 @@ final class AppModel {
         defaults.set(customer.customerId, forKey: Keys.customer)
         complete(.checkIn)
         await loadOverview()
+        await configureCoach()
+    }
+
+    /// Points the coach at the chosen customer and the data source in use (live or the bundled sample).
+    func configureCoach() async {
+        guard let customer else { return }
+        await coach.configure(customerId: customer.customerId, baseURL: isLive ? URL(string: baseURLString) : nil,
+                              unreachable: backendAnswered == false)
     }
 
     func loadOverview() async {
@@ -184,7 +214,10 @@ final class AppModel {
     /// Tries again after a failure, from the customers on.
     func retry() async {
         await loadCustomers()
-        if customer != nil { await loadOverview() }
+        if customer != nil {
+            await loadOverview()
+            await configureCoach()
+        }
     }
 
     /// Re-reads the data source after the settings changed.
@@ -213,6 +246,7 @@ final class AppModel {
         customer = nil
         overview = nil
         overviewState = .idle
+        coach.clear()
         defaults.removeObject(forKey: Keys.customer)
         tab = .today
     }
@@ -246,20 +280,40 @@ final class AppModel {
         confirmedBillNames[Self.billKey(customer.customerId, bill.id)] = trimmed.isEmpty ? bill.guessLabel : trimmed
         defaults.set(confirmedBillNames, forKey: Keys.billNames)
         complete(.confirmBill)
+        // Save the name on the server and start offer research early, so offers are ready before the question.
+        if let session = coach.session {
+            let saved = confirmedBillNames[Self.billKey(customer.customerId, bill.id)] ?? bill.guessLabel
+            let type = CoachBillMatch.billType(text: saved) ?? CoachBillMatch.billType(for: bill)
+            Task { await session.confirmBill(bill.id, name: saved, billType: type) }
+        }
     }
 
     func startInvestigation() {
         tab = .ask
         investigationRequests += 1
+        coach.investigate()
         complete(.investigate)
     }
 
+    /// A coach moment: answering a teaching question or deciding on an action. Earns its berries once.
+    func coachMoment(_ moment: CoachRewards.Moment, id: String) {
+        guard coachRewards.award(moment, id: id) > 0 else { return }
+        berryDrops += 1
+        if let data = try? JSONEncoder().encode(coachRewards) { defaults.set(data, forKey: Keys.coachRewards) }
+    }
+
     func resetDemo() {
+        // The backend's demo state (actions, memory) and the conversation go too.
+        let session = coach.session
+        session?.reset()
+        let client = session?.client ?? (isLive ? URL(string: baseURLString).map { CoachClient.live(baseURL: $0) } : nil)
+        if let client { Task { _ = try? await client.resetDemo() } }
         progress = DailyProgress()
+        coachRewards = CoachRewards()
         confirmedBillNames = [:]
         approvedMonthlySaving = 0
         berryDrops = 0
-        for key in [Keys.progress, Keys.billNames] { defaults.removeObject(forKey: key) }
+        for key in [Keys.progress, Keys.billNames, Keys.coachRewards] { defaults.removeObject(forKey: key) }
         todaySheet = nil
         switchCustomer()
     }
@@ -272,5 +326,6 @@ final class AppModel {
         static let customer = "sisu.customer"
         static let progress = "sisu.progress"
         static let billNames = "sisu.billNames"
+        static let coachRewards = "sisu.coachRewards"
     }
 }

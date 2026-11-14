@@ -7,6 +7,7 @@
 
      How it works
        Sticker    one node at the centre, tilted. Disc colour and label colour are keyed per kind.
+       Appear     plays once on load: the sticker pops in with an overshoot and swings into its tilt (0.55 s).
        Pictogram  a Solo holding one drawing per kind: jar, drop with a tick, flame, open book.
        Kind       AnyState -> firstJar | leakPlugged | streak | lesson on `kind` (instant). The pose keys the disc colour,
                   the label colour and Solo.activeComponentId.
@@ -29,6 +30,7 @@
         <!-- Scene. The first sibling draws on top. -->
         <!-- A round sticker: 104 pt disc on a 112 pt white circle (the 4 pt die-cut border), tilted 6 degrees. -->
         <Node x="60" y="60" rotation="-0.105" name="Sticker" id="15:9">
+            <SemanticData role="image" name="Semantics"><DataBindContext sourcePathIds="15:1-15:3" propertyKey="983"/></SemanticData>  <!-- for VoiceOver: role, label <- the component's text -->
             <Text x="0" y="27" width="78" height="16" originX="0.5" originY="0.5" sizingValue="fixed" alignValue="center"
                     verticalAlignValue="middle" wrapValue="noWrap" overflowValue="fitFontSize" name="Label" id="15:10">
                 <TextStylePaint fontSize="12" fontAssetId="0:12" familyName="Figtree" styleName="Bold" name="Label Style" id="15:11">
@@ -159,6 +161,15 @@
                 <AnimationState animationId="15:31" stateName="streak" x="240" y="220" id="15:27"/>
                 <AnimationState animationId="15:32" stateName="lesson" x="240" y="330" id="15:28"/>
             </StateMachineLayer>
+            <!-- Plays once when the sticker appears. -->
+            <StateMachineLayer name="Appear" id="15:40">
+                <AnyState x="0" y="-140" id="15:41"/>
+                <ExitState x="0" y="-280" id="15:42"/>
+                <EntryState x="0" y="0" id="15:43">
+                    <StateTransition stateToId="15:44"/>  <!-- starts in pop in -->
+                </EntryState>
+                <AnimationState animationId="15:45" stateName="pop in" x="240" y="0" id="15:44"/>
+            </StateMachineLayer>
         </StateMachine>
 
         <!-- Timelines. Most are one-key poses: the state transitions do the blending. -->
@@ -181,6 +192,29 @@
             <KeyedObject objectId="15:19"><KeyedProperty property="colorValue"><KeyFrameColor value="FFD2FCD5" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Disc Color -->
             <KeyedObject objectId="15:12"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Label Color -->
             <KeyedObject objectId="15:13"><KeyedProperty property="activeComponentId"><KeyFrameId value="15:18" frame="0"/></KeyedProperty></KeyedObject>  <!-- Pictogram -->
+        </LinearAnimation>
+        <!-- 0.55 s, once on load: the sticker pops in from nothing, overshoots, and swings from a strong tilt to its resting tilt. -->
+        <LinearAnimation duration="34" name="appear: pop in" id="15:45">
+            <KeyedObject objectId="15:9">  <!-- Sticker -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.2" y1="0" x2="0.4" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.14" frame="13" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.95" frame="21" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="29" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.2" y1="0" x2="0.4" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.14" frame="13" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.95" frame="21" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="29" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="-0.6" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.2" y1="0" x2="0.4" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.03" frame="14" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-0.16" frame="23" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-0.105" frame="32" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
         </LinearAnimation>
     </Artboard>
 </Rive>

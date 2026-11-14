@@ -12,7 +12,6 @@ struct ContractJSON: Decodable {
         let name: String
         let size: [Double]
         let sizing: String
-        let fallback: String?
         let properties: [PropertySpec]
     }
 

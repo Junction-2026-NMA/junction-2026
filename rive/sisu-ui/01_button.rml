@@ -14,8 +14,10 @@
        Style      AnyState -> primary | secondary | onDark | quiet (enabled is true and style matches) or disabled (enabled is false).
                   Each pose keys the colours. `disabled` also keys Hit.x far away, so taps cannot land.
                   These transitions are instant, so the first frame already shows the right look.
-       Press      up <-> down on the private boolean _down (down / up / exit listeners). Face.y 0 -> 4, Edge fades out, springs back.
-       Loading    idle <-> loading on `loading`. Hides the label, shows three bouncing dots, keys Hit.y far away.
+       Press      up <-> down on the private boolean _down (down / up / exit listeners). Face.y 0 -> 4 and the Edge fades out
+                  in 80 ms; on release the face springs back in 320 ms (elastic).
+       Loading    idle <-> loading on `loading`. Hides the label, shows three dots that bounce and swell one after the other,
+                  keys Hit.y far away.
        pressed    fired by the click listener: once per completed tap, never while disabled or loading. -->
 <Rive version="1" kind="fragment">
     <!-- View model -->
@@ -51,6 +53,7 @@
         </LayoutComponent>
         <!-- The face: 56 tall, moves down 4 while pressed. The label hugs its text (shrinks if too long); the dots sit in a box pinned over the face. -->
         <LayoutComponent height="56" clip="false" styleId="1:20" name="Face" id="1:19">
+            <SemanticData role="button" name="Semantics"><DataBindContext sourcePathIds="1:1-1:2" propertyKey="983"/><DataBindContext sourcePathIds="1:1-1:4" propertyKey="1002" converterId="0:60"/></SemanticData>  <!-- for VoiceOver: role, label <- the component's text -->
             <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fixed" flexDirectionValue="row"
                     layoutAlignmentType="center" cornerRadiusTL="18" paddingLeft="16" paddingLeftUnitsValue="points"
                     paddingRight="16" paddingRightUnitsValue="points" name="Face Style" id="1:20"/>
@@ -71,14 +74,17 @@
                         name="Loading Dots Style" id="1:27"/>
                 <LayoutComponent width="8" height="8" clip="false" styleId="1:29" name="Dot 1" id="1:28">
                     <LayoutComponentStyle cornerRadiusTL="4" name="Dot 1 Style" id="1:29"/>
+                    <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
                     <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color" id="1:30"/></Fill>
                 </LayoutComponent>
                 <LayoutComponent width="8" height="8" clip="false" styleId="1:32" name="Dot 2" id="1:31">
                     <LayoutComponentStyle cornerRadiusTL="4" name="Dot 2 Style" id="1:32"/>
+                    <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
                     <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color" id="1:33"/></Fill>
                 </LayoutComponent>
                 <LayoutComponent width="8" height="8" clip="false" styleId="1:35" name="Dot 3" id="1:34">
                     <LayoutComponentStyle cornerRadiusTL="4" name="Dot 3 Style" id="1:35"/>
+                    <ComponentOrigin originX="0.5" originY="0.5" name="Origin"/>
                     <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color" id="1:36"/></Fill>
                 </LayoutComponent>
             </LayoutComponent>
@@ -171,7 +177,7 @@
                     <StateTransition stateToId="1:58"/>  <!-- starts in up -->
                 </EntryState>
                 <AnimationState animationId="1:71" stateName="up" x="240" y="0" id="1:58">
-                    <StateTransition stateToId="1:59" duration="60">  <!-- to down -->
+                    <StateTransition stateToId="1:59" duration="80">  <!-- to down: 80 ms -->
                         <TransitionViewModelCondition>  <!-- _down is true -->
                             <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="1:1-1:7" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
                             <TransitionValueBooleanComparator value="true"/>
@@ -179,7 +185,7 @@
                     </StateTransition>
                 </AnimationState>
                 <AnimationState animationId="1:72" stateName="down" x="480" y="0" id="1:59">
-                    <StateTransition stateToId="1:58" duration="260" interpolationType="elastic">  <!-- to up -->
+                    <StateTransition stateToId="1:58" duration="320" interpolationType="elastic">  <!-- to up: springs back -->
                         <ElasticInterpolator easingValue="easeOut" amplitude="1" period="0.5"/>
                         <TransitionViewModelCondition>  <!-- _down is false -->
                             <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="1:1-1:7" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
@@ -294,6 +300,18 @@
                     <KeyFrameDouble value="0" frame="18" interpolationType="linear"/>
                     <KeyFrameDouble value="0" frame="48" interpolationType="linear"/>
                 </KeyedProperty>
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.3" frame="9" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="18" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="48" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.3" frame="9" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="18" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="48" interpolationType="linear"/>
+                </KeyedProperty>
             </KeyedObject>
             <KeyedObject objectId="1:31">  <!-- Dot 2 -->
                 <KeyedProperty property="y">
@@ -303,6 +321,20 @@
                     <KeyFrameDouble value="0" frame="26" interpolationType="linear"/>
                     <KeyFrameDouble value="0" frame="48" interpolationType="linear"/>
                 </KeyedProperty>
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="8" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.3" frame="17" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="26" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="48" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="8" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.3" frame="17" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="26" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="48" interpolationType="linear"/>
+                </KeyedProperty>
             </KeyedObject>
             <KeyedObject objectId="1:34">  <!-- Dot 3 -->
                 <KeyedProperty property="y">
@@ -311,6 +343,20 @@
                     <KeyFrameDouble value="-6" frame="25" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
                     <KeyFrameDouble value="0" frame="34" interpolationType="linear"/>
                     <KeyFrameDouble value="0" frame="48" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="16" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.3" frame="25" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="34" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="48" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="16" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.3" frame="25" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="34" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="48" interpolationType="linear"/>
                 </KeyedProperty>
             </KeyedObject>
         </LinearAnimation>

@@ -36,6 +36,7 @@
         <!-- One fully rounded, clipped row. Each segment is a `fill` box whose flex weight is bound to its number.
              Gap Colour is a white box pinned behind the segments (1 pt inside the edge, so no white rim shows on dark backgrounds): it is what you see through the 2 pt gaps. -->
         <LayoutComponent clip="true" styleId="3:14" name="Bar" id="3:13">
+            <SemanticData role="image" name="Semantics"/>  <!-- for VoiceOver: role -->
             <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" flexDirectionValue="row"
                     cornerRadiusTL="20" gapHorizontal="2" gapHorizontalUnitsValue="points" name="Bar Style" id="3:14"/>
             <LayoutComponent clip="false" styleId="3:16" name="Fixed" id="3:15">

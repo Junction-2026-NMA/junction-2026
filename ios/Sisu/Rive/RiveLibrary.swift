@@ -3,10 +3,10 @@ import Foundation
 import RiveRuntime
 import SisuCore
 
-// `RiveFile` exists in both modules: SisuCore's enum names our two files, RiveRuntime's class is the legacy
+// `RiveFile` exists in both modules: SisuCore's enum names our file, RiveRuntime's class is the legacy
 // loader. Any file that imports both must write `SisuCore.RiveFile`.
 
-/// Why a Rive file or one of its artboards cannot be shown. Views turn any of these into a fallback or a placeholder.
+/// Why a Rive file or one of its artboards cannot be shown. Views turn any of these into a placeholder.
 enum RiveLibraryError: Error, Equatable {
     /// The `.riv` is not in the app bundle (not produced yet, or not added to the target).
     case notBundled(String)
@@ -16,8 +16,7 @@ enum RiveLibraryError: Error, Equatable {
 
 /// The app's Rive files. One instance for the whole app: `RiveLibrary.shared`.
 ///
-/// - `sisu_ui` loads on a plain worker, `sisu_3d` on a GPU-canvas worker (3D needs it). Each worker is created
-///   once, and only when a file that needs it is really in the bundle.
+/// - Files load on one shared worker, created once, and only when a file is really in the bundle.
 /// - A file is loaded the first time someone asks for it and then kept.
 /// - A failed load is remembered, so a missing file costs one attempt, not one per view.
 @MainActor
@@ -40,7 +39,7 @@ final class RiveLibrary {
 
     private let bundle: Bundle
     private var slots: [SisuCore.RiveFile: Slot] = [:]
-    private var workers: [Bool: Task<Worker, Error>] = [:]
+    private var workerTask: Task<Worker, Error>?
 
     init(bundle: Bundle = .main) {
         self.bundle = bundle
@@ -98,7 +97,7 @@ final class RiveLibrary {
     private func load(_ id: SisuCore.RiveFile) async throws -> File {
         do {
             guard isBundled(id) else { throw RiveLibraryError.notBundled("\(id.rawValue).riv") }
-            let worker = try await worker(gpuCanvas: id == .threeD)
+            let worker = try await worker()
             let file = try await File(source: .local(id.rawValue, bundle), worker: worker)
             slots[id] = .loaded(file)
             return file
@@ -112,15 +111,13 @@ final class RiveLibrary {
         }
     }
 
-    /// One worker per rendering mode, shared by every file that needs it.
-    private func worker(gpuCanvas: Bool) async throws -> Worker {
-        if let task = workers[gpuCanvas] {
-            return try await task.value
+    /// The one worker, shared by every file.
+    private func worker() async throws -> Worker {
+        if let workerTask {
+            return try await workerTask.value
         }
-        let task = Task { @MainActor in
-            gpuCanvas ? try await Worker(configuration: .init(enableGPUCanvas: true)) : try await Worker()
-        }
-        workers[gpuCanvas] = task
+        let task = Task { @MainActor in try await Worker() }
+        workerTask = task
         return try await task.value
     }
 }

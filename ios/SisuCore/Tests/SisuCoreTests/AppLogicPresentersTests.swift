@@ -50,6 +50,31 @@ final class AppLogicPresentersTests: XCTestCase {
         XCTAssertEqual(TodayPresenter.basketLegend(o), "Fixed 42% · Curveballs 18% · Leaks 40%")
     }
 
+    func testJarFigures() async throws {
+        XCTAssertEqual(JarsPresenter.bufferFigure(runwayMonths: 1.14), "1.1 months")
+        XCTAssertEqual(JarsPresenter.bufferFigure(runwayMonths: 1.02), "1 month")
+        XCTAssertEqual(JarsPresenter.freedFigure(approvedMonthlySaving: 0), "€0 a month")
+        let o = try await overview()
+        XCTAssertEqual(TodayPresenter.basketLegendItems(o).map(\.text), ["Fixed 42%", "Curveballs 18%", "Leaks 40%"])
+    }
+
+    func testChartAxes() async throws {
+        let o = try await overview()
+        XCTAssertEqual(TodayPresenter.chartMonthTicks(o).count, (o.months.count + 1) / 2)
+        let top = TodayPresenter.chartTop(o)
+        XCTAssertTrue(o.months.allSatisfy { $0.income < top && $0.regular + $0.irregular + $0.everyday < top })
+    }
+
+    func testFuturesAxes() async throws {
+        let response = try await FixtureAPI().scenario(customerId: "CUST04974", input: ScenarioInput(billSavingPerMonth: 15, everydayCutPct: 10, years: 5))
+        XCTAssertEqual(JarsPresenter.futuresTicks(response.branches), [0, 12, 24, 36, 48, 60])
+        XCTAssertEqual(JarsPresenter.futuresLastMonth(response.branches), 60)
+        XCTAssertGreaterThan(JarsPresenter.futuresTop(response.branches), response.branches.map(\.endHigh).max() ?? 0)
+        XCTAssertEqual(JarsPresenter.futuresTicks([]), [0])
+        let ten = try await FixtureAPI().scenario(customerId: "CUST04974", input: ScenarioInput(billSavingPerMonth: 15, everydayCutPct: 10, years: 10))
+        XCTAssertEqual(JarsPresenter.futuresTicks(ten.branches), [0, 24, 48, 72, 96, 120])
+    }
+
     func testNumberText() {
         XCTAssertEqual(NumberText.percent(0.424), "42%")
         XCTAssertEqual(NumberText.percent(.nan), "0%")

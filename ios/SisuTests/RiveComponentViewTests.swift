@@ -55,9 +55,9 @@ final class RiveComponentViewTests: XCTestCase {
         assertSize(of: column, is: CGSize(width: 390, height: 60 + 36 + 240))
     }
 
-    /// With the real file in the app, every 2D component must come up as a Rive view, not as a placeholder.
+    /// With the real file in the app, every component must come up as a Rive view, not as a placeholder.
     @MainActor
-    func testWithTheRiveFileEvery2DComponentAppearsAsARiveView() async throws {
+    func testWithTheRiveFileEveryComponentAppearsAsARiveView() async throws {
         guard RiveLibrary.shared.isBundled(.ui) else {
             throw XCTSkip("sisu_ui.riv is not in the app bundle yet, so there is no artboard to put on screen.")
         }
@@ -65,15 +65,6 @@ final class RiveComponentViewTests: XCTestCase {
         for component in RiveComponent.allCases where component.contract.file == .ui {
             await assertRiveViewAppears(for: component, library: nil)
         }
-    }
-
-    /// Without the 3D file, a 3D component must come up as its 2D fallback.
-    @MainActor
-    func testWithoutThe3DFileA3DComponentAppearsAsItsFallback() async throws {
-        guard RiveLibrary.shared.isBundled(.ui), !RiveLibrary.shared.isBundled(.threeD) else {
-            throw XCTSkip("needs sisu_ui.riv in the app bundle and no sisu_3d.riv")
-        }
-        await assertRiveViewAppears(for: .jar3D, library: nil)
     }
 
     // MARK: - Helpers

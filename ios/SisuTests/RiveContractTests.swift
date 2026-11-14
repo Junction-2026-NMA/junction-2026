@@ -12,11 +12,12 @@ final class RiveContractTests: XCTestCase {
         executionTimeAllowance = 180
     }
 
-    /// Every component the app knows is in the contract, with the same file, fallback, size, sizing and out triggers.
+    /// Every component the app knows is in the contract, with the same file, size, sizing and out triggers.
+    /// Only the files the app ships (`SisuCore.RiveFile`) are compared.
     func testContractTableMatchesContract() throws {
         let contract = try ContractJSON.load()
         var seen: [String] = []
-        for (fileName, artboard) in contract.allArtboards {
+        for (fileName, artboard) in contract.allArtboards where SisuCore.RiveFile(rawValue: fileName) != nil {
             seen.append(artboard.name)
             guard let component = RiveComponent(rawValue: artboard.name) else {
                 XCTFail("\(artboard.name) is in rive/contract.json but SisuCore has no RiveComponent for it")
@@ -24,7 +25,6 @@ final class RiveContractTests: XCTestCase {
             }
             let expected = RiveComponentContract(
                 file: try XCTUnwrap(SisuCore.RiveFile(rawValue: fileName), "unknown Rive file \(fileName)"),
-                fallback: artboard.fallback.flatMap(RiveComponent.init(rawValue:)),
                 designSize: CGSize(width: artboard.size[0], height: artboard.size[1]),
                 sizing: try XCTUnwrap(RiveSizing(rawValue: artboard.sizing), "unknown sizing \(artboard.sizing)"),
                 outTriggers: artboard.properties.filter { $0.type == "trigger" && $0.direction == "out" }.map(\.name)
@@ -35,17 +35,11 @@ final class RiveContractTests: XCTestCase {
         XCTAssertEqual(seen.sorted(), RiveComponent.allCases.map(\.rawValue).sorted(), "SisuCore's RiveComponent cases and the contract's artboards differ")
     }
 
-    /// Every 2D artboard of the contract is in `sisu_ui.riv` with its view model, state machine and properties,
+    /// Every artboard of the contract is in `sisu_ui.riv` with its view model, state machine and properties,
     /// and every `in` property accepts a value of its type.
     @MainActor
     func testEveryUIArtboardHonoursTheContract() async throws {
         try await check(.ui)
-    }
-
-    /// The same for the optional 3D file, once it is in the app.
-    @MainActor
-    func testEvery3DArtboardHonoursTheContract() async throws {
-        try await check(.threeD)
     }
 
     @MainActor

@@ -58,24 +58,25 @@ private struct Shelf: View {
         VStack(alignment: .leading, spacing: SisuTheme.Spacing.card) {
             HStack(alignment: .top, spacing: SisuTheme.Spacing.card) {
                 JarTile(title: "Buffer",
-                        caption: JarsPresenter.bufferCaption(runwayMonths: overview.runwayMonths),
+                        figure: JarsPresenter.bufferFigure(runwayMonths: overview.runwayMonths),
+                        detail: JarsPresenter.bufferDetail,
                         values: RiveValues.jar(fill: bufferFill, label: "Buffer"),
                         accessibility: "Buffer jar, \(NumberText.percent(bufferFill)) full")
-                JarTile(title: "Freed by switches",
-                        caption: JarsPresenter.freedCaption(approvedMonthlySaving: model.approvedMonthlySaving),
+                JarTile(title: "Switches",
+                        figure: JarsPresenter.freedFigure(approvedMonthlySaving: model.approvedMonthlySaving),
+                        detail: JarsPresenter.freedDetail(approvedMonthlySaving: model.approvedMonthlySaving),
                         values: RiveValues.jar(fill: freedFill, label: "Switches"),
                         triggers: ["celebrate#\(model.approvedMonthlySaving)"],
                         accessibility: "Freed by switches jar, \(NumberText.percent(freedFill)) full")
             }
             SisuCard {
                 HStack(spacing: SisuTheme.Spacing.card) {
-                    RiveComponentView(.berries3D, values: RiveValues.berries(count: model.progress.berries),
+                    RiveComponentView(.berries, values: RiveValues.berries(count: model.berries),
                                       triggers: ["drop#\(model.berryDrops)"])
-                        .sizing(.contain)
-                        .frame(width: 112, height: 84)
-                        .riveAccessible("Berries", value: model.progress.berriesText)
+                        .frame(width: 128, height: 80)
+                        .riveAccessible("Berries", value: model.berriesText)
                     VStack(alignment: .leading, spacing: SisuTheme.Spacing.grid) {
-                        Text(JarsPresenter.berriesCaption(model.progress.berries))
+                        Text(JarsPresenter.berriesCaption(model.berries))
                             .font(SisuTheme.Font.h3)
                             .foregroundStyle(SisuTheme.Color.text)
                         Text("Earned by showing up, never taken away.")
@@ -91,22 +92,26 @@ private struct Shelf: View {
 
 private struct JarTile: View {
     let title: String
-    let caption: String
+    let figure: String
+    let detail: String
     let values: [String: RiveValue]
     /// Fires `celebrate` whenever the stamp changes (for the switches jar: when the approved saving changes).
     var triggers: [String] = []
     let accessibility: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: SisuTheme.Spacing.grid * 2) {
-            RiveComponentView(.jar3D, values: values, triggers: triggers)
-                .frame(height: 170)
+        VStack(alignment: .leading, spacing: SisuTheme.Spacing.grid) {
+            RiveComponentView(.jar, values: values, triggers: triggers)
+                .frame(height: 150)
                 .frame(maxWidth: .infinity)
+                .padding(.bottom, SisuTheme.Spacing.grid * 3)
                 .riveAccessible(accessibility)
-            Text(title)
-                .font(SisuTheme.Font.h3)
+            Text(figure)
+                .font(SisuTheme.Font.h2)
                 .foregroundStyle(SisuTheme.Color.text)
-            Text(caption)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            Text(detail)
                 .font(SisuTheme.Font.label)
                 .foregroundStyle(SisuTheme.Color.textMuted)
                 .fixedSize(horizontal: false, vertical: true)
@@ -114,6 +119,8 @@ private struct JarTile: View {
         .padding(SisuTheme.Spacing.card)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(SisuTheme.Color.card, in: RoundedRectangle(cornerRadius: SisuTheme.Radius.card, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title): \(figure) \(detail)")
     }
 }
 
@@ -291,13 +298,16 @@ private struct FuturesChart: View {
         }
         .chartForegroundStyleScale(domain: branches.map(\.label), range: branches.map { color($0.id) })
         .chartLegend(.hidden)
+        .chartXScale(domain: 0...JarsPresenter.futuresLastMonth(branches), range: .plotDimension(startPadding: 16, endPadding: 24))
+        .chartYScale(domain: 0...JarsPresenter.futuresTop(branches))
         .chartXAxis {
-            AxisMarks(values: .stride(by: 12)) { value in
+            AxisMarks(values: JarsPresenter.futuresTicks(branches)) { value in
                 AxisGridLine().foregroundStyle(SisuTheme.Color.neutral200)
-                AxisValueLabel {
+                AxisValueLabel(anchor: .top) {
                     if let month = value.as(Int.self) { Text(JarsPresenter.axisLabel(month: month)) }
                 }
                 .font(SisuTheme.Font.caption)
+                .foregroundStyle(SisuTheme.Color.textMuted)
             }
         }
         .chartYAxis {

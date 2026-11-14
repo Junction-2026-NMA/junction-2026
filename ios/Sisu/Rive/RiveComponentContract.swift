@@ -6,7 +6,6 @@ import SisuCore
 /// What the app needs to know about one Rive component.
 struct RiveComponentContract: Equatable {
     var file: SisuCore.RiveFile
-    var fallback: RiveComponent?
     var designSize: CGSize
     var sizing: RiveSizing
     var outTriggers: [String]
@@ -17,7 +16,6 @@ extension RiveComponent {
     var contract: RiveComponentContract {
         RiveComponentContract(
             file: file,
-            fallback: fallback,
             designSize: CGSize(width: designSize.width, height: designSize.height),
             sizing: sizing,
             outTriggers: outTriggers

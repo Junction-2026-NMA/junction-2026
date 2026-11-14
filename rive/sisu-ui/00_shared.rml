@@ -70,23 +70,48 @@
         <DataEnumValue key="amber" value="amber" id="0:282"/>
         <DataEnumValue key="info" value="info" id="0:283"/>
     </DataEnumCustom>
+    <DataEnumCustom name="IconKind" id="0:300">
+        <DataEnumValue key="settings" value="settings" id="0:301"/>
+        <DataEnumValue key="close" value="close" id="0:302"/>
+        <DataEnumValue key="back" value="back" id="0:303"/>
+        <DataEnumValue key="forward" value="forward" id="0:304"/>
+        <DataEnumValue key="info" value="info" id="0:305"/>
+        <DataEnumValue key="soundOn" value="soundOn" id="0:306"/>
+        <DataEnumValue key="soundOff" value="soundOff" id="0:307"/>
+        <DataEnumValue key="more" value="more" id="0:308"/>
+    </DataEnumCustom>
+    <DataEnumCustom name="IconStyle" id="0:320">
+        <DataEnumValue key="plain" value="plain" id="0:321"/>
+        <DataEnumValue key="tinted" value="tinted" id="0:322"/>
+        <DataEnumValue key="filled" value="filled" id="0:323"/>
+    </DataEnumCustom>
+    <DataEnumCustom name="LessonState" id="0:340">
+        <DataEnumValue key="upcoming" value="upcoming" id="0:341"/>
+        <DataEnumValue key="current" value="current" id="0:342"/>
+        <DataEnumValue key="done" value="done" id="0:343"/>
+    </DataEnumCustom>
 
     <!-- Converters shared by several artboards. -->
     <DataConverterBooleanNegate name="not" id="0:60"/>
-    <!-- Eases a number to its new value over 0.45 s, so bars and fills animate when the app writes them. -->
-    <DataConverterInterpolator duration="0.45" interpolationType="cubic" name="ease to new value" id="0:61">
-        <CubicEaseInterpolator x1="0.2" y1="0.9" x2="0.3" y2="1"/>
+    <!-- Eases a number to its new value over 0.6 s and overshoots it slightly (about 7 % of the change) before settling,
+         so bars and fills spring to a value the app writes instead of jumping. The first value is taken as it is. -->
+    <DataConverterInterpolator duration="0.6" interpolationType="cubic" name="ease to new value" id="0:61">
+        <CubicEaseInterpolator x1="0.34" y1="1.45" x2="0.64" y2="1"/>
     </DataConverterInterpolator>
+    <!-- Goes after the easing wherever the overshoot must not leave the valid range (a flex weight or a height below 0). -->
+    <DataConverterRangeMapper minInput="0" maxInput="1" minOutput="0" maxOutput="1" clampLower="true" name="not below 0" id="0:69"/>
     <DataConverterRangeMapper minInput="0" maxInput="1" minOutput="0" maxOutput="1" clampLower="true" clampUpper="true" name="clamp 0..1" id="0:62"/>
     <DataConverterGroup name="clamp 0..1, eased" id="0:63">
         <DataConverterGroupItem converterId="0:62"/>
         <DataConverterGroupItem converterId="0:61"/>
+        <DataConverterGroupItem converterId="0:62"/>  <!-- the overshoot stays inside 0..1 -->
     </DataConverterGroup>
     <DataConverterRangeMapper minInput="0" maxInput="1" minOutput="1" maxOutput="0" clampLower="true" clampUpper="true"
             name="1 minus value" id="0:64"/>
     <DataConverterGroup name="1 minus value, eased" id="0:65">
         <DataConverterGroupItem converterId="0:64"/>
         <DataConverterGroupItem converterId="0:61"/>
+        <DataConverterGroupItem converterId="0:62"/>  <!-- the overshoot stays inside 0..1 -->
     </DataConverterGroup>
     <!-- Number to displayValue: 0 gives 1 (none), anything above gives 0 (flex). -->
     <DataConverterRangeMapper minInput="0" maxInput="0.0001" minOutput="1" maxOutput="0" clampLower="true" clampUpper="true"
@@ -96,5 +121,6 @@
     <DataConverterGroup name="flex weight, eased" id="0:68">
         <DataConverterGroupItem converterId="0:67"/>
         <DataConverterGroupItem converterId="0:61"/>
+        <DataConverterGroupItem converterId="0:69"/>  <!-- a weight never goes below 0 -->
     </DataConverterGroup>
 </Rive>

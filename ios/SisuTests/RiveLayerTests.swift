@@ -32,12 +32,6 @@ final class RiveTriggerRequestTests: XCTestCase {
 }
 
 final class RiveComponentRequestTests: XCTestCase {
-    func testA3DComponentIsTriedBeforeIts2DFallback() {
-        XCTAssertEqual(RiveComponentRequest(component: .jar3D).candidates, [.jar3D, .jar])
-        XCTAssertEqual(RiveComponentRequest(component: .berries3D).candidates, [.berries3D, .statPill])
-        XCTAssertEqual(RiveComponentRequest(component: .button).candidates, [.button])
-    }
-
     func testASizingOverrideWinsOverTheContract() {
         XCTAssertEqual(RiveComponentRequest(component: .toggle).sizing(for: .toggle), .fixed)
         XCTAssertEqual(RiveComponentRequest(component: .toggle, sizing: .contain).sizing(for: .toggle), .contain)

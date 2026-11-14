@@ -88,13 +88,13 @@ struct SisuButton: View {
     }
 }
 
-/// A Liito: the 3D one when the 3D file is there, otherwise the 2D one.
+/// Liito, the 2D Rive mascot.
 struct LiitoView: View {
     let mood: String
     let label: String
 
     var body: some View {
-        RiveComponentView(.liito3D, values: RiveValues.liito(mood))
+        RiveComponentView(.liito, values: RiveValues.liito(mood))
             .riveAccessible(label)
     }
 }
