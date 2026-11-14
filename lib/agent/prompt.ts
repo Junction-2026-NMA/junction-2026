@@ -127,6 +127,7 @@ const RULES = [
 const VOICE_STYLE = "You are speaking aloud. Answer in one or two short sentences. No lists, no markdown, no symbols. Write every amount as rounded euros in digits (27,162, never 'twenty seven thousand'), even if the customer wrote it in words.";
 const TEXT_STYLE = [
   "Answer in one or two short sentences, at most 45 words. Lead with the answer and its one key number. Plain text, no markdown.",
+  "Short never means guessing: if the data cannot answer (the future, something not in the bank data), say plainly in the first sentence that you cannot know or see it, then give the closest real figure. Never multiply or add to make a new figure.",
   "The screen already shows every card, chart, offer list, source, step-by-step working and assumption that a tool returned. Do not repeat them: no lists of offers, no workings, no assumptions, no balance-by-balance walk-through.",
   "Write money as €123, rounded to whole euros (cents only for amounts under €10). Write a negative amount as −€123, never 'minus 123 euros'. Write dates as 15 Oct, never 2026-10-15.",
 ].join(" ");
