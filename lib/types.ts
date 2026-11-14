@@ -192,6 +192,20 @@ export type Offer = {
   comparable: boolean; // false when the price cannot be compared fairly (e.g. spot contracts)
   estimatedMonthlyCostEur: number | null; // computed in code
   estimatedYearlySavingEur: number | null; // computed in code, against the customer's current bill
+  greenEnergy?: boolean | null; // electricity: true when the page says the energy is renewable; null when it does not say
+  meetsRequirements?: boolean; // false when the offer misses a requirement the customer stated (see ResearchResult.requirements)
+  misses?: string[]; // why it misses them, one short reason each ("24-month contract, you asked for 12 months or less")
+  feesUnknown?: boolean; // true when a fee the cost depends on is not stated on the page: the cost leaves it out, so it is incomplete
+};
+
+// What the customer said a new contract must meet. Every field is optional: only what they asked for is set.
+export type OfferRequirements = {
+  maxContractMonths?: number;
+  minContractMonths?: number;
+  contractType?: "fixed" | "spot";
+  greenOnly?: boolean;
+  maxMonthlyCostEur?: number; // the estimated cost per month, all in
+  noSetupFee?: boolean;
 };
 
 export type ResearchStatus = "running" | "partial" | "done" | "failed";
@@ -216,6 +230,14 @@ export type ResearchResult = {
   citations: Citation[];
   assumptions: string[];
   errors: string[];
+  // Added for recommendation consistency. `best` is only ever an offer that meets the requirements.
+  requirements?: OfferRequirements | null; // what the customer asked for; null or missing = no requirement stated
+  requirementsText?: string | null; // the same in words, for a card: "12 months or less, fixed price"
+  matchingCount?: number; // comparable offers that meet the requirements
+  noMatch?: boolean; // true when requirements were stated and no comparable offer meets them: show "No matching options found"
+  savingIncomplete?: boolean; // true when the best offer's saving leaves out a fee the page does not state
+  bill?: { label: string; confirmed: boolean } | null; // which of the customer's bills this is compared with; confirmed false = Sisu's guess
+  toConfirm?: string[]; // what the customer should confirm before the saving is dependable (use, current tariff, requirements, which bill)
 };
 
 export type ChatTurn = { role: "user" | "assistant"; content: string };
@@ -284,6 +306,7 @@ export type Fact = {
   basis: string; // one line a person can read: how it was worked out
   evidence?: EvidenceFilter; // pass to GET /api/customers/:id/transactions to show the rows
   url?: string; // for web facts
+  synthetic?: boolean; // true for a comparison with other profiles in the synthetic demo dataset (not statistics about real people)
 };
 
 export type NumberCheck = {
@@ -330,6 +353,26 @@ export type CashFlow = {
   negativeMonths: number;
   steps: CalcStep[];
   assumptions: string[];
+  weeklyBudget?: WeeklyBudget | null; // added: what can be spent each week until payday, after bills and a protected buffer
+};
+
+// Estimated weekly budget until the next payday: (balance - bills due before payday - protected buffer) / weeks to
+// payday, never below zero. Computed in lib/finance/budget.ts. It is an estimate, never "safe to spend".
+export type WeeklyBudget = {
+  perWeekEur: number;
+  nextPayday: string;
+  daysToPayday: number;
+  weeksToPayday: number; // days / 7, at least 1
+  balanceEur: number;
+  billsBeforePaydayEur: number;
+  bufferEur: number;
+  bufferSource: "default" | "customer-stated"; // default = one week of regular and occasional essentials, an assumption
+  leftForSpendingEur: number; // balance - bills - buffer, never below zero
+  usualEverydayPerWeekEur: number; // what the customer usually spends on everyday spending in a week (12-month average)
+  differencePerWeekEur: number; // budget minus usual spending: negative means usual spending would eat into the buffer or bills
+  shortBeforePayday: boolean; // true when balance minus bills is already below the buffer
+  steps: CalcStep[];
+  assumptions: string[];
 };
 
 // How much the customer could move to savings without running short, worked out from their own numbers.
@@ -368,6 +411,8 @@ export type TeachingCard = {
   reveal: string;
   facts: Fact[];
   revealVisual?: Visual; // a chart to show with the answer, once the customer has guessed
+  whyWrong?: string[]; // one kind sentence per option, same order as `options`; the entry at correctIndex says why it is right
+  followUp?: { question: string; options: string[]; correctIndex: number; reveal: string } | null; // a second, short check after a wrong first answer
 };
 
 export type ActionKind = "switch_contract" | "standing_transfer" | "one_off_transfer" | "property_watch" | "price_watch";
@@ -439,6 +484,7 @@ export type AgentAction = {
   confirmation?: string | null; // filled in when approved: "Done (simulation). Reference SIM-1A2B3C4D."
   execution?: ActionExecution | null; // filled in when approved: what was carried out in the demo bank, with balances before and after
   watch?: WatchPlan | null; // property_watch and price_watch: what would be watched once approved
+  requirements?: OfferRequirements | null; // switch_contract: what the customer asked the new contract to meet
 };
 
 export type AuditEventType = "action_prepared" | "action_approved" | "action_executed_simulated" | "action_declined" | "action_expired" | "memory_saved" | "memory_forgotten" | "consent_changed" | "demo_reset" | "watch_started" | "watch_checked" | "watch_notified" | "watch_stopped";
@@ -645,11 +691,11 @@ export type Visual = VisualBase &
   (
     | { kind: "budget_donut"; slices: { label: string; value: number; share: number }[]; total: number; centerLabel: string } // share is 0..100
     | { kind: "basket_bar"; total: number; baskets: { id: BasketId; label: string; description: string; monthly: number; share: number; top: { category: string; monthly: number }[] }[] } // share is 0..100
-    | { kind: "peer_bars"; peerGroup: string; rows: { label: string; you: number; peers: number }[] }
+    | { kind: "peer_bars"; peerGroup: string; rows: { label: string; you: number; peers: number }[]; synthetic?: boolean } // synthetic: the peers are other profiles in the demo dataset
     | { kind: "month_bars"; months: { month: string; label: string; income: number; spending: number }[] }
     | { kind: "waterfall"; steps: CalcStep[]; resultLabel: string; resultValue: number }
     | { kind: "futures_lines"; years: number; series: { id: BranchId; label: string; points: { year: number; value: number; low: number; high: number }[] }[] }
-    | { kind: "offer_bars"; currentMonthlyEur: number; offers: { provider: string; plan: string | null; monthlyEur: number; yearlySavingEur: number; url: string }[]; mock: boolean }
+    | { kind: "offer_bars"; currentMonthlyEur: number; offers: { provider: string; plan: string | null; monthlyEur: number; yearlySavingEur: number; url: string; contractMonths?: number | null; feesUnknown?: boolean }[]; mock: boolean; requirementsText?: string | null } // only offers that meet the requirements
   );
 
 // What Sisu is doing right now, in one value, for a mascot or a status line. See lib/agent/activity.ts.

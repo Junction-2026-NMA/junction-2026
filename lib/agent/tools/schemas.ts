@@ -13,6 +13,15 @@ export const GROUPINGS = ["month", "category", "merchantType"];
 export const MEMORY_KINDS = ["yearly_kwh", "bill_name", "preference", "goal"];
 export const ACTION_KINDS = ["switch_contract", "standing_transfer", "one_off_transfer"];
 export const DESTINATIONS = ["savings", "investments"];
+// What a new contract must meet. Set a field ONLY if the customer asked for it; pass the same ones to prepare_action.
+const REQUIREMENTS = {
+  maxContractMonths: { type: "number", description: "only if they said: the longest contract they accept, in months ('12 months or less' is 12)" },
+  minContractMonths: { type: "number", description: "only if they said: the shortest contract they accept, in months" },
+  contractType: { type: "string", enum: ["fixed", "spot"], description: "only if they asked for a fixed or a spot price" },
+  greenOnly: { type: "boolean", description: "only if they asked for renewable (green) energy" },
+  maxMonthlyCostEur: { type: "number", description: "only if they named the most they will pay a month" },
+  noSetupFee: { type: "boolean", description: "only if they asked for no setup or opening fee" },
+};
 
 const tool = (name: string, description: string, properties: Record<string, unknown>, required: string[] = []): ToolSchema => ({
   type: "function",
@@ -36,7 +45,7 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
     ["from", "to"],
   ),
   tool("list_bills", "Recurring bills: yearly cost, change on a year ago, and whether each name is confirmed.", {}),
-  tool("get_cash_flow", "Pay cycles: how fast money goes after payday, lowest balance each cycle, bills due before the next payday.", {}),
+  tool("get_cash_flow", "Until payday: bills due, the expected balance, and the estimated weekly budget with its working on screen. Also pay cycles and how fast money goes after payday.", { bufferEur: { type: "number", description: "only if the customer said how much they want to keep untouched; otherwise leave out (a default of one week of essentials is assumed)" } }),
   tool("find_patterns", "Scans the history for what stands out, ranked by yearly euros. For open questions: where does my money go, what should I change, how can I save.", {}),
   tool("check_affordability", "Can the customer absorb a one-off or unexpected cost now?", { amountEur: { type: "number" }, what: { type: "string" } }, ["amountEur"]),
   tool(
@@ -57,7 +66,7 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
   tool(
     "search_offers",
     "Live search for current Finnish offers for one bill, with the saving computed against the customer's real bill.",
-    { billType: { type: "string", enum: BILL_TYPES }, yearlyKwh: { type: "number", description: "electricity only, ONLY if the customer said it" } },
+    { billType: { type: "string", enum: BILL_TYPES }, yearlyKwh: { type: "number", description: "electricity only, ONLY if the customer said it" }, ...REQUIREMENTS },
     ["billType"],
   ),
   tool(
@@ -86,7 +95,7 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
   ),
   tool(
     "show_chart",
-    "Puts a chart on the customer's screen. baskets = their three baskets (must pay every month, must pay now and then, everyday choices). budget = a ring of where their money goes by category. vs_peers = their categories beside people their age. months = money in and out for each of the last 12 months. safe_to_spend = how safe-to-spend is built up.",
+    "Puts a chart on the customer's screen. baskets = their three baskets (regular essentials, occasional essentials, everyday spending). budget = a ring of where their money goes by category. vs_peers = their categories beside other profiles in the demo data. months = money in and out for each of the last 12 months. safe_to_spend = how the estimated weekly budget until payday is built up.",
     { chart: { type: "string", enum: CHART_KINDS } },
     ["chart"],
   ),
@@ -100,6 +109,7 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
       provider: { type: "string", description: "from search_offers, if the customer chose one" },
       amountEur: { type: "number", description: "transfers: the amount the customer said or agreed to" },
       destination: { type: "string", enum: DESTINATIONS, description: "transfers: savings (default) or their investment account" },
+      ...REQUIREMENTS,
     },
     ["kind"],
   ),

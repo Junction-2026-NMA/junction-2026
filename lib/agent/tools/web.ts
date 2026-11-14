@@ -6,6 +6,7 @@ import { round2 } from "@/lib/finance/math";
 import { billFor, billLabel, statedYearlyKwh } from "@/lib/memory";
 import type { BillType, CalcStep, Fact, Offer, ResearchResult } from "@/lib/types";
 import { KWH_LIMITS, toResult } from "../research/compare";
+import { parseRequirements } from "../research/requirements";
 import { exaResearch, exaSearch } from "../research/exa";
 import { ensureResearch, waitForUsable } from "../research";
 import { BILL_TYPES } from "./schemas";
@@ -26,36 +27,46 @@ export function billTypeOf(args: Record<string, unknown>): BillType | null {
 
 // The arithmetic behind the best offer's saving, one line per step, for the "how Sisu worked this out" view.
 function savingSteps(research: ResearchResult, best: Offer): CalcStep[] {
+  const billBasis = research.bill && !research.bill.confirmed ? `average of the last 12 months, from your bank data; "${research.bill.label}" is Sisu's guess until you confirm it` : "average of the last 12 months, from your bank data";
+  const feeBasis = best.feesUnknown ? "not stated on the provider's page, so left out: the real cost is likely higher" : "from the provider's page";
   const monthlySaving = round2((best.estimatedYearlySavingEur ?? 0) / 12);
   const comparedAgainst = round2((best.estimatedMonthlyCostEur ?? 0) + monthlySaving);
   const baseline = research.baselineMonthlyEur ?? comparedAgainst;
   const kwh = research.assumedYearlyKwh;
   const energy = kwh !== null && best.energyPriceCentsPerKwh !== null ? round2((kwh / 12) * (best.energyPriceCentsPerKwh / 100)) : null;
   return [
-    { label: "Your bill per month", amount: baseline, basis: "average of the last 12 months, from your bank data" },
+    { label: "Your bill per month", amount: baseline, basis: billBasis },
     ...(comparedAgainst < baseline ? [{ label: "Part of it that a new seller can change", amount: comparedAgainst, basis: "the rest is treated as grid fees and other charges, which stay the same" }] : []),
     ...(energy !== null ? [{ label: `${best.provider}: energy`, amount: -energy, basis: `${kwh} kWh a year ÷ 12 × ${best.energyPriceCentsPerKwh} c/kWh from the provider's page` }] : []),
-    ...(energy !== null ? [{ label: `${best.provider}: monthly fee`, amount: -(best.monthlyPriceEur ?? 0), basis: "from the provider's page" }] : [{ label: `${best.provider}: monthly price`, amount: -(best.estimatedMonthlyCostEur ?? 0), basis: "from the provider's page, setup fee spread over 12 months" }]),
-    { label: "Estimated saving per month", amount: monthlySaving, basis: "what a new seller can change minus the offer's cost" },
+    ...(energy !== null ? [{ label: `${best.provider}: monthly fee`, amount: -(best.monthlyPriceEur ?? 0), basis: feeBasis }] : [{ label: `${best.provider}: monthly price`, amount: -(best.estimatedMonthlyCostEur ?? 0), basis: best.feesUnknown ? "from the provider's page; its setup fee is not stated, so it is left out" : "from the provider's page, setup fee spread over 12 months" }]),
+    { label: best.feesUnknown ? "Estimated saving per month (incomplete)" : "Estimated saving per month", amount: monthlySaving, basis: "what a new seller can change minus the offer's cost" },
     { label: "Estimated saving per year", amount: best.estimatedYearlySavingEur ?? 0, basis: "monthly saving times 12" },
   ];
 }
 
 function offerFacts(research: ResearchResult): Fact[] {
   const offers = research.offers.filter((o) => o.comparable).slice(0, 5);
+  // A price is labelled with the service that really read its page (Context.dev, or Exa when Context.dev could not).
+  const readBy = (url: string): "context.dev" | "exa" => research.citations.find((c) => c.url === url)?.readBy ?? "context.dev";
   return [
     ...(research.baselineMonthlyEur === null ? [] : [fact("offers:baseline", "Current bill per month", research.baselineMonthlyEur, "EUR/month", "average of the last 12 months")]),
-    ...(research.assumedYearlyKwh === null ? [] : [fact("offers:kwh", "Yearly electricity use in the estimate", research.assumedYearlyKwh, "kWh/year", research.usageSource === "stated" ? "the figure the customer gave" : "estimated from the bill at today's typical price", { source: research.usageSource === "stated" ? "customer-stated" : "assumption" })]),
+    ...(research.assumedYearlyKwh === null ? [] : [fact("offers:kwh", "Yearly electricity use in the estimate", research.assumedYearlyKwh, "kWh/year", research.usageSource === "stated" ? "the figure the customer gave" : research.usageSource === "default" ? "assumed: typical for a small flat" : "estimated from the bill at today's typical price", { source: research.usageSource === "stated" ? "customer-stated" : "assumption" })]),
+    ...(research.requirements?.maxContractMonths === undefined ? [] : [fact("offers:req:max-months", "Longest contract the customer accepts", research.requirements.maxContractMonths, "months", "what the customer asked for", { source: "customer-stated" })]),
+    ...(research.requirements?.minContractMonths === undefined ? [] : [fact("offers:req:min-months", "Shortest contract the customer accepts", research.requirements.minContractMonths, "months", "what the customer asked for", { source: "customer-stated" })]),
+    ...(research.requirements?.maxMonthlyCostEur === undefined ? [] : [fact("offers:req:max-cost", "Most the customer will pay a month", research.requirements.maxMonthlyCostEur, "EUR/month", "what the customer asked for", { source: "customer-stated" })]),
     ...offers.flatMap((o, index) => [
-      ...(o.energyPriceCentsPerKwh === null ? [] : [fact(`offers:${index}:price`, `${o.provider}: energy price`, o.energyPriceCentsPerKwh, "c/kWh", "extracted from the provider's page", { source: "context.dev", url: o.sourceUrl })]),
-      ...(o.monthlyPriceEur === null ? [] : [fact(`offers:${index}:fee`, `${o.provider}: monthly price or fee`, o.monthlyPriceEur, "EUR/month", "extracted from the provider's page", { source: "context.dev", url: o.sourceUrl })]),
-      ...(o.contractMonths === null ? [] : [fact(`offers:${index}:term`, `${o.provider}: contract length`, o.contractMonths, "months", "extracted from the provider's page", { source: "context.dev", url: o.sourceUrl })]),
+      ...(o.energyPriceCentsPerKwh === null ? [] : [fact(`offers:${index}:price`, `${o.provider}: energy price`, o.energyPriceCentsPerKwh, "c/kWh", "extracted from the provider's page", { source: readBy(o.sourceUrl), url: o.sourceUrl })]),
+      ...(o.monthlyPriceEur === null ? [] : [fact(`offers:${index}:fee`, `${o.provider}: monthly price or fee`, o.monthlyPriceEur, "EUR/month", "extracted from the provider's page", { source: readBy(o.sourceUrl), url: o.sourceUrl })]),
+      ...(o.contractMonths === null ? [] : [fact(`offers:${index}:term`, `${o.provider}: contract length`, o.contractMonths, "months", "extracted from the provider's page", { source: readBy(o.sourceUrl), url: o.sourceUrl })]),
       ...(o.estimatedMonthlyCostEur === null ? [] : [fact(`offers:${index}:cost`, `${o.provider}: estimated cost per month`, o.estimatedMonthlyCostEur, "EUR/month", "extracted price applied to the estimated use", { source: "calculation", url: o.sourceUrl })]),
       ...(o.estimatedYearlySavingEur === null ? [] : [fact(`offers:${index}:saving`, `${o.provider}: estimated saving per year`, o.estimatedYearlySavingEur, "EUR/year", "current bill minus estimated cost, times 12", { source: "calculation", url: o.sourceUrl })]),
       ...(o.estimatedYearlySavingEur === null ? [] : [fact(`offers:${index}:saving-monthly`, `${o.provider}: estimated saving per month`, o.estimatedYearlySavingEur / 12, "EUR/month", "yearly saving divided by 12", { source: "calculation", url: o.sourceUrl })]),
     ]),
   ];
 }
+
+// Is the kWh in the estimate something other than the customer's own figure?
+const research0UsageIsGuess = (stated: number | null): boolean => stated === null;
 
 export async function searchOffers(args: Record<string, unknown>, ctx: ToolContext): Promise<ToolOutcome> {
   const billType = billTypeOf(args);
@@ -69,16 +80,24 @@ export async function searchOffers(args: Record<string, unknown>, ctx: ToolConte
   const match = billFor(ctx.overview, ctx.memory, billType);
   const fromArgs = typeof args.yearlyKwh === "number" && args.yearlyKwh >= KWH_LIMITS[0] && args.yearlyKwh <= KWH_LIMITS[1] ? args.yearlyKwh : null;
   const stated = billType === "electricity" ? (fromArgs ?? statedYearlyKwh(ctx.memory)) : null;
-  const research = toResult(raw, match?.bill.monthlyAvg ?? null, stated);
+  const requirements = parseRequirements(args);
   const name = match ? billLabel(match.bill, ctx.memory) : null;
-  const compact = (o: Offer) => ({ provider: o.provider, plan: o.plan, contractType: o.contractType, contractMonths: o.contractMonths, estimatedMonthlyCostEur: o.estimatedMonthlyCostEur, estimatedYearlySavingEur: o.estimatedYearlySavingEur, comparable: o.comparable, source: hostOf(o.sourceUrl) });
+  const toConfirm = [
+    ...(billType === "electricity" && research0UsageIsGuess(stated) ? ["their yearly electricity use in kWh (on the bill)"] : []),
+    ...(billType === "electricity" ? ["their current price per kWh and monthly fee (Sisu cannot see their tariff)"] : []),
+    ...(requirements ? [] : ["what the new contract must have (length, fixed or spot)"]),
+    ...(name && !name.confirmed ? [`that "${name.label}" really is their ${billType} bill`] : []),
+  ];
+  const research = { ...toResult(raw, match?.bill.monthlyAvg ?? null, stated, requirements), bill: name ? { label: name.label, confirmed: name.confirmed } : null, toConfirm };
+  const compact = (o: Offer) => ({ provider: o.provider, plan: o.plan, contractType: o.contractType, contractMonths: o.contractMonths, estimatedMonthlyCostEur: o.estimatedMonthlyCostEur, estimatedYearlySavingEur: o.estimatedYearlySavingEur, comparable: o.comparable, meetsRequirements: o.meetsRequirements, misses: o.misses?.length ? o.misses : undefined, feesUnknown: o.feesUnknown || undefined, source: hostOf(o.sourceUrl) });
   const ok = research.offers.length > 0;
   const best = research.best;
+  const noMatch = research.noMatch === true;
 
   const stages: StageDraft[] = [
     { kind: "research", title: `Searched today's ${billType} offers`, summary: `${count(research.citations.length, "page")} found for "${research.query}"`, source: "exa", data: { kind: "research", query: research.query, searchedWith: "exa", pages: research.citations, retrievedAt: research.finishedAt ?? research.startedAt, mock: research.mock } },
-    { kind: "extraction", title: "Read the offer pages", summary: `${research.offers.length} offers from ${research.pagesDone - research.errors.length < 0 ? 0 : research.citations.length} of ${research.pagesTotal} pages`, source: "context.dev", data: { kind: "extraction", extractedWith: "context.dev", pagesRead: research.citations.length, pagesTotal: research.pagesTotal, offers: research.offers, problems: research.errors } },
-    ...(best ? [{ kind: "calculation" as const, title: `Saving with ${best.provider}`, summary: `About €${Math.round(best.estimatedYearlySavingEur ?? 0)} a year`, source: "calculation" as const, data: { kind: "calculation" as const, steps: savingSteps(research, best), resultLabel: "Estimated saving per year", resultValue: best.estimatedYearlySavingEur ?? 0, unit: "EUR/year" as const, assumptions: research.assumptions } }] : []),
+    { kind: "extraction", title: "Read the offer pages", summary: `${count(research.offers.length, "offer")} from ${research.pagesDone - research.errors.length < 0 ? 0 : research.citations.length} of ${research.pagesTotal} pages${research.requirementsText ? (noMatch ? `; No matching options found for ${research.requirementsText}` : `; ${research.matchingCount ?? 0} match ${research.requirementsText}`) : ""}`, source: "context.dev", data: { kind: "extraction", extractedWith: "context.dev", pagesRead: research.citations.length, pagesTotal: research.pagesTotal, offers: research.offers, problems: research.errors } },
+    ...(best ? [{ kind: "calculation" as const, title: `Saving with ${best.provider}`, summary: `About €${Math.round(best.estimatedYearlySavingEur ?? 0)} a year${research.savingIncomplete ? " (incomplete: a fee is not stated)" : ""}${research.toConfirm.length ? ", a rough estimate until you confirm a few details" : ""}`, source: "calculation" as const, data: { kind: "calculation" as const, steps: savingSteps(research, best), resultLabel: "Estimated saving per year", resultValue: best.estimatedYearlySavingEur ?? 0, unit: "EUR/year" as const, assumptions: research.assumptions } }] : []),
   ];
 
   return outcome({
@@ -89,19 +108,28 @@ export async function searchOffers(args: Record<string, unknown>, ctx: ToolConte
       whichBill: name ? `${name.label} (${name.confirmed ? "confirmed by the customer" : "Sisu's guess, not yet confirmed"})` : "No matching bill was found in the bank data, so no saving can be calculated",
       currentBillMonthlyEur: research.baselineMonthlyEur,
       yearlyKwhUsed: research.assumedYearlyKwh,
-      yearlyKwhIs: research.usageSource === "stated" ? "what the customer told us" : "an estimate, not a meter reading: say so, and invite them to give their real yearly kWh",
-      best: best ? { ...compact(best), estimatedMonthlySavingEur: round2((best.estimatedYearlySavingEur ?? 0) / 12) } : null,
-      note: best ? undefined : "No comparable offer is cheaper than the current bill. Say so honestly.",
+      yearlyKwhIs: research.usageSource === "stated" ? "what the customer told us" : research.usageSource ? "an estimate, not a meter reading" : undefined,
+      requirements: research.requirementsText ?? "none stated",
+      matchingOffers: research.requirementsText ? research.matchingCount : undefined,
+      best: best ? { ...compact(best), estimatedMonthlySavingEur: round2((best.estimatedYearlySavingEur ?? 0) / 12), savingIncomplete: research.savingIncomplete || undefined } : null,
+      note: noMatch
+        ? `No offer meets the requirements (${research.requirementsText}). Say "No matching options found", name the requirement, and offer to broaden it or keep checking. Do not recommend, name as best or prepare any offer.`
+        : best
+          ? undefined
+          : "No comparable offer is cheaper than the current bill. Say so honestly.",
+      stillToConfirm: best && research.toConfirm.length ? research.toConfirm : undefined,
+      howToAnswer: best
+        ? `Give the saving as a rough "about" figure in one sentence${research.savingIncomplete ? ", and say a fee is not stated so it may be smaller" : ""}. The cards show the offers, sources and workings: do not list them.${research.toConfirm.length ? " Then ask for ONE of stillToConfirm, the one that matters most, so the estimate becomes dependable." : ""}`
+        : undefined,
       offers: research.offers.slice(0, 5).map(compact),
       sources: research.citations.map((c) => hostOf(c.url)),
       retrievedAt: research.finishedAt,
-      assumptions: research.assumptions,
       problems: research.errors,
-      next: best ? "If the customer asked what this adds up to over time, call run_scenario with billSavingPerMonth set to best.estimatedMonthlySavingEur; never multiply it yourself. If they asked you to prepare it or go ahead, call prepare_action with kind switch_contract." : undefined,
+      next: best ? `Only if the customer asked what this adds up to over time, call run_scenario with freedPerMonthEur set to best.estimatedMonthlySavingEur. If they asked you to prepare it or go ahead, call prepare_action with kind switch_contract${research.requirementsText ? " and the same requirements" : ""}.` : undefined,
     }),
     ok,
     summary: ok
-      ? `${count(research.offers.length, "offer")} from ${count(research.citations.length, "page")} in ${(research.tookMs / 1000).toFixed(1)} s${best ? `; best saves €${Math.round(best.estimatedYearlySavingEur ?? 0)} a year` : ""}`
+      ? `${count(research.offers.length, "offer")} from ${count(research.citations.length, "page")} in ${(research.tookMs / 1000).toFixed(1)} s${noMatch ? `; No matching options found (${research.requirementsText})` : best ? `; best saves €${Math.round(best.estimatedYearlySavingEur ?? 0)} a year` : ""}`
       : `No offers found (${research.errors[0] ?? "no pages could be read"})`,
     source: "exa+context.dev",
     joinedPrefetch: reused,
@@ -170,7 +198,7 @@ async function deepSearch(query: string, ctx: ToolContext): Promise<ToolOutcome>
         whatExaFound: answer.text,
         sources: citations.map((citation) => ({ title: citation.title, source: hostOf(citation.url) })),
         excerpts: research.excerpts.slice(0, 4).map((excerpt) => safeExcerpt(excerpt, EXCERPT_CHARS).text),
-        say: "Answer from whatExaFound in two or three sentences, name one or two of the sources, and say it is what the sources say today, not advice about their own case.",
+        say: "Answer from whatExaFound in one or two plain sentences and name one source. Say it is what the sources say today, not advice about their own case. The sources are listed on screen.",
       }),
       ok: answer.text.length > 0 || citations.length > 0,
       summary: `Researched across ${citations.length} sources in ${(research.tookMs / 1000).toFixed(1)} s for "${query}"`,

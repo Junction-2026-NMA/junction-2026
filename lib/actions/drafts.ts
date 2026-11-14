@@ -2,6 +2,7 @@
 // own numbers. The model passes only a bill type or an amount, so it cannot invent an offer, a price or a saving.
 import { peekResearch } from "@/lib/agent/research";
 import { toResult } from "@/lib/agent/research/compare";
+import { requirementsText } from "@/lib/agent/research/requirements";
 import { buildCashFlow } from "@/lib/finance/cashflow";
 import { findCustomer } from "@/lib/finance/data";
 import { fact } from "@/lib/finance/facts";
@@ -10,7 +11,7 @@ import { buildOverview } from "@/lib/finance/overview";
 import { savingRoom } from "@/lib/finance/saving";
 import { cleanInput, runScenario } from "@/lib/finance/scenario";
 import { billFor, billLabel, getMemory, statedYearlyKwh } from "@/lib/memory";
-import type { ActionImpact, AgentAction, BillType, Offer } from "@/lib/types";
+import type { ActionImpact, AgentAction, BillType, Offer, OfferRequirements } from "@/lib/types";
 import { readState } from "@/lib/store/state";
 import { accountsFrom, withCurrentAccount } from "./bank";
 import type { ActionDraft } from "./index";
@@ -57,7 +58,8 @@ const draftMessage = (offer: Offer, billType: BillType): string =>
   ].join("\n");
 
 // A contract switch, built from finished offer research. `provider` picks one offer; without it the best one is used.
-export function buildSwitchDraft(customerId: string, billType: BillType, options: { provider?: string; preparedBy: AgentAction["preparedBy"] }): DraftResult {
+// `requirements` are what the customer asked the contract to meet: an offer that misses one is never switched to.
+export function buildSwitchDraft(customerId: string, billType: BillType, options: { provider?: string; preparedBy: AgentAction["preparedBy"]; requirements?: OfferRequirements | null }): DraftResult {
   const customer = findCustomer(customerId);
   const overview = buildOverview(customerId);
   if (!customer || !overview) return { ok: false, status: 404, reason: "We could not find that customer." };
@@ -67,9 +69,14 @@ export function buildSwitchDraft(customerId: string, billType: BillType, options
 
   const memory = getMemory(customerId);
   const match = billFor(overview, memory, billType);
-  const research = toResult(raw, match?.bill.monthlyAvg ?? null, billType === "electricity" ? statedYearlyKwh(memory) : null);
+  const requirements = options.requirements ?? null;
+  const research = toResult(raw, match?.bill.monthlyAvg ?? null, billType === "electricity" ? statedYearlyKwh(memory) : null, requirements);
   const wanted = options.provider?.trim().toLowerCase();
-  const offer = wanted ? research.offers.find((o) => o.comparable && o.provider.toLowerCase().includes(wanted)) : research.best;
+  const named = wanted ? research.offers.find((o) => o.comparable && o.provider.toLowerCase().includes(wanted)) : undefined;
+  const asked = requirementsText(requirements);
+  if (named && named.meetsRequirements === false) return { ok: false, status: 409, reason: `${named.provider} does not meet what you asked for (${named.misses?.join("; ") ?? asked}), so it was not prepared.` };
+  if (!wanted && research.noMatch) return { ok: false, status: 409, reason: `No matching options found: no offer found today meets ${asked}. Nothing was prepared.` };
+  const offer = wanted ? named : research.best;
   if (!offer) return { ok: false, status: 409, reason: wanted ? "That provider is not among the comparable offers Sisu found." : "No offer found today is cheaper than the current bill, so there is nothing to switch to." };
   const yearly = offer.estimatedYearlySavingEur ?? 0;
   if (yearly <= 0) return { ok: false, status: 409, reason: `${offer.provider} would not be cheaper than the current bill on these estimates.` };
@@ -96,8 +103,9 @@ export function buildSwitchDraft(customerId: string, billType: BillType, options
         ...(research.assumedYearlyKwh === null ? [] : [fact("action:kwh", "Yearly electricity use in the estimate", research.assumedYearlyKwh, "kWh/year", research.usageSource === "stated" ? "the figure you gave" : "estimated from your bill", { source: research.usageSource === "stated" ? "customer-stated" : "assumption" })]),
       ],
       sources: source ? [source] : research.citations,
-      assumptions: [...research.assumptions, "Switching steps are the usual ones in Finland. The provider's own terms decide."],
+      assumptions: [...research.assumptions, ...(offer.feesUnknown ? [`${offer.provider}'s page does not state every fee, so this saving is incomplete and likely smaller.`] : []), "Switching steps are the usual ones in Finland. The provider's own terms decide."],
       preparedBy: options.preparedBy,
+      ...(requirements ? { requirements } : {}),
     },
   };
 }

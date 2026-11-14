@@ -1,6 +1,7 @@
 // Pictures the agent can put on screen. Each one is built in code from the same figures the answer uses, and
 // carries a receipt for every number in it, so a chart can never show something the customer's data does not.
 // The screen draws them (see app/visuals/); the model only chooses which one to show.
+import { buildCashFlow } from "@/lib/finance/cashflow";
 import { categoryAverages } from "@/lib/finance/categories";
 import { peerAverage } from "@/lib/finance/data";
 import { fact } from "@/lib/finance/facts";
@@ -55,17 +56,18 @@ export function peersVisual(overview: Overview): Visual | null {
   return {
     id: "vs_peers",
     kind: "peer_bars",
-    title: `You and others aged ${overview.ageBand}`,
-    caption: `${period(overview)}, beside the average of ${overview.peerCount} customers aged ${overview.ageBand}`,
-    summary: `${above.length ? `You spend more than people your age on ${list(above)}.` : "You spend no more than people your age in your main categories."}${below.length ? ` You spend less on ${list(below)}.` : ""}`,
+    title: `You and other demo profiles aged ${overview.ageBand}`,
+    caption: `${period(overview)}, beside the average of ${overview.peerCount} other profiles aged ${overview.ageBand} in the synthetic demo data. Not statistics about real people.`,
+    summary: `${above.length ? `Compared with other profiles in the demo data, you spend more on ${list(above)}.` : "Compared with other profiles in the demo data, you spend no more in your main categories."}${below.length ? ` You spend less on ${list(below)}.` : ""}`,
     source: "bank-data",
     facts: rows.flatMap((row) => [
-      fact(`chart:peers:${row.entry.category}:gap`, `${row.entry.category}, you against people your age, per month`, Math.abs(round2(row.entry.monthly - row.peers.avgMonthly)), "EUR/month", "your average minus theirs", { source: "calculation" }),
+      fact(`chart:peers:${row.entry.category}:gap`, `${row.entry.category}, you against other demo profiles, per month`, Math.abs(round2(row.entry.monthly - row.peers.avgMonthly)), "EUR/month", "your average minus theirs", { source: "calculation", synthetic: true }),
       fact(`chart:peers:${row.entry.category}:you`, `${row.entry.category}, you per month`, row.entry.monthly, "EUR/month", period(overview)),
-      fact(`chart:peers:${row.entry.category}:peers`, `${row.entry.category}, people your age per month`, round2(row.peers.avgMonthly), "EUR/month", `average of ${row.peers.customers} customers aged ${overview.ageBand}`),
+      fact(`chart:peers:${row.entry.category}:peers`, `${row.entry.category}, demo profiles aged ${overview.ageBand} per month`, round2(row.peers.avgMonthly), "EUR/month", `average of ${row.peers.customers} profiles aged ${overview.ageBand} in the synthetic demo data`, { synthetic: true }),
     ]),
-    peerGroup: `aged ${overview.ageBand}`,
+    peerGroup: `demo profiles aged ${overview.ageBand}`,
     rows: rows.map((row) => ({ label: row.entry.category, you: row.entry.monthly, peers: round2(row.peers.avgMonthly) })),
+    synthetic: true,
   };
 }
 
@@ -85,24 +87,42 @@ export function monthsVisual(overview: Overview): Visual {
   };
 }
 
+// The estimated weekly budget until payday: balance, less the bills due before it and a protected buffer, spread
+// over the weeks left. Without a payday in the data it falls back to the 12-month averages. Never "safe to spend".
 export function safeToSpendVisual(overview: Overview): Visual {
+  const budget = buildCashFlow(overview).weeklyBudget;
+  if (budget) {
+    return {
+      id: "safe_to_spend",
+      kind: "waterfall",
+      title: "Your estimated weekly budget until payday",
+      caption: `Balance, less bills due before ${budget.nextPayday} and a protected buffer, over ${budget.weeksToPayday} weeks. An estimate from your history.`,
+      summary: `About ${eur(budget.perWeekEur)} a week until payday on ${budget.nextPayday}, after the bills due before it and a buffer of ${eur(budget.bufferEur)}.`,
+      source: "calculation",
+      facts: [...budget.steps.map((step, index) => fact(`chart:budget-week:${index}`, step.label, step.amount, "EUR", step.basis, { source: "calculation" })), fact("chart:safe:week", "Estimated weekly budget until payday", budget.perWeekEur, "EUR", step0(budget.weeksToPayday), { source: "calculation" })],
+      steps: budget.steps.slice(0, 3), // the parts that add up; the result divides what is left by the weeks to payday
+      resultLabel: "Estimated weekly budget",
+      resultValue: budget.perWeekEur,
+    };
+  }
   const safe = overview.safeToSpend;
   return {
     id: "safe_to_spend",
     kind: "waterfall",
-    title: "How your safe-to-spend is worked out",
-    caption: "Income, less must-pay bills, less what is set aside for now-and-then costs",
-    summary: `Safe to spend is ${eur(safe.perWeek)} a week, ${eur(safe.perMonth)} a month: what is left of your income after must-pay bills and what is set aside for now-and-then costs.`,
+    title: "Your estimated weekly budget, from 12-month averages",
+    caption: "Income, less regular essentials, less what is set aside for occasional essentials and savings",
+    summary: `About ${eur(safe.perWeek)} a week, ${eur(safe.perMonth)} a month, from your 12-month averages: what is left of income after essentials and the saving you already do.`,
     source: "calculation",
-    facts: [...safe.steps.map((step, index) => fact(`chart:safe:${index}`, step.label, step.amount, "EUR/month", step.basis, { source: "calculation" })), fact("chart:safe:week", "Safe to spend per week", safe.perWeek, "EUR", "the monthly figure divided by the weeks in a month", { source: "calculation" }), fact("chart:safe:month", "Safe to spend per month", safe.perMonth, "EUR/month", "income less must-pay and set-aside costs", { source: "calculation" })],
+    facts: [...safe.steps.map((step, index) => fact(`chart:safe:${index}`, step.label, step.amount, "EUR/month", step.basis, { source: "calculation" })), fact("chart:safe:week", "Estimated weekly budget from averages", safe.perWeek, "EUR", "the monthly figure divided by the weeks in a month", { source: "calculation" }), fact("chart:safe:month", "Estimated monthly budget from averages", safe.perMonth, "EUR/month", "income less essentials and savings", { source: "calculation" })],
     steps: safe.steps,
-    resultLabel: "Safe to spend a week",
+    resultLabel: "Estimated weekly budget",
     resultValue: safe.perWeek,
   };
 }
+const step0 = (weeks: number): string => `what is left, divided by ${weeks} weeks until payday`;
 
-// The three baskets every customer's spending falls into: what must be paid every month, what must be paid now
-// and then, and everyday choices. This is the picture S-Pankki's own teaching starts from.
+// The three baskets every customer's spending falls into: regular essentials, occasional essentials and everyday
+// spending. This is the picture S-Pankki's own teaching starts from.
 export function basketsVisual(overview: Overview): Visual {
   const total = round2(sum(overview.baskets.map((basket) => basket.monthlyAvg)));
   const baskets = overview.baskets.map((basket) => ({
@@ -154,20 +174,23 @@ export function futuresVisual(result: ScenarioResult, years: number): Visual {
   };
 }
 
-// The customer's bill beside the cheapest comparable offers found today.
+// The customer's bill beside the cheapest comparable offers found today. Only offers that meet the customer's
+// requirements are drawn: a chart must never show a contract they ruled out as if it were an option.
 export function offersVisual(research: ResearchResult): Visual | null {
-  const offers = research.offers.filter((offer) => offer.comparable && offer.estimatedMonthlyCostEur !== null).slice(0, MAX_OFFERS);
+  const offers = research.offers.filter((offer) => offer.comparable && offer.meetsRequirements !== false && offer.estimatedMonthlyCostEur !== null).slice(0, MAX_OFFERS);
   if (!offers.length || research.baselineMonthlyEur === null) return null;
+  const which = research.requirementsText ? "matching" : "comparable";
   return {
     id: `offers:${research.billType}`,
     kind: "offer_bars",
-    title: `Your ${research.billType} bill beside today's offers`,
-    caption: `Estimated cost a month. ${research.citations.length} pages read${research.finishedAt ? `, ${research.finishedAt.slice(0, 16).replace("T", " ")} UTC` : ""}.`,
-    summary: `The cheapest comparable offer is ${offers[0].provider} at about ${eur(offers[0].estimatedMonthlyCostEur ?? 0)} a month, against your ${eur(research.baselineMonthlyEur)} now.`,
+    title: `Your ${research.billType} bill beside today's ${research.requirementsText ? "matching " : ""}offers`,
+    caption: `Estimated cost a month${research.requirementsText ? `. Only offers with: ${research.requirementsText}` : ""}. ${research.citations.length} pages read${research.finishedAt ? `, ${research.finishedAt.slice(0, 16).replace("T", " ")} UTC` : ""}.${offers.some((offer) => offer.feesUnknown) ? " Some pages do not state every fee, so those costs are incomplete." : ""}`,
+    summary: `The cheapest ${which} offer is ${offers[0].provider} at about ${eur(offers[0].estimatedMonthlyCostEur ?? 0)} a month, against your ${eur(research.baselineMonthlyEur)} now.`,
     source: "context.dev",
     facts: [fact("chart:offers:current", "Your bill per month", research.baselineMonthlyEur, "EUR/month", "average of the last 12 months"), ...offers.map((offer, index) => fact(`chart:offers:${index}`, `${offer.provider}, estimated per month`, offer.estimatedMonthlyCostEur ?? 0, "EUR/month", "price from the provider's page, applied to your use", { source: "calculation", url: offer.sourceUrl }))],
     currentMonthlyEur: research.baselineMonthlyEur,
-    offers: offers.map((offer) => ({ provider: offer.provider, plan: offer.plan, monthlyEur: offer.estimatedMonthlyCostEur ?? 0, yearlySavingEur: offer.estimatedYearlySavingEur ?? 0, url: offer.sourceUrl })),
+    offers: offers.map((offer) => ({ provider: offer.provider, plan: offer.plan, monthlyEur: offer.estimatedMonthlyCostEur ?? 0, yearlySavingEur: offer.estimatedYearlySavingEur ?? 0, url: offer.sourceUrl, contractMonths: offer.contractMonths, ...(offer.feesUnknown ? { feesUnknown: true } : {}) })),
     mock: research.mock,
+    requirementsText: research.requirementsText ?? null,
   };
 }
