@@ -223,6 +223,7 @@ export type AgentRequest = {
   mode: "voice" | "text";
   history?: ChatTurn[];
   focusBill?: BillType; // the bill the user has open on screen, if any
+  investigate?: boolean; // true = Sisu works through a whole investigation on its own (see POST /api/agent/investigate)
 };
 
 export type ToolTrace = {
@@ -259,3 +260,208 @@ export type AgentEvent =
   | { type: "error"; message: string };
 
 export type ApiError = { error: string };
+
+// --- Receipts, investigation stages, teaching, actions and memory (added 14 Nov on overnight/fable-lead) ---
+// Everything below is ADDITIVE: no existing type changed shape. See docs/FRONTEND_INTEGRATION_CONTRACT.md.
+
+// Where a number came from. The UI can colour or label each figure by this.
+export type SourceKind = "bank-data" | "exa" | "context.dev" | "assumption" | "customer-stated" | "calculation";
+
+export type FactUnit = "EUR" | "EUR/month" | "EUR/year" | "kWh/year" | "c/kWh" | "months" | "count" | "percent" | "years" | "days";
+
+// One receipt: a number Sisu is allowed to say, with where it came from and how to open the rows behind it.
+export type Fact = {
+  id: string;
+  label: string;
+  value: number;
+  unit: FactUnit;
+  source: SourceKind;
+  basis: string; // one line a person can read: how it was worked out
+  evidence?: EvidenceFilter; // pass to GET /api/customers/:id/transactions to show the rows
+  url?: string; // for web facts
+};
+
+export type NumberCheck = {
+  value: number; // the number as Sisu said it
+  status: "receipt" | "context" | "trivial" | "unverified";
+  factId: string | null; // set when status is "receipt"
+};
+
+// Result of checking every number in the answer against the receipts. `ok` is false if any number has no source.
+export type Grounding = { ok: boolean; checked: number; unverified: number[]; numbers: NumberCheck[] };
+
+export type PatternKind = "bill-opportunity" | "bill-creep" | "overdraft-risk" | "payday-spike" | "category-drift" | "peer-gap" | "small-purchases" | "lumpy-costs" | "idle-cash";
+
+// Something worth looking into, found by code in the customer's own history.
+export type Pattern = {
+  id: string;
+  kind: PatternKind;
+  title: string;
+  detail: string;
+  yearlyImpactEur: number | null; // null when no honest euro figure exists
+  confidence: Confidence;
+  billType: BillType | null; // set when live offer research can follow
+  evidence: EvidenceFilter;
+  facts: Fact[];
+  nextSteps: string[]; // tool names that would take this further
+};
+
+export type PayCycle = { payday: string; income: number; lowestBalance: number; lowestOn: string; daysToLowest: number; spentInFirstWeek: number; spentInCycle: number };
+
+export type CashFlow = {
+  customerId: string;
+  dataTimestamp: string;
+  typicalPayday: number | null; // day of the month
+  nextPayday: string | null; // first expected payday after the data ends
+  daysToNextPayday: number | null;
+  cycles: PayCycle[]; // most recent last
+  averageDailyEverydayEur: number;
+  billsDueBeforePayday: { billId: string; label: string; amount: number; expectedOn: string }[];
+  projectedLowPointEur: number | null; // balance expected just before the next payday
+  firstWeekShare: number | null; // share of a cycle's everyday spending that happens in the 7 days after payday
+  negativeMonths: number;
+  steps: CalcStep[];
+  assumptions: string[];
+};
+
+export type AffordabilityVerdict = "comfortable" | "tight" | "not-yet";
+
+export type Affordability = {
+  amountEur: number;
+  verdict: AffordabilityVerdict;
+  balanceAfterEur: number;
+  projectedLowPointEur: number | null;
+  bufferMonthsAfter: number; // months of must-pay costs still covered by the balance afterwards
+  monthsToSaveUp: number | null; // if not affordable now: months of current surplus needed
+  steps: CalcStep[];
+  assumptions: string[];
+};
+
+export type ConceptId = "three-baskets" | "safe-to-spend" | "fixed-vs-spot" | "buffer-first" | "compound-growth" | "switching-bills" | "pay-yourself-first";
+
+// A teaching moment built from the customer's own numbers. Ask `question` BEFORE showing `reveal`.
+export type TeachingCard = {
+  id: string;
+  concept: ConceptId;
+  title: string;
+  explanation: string;
+  question: string;
+  options: string[];
+  correctIndex: number;
+  reveal: string;
+  facts: Fact[];
+};
+
+export type ActionKind = "switch_contract" | "standing_transfer";
+export type ActionStatus = "awaiting_approval" | "executed_simulated" | "declined" | "expired";
+
+export type ActionImpact = {
+  monthlyEur: number;
+  yearlyEur: number;
+  horizonYears: number;
+  branches: { id: BranchId; label: string; endTotal: number; endLow: number; endHigh: number }[];
+  gainVsNothingEur: number; // "keep the cash" branch against "change nothing" at the horizon
+  summary: string;
+};
+
+// A prepared action. Nothing happens until the user approves it, and even then it is a simulation.
+export type AgentAction = {
+  id: string;
+  customerId: string;
+  kind: ActionKind;
+  status: ActionStatus;
+  simulated: true;
+  title: string;
+  summary: string;
+  checklist: string[]; // the steps a real switch would take
+  draftMessage: string | null; // text Sisu drafted for the provider; never sent
+  billType: BillType | null;
+  offer: Offer | null;
+  monthlyAmountEur: number;
+  facts: Fact[];
+  sources: Citation[];
+  assumptions: string[];
+  preparedBy: "sisu-agent" | "user";
+  createdAt: string;
+  expiresAt: string;
+  decidedAt: string | null;
+  impact: ActionImpact | null; // filled in when approved
+};
+
+export type AuditEventType = "action_prepared" | "action_approved" | "action_executed_simulated" | "action_declined" | "action_expired" | "memory_saved" | "memory_forgotten" | "consent_changed" | "demo_reset";
+
+// Tamper-evident log: each event carries the hash of the one before it.
+export type AuditEvent = {
+  seq: number;
+  at: string;
+  customerId: string;
+  type: AuditEventType;
+  actor: "user" | "sisu-agent" | "system";
+  actionId: string | null;
+  detail: string;
+  prevHash: string;
+  hash: string;
+};
+
+export type MemoryKind = "bill_name" | "yearly_kwh" | "preference" | "goal";
+
+export type MemoryItem = {
+  id: string;
+  kind: MemoryKind;
+  key: string; // bill id for bill_name, otherwise a short label
+  value: string;
+  billType: BillType | null; // bill_name only: which kind of bill the user says it is
+  source: "user-confirmed-in-app" | "user-said-in-chat";
+  savedAt: string;
+};
+
+export type CustomerMemory = { customerId: string; consent: boolean; items: MemoryItem[] };
+
+export type StageKind = "lead" | "evidence" | "research" | "extraction" | "calculation" | "teaching" | "action" | "impact" | "memory";
+
+// One step of Sisu's work, typed so the UI can draw a card for it. A whole turn (or investigation) is a sequence of these.
+export type Stage = {
+  id: string;
+  kind: StageKind;
+  title: string;
+  summary: string;
+  source: SourceKind | "nemotron";
+  toolCallId: string | null; // the tool call that produced it; matches ToolTrace.id
+  atMs: number; // since the turn started
+  facts: Fact[];
+  data:
+    | { kind: "lead"; patterns: Pattern[] }
+    | { kind: "evidence"; filter: EvidenceFilter; count: number; totalEur: number; largest: { date: string; amount: number; category: string; merchantType: string | null }[] }
+    | { kind: "research"; query: string; searchedWith: "exa"; pages: Citation[]; retrievedAt: string; mock: boolean }
+    | { kind: "extraction"; extractedWith: "context.dev"; pagesRead: number; pagesTotal: number; offers: Offer[]; problems: string[] }
+    | { kind: "calculation"; steps: CalcStep[]; resultLabel: string; resultValue: number; unit: FactUnit; assumptions: string[] }
+    | { kind: "teaching"; card: TeachingCard }
+    | { kind: "action"; action: AgentAction }
+    | { kind: "impact"; impact: ActionImpact }
+    | { kind: "memory"; item: MemoryItem };
+};
+
+// Extra events on the agent stream. Older clients can ignore them.
+export type AgentExtraEvent =
+  | { type: "stage"; stage: Stage }
+  | { type: "action"; action: AgentAction } // show the approval card; approve with POST /api/actions/:id/approve
+  | { type: "teaching"; card: TeachingCard }
+  | { type: "memory"; item: MemoryItem }
+  | { type: "grounding"; grounding: Grounding; facts: Fact[] }; // sent just before "done"
+
+export type SisuEvent = AgentEvent | AgentExtraEvent;
+
+export type InvestigateRequest = { customerId: string; mode?: "voice" | "text"; focus?: PatternKind | BillType };
+
+export type ActionList = { customerId: string; actions: AgentAction[]; audit: AuditEvent[]; auditChainValid: boolean };
+
+export type HealthReport = {
+  ok: boolean;
+  mock: boolean;
+  model: { provider: string; name: string; host: string; region: string | null; reachable: boolean | null; latencyMs: number | null };
+  backup: { provider: string; name: string } | null;
+  services: { exa: boolean; contextDev: boolean; elevenLabs: boolean };
+  dataBoundary: string[];
+  store: { persistent: boolean; path: string | null };
+  checkedAt: string;
+};

@@ -1,21 +1,29 @@
 // One conversation turn, as a stream of events. The rules it follows are in context/orchestration.md.
+import { buildCashFlow } from "@/lib/finance/cashflow";
 import { findCustomer } from "@/lib/finance/data";
 import { buildOverview } from "@/lib/finance/overview";
-import type { AgentEvent, AgentRequest, BillType, Citation, ToolTrace, TurnTimings } from "@/lib/types";
+import { findPatterns } from "@/lib/finance/patterns";
+import { getMemory } from "@/lib/memory";
+import type { AgentRequest, BillType, CashFlow, Citation, Fact, SisuEvent, Stage, ToolTrace, TurnTimings } from "@/lib/types";
 import { getConfig } from "./config";
+import { checkGrounding, overviewFacts } from "./grounding";
 import { type ChatMessage, type ToolCall, streamChat } from "./model";
-import { buildSystemPrompt } from "./prompt";
+import { buildSystemPrompt, customerSummary } from "./prompt";
 import { ensureResearch, isResearchReady } from "./research";
 import { createSentenceSplitter, forSpeech } from "./sentences";
 import { speculate } from "./speculate";
 import { TOOL_SCHEMAS, type ToolContext, type ToolOutcome, billTypeOf, executeTool, parseArgs } from "./tools";
+import { failure } from "./tools/types";
 
-const MAX_MODEL_STEPS = 4;
+const MAX_MODEL_STEPS = { chat: 4, investigate: 9 };
+const MAX_TOOLS_PER_STEP = 4;
 const MAX_HISTORY_TURNS = 8;
-const MAX_TOKENS = { voice: 220, text: 420 };
+const MAX_TOKENS = { voice: 220, text: 420, investigate: 520 };
+const MAX_NUDGES = 2;
 // A short reply that promises to do something instead of doing it.
 const PROMISE_PATTERN = /\b(i can|i could|i'll|i will|let me|shall i)\b[^.?!]*\b(run|check|look|find|search|calculate|work out|pull)\b/i;
 const PROMISE_MAX_CHARS = 120;
+export const INVESTIGATE_TEXT = "Look into my finances on your own and come back with the one best thing I can do, checked and ready for me to approve.";
 
 const FILLER: Record<BillType, (city: string) => string> = {
   electricity: (city) => `Let me check today's electricity deals in ${city}.`,
@@ -35,7 +43,16 @@ async function* inCompletionOrder<T>(tasks: Promise<T>[]): AsyncGenerator<T> {
   }
 }
 
-export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttMs: number | null = null): AsyncGenerator<AgentEvent> {
+// In an investigation the model should not stop halfway. This names the step it skipped, if any.
+function missingInvestigationStep(called: Set<string>, offerFound: boolean, researched: boolean): string | null {
+  if (!called.has("find_patterns")) return "find_patterns";
+  if (researched && offerFound && !called.has("run_scenario")) return "run_scenario (use the monthly saving search_offers reported, over 5 years)";
+  if (!called.has("explain_concept")) return "explain_concept";
+  if (researched && offerFound && !called.has("prepare_action")) return "prepare_action (kind switch_contract)";
+  return null;
+}
+
+export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttMs: number | null = null): AsyncGenerator<SisuEvent> {
   const turnStarted = Date.now();
   const sinceStart = () => Date.now() - turnStarted;
   const config = getConfig();
@@ -45,31 +62,50 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
     yield { type: "error", message: "We could not find that customer." };
     return;
   }
+  const investigate = request.investigate === true;
+  const turnId = crypto.randomUUID();
+  const memory = getMemory(request.customerId);
+  let cashFlowCache: CashFlow | null = null;
+  const cashFlow = () => (cashFlowCache ??= buildCashFlow(overview));
 
-  yield { type: "start", turnId: crypto.randomUUID(), provider: config.provider, model: config.model.name, mock: config.isMock };
+  yield { type: "start", turnId, provider: config.provider, model: config.model.name, mock: config.isMock };
 
   // Rule 1: start slow research now if the words suggest it. Nothing here is awaited.
-  const guess = speculate(request.text, request.focusBill);
+  // An investigation almost always ends at a bill, so it starts research for the strongest bill lead at once.
+  const leadBill = investigate ? (findPatterns(overview, cashFlow()).find((p) => p.billType)?.billType ?? null) : null;
+  const guess = leadBill ? { billType: leadBill, reason: `An investigation usually needs live ${leadBill} offers, so research started early.` } : speculate(request.text, request.focusBill);
   if (guess) {
     ensureResearch(guess.billType, customer.area);
     yield { type: "speculation", billType: guess.billType, reason: guess.reason };
   }
 
-  const context: ToolContext = { customerId: request.customerId, overview, city: customer.area, signal };
+  if (investigate) yield { type: "filler", text: `Give me a moment, ${overview.displayName}. I'm going through your last twelve months.` };
+
+  const history = (request.history ?? []).slice(-MAX_HISTORY_TURNS);
+  const userTexts = [...history.filter((turn) => turn.role === "user").map((turn) => turn.content), request.text];
+  const context: ToolContext = { customerId: request.customerId, overview, city: customer.area, memory, cashFlow, userTexts, signal };
   const messages: ChatMessage[] = [
-    { role: "system", content: buildSystemPrompt(overview, request.mode, customer.area) },
-    ...(request.history ?? []).slice(-MAX_HISTORY_TURNS).map((turn) => ({ role: turn.role, content: turn.content })),
+    { role: "system", content: buildSystemPrompt({ overview, city: customer.area, mode: request.mode, memory, investigate }) },
+    ...history.map((turn) => ({ role: turn.role, content: turn.content })),
     { role: "user", content: request.text },
   ];
 
   const splitter = createSentenceSplitter();
   const timings: TurnTimings = { sttMs, firstTokenMs: null, firstSentenceMs: null, totalMs: 0, modelSteps: [] };
   const citations: Citation[] = [];
+  const toolFacts: Fact[] = [];
+  const toolContents: string[] = [];
+  const called = new Set<string>();
+  const maxSteps = MAX_MODEL_STEPS[investigate ? "investigate" : "chat"];
   let answer = "";
   let sentenceIndex = 0;
-  let fillerSent = false;
+  let stageIndex = 0;
+  let fillerSent = investigate;
+  let nudges = 0;
+  let offerFound = false;
+  let researched = false;
 
-  function* emitSentences(sentences: string[]): Generator<AgentEvent> {
+  function* emitSentences(sentences: string[]): Generator<SisuEvent> {
     for (const sentence of sentences) {
       const text = request.mode === "voice" ? forSpeech(sentence) : sentence;
       if (!text) continue;
@@ -79,15 +115,15 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
   }
 
   try {
-    for (let step = 0; step < MAX_MODEL_STEPS; step++) {
+    for (let step = 0; step < maxSteps; step++) {
       let toolCalls: ToolCall[] = [];
       let stepText = "";
-      const isLastStep = step === MAX_MODEL_STEPS - 1;
+      const isLastStep = step === maxSteps - 1;
 
       for await (const chunk of streamChat({
         messages,
         tools: isLastStep ? [] : TOOL_SCHEMAS, // the last step must answer in words
-        maxTokens: MAX_TOKENS[request.mode],
+        maxTokens: investigate ? MAX_TOKENS.investigate : MAX_TOKENS[request.mode],
         useFastModel: step === 0,
         signal,
       })) {
@@ -97,7 +133,7 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
           yield { type: "delta", text: chunk.text };
           yield* emitSentences(splitter.push(chunk.text));
         } else {
-          toolCalls = chunk.toolCalls;
+          toolCalls = chunk.toolCalls.slice(0, MAX_TOOLS_PER_STEP);
           timings.modelSteps = [...timings.modelSteps, { model: chunk.model, provider: chunk.provider, usedBackup: chunk.usedBackup, firstTokenMs: chunk.firstTokenMs, totalMs: chunk.totalMs }];
         }
       }
@@ -106,10 +142,17 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
       // Rule 4: no tool calls means the model had what it needed. The turn ends here,
       // and any speculative research simply stays in the cache.
       if (!toolCalls.length) {
+        const missing = investigate && !isLastStep && nudges < MAX_NUDGES ? missingInvestigationStep(called, offerFound, researched) : null;
+        if (missing) {
+          nudges += 1;
+          yield* emitSentences(splitter.flush());
+          messages.push({ role: "assistant", content: stepText || "(working)" }, { role: "user", content: `Keep going with the investigation: call ${missing} now, then continue.` });
+          continue;
+        }
         // Guard: sometimes the model says "I can run that for you" and stops. Make it follow through once.
         // The same goes when the question was clearly about a better deal and it answered without searching.
         const promised = stepText.length < PROMISE_MAX_CHARS && PROMISE_PATTERN.test(stepText);
-        if (step === 0 && (promised || guess)) {
+        if (!investigate && step === 0 && (promised || guess)) {
           yield* emitSentences(splitter.flush());
           messages.push({ role: "assistant", content: stepText }, { role: "user", content: guess ? `Go ahead: call search_offers for ${guess.billType} now, then answer with the result.` : "Go ahead: call the tool now, then answer with the result." });
           continue;
@@ -123,6 +166,7 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
       // Rule 6: if offer research was asked for and is not ready, say so at once instead of going quiet.
       for (const call of toolCalls) {
         const args = parseArgs(call);
+        called.add(call.function.name);
         yield { type: "tool_start", id: call.id, name: call.function.name, args };
         const billType = call.function.name === "search_offers" ? billTypeOf(args) : null;
         if (!billType) continue;
@@ -136,16 +180,10 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
       // Rule 7: every tool the model asked for in this step runs at the same time.
       const tasks = toolCalls.map(async (call): Promise<Settled> => {
         const startedAtMs = sinceStart();
-        const outcome = await executeTool(call, context).catch(
-          (error): ToolOutcome => ({
-            content: JSON.stringify({ error: (error as Error).message }),
-            ok: false,
-            summary: (error as Error).message,
-            source: "finance",
-            joinedPrefetch: false,
-            citations: [],
-          }),
-        );
+        const outcome = await executeTool(call, context).catch((error): ToolOutcome => {
+          console.error(`[agent] tool ${call.function.name} threw`, error);
+          return failure("finance", "That tool hit an unexpected problem.");
+        });
         return { call, outcome, startedAtMs, tookMs: sinceStart() - startedAtMs };
       });
 
@@ -153,25 +191,37 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
       for await (const { call, outcome, startedAtMs, tookMs } of inCompletionOrder(tasks)) {
         results.set(call.id, outcome);
         citations.push(...outcome.citations.filter((c) => !citations.some((seen) => seen.url === c.url)));
-        const trace: ToolTrace = {
-          id: call.id,
-          name: call.function.name,
-          args: parseArgs(call),
-          source: outcome.source,
-          startedAtMs,
-          tookMs,
-          ok: outcome.ok,
-          summary: outcome.summary,
-          joinedPrefetch: outcome.joinedPrefetch,
-        };
+        toolFacts.push(...outcome.facts);
+        toolContents.push(outcome.content);
+        if (outcome.research) {
+          researched = true;
+          offerFound ||= outcome.research.best !== null;
+        }
+        const trace: ToolTrace = { id: call.id, name: call.function.name, args: parseArgs(call), source: outcome.source, startedAtMs, tookMs, ok: outcome.ok, summary: outcome.summary, joinedPrefetch: outcome.joinedPrefetch };
         yield { type: "tool_end", trace };
         if (outcome.research) yield { type: "research", result: outcome.research };
+        for (const draft of outcome.stages) {
+          const stage: Stage = { ...draft, id: `${turnId}:${stageIndex++}`, toolCallId: call.id, atMs: sinceStart(), facts: draft.facts ?? outcome.facts };
+          yield { type: "stage", stage };
+        }
+        if (outcome.teaching) yield { type: "teaching", card: outcome.teaching };
+        if (outcome.action) yield { type: "action", action: outcome.action };
+        if (outcome.memory) yield { type: "memory", item: outcome.memory };
       }
       // Tool results go back in the order the model asked for them.
       messages.push(...toolCalls.map((call): ChatMessage => ({ role: "tool", tool_call_id: call.id, content: results.get(call.id)?.content ?? "{}" })));
     }
 
     yield* emitSentences(splitter.flush());
+
+    // Every number in the answer is checked against the receipts before the turn is declared done.
+    const summaryFacts = overviewFacts(overview);
+    const grounding = checkGrounding(answer, [...toolFacts, ...summaryFacts], [customerSummary(overview, customer.area), ...toolContents, ...memory.items.map((item) => item.value)], userTexts);
+    const usedIds = new Set(grounding.numbers.map((n) => n.factId));
+    const facts = [...toolFacts, ...summaryFacts.filter((f) => usedIds.has(f.id))].filter((f, index, all) => all.findIndex((other) => other.id === f.id) === index);
+    if (!grounding.ok) console.error(`[agent] ungrounded numbers in answer: ${grounding.unverified.join(", ")}`);
+    yield { type: "grounding", grounding, facts };
+
     timings.totalMs = sinceStart();
     yield { type: "done", text: answer.trim(), citations, timings };
   } catch (error) {

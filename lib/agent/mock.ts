@@ -1,7 +1,7 @@
 // Mock mode (MODEL_PROVIDER=mock): no keys, no network. Emits the same shapes and realistic timing
 // so the frontend and finance lanes can build against the real endpoints. Everything here is labelled mock.
 import type { BillType } from "@/lib/types";
-import type { ChatMessage, ModelChunk, ToolCall } from "./model";
+import type { ChatMessage, ModelChunk, StreamOptions, ToolCall } from "./model";
 import type { RawOffer } from "./research/types";
 import { speculate } from "./speculate";
 
@@ -19,6 +19,13 @@ async function* speak(text: string): AsyncGenerator<ModelChunk> {
   yield { type: "end", toolCalls: [], model: "mock", provider: "mock", usedBackup: false, firstTokenMs, totalMs: Date.now() - started };
 }
 
+// Tests replace the scripted model with their own, to drive the orchestrator through exact tool calls.
+export type MockScript = (options: StreamOptions) => AsyncGenerator<ModelChunk>;
+const scriptStore = globalThis as unknown as { __sisuMockScript?: MockScript | null };
+export function setMockScript(script: MockScript | null): void {
+  scriptStore.__sisuMockScript = script;
+}
+
 function lastUserText(messages: ChatMessage[]): string {
   const user = [...messages].reverse().find((m) => m.role === "user");
   return user && typeof user.content === "string" ? user.content : "";
@@ -26,7 +33,11 @@ function lastUserText(messages: ChatMessage[]): string {
 
 // A scripted stand-in for the model: asks for research when the question is about a better deal,
 // words the tool result when one comes back, and otherwise answers from the summary in the prompt.
-export async function* mockStream(messages: ChatMessage[]): AsyncGenerator<ModelChunk> {
+export async function* mockStream(messages: ChatMessage[], options?: StreamOptions): AsyncGenerator<ModelChunk> {
+  if (scriptStore.__sisuMockScript && options) {
+    yield* scriptStore.__sisuMockScript(options);
+    return;
+  }
   const last = messages[messages.length - 1];
 
   if (last.role === "tool") {

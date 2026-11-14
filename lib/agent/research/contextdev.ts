@@ -1,5 +1,6 @@
 import type { BillType } from "@/lib/types";
 import { getConfig, missingKey } from "../config";
+import { safeName } from "../tools/untrusted";
 import type { RawOffer } from "./types";
 
 const PAGE_TIMEOUT_MS = 8_000;
@@ -35,7 +36,9 @@ const INSTRUCTIONS: Record<BillType, string> = {
   internet: "Home broadband offers. Use only facts stated on the page.",
 };
 
-export type PageExtraction = { url: string; offers: RawOffer[]; cacheAgeMs: number | null; tookMs: number };
+export type PageExtraction = { url: string; offers: RawOffer[]; cacheAgeMs: number | null; tookMs: number; dropped: number };
+const MAX_PROVIDER_CHARS = 60;
+const MAX_PLAN_CHARS = 80;
 
 type ScrapeResponse = {
   json?: { success?: boolean | null; data?: { offers?: Partial<RawOffer>[] } | null; message?: string };
@@ -44,6 +47,31 @@ type ScrapeResponse = {
 
 const numberOrNull = (value: unknown): number | null => (typeof value === "number" && Number.isFinite(value) ? value : null);
 const textOrNull = (value: unknown): string | null => (typeof value === "string" && value.trim() ? value.trim() : null);
+
+// Page text is untrusted. An offer is kept only if its provider and plan read like names: short, no links,
+// nothing phrased as an instruction. Anything else is dropped and counted, never passed to the model.
+export function cleanOffers(extracted: Partial<RawOffer>[], url: string): { offers: RawOffer[]; dropped: number } {
+  const candidates = extracted.filter((o) => typeof o.provider === "string" && o.provider.trim()).slice(0, MAX_OFFERS_PER_PAGE);
+  const offers = candidates.flatMap((o): RawOffer[] => {
+    const provider = safeName(o.provider, MAX_PROVIDER_CHARS);
+    const plan = textOrNull(o.plan);
+    const safePlan = plan === null ? null : safeName(plan, MAX_PLAN_CHARS);
+    if (!provider || (plan !== null && safePlan === null)) return [];
+    return [
+      {
+        provider,
+        plan: safePlan,
+        contractType: safeName(o.contractType, 30),
+        contractMonths: numberOrNull(o.contractMonths),
+        monthlyPriceEur: numberOrNull(o.monthlyPriceEur),
+        energyPriceCentsPerKwh: numberOrNull(o.energyPriceCentsPerKwh),
+        setupFeeEur: numberOrNull(o.setupFeeEur),
+        sourceUrl: url,
+      },
+    ];
+  });
+  return { offers, dropped: candidates.length - offers.length };
+}
 
 // Turns one offer page into typed offers. This is the slowest step in the whole agent (3 to 6 s),
 // so callers start it early and share the result; see research/index.ts.
@@ -73,18 +101,6 @@ export async function extractOffers(url: string, billType: BillType): Promise<Pa
   // A 200 response can still carry a failed output, so the success flag is checked on its own.
   if (body.json?.success !== true) throw new Error(body.json?.message ?? "Context.dev found no offers on the page.");
 
-  const offers = (body.json.data?.offers ?? [])
-    .filter((o) => typeof o.provider === "string" && o.provider.trim())
-    .slice(0, MAX_OFFERS_PER_PAGE)
-    .map((o) => ({
-      provider: String(o.provider).trim(),
-      plan: textOrNull(o.plan),
-      contractType: textOrNull(o.contractType),
-      contractMonths: numberOrNull(o.contractMonths),
-      monthlyPriceEur: numberOrNull(o.monthlyPriceEur),
-      energyPriceCentsPerKwh: numberOrNull(o.energyPriceCentsPerKwh),
-      setupFeeEur: numberOrNull(o.setupFeeEur),
-      sourceUrl: url,
-    }));
-  return { url, offers, cacheAgeMs: numberOrNull(body.cache_metadata?.age_ms), tookMs: Date.now() - started };
+  const { offers, dropped } = cleanOffers(body.json.data?.offers ?? [], url);
+  return { url, offers, dropped, cacheAgeMs: numberOrNull(body.cache_metadata?.age_ms), tookMs: Date.now() - started };
 }

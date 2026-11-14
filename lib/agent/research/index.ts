@@ -4,6 +4,7 @@
 import type { BillType } from "@/lib/types";
 import { getConfig } from "../config";
 import { mockRawOffers } from "../mock";
+import { safeTitle } from "../tools/untrusted";
 import { extractOffers } from "./contextdev";
 import { exaSearch } from "./exa";
 import type { RawResearch } from "./types";
@@ -90,7 +91,8 @@ async function run(entry: Entry): Promise<void> {
           status: "partial",
           pagesDone: entry.snapshot.pagesDone + 1,
           offers: [...entry.snapshot.offers, ...extraction.offers],
-          citations: [...entry.snapshot.citations, { title: page.title, url: page.url, retrievedAt: new Date().toISOString(), cacheAgeMs: extraction.cacheAgeMs }],
+          citations: [...entry.snapshot.citations, { title: safeTitle(page.title, new URL(page.url).hostname), url: page.url, retrievedAt: new Date().toISOString(), cacheAgeMs: extraction.cacheAgeMs }],
+          errors: extraction.dropped ? [...entry.snapshot.errors, `${new URL(page.url).hostname}: ${extraction.dropped} offer(s) left out because their text did not read like a provider or plan name`] : entry.snapshot.errors,
         });
       } catch (error) {
         const reason = (error as Error).name === "TimeoutError" ? "took too long to read" : (error as Error).message;

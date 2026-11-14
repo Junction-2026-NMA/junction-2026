@@ -4,6 +4,7 @@ import { DEMO_CUSTOMERS } from "@/lib/finance/data";
 import { buildOverview } from "@/lib/finance/overview";
 import { getConfig } from "./config";
 import { primeModel } from "./model";
+import { getMemory } from "@/lib/memory";
 import { buildSystemPrompt } from "./prompt";
 import { TOOL_SCHEMAS } from "./tools";
 import { synthesize } from "./speech";
@@ -43,8 +44,9 @@ export async function primeCustomers(): Promise<void> {
     DEMO_CUSTOMERS.flatMap((customer) => {
       const overview = buildOverview(customer.customerId);
       if (!overview) return [];
-      // Voice is what the demo uses. A typed question primes its own prompt on first use.
-      return [primeModel([{ role: "system", content: buildSystemPrompt(overview, "voice", customer.area) }, { role: "user", content: "Hello" }], TOOL_SCHEMAS)];
+      // The rules and the customer's numbers come first in the prompt, so one primed copy serves both voice and typed turns.
+      const system = buildSystemPrompt({ overview, city: customer.area, mode: "voice", memory: getMemory(customer.customerId) });
+      return [primeModel([{ role: "system", content: system }, { role: "user", content: "Hello" }], TOOL_SCHEMAS)];
     }),
   );
 }

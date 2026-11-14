@@ -2,12 +2,12 @@ import { TOO_MANY, allowRequest, eventStream, jsonError, parseAgentRequest } fro
 import { runTurn } from "@/lib/agent/orchestrator";
 import { warmUp } from "@/lib/agent/warm";
 import { MAX_AUDIO_BYTES, transcribe } from "@/lib/agent/speech";
-import type { AgentEvent, AgentRequest } from "@/lib/types";
+import type { AgentRequest, SisuEvent } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-async function* voiceTurn(audio: Blob, base: Omit<AgentRequest, "text">, signal: AbortSignal): AsyncGenerator<AgentEvent> {
+async function* voiceTurn(audio: Blob, base: Omit<AgentRequest, "text">, signal: AbortSignal): AsyncGenerator<SisuEvent> {
   let transcript;
   try {
     transcript = await transcribe(audio);

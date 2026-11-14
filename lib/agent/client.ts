@@ -1,6 +1,6 @@
 // Browser side of the agent. No React here, so any UI can use it.
 // It does three things: reads the event stream, records the microphone, and plays speech in order.
-import type { AgentEvent, BillType, ChatTurn, ResearchResult } from "@/lib/types";
+import type { ActionList, AgentAction, BillType, ChatTurn, CustomerMemory, MemoryKind, ResearchResult, SisuEvent } from "@/lib/types";
 
 export type TurnInput = {
   customerId: string;
@@ -9,6 +9,7 @@ export type TurnInput = {
   mode?: "voice" | "text";
   history?: ChatTurn[];
   focusBill?: BillType;
+  investigate?: boolean; // true = run a whole investigation instead of answering `text`
   signal?: AbortSignal;
 };
 
@@ -18,10 +19,10 @@ async function readError(response: Response): Promise<string> {
 }
 
 // Sends one question (typed or recorded) and yields each event as the server produces it.
-export async function* streamTurn(input: TurnInput): AsyncGenerator<AgentEvent> {
+export async function* streamTurn(input: TurnInput): AsyncGenerator<SisuEvent> {
   const response = input.audio
     ? await fetch("/api/voice/turn", { method: "POST", signal: input.signal, body: voiceForm(input) })
-    : await fetch("/api/agent/query", {
+    : await fetch(input.investigate ? "/api/agent/investigate" : "/api/agent/query", {
         method: "POST",
         signal: input.signal,
         headers: { "Content-Type": "application/json" },
@@ -42,7 +43,7 @@ export async function* streamTurn(input: TurnInput): AsyncGenerator<AgentEvent> 
     const messages = buffer.split("\n\n");
     buffer = messages.pop() ?? "";
     for (const message of messages) {
-      if (message.startsWith("data: ")) yield JSON.parse(message.slice(6)) as AgentEvent;
+      if (message.startsWith("data: ")) yield JSON.parse(message.slice(6)) as SisuEvent;
     }
   }
 }
@@ -71,6 +72,32 @@ export async function prefetchOffers(customerId: string, billType: BillType): Pr
   }).catch(() => null);
   return response?.ok ? ((await response.json()) as ResearchResult) : null;
 }
+
+async function postJson<T>(url: string, body: unknown, method = "POST"): Promise<T> {
+  const response = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const parsed = (await response.json().catch(() => null)) as (T & { error?: string }) | null;
+  if (!response.ok || !parsed) throw new Error(parsed?.error ?? "Something went wrong. Please try again.");
+  return parsed;
+}
+
+// --- Actions: the user approves or declines what Sisu prepared. Nothing happens without approveAction. ---
+export const approveAction = (customerId: string, actionId: string) => postJson<{ action: AgentAction }>(`/api/actions/${actionId}/approve`, { customerId, confirm: true });
+export const declineAction = (customerId: string, actionId: string) => postJson<{ action: AgentAction }>(`/api/actions/${actionId}/decline`, { customerId });
+export async function fetchActions(customerId: string): Promise<ActionList | null> {
+  const response = await fetch(`/api/actions?customerId=${customerId}`).catch(() => null);
+  return response?.ok ? ((await response.json()) as ActionList) : null;
+}
+
+// --- Memory: what Sisu remembers between sessions. ---
+export async function fetchMemory(customerId: string): Promise<CustomerMemory | null> {
+  const response = await fetch(`/api/memory?customerId=${customerId}`).catch(() => null);
+  return response?.ok ? ((await response.json()) as CustomerMemory) : null;
+}
+// Call when the user confirms or corrects a bill's name on its card.
+export const confirmBill = (customerId: string, billId: string, name: string, billType?: BillType) =>
+  postJson<CustomerMemory>("/api/memory", { customerId, kind: "bill_name" satisfies MemoryKind, key: billId, value: name, billType });
+export const setMemoryConsent = (customerId: string, consent: boolean) => postJson<CustomerMemory>("/api/memory", { customerId, consent });
+export const forgetMemory = (customerId: string, itemId?: string) => postJson<CustomerMemory>(`/api/memory?customerId=${customerId}${itemId ? `&itemId=${itemId}` : ""}`, {}, "DELETE");
 
 export type VoiceChoice = { model?: string; voiceId?: string };
 

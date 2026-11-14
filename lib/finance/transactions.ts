@@ -1,4 +1,4 @@
-import type { BasketId, EvidenceFilter, TransactionList } from "@/lib/types";
+import type { BasketId, EvidenceFilter, Transaction, TransactionList } from "@/lib/types";
 import { basketOf } from "./baskets";
 import { DATA_AS_OF, findCustomer, transactionsFor } from "./data";
 import { round2, sum } from "./math";
@@ -27,9 +27,9 @@ export function parseFilter(params: URLSearchParams): EvidenceFilter | string {
   };
 }
 
-export function listTransactions(customerId: string, filter: EvidenceFilter): TransactionList | null {
-  if (!findCustomer(customerId)) return null;
-  const rows = transactionsFor(customerId).filter(
+// Every row that matches, with no limit. Use this for sums and rankings; listTransactions is for showing rows.
+export function filterTransactions(customerId: string, filter: EvidenceFilter): Transaction[] {
+  return transactionsFor(customerId).filter(
     (t) =>
       t.date >= filter.from &&
       t.date <= filter.to &&
@@ -38,6 +38,11 @@ export function listTransactions(customerId: string, filter: EvidenceFilter): Tr
       (!filter.mcc || t.mcc === filter.mcc) &&
       (!filter.negativeBalance || t.balanceAfter < 0),
   );
+}
+
+export function listTransactions(customerId: string, filter: EvidenceFilter): TransactionList | null {
+  if (!findCustomer(customerId)) return null;
+  const rows = filterTransactions(customerId, filter);
   const newestFirst = [...rows].reverse();
   return {
     customerId,
