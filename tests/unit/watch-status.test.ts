@@ -10,7 +10,9 @@ import { setMockScript } from "@/lib/agent/mock";
 import { runTurn } from "@/lib/agent/orchestrator";
 import { type ListingSearch, listingQuery } from "@/lib/agent/research/listings";
 import type { Listing, PropertyWatch } from "@/lib/types";
-import { simulatePriceDrop, startWatch } from "@/lib/watch";
+import { listNotifications, simulatePriceDrop, startWatch } from "@/lib/watch";
+import { inSession, newSessionId } from "@/lib/store/session";
+import { GET as demoDrop } from "@/app/api/watch/demo-drop/route";
 
 const PAGE = "https://www.vuokraovi.com/vuokra-asunnot/helsinki";
 const flat = (title: string, priceEur: number, id: string): Listing => ({ title, priceEur, rooms: 1, areaM2: 37, district: "Taka-Töölö", availableFrom: null, url: `https://www.vuokraovi.com/kohde/${id}`, pageUrl: PAGE });
@@ -34,6 +36,34 @@ async function ask(answer: string, question = "Did my watch find anything?") {
   setMockScript(null);
   return { system: String(model.seen[0].messages[0].content), events };
 }
+
+describe("watches: the demo link that triggers a simulated drop", () => {
+  beforeEach(() => void freshState());
+  const open = (session?: string) => demoDrop(new Request("http://test.local/api/watch/demo-drop", { headers: { "x-forwarded-for": "198.51.100.9", ...(session ? { "x-sisu-session": session } : {}) } }));
+
+  it("says so when no watch is running in this browser", async () => {
+    const response = await open();
+    assert.equal(response.status, 404);
+    assert.match(await response.text(), /No watch is running in this browser/);
+  });
+
+  it("drops the running watch once, as a labelled simulation, and only for the visitor who opened it", async () => {
+    const [anna, ben] = [newSessionId(), newSessionId()];
+    const watch = await inSession(anna, () => watching());
+    const first = await open(anna);
+    assert.equal(first.status, 200);
+    assert.match(first.headers.get("content-type") ?? "", /text\/html/);
+    const html = await first.text();
+    assert.match(html, /Simulated price drop sent/);
+    assert.match(html, /Simulated for the demo/);
+    const notes = inSession(anna, () => listNotifications(AINO));
+    assert.equal(notes.length, 1);
+    assert.ok(notes[0].simulated && notes[0].watchId === watch.id);
+    await open(anna); // opening it twice does not stack notifications
+    assert.equal(inSession(anna, () => listNotifications(AINO)).length, 1);
+    assert.equal((await open(ben)).status, 404, "another visitor has no watch to drop");
+  });
+});
 
 describe("watches: Sisu knows what they are doing and what they found", () => {
   beforeEach(() => void freshState());
