@@ -165,7 +165,8 @@ struct TransientNotice: View {
     @State private var visible = false
 
     var body: some View {
-        Group {
+        // A VStack, not a Group: an empty Group has no view to run `.task` on, so the notice would never start.
+        VStack(spacing: 0) {
             if visible {
                 HStack(alignment: .firstTextBaseline, spacing: SisuTheme.Spacing.grid * 2) {
                     Image(systemName: "info.circle")

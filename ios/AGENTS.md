@@ -38,6 +38,6 @@ inject time. Bundled sample JSON is reached through `FixtureAPI` or `Bundle.modu
 
 - Add dependencies, edit `ios/project.yml` or `ios/Sisu.xcodeproj`, or rename anything in `rive/contract.json`.
 - Put logic in views, hard-code colours or sizes (use `SisuTheme`), or compute money figures in the interface.
-- Show data that is not live without the "Sample data" tag, or a simulated action without
-  "Simulated, no real switch".
+- Put a "Sample data" badge on screens (the demo is disclosed once, at profile selection; a live-to-demo
+  fallback is announced once, in place), or show a simulated action without "Simulated, no real switch".
 - Use red for spending, blame the user in copy, or show Liito sad or angry.

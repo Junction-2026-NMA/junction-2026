@@ -10,7 +10,9 @@ struct MainScreen: View {
 
     var body: some View {
         @Bindable var model = model
-        Group {
+        // A ZStack, not a Group: a Group hands its modifiers to each child, so the overlay (and the tab bar's
+        // state, the springing pill) would be rebuilt for every tab.
+        ZStack {
             switch model.tab {
             case .today: TodayScreen()
             case .ask: AskScreen()
@@ -19,16 +21,23 @@ struct MainScreen: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // The bar floats over the screens: the inset lifts every screen's safe area by the bar's height, so
-        // each scroll view runs under the glass and its last row still scrolls clear of the bar.
+        // The screens get a bottom safe-area bar as tall as the floating tab bar, so every scroll view runs under
+        // the glass and its last row still scrolls clear of it. The tab bar itself is an overlay, so it keeps its
+        // identity (and its springing pill) while the screens under it change.
         .modifier(BottomBar {
             if !keyboardShown {
+                Color.clear
+                    .frame(height: SisuTheme.TabBar.height + SisuTheme.Spacing.grid * 2 + SisuTheme.TabBar.lift)
+                    .accessibilityHidden(true)
+            }
+        })
+        .overlay(alignment: .bottom) {
+            if !keyboardShown {
                 GlassTabBar(selection: $model.tab)
-                    .padding(.top, SisuTheme.Spacing.grid * 2)
                     .padding(.bottom, SisuTheme.TabBar.lift)
                     .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
             }
-        })
+        }
         .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: keyboardShown)
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in keyboardShown = true }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in keyboardShown = false }
@@ -45,9 +54,9 @@ struct MainScreen: View {
     }
 }
 
-/// Puts the tab bar at the bottom as a safe-area bar. On iOS 26 `safeAreaBar` also gives the scroll views
-/// under it the system's soft scroll-edge blur, so text scrolling behind the glass fades instead of colliding
-/// with the labels; earlier systems use a plain `safeAreaInset`.
+/// Reserves the tab bar's room at the bottom. On iOS 26 `safeAreaBar` also gives the scroll views under it the
+/// system's soft scroll-edge blur, so text scrolling behind the glass fades instead of colliding with the
+/// labels; earlier systems use a plain `safeAreaInset`.
 private struct BottomBar<Bar: View>: ViewModifier {
     @ViewBuilder var bar: () -> Bar
 

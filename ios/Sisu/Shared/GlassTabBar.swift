@@ -22,12 +22,22 @@ struct GlassTabBar: View {
             .frame(height: SisuTheme.TabBar.height)
             .padding(.horizontal, SisuTheme.TabBar.sideMargin)
             .dynamicTypeSize(...DynamicTypeSize.xLarge)
-            .animation(motion, value: selection)
+            .onChange(of: selection) { _, tab in
+                withAnimation(motion) { pillIndex = tab.rawValue }
+            }
             .sensoryFeedback(.selection, trigger: selection)
             .accessibilityElement(children: .contain)
             .accessibilityAddTraits(.isTabBar)
             .accessibilityLabel("Tabs")
             .accessibilityIdentifier("tabbar")
+    }
+
+    /// The pill's position: follows `selection` inside an explicit animation, whoever changes the tab.
+    @State private var pillIndex: Int
+
+    init(selection: Binding<AppTab>) {
+        _selection = selection
+        _pillIndex = State(initialValue: selection.wrappedValue.rawValue)
     }
 
     /// The pill springs to the new tab; with Reduce Motion it slides there without the spring.
@@ -39,8 +49,8 @@ struct GlassTabBar: View {
     // MARK: Surfaces
 
     @ViewBuilder private var surface: some View {
-        if reduceTransparency {
-            ZStack { pills { SolidPill(namespace: pillSpace) }; labels }
+        if reduceTransparency || TabMotionLaunch.solid {
+            ZStack { pills { SolidPill() }; labels }
                 .padding(SisuTheme.TabBar.inset)
                 .background(SisuTheme.Color.barSolid, in: Capsule())
                 .overlay(Capsule().strokeBorder(SisuTheme.Color.hairline, lineWidth: 1))
@@ -57,7 +67,7 @@ struct GlassTabBar: View {
                 Capsule().fill(.clear).glassEffect(.regular, in: Capsule())
             }
         } else {
-            ZStack { pills { SolidPill(namespace: pillSpace) }; labels }
+            ZStack { pills { SolidPill() }; labels }
                 .padding(SisuTheme.TabBar.inset)
                 .background(.regularMaterial, in: Capsule())
                 .overlay(Capsule().strokeBorder(SisuTheme.Color.hairline.opacity(0.8), lineWidth: 0.5))
@@ -65,14 +75,14 @@ struct GlassTabBar: View {
         }
     }
 
-    /// One slot per tab; only the selected slot holds the pill, so the pill moves when the selection does.
+    /// The one pill, slid under the selected tab. A single view that moves (rather than one per tab that
+    /// appears and disappears) keeps the motion a plain, interruptible spring.
     private func pills<Pill: View>(@ViewBuilder pill: @escaping () -> Pill) -> some View {
-        HStack(spacing: 0) {
-            ForEach(AppTab.allCases) { tab in
-                Color.clear
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .overlay { if selection == tab { pill() } }
-            }
+        GeometryReader { geometry in
+            let width = geometry.size.width / CGFloat(AppTab.allCases.count)
+            pill()
+                .frame(width: width, height: geometry.size.height)
+                .offset(x: width * CGFloat(pillIndex))
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
@@ -81,7 +91,8 @@ struct GlassTabBar: View {
     private var labels: some View {
         HStack(spacing: 0) {
             ForEach(AppTab.allCases) { tab in
-                TabItem(tab: tab, title: Self.titles[tab] ?? "", selected: selection == tab) { select(tab) }
+                TabItem(tab: tab, title: Self.titles[tab] ?? "", selected: selection == tab,
+                        highlighted: pillIndex == tab.rawValue) { select(tab) }
             }
         }
     }
@@ -107,20 +118,23 @@ struct GlassTabBar: View {
 private struct TabItem: View {
     let tab: AppTab
     let title: String
+    /// Selected for VoiceOver: follows the tab at once.
     let selected: Bool
+    /// Drawn as selected: follows the pill, so the colours change as it arrives.
+    let highlighted: Bool
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             VStack(spacing: 2) {
-                TabIcon(tab: tab, selected: selected)
+                TabIcon(tab: tab, selected: highlighted)
                     .frame(width: 28, height: 26)
                 Text(title)
-                    .font(selected ? SisuTheme.TabBar.labelSelected : SisuTheme.TabBar.label)
+                    .font(highlighted ? SisuTheme.TabBar.labelSelected : SisuTheme.TabBar.label)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
-            .foregroundStyle(selected ? SisuTheme.Color.tabSelected : SisuTheme.Color.tabIdle)
+            .foregroundStyle(highlighted ? SisuTheme.Color.tabSelected : SisuTheme.Color.tabIdle)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .contentShape(Capsule())
         }
@@ -191,7 +205,8 @@ private struct JarGlyph: View {
 
 // MARK: - Pills
 
-/// iOS 26: a green-tinted, interactive glass pill. Its glassEffectID lets it morph from tab to tab.
+/// iOS 26: a green-tinted, interactive glass pill. Its glassEffectID keeps its identity in the container while
+/// it slides from tab to tab.
 @available(iOS 26.0, *)
 private struct GlassPill: View {
     let namespace: Namespace.ID
@@ -206,12 +221,8 @@ private struct GlassPill: View {
 
 /// iOS 17 to 25 and Reduce Transparency: a solid soft-green pill that slides from tab to tab.
 private struct SolidPill: View {
-    let namespace: Namespace.ID
-
     var body: some View {
-        Capsule()
-            .fill(SisuTheme.Color.selectionFill)
-            .matchedGeometryEffect(id: "tab-pill", in: namespace)
+        Capsule().fill(SisuTheme.Color.selectionFill)
     }
 }
 
@@ -220,7 +231,9 @@ private struct SolidPill: View {
 /// Launch arguments for filming the pill (GlassScreenshotTests.testTabPillMotionFrames):
 ///   -sisu.tabMotion <scale>   multiplies the pill's animation time (slow motion for frame capture)
 ///   -sisu.tabDelay <seconds>  applies a tapped tab this long after the tap
+///   -sisu.solidBar 1          draws the bar as with Reduce Transparency (which a UI test cannot switch on)
 enum TabMotionLaunch {
+    static let solid: Bool = value("-sisu.solidBar") == 1
     static let scale: Double = value("-sisu.tabMotion").map { max($0, 0.1) } ?? 1
     static let delay: Double = value("-sisu.tabDelay").map { max($0, 0) } ?? 0
 
