@@ -1,0 +1,3 @@
+# Build output, logs and screenshots. The built file the app ships is copied to
+# ios/Sisu/Resources/Rive/sisu_ui.riv by rive/build.sh.
+build/

@@ -1,0 +1,473 @@
+<!-- Baskets  (350x220, flexibleWidth)
+     The three spending baskets and the savings jar as one illustration: three woven baskets side by side and a jam jar at the end,
+     each filled to its share. The darker the green, the more fixed the money. No text: the app writes the labels under it.
+
+     View model BasketsVM  (names and types are fixed by rive/contract.json, the same four numbers as BasketBar):
+       fixed       number             in     default 0.5
+       curveballs  number             in     default 0.1
+       leaks       number             in     default 0.3
+       jars        number             in     default 0.1
+
+     How it works
+       Layout     a `fill` row of four `fill` cells; each cell centres a fixed 76x204 box that holds the drawing, so the four
+                  drawings spread evenly at any width. Every drawing hangs from a node on its ground line (bottom centre).
+                  The boxes are drawn at 88 % (about the ground point), which makes a basket 65 pt wide: the four stay
+                  apart down to an artboard 280 wide and touch at about 260. The drawings do not shrink with the width.
+       Contents   a Rectangle with its origin at the bottom; its height is bound to the share (0..1 -> 0..body height, clamped,
+                  eased with a slight overshoot) and it is clipped to the basket body or the glass. 0 shows the basket empty.
+       Wobble     each drawing's scaleY is bound to its share through a springy converter and a formula, so a basket squashes
+                  and springs back whenever its share changes (see the converters). No trigger, no timeline.
+       Jam        the jar's surface is a slab that rides on the level and tilts in a slow loop: the one state of layer Jam. -->
+<Rive version="1" kind="fragment">
+    <!-- View model -->
+    <ViewModel defaultInstanceId="18:6" name="BasketsVM" id="18:1">
+        <ViewModelPropertyNumber name="fixed" id="18:2"/>
+        <ViewModelPropertyNumber name="curveballs" id="18:3"/>
+        <ViewModelPropertyNumber name="leaks" id="18:4"/>
+        <ViewModelPropertyNumber name="jars" id="18:5"/>
+        <ViewModelInstance exports="true" name="Default" id="18:6">
+            <ViewModelInstanceNumber propertyValue="0.5" viewModelPropertyId="18:2" id="18:7"/>  <!-- fixed -->
+            <ViewModelInstanceNumber propertyValue="0.1" viewModelPropertyId="18:3" id="18:8"/>  <!-- curveballs -->
+            <ViewModelInstanceNumber propertyValue="0.3" viewModelPropertyId="18:4" id="18:9"/>  <!-- leaks -->
+            <ViewModelInstanceNumber propertyValue="0.1" viewModelPropertyId="18:5" id="18:10"/>  <!-- jars -->
+        </ViewModelInstance>
+    </ViewModel>
+
+    <!-- Converters used only by this artboard -->
+    <DataConverterRangeMapper minInput="0" maxInput="1" minOutput="0" maxOutput="124" clampLower="true" clampUpper="true"
+            name="share to basket height" id="18:20"/>
+    <DataConverterGroup name="share to basket height, eased" id="18:21">
+        <DataConverterGroupItem converterId="18:20"/>
+        <DataConverterGroupItem converterId="0:61"/>  <!-- shared: ease to new value -->
+        <DataConverterGroupItem converterId="0:69"/>  <!-- shared: not below 0 -->
+    </DataConverterGroup>
+    <DataConverterRangeMapper minInput="0" maxInput="1" minOutput="-4" maxOutput="99" clampLower="true" clampUpper="true"
+            name="share to jam height" id="18:22"/>
+    <DataConverterGroup name="share to jam height, eased" id="18:23">
+        <DataConverterGroupItem converterId="18:22"/>
+        <DataConverterGroupItem converterId="0:61"/>  <!-- shared: ease to new value -->
+        <DataConverterGroupItem converterId="0:69"/>  <!-- shared: not below 0 -->
+    </DataConverterGroup>
+
+    <!-- The wobble. A basket's scaleY is 1 + 0.25 * (springy value - value): when the app writes a new share, the springy copy
+         is still at the old one, so the basket is squashed (more in) or stretched (less in) by that much, and it springs back
+         to 1 as the copy catches up, swinging past it a few times. Nothing is keyed and nothing has to be triggered. -->
+    <DataConverterInterpolator duration="0.9" interpolationType="elastic" name="springy copy of the value" id="18:71">
+        <ElasticInterpolator easingValue="easeOut" amplitude="1" period="0.45"/>
+    </DataConverterInterpolator>
+    <DataConverterFormula name="wobble: fixed" id="18:72">  <!-- 1 + ((springy value - fixed) * 0.25) -->
+        <FormulaTokenValue operationValue="1"/>
+        <FormulaTokenOperation operationType="0"/>
+        <FormulaTokenParenthesisOpen/>
+        <FormulaTokenParenthesisOpen/>
+        <FormulaTokenInput/>
+        <FormulaTokenOperation operationType="1"/>
+        <FormulaTokenValue><DataBindContext sourcePathIds="18:1-18:2" propertyKey="777"/></FormulaTokenValue>
+        <FormulaTokenParenthesisClose/>
+        <FormulaTokenOperation operationType="2"/>
+        <FormulaTokenValue operationValue="0.25"/>
+        <FormulaTokenParenthesisClose/>
+    </DataConverterFormula>
+    <DataConverterGroup name="wobble: fixed, springy" id="18:73">
+        <DataConverterGroupItem converterId="18:71"/>
+        <DataConverterGroupItem converterId="18:72"/>
+    </DataConverterGroup>
+    <DataConverterFormula name="wobble: curveballs" id="18:74">  <!-- 1 + ((springy value - curveballs) * 0.25) -->
+        <FormulaTokenValue operationValue="1"/>
+        <FormulaTokenOperation operationType="0"/>
+        <FormulaTokenParenthesisOpen/>
+        <FormulaTokenParenthesisOpen/>
+        <FormulaTokenInput/>
+        <FormulaTokenOperation operationType="1"/>
+        <FormulaTokenValue><DataBindContext sourcePathIds="18:1-18:3" propertyKey="777"/></FormulaTokenValue>
+        <FormulaTokenParenthesisClose/>
+        <FormulaTokenOperation operationType="2"/>
+        <FormulaTokenValue operationValue="0.25"/>
+        <FormulaTokenParenthesisClose/>
+    </DataConverterFormula>
+    <DataConverterGroup name="wobble: curveballs, springy" id="18:75">
+        <DataConverterGroupItem converterId="18:71"/>
+        <DataConverterGroupItem converterId="18:74"/>
+    </DataConverterGroup>
+    <DataConverterFormula name="wobble: leaks" id="18:76">  <!-- 1 + ((springy value - leaks) * 0.25) -->
+        <FormulaTokenValue operationValue="1"/>
+        <FormulaTokenOperation operationType="0"/>
+        <FormulaTokenParenthesisOpen/>
+        <FormulaTokenParenthesisOpen/>
+        <FormulaTokenInput/>
+        <FormulaTokenOperation operationType="1"/>
+        <FormulaTokenValue><DataBindContext sourcePathIds="18:1-18:4" propertyKey="777"/></FormulaTokenValue>
+        <FormulaTokenParenthesisClose/>
+        <FormulaTokenOperation operationType="2"/>
+        <FormulaTokenValue operationValue="0.25"/>
+        <FormulaTokenParenthesisClose/>
+    </DataConverterFormula>
+    <DataConverterGroup name="wobble: leaks, springy" id="18:77">
+        <DataConverterGroupItem converterId="18:71"/>
+        <DataConverterGroupItem converterId="18:76"/>
+    </DataConverterGroup>
+    <DataConverterFormula name="wobble: jars" id="18:78">  <!-- 1 + ((springy value - jars) * 0.25) -->
+        <FormulaTokenValue operationValue="1"/>
+        <FormulaTokenOperation operationType="0"/>
+        <FormulaTokenParenthesisOpen/>
+        <FormulaTokenParenthesisOpen/>
+        <FormulaTokenInput/>
+        <FormulaTokenOperation operationType="1"/>
+        <FormulaTokenValue><DataBindContext sourcePathIds="18:1-18:5" propertyKey="777"/></FormulaTokenValue>
+        <FormulaTokenParenthesisClose/>
+        <FormulaTokenOperation operationType="2"/>
+        <FormulaTokenValue operationValue="0.25"/>
+        <FormulaTokenParenthesisClose/>
+    </DataConverterFormula>
+    <DataConverterGroup name="wobble: jars, springy" id="18:79">
+        <DataConverterGroupItem converterId="18:71"/>
+        <DataConverterGroupItem converterId="18:78"/>
+    </DataConverterGroup>
+    <!-- The jam level as a y for the jar's Float node (up is negative; a full jar is covered to the top). -->
+    <DataConverterRangeMapper minInput="0" maxInput="1" minOutput="0" maxOutput="-103" clampLower="true" clampUpper="true"
+            name="share to jam level" id="18:80"/>
+    <DataConverterGroup name="share to jam level, eased" id="18:83">
+        <DataConverterGroupItem converterId="18:80"/>
+        <DataConverterGroupItem converterId="0:61"/>  <!-- shared: ease to new value -->
+    </DataConverterGroup>
+
+    <Artboard defaultStateMachineId="18:90" viewModelId="18:1" viewModelInstanceId="18:6" clip="true" width="350" height="220"
+            x="1600" y="0" styleId="18:12" name="Baskets" id="18:11">
+        <LayoutComponentStyle name="Artboard Style" id="18:12"/>
+
+        <!-- Scene. The first sibling draws on top. -->
+        <LayoutComponent clip="false" styleId="18:14" name="Row" id="18:13">
+            <SemanticData role="image" name="Semantics"/>  <!-- for VoiceOver: role -->
+            <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" flexDirectionValue="row"
+                    layoutAlignmentType="center" name="Row Style" id="18:14"/>
+
+            <!-- Fixed: dark green contents -->
+            <LayoutComponent clip="false" styleId="18:31" name="Fixed Cell" id="18:30">
+                <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" layoutAlignmentType="center"
+                        name="Fixed Cell Style" id="18:31"/>
+                <LayoutComponent width="76" height="204" scaleX="0.88" scaleY="0.88" clip="false" styleId="18:33" name="Fixed Art" id="18:32">
+                    <LayoutComponentStyle name="Fixed Art Style" id="18:33"/>
+                    <ComponentOrigin originX="0.5" originY="0.98" name="Origin"/>
+                    <Node x="38" y="200" name="Fixed Basket" id="18:34">
+                        <DataBindContext sourcePathIds="18:1-18:2" propertyKey="17" converterId="18:73"/>  <!-- scaleY <- the wobble: squashes when its share changes, springs back -->
+                        <!-- The basket's icon on a white tag (the same drawings as BasketChip), so the baskets are told apart by more than colour. -->
+                        <Node y="-96" name="Tag: anchor">
+                            <Shape name="Anchor">
+                                <Ellipse width="4.6" height="4.6" y="-6.4" name="Ring"/>
+                                <PointsPath isClosed="false" name="Shank"><StraightVertex x="0" y="-4"/><StraightVertex x="0" y="7.6"/></PointsPath>
+                                <PointsPath isClosed="false" name="Stock"><StraightVertex x="-3.6" y="-1.2"/><StraightVertex x="3.6" y="-1.2"/></PointsPath>
+                                <PointsPath isClosed="false" name="Arms">
+                                    <StraightVertex x="-6.6" y="1.6"/>
+                                    <CubicMirroredVertex x="0" y="7.6" rotation="0" distance="5.2"/>
+                                    <StraightVertex x="6.6" y="1.6"/>
+                                </PointsPath>
+                                <Stroke thickness="2" cap="round" join="round" name="Stroke"><SolidColor colorValue="FF004628" name="Color"/></Stroke>
+                            </Shape>
+                            <Shape name="Tag Disc">
+                                <Ellipse width="28" height="28" name="Disc Path"/>
+                                <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill>
+                                <Stroke thickness="2" name="Stroke"><SolidColor colorValue="FF99D59F" name="Color"/></Stroke>
+                            </Shape>
+                        </Node>
+                        <Shape name="Rim">
+                            <Rectangle width="74" height="12" cornerRadiusTL="6" y="-124" name="Rim Path"/>
+                            <Fill name="Fill"><SolidColor colorValue="FF99D59F" name="Color"/></Fill>
+                        </Shape>
+                        <Shape name="Body Outline">
+                            <PointsPath isClosed="true" name="Body Path">
+                                <StraightVertex x="-33" y="-124" radius="4"/>
+                                <StraightVertex x="33" y="-124" radius="4"/>
+                                <StraightVertex x="26" y="0" radius="16"/>
+                                <StraightVertex x="-26" y="0" radius="16"/>
+                            </PointsPath>
+                            <Stroke thickness="3" join="round" name="Stroke"><SolidColor colorValue="FF99D59F" name="Color"/></Stroke>
+                        </Shape>
+                        <Node name="Inside">
+                            <ClippingShape sourceId="18:35" name="Clip to body"/>
+                            <Shape opacity="0.55" name="Weave">
+                                <PointsPath isClosed="false" name="Band 1"><StraightVertex x="-40" y="-93"/><StraightVertex x="40" y="-93"/></PointsPath>
+                                <PointsPath isClosed="false" name="Band 2"><StraightVertex x="-40" y="-62"/><StraightVertex x="40" y="-62"/></PointsPath>
+                                <PointsPath isClosed="false" name="Band 3"><StraightVertex x="-40" y="-31"/><StraightVertex x="40" y="-31"/></PointsPath>
+                                <PointsPath isClosed="false" name="Stave 1"><StraightVertex x="-16" y="-124"/><StraightVertex x="-12.5" y="0"/></PointsPath>
+                                <PointsPath isClosed="false" name="Stave 2"><StraightVertex x="0" y="-124"/><StraightVertex x="0" y="0"/></PointsPath>
+                                <PointsPath isClosed="false" name="Stave 3"><StraightVertex x="16" y="-124"/><StraightVertex x="12.5" y="0"/></PointsPath>
+                                <Stroke thickness="2" name="Stroke"><SolidColor colorValue="FF99D59F" name="Color"/></Stroke>
+                            </Shape>
+                            <Shape name="Contents">
+                                <Rectangle width="80" height="62" originX="0.5" originY="1" name="Contents Path">
+                                    <DataBindContext sourcePathIds="18:1-18:2" propertyKey="21" converterId="18:21"/>  <!-- height <- fixed, 0..1 mapped to 0..124 -->
+                                </Rectangle>
+                                <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+                            </Shape>
+                        </Node>
+                        <Shape name="Body Mask" id="18:35">
+                            <PointsPath isClosed="true" name="Mask Path">
+                                <StraightVertex x="-33" y="-124" radius="4"/>
+                                <StraightVertex x="33" y="-124" radius="4"/>
+                                <StraightVertex x="26" y="0" radius="16"/>
+                                <StraightVertex x="-26" y="0" radius="16"/>
+                            </PointsPath>
+                        </Shape>
+                        <Shape name="Body Back">
+                            <PointsPath isClosed="true" name="Back Path">
+                                <StraightVertex x="-33" y="-124" radius="4"/>
+                                <StraightVertex x="33" y="-124" radius="4"/>
+                                <StraightVertex x="26" y="0" radius="16"/>
+                                <StraightVertex x="-26" y="0" radius="16"/>
+                            </PointsPath>
+                            <Fill name="Fill"><SolidColor colorValue="FFD2FCD5" name="Color"/></Fill>
+                        </Shape>
+                        <Shape name="Handle">
+                            <PointsPath isClosed="false" name="Handle Path">
+                                <StraightVertex x="-25" y="-126"/>
+                                <CubicMirroredVertex x="0" y="-172" rotation="0" distance="20"/>
+                                <StraightVertex x="25" y="-126"/>
+                            </PointsPath>
+                            <Stroke thickness="5" cap="round" join="round" name="Stroke"><SolidColor colorValue="FF99D59F" name="Color"/></Stroke>
+                        </Shape>
+                    </Node>
+                </LayoutComponent>
+            </LayoutComponent>
+
+            <!-- Curveballs: deep green contents -->
+            <LayoutComponent clip="false" styleId="18:41" name="Curveballs Cell" id="18:40">
+                <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" layoutAlignmentType="center"
+                        name="Curveballs Cell Style" id="18:41"/>
+                <LayoutComponent width="76" height="204" scaleX="0.88" scaleY="0.88" clip="false" styleId="18:43" name="Curveballs Art" id="18:42">
+                    <LayoutComponentStyle name="Curveballs Art Style" id="18:43"/>
+                    <ComponentOrigin originX="0.5" originY="0.98" name="Origin"/>
+                    <Node x="38" y="200" name="Curveballs Basket" id="18:44">
+                        <DataBindContext sourcePathIds="18:1-18:3" propertyKey="17" converterId="18:75"/>  <!-- scaleY <- the wobble: squashes when its share changes, springs back -->
+                        <Node y="-96" name="Tag: lightning">
+                            <Shape name="Lightning">
+                                <PointsPath isClosed="true" name="Bolt">
+                                    <StraightVertex x="2.4" y="-8.8" radius="0.9"/>
+                                    <StraightVertex x="-5.6" y="1" radius="0.9"/>
+                                    <StraightVertex x="-0.8" y="1.8" radius="0.4"/>
+                                    <StraightVertex x="-2.4" y="8.8" radius="0.9"/>
+                                    <StraightVertex x="5.6" y="-1" radius="0.9"/>
+                                    <StraightVertex x="0.8" y="-1.8" radius="0.4"/>
+                                </PointsPath>
+                                <Fill name="Fill"><SolidColor colorValue="FF007841" name="Color"/></Fill>
+                            </Shape>
+                            <Shape name="Tag Disc">
+                                <Ellipse width="28" height="28" name="Disc Path"/>
+                                <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill>
+                                <Stroke thickness="2" name="Stroke"><SolidColor colorValue="FF99D59F" name="Color"/></Stroke>
+                            </Shape>
+                        </Node>
+                        <Shape name="Rim">
+                            <Rectangle width="74" height="12" cornerRadiusTL="6" y="-124" name="Rim Path"/>
+                            <Fill name="Fill"><SolidColor colorValue="FF99D59F" name="Color"/></Fill>
+                        </Shape>
+                        <Shape name="Body Outline">
+                            <PointsPath isClosed="true" name="Body Path">
+                                <StraightVertex x="-33" y="-124" radius="4"/>
+                                <StraightVertex x="33" y="-124" radius="4"/>
+                                <StraightVertex x="26" y="0" radius="16"/>
+                                <StraightVertex x="-26" y="0" radius="16"/>
+                            </PointsPath>
+                            <Stroke thickness="3" join="round" name="Stroke"><SolidColor colorValue="FF99D59F" name="Color"/></Stroke>
+                        </Shape>
+                        <Node name="Inside">
+                            <ClippingShape sourceId="18:45" name="Clip to body"/>
+                            <Shape opacity="0.55" name="Weave">
+                                <PointsPath isClosed="false" name="Band 1"><StraightVertex x="-40" y="-93"/><StraightVertex x="40" y="-93"/></PointsPath>
+                                <PointsPath isClosed="false" name="Band 2"><StraightVertex x="-40" y="-62"/><StraightVertex x="40" y="-62"/></PointsPath>
+                                <PointsPath isClosed="false" name="Band 3"><StraightVertex x="-40" y="-31"/><StraightVertex x="40" y="-31"/></PointsPath>
+                                <PointsPath isClosed="false" name="Stave 1"><StraightVertex x="-16" y="-124"/><StraightVertex x="-12.5" y="0"/></PointsPath>
+                                <PointsPath isClosed="false" name="Stave 2"><StraightVertex x="0" y="-124"/><StraightVertex x="0" y="0"/></PointsPath>
+                                <PointsPath isClosed="false" name="Stave 3"><StraightVertex x="16" y="-124"/><StraightVertex x="12.5" y="0"/></PointsPath>
+                                <Stroke thickness="2" name="Stroke"><SolidColor colorValue="FF99D59F" name="Color"/></Stroke>
+                            </Shape>
+                            <Shape name="Contents">
+                                <Rectangle width="80" height="12.4" originX="0.5" originY="1" name="Contents Path">
+                                    <DataBindContext sourcePathIds="18:1-18:3" propertyKey="21" converterId="18:21"/>  <!-- height <- curveballs, 0..1 mapped to 0..124 -->
+                                </Rectangle>
+                                <Fill name="Fill"><SolidColor colorValue="FF007841" name="Color"/></Fill>
+                            </Shape>
+                        </Node>
+                        <Shape name="Body Mask" id="18:45">
+                            <PointsPath isClosed="true" name="Mask Path">
+                                <StraightVertex x="-33" y="-124" radius="4"/>
+                                <StraightVertex x="33" y="-124" radius="4"/>
+                                <StraightVertex x="26" y="0" radius="16"/>
+                                <StraightVertex x="-26" y="0" radius="16"/>
+                            </PointsPath>
+                        </Shape>
+                        <Shape name="Body Back">
+                            <PointsPath isClosed="true" name="Back Path">
+                                <StraightVertex x="-33" y="-124" radius="4"/>
+                                <StraightVertex x="33" y="-124" radius="4"/>
+                                <StraightVertex x="26" y="0" radius="16"/>
+                                <StraightVertex x="-26" y="0" radius="16"/>
+                            </PointsPath>
+                            <Fill name="Fill"><SolidColor colorValue="FFD2FCD5" name="Color"/></Fill>
+                        </Shape>
+                        <Shape name="Handle">
+                            <PointsPath isClosed="false" name="Handle Path">
+                                <StraightVertex x="-25" y="-126"/>
+                                <CubicMirroredVertex x="0" y="-172" rotation="0" distance="20"/>
+                                <StraightVertex x="25" y="-126"/>
+                            </PointsPath>
+                            <Stroke thickness="5" cap="round" join="round" name="Stroke"><SolidColor colorValue="FF99D59F" name="Color"/></Stroke>
+                        </Shape>
+                    </Node>
+                </LayoutComponent>
+            </LayoutComponent>
+
+            <!-- Leaks: S green contents -->
+            <LayoutComponent clip="false" styleId="18:51" name="Leaks Cell" id="18:50">
+                <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" layoutAlignmentType="center"
+                        name="Leaks Cell Style" id="18:51"/>
+                <LayoutComponent width="76" height="204" scaleX="0.88" scaleY="0.88" clip="false" styleId="18:53" name="Leaks Art" id="18:52">
+                    <LayoutComponentStyle name="Leaks Art Style" id="18:53"/>
+                    <ComponentOrigin originX="0.5" originY="0.98" name="Origin"/>
+                    <Node x="38" y="200" name="Leaks Basket" id="18:54">
+                        <DataBindContext sourcePathIds="18:1-18:4" propertyKey="17" converterId="18:77"/>  <!-- scaleY <- the wobble: squashes when its share changes, springs back -->
+                        <Node y="-96" name="Tag: drop">
+                            <Shape name="Drop">
+                                <PointsPath isClosed="true" name="Drop">
+                                    <StraightVertex x="0" y="-8.5" radius="1.2"/>
+                                    <CubicDetachedVertex x="5.9" y="2.6" inRotation="-1.5708" inDistance="4.2" outRotation="1.5708" outDistance="3.3"/>
+                                    <CubicMirroredVertex x="0" y="8.5" rotation="3.14159" distance="3.3"/>
+                                    <CubicDetachedVertex x="-5.9" y="2.6" inRotation="1.5708" inDistance="3.3" outRotation="-1.5708" outDistance="4.2"/>
+                                </PointsPath>
+                                <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                            </Shape>
+                            <Shape name="Tag Disc">
+                                <Ellipse width="28" height="28" name="Disc Path"/>
+                                <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill>
+                                <Stroke thickness="2" name="Stroke"><SolidColor colorValue="FF99D59F" name="Color"/></Stroke>
+                            </Shape>
+                        </Node>
+                        <Shape name="Rim">
+                            <Rectangle width="74" height="12" cornerRadiusTL="6" y="-124" name="Rim Path"/>
+                            <Fill name="Fill"><SolidColor colorValue="FF99D59F" name="Color"/></Fill>
+                        </Shape>
+                        <Shape name="Body Outline">
+                            <PointsPath isClosed="true" name="Body Path">
+                                <StraightVertex x="-33" y="-124" radius="4"/>
+                                <StraightVertex x="33" y="-124" radius="4"/>
+                                <StraightVertex x="26" y="0" radius="16"/>
+                                <StraightVertex x="-26" y="0" radius="16"/>
+                            </PointsPath>
+                            <Stroke thickness="3" join="round" name="Stroke"><SolidColor colorValue="FF99D59F" name="Color"/></Stroke>
+                        </Shape>
+                        <Node name="Inside">
+                            <ClippingShape sourceId="18:55" name="Clip to body"/>
+                            <Shape opacity="0.55" name="Weave">
+                                <PointsPath isClosed="false" name="Band 1"><StraightVertex x="-40" y="-93"/><StraightVertex x="40" y="-93"/></PointsPath>
+                                <PointsPath isClosed="false" name="Band 2"><StraightVertex x="-40" y="-62"/><StraightVertex x="40" y="-62"/></PointsPath>
+                                <PointsPath isClosed="false" name="Band 3"><StraightVertex x="-40" y="-31"/><StraightVertex x="40" y="-31"/></PointsPath>
+                                <PointsPath isClosed="false" name="Stave 1"><StraightVertex x="-16" y="-124"/><StraightVertex x="-12.5" y="0"/></PointsPath>
+                                <PointsPath isClosed="false" name="Stave 2"><StraightVertex x="0" y="-124"/><StraightVertex x="0" y="0"/></PointsPath>
+                                <PointsPath isClosed="false" name="Stave 3"><StraightVertex x="16" y="-124"/><StraightVertex x="12.5" y="0"/></PointsPath>
+                                <Stroke thickness="2" name="Stroke"><SolidColor colorValue="FF99D59F" name="Color"/></Stroke>
+                            </Shape>
+                            <Shape name="Contents">
+                                <Rectangle width="80" height="37.2" originX="0.5" originY="1" name="Contents Path">
+                                    <DataBindContext sourcePathIds="18:1-18:4" propertyKey="21" converterId="18:21"/>  <!-- height <- leaks, 0..1 mapped to 0..124 -->
+                                </Rectangle>
+                                <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                            </Shape>
+                        </Node>
+                        <Shape name="Body Mask" id="18:55">
+                            <PointsPath isClosed="true" name="Mask Path">
+                                <StraightVertex x="-33" y="-124" radius="4"/>
+                                <StraightVertex x="33" y="-124" radius="4"/>
+                                <StraightVertex x="26" y="0" radius="16"/>
+                                <StraightVertex x="-26" y="0" radius="16"/>
+                            </PointsPath>
+                        </Shape>
+                        <Shape name="Body Back">
+                            <PointsPath isClosed="true" name="Back Path">
+                                <StraightVertex x="-33" y="-124" radius="4"/>
+                                <StraightVertex x="33" y="-124" radius="4"/>
+                                <StraightVertex x="26" y="0" radius="16"/>
+                                <StraightVertex x="-26" y="0" radius="16"/>
+                            </PointsPath>
+                            <Fill name="Fill"><SolidColor colorValue="FFD2FCD5" name="Color"/></Fill>
+                        </Shape>
+                        <Shape name="Handle">
+                            <PointsPath isClosed="false" name="Handle Path">
+                                <StraightVertex x="-25" y="-126"/>
+                                <CubicMirroredVertex x="0" y="-172" rotation="0" distance="20"/>
+                                <StraightVertex x="25" y="-126"/>
+                            </PointsPath>
+                            <Stroke thickness="5" cap="round" join="round" name="Stroke"><SolidColor colorValue="FF99D59F" name="Color"/></Stroke>
+                        </Shape>
+                    </Node>
+                </LayoutComponent>
+            </LayoutComponent>
+
+            <!-- Jars: a jam jar holding mint, S green outline -->
+            <LayoutComponent clip="false" styleId="18:61" name="Jars Cell" id="18:60">
+                <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" layoutAlignmentType="center"
+                        name="Jars Cell Style" id="18:61"/>
+                <LayoutComponent width="76" height="204" scaleX="0.88" scaleY="0.88" clip="false" styleId="18:63" name="Jars Art" id="18:62">
+                    <LayoutComponentStyle name="Jars Art Style" id="18:63"/>
+                    <ComponentOrigin originX="0.5" originY="0.98" name="Origin"/>
+                    <Node x="38" y="200" name="Jam Jar" id="18:64">
+                        <DataBindContext sourcePathIds="18:1-18:5" propertyKey="17" converterId="18:79"/>  <!-- scaleY <- the wobble: squashes when its share changes, springs back -->
+                        <Shape name="Lid">
+                            <Rectangle width="58" height="16" cornerRadiusTL="6" y="-110" name="Lid Path"/>
+                            <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                        </Shape>
+                        <Shape name="Glass Outline">
+                            <Rectangle width="68" height="100" cornerRadiusTL="20" y="-50" name="Glass Path"/>
+                            <Stroke thickness="4" name="Stroke"><SolidColor colorValue="FF00AA46" name="Color"/></Stroke>
+                        </Shape>
+                        <!-- Float rides on the jam level; Surface is a slab of jam whose top edge is the visible surface. The idle loop tilts it. -->
+                        <Node name="Float" id="18:81">
+                            <DataBindContext sourcePathIds="18:1-18:5" propertyKey="14" converterId="18:83"/>  <!-- y <- jars: the jam level -->
+                            <ClippingShape sourceId="18:65" name="Clip to glass"/>
+                            <Shape y="1.5" name="Surface" id="18:82">
+                                <Rectangle width="76" height="12" originX="0.5" originY="0" name="Surface Path"/>
+                                <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+                            </Shape>
+                        </Node>
+                        <Shape name="Jam">
+                            <Rectangle width="72" height="6.3" originX="0.5" originY="1" name="Jam Path">
+                                <DataBindContext sourcePathIds="18:1-18:5" propertyKey="21" converterId="18:23"/>  <!-- height <- jars, 0..1 mapped to the level less 4 pt -->
+                            </Rectangle>
+                            <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+                            <ClippingShape sourceId="18:65" name="Clip to glass"/>
+                        </Shape>
+                        <Shape name="Glass Mask" id="18:65">
+                            <Rectangle width="68" height="100" cornerRadiusTL="20" y="-50" name="Mask Path"/>
+                        </Shape>
+                        <Shape name="Glass Back">
+                            <Rectangle width="68" height="100" cornerRadiusTL="20" y="-50" name="Back Path"/>
+                            <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill>
+                        </Shape>
+                    </Node>
+                </LayoutComponent>
+            </LayoutComponent>
+        </LayoutComponent>
+
+        <!-- State machine. Declared before the timelines so the editor opens it first. -->
+        <StateMachine name="Main" id="18:90">
+            <StateMachineLayer name="Jam" id="18:91">
+                <AnyState x="0" y="-140" id="18:92"/>
+                <ExitState x="0" y="-280" id="18:93"/>
+                <EntryState x="0" y="0" id="18:94">
+                    <StateTransition stateToId="18:95"/>  <!-- starts in slosh -->
+                </EntryState>
+                <AnimationState animationId="18:96" stateName="slosh" x="240" y="0" id="18:95"/>
+            </StateMachineLayer>
+        </StateMachine>
+
+        <!-- Timelines -->
+        <!-- 3.6 s loop, slow and small: the jam surface tilts about 2 degrees each way. -->
+        <LinearAnimation duration="216" loopValue="loop" name="jam: slosh" id="18:96">
+            <KeyedObject objectId="18:82">  <!-- Surface -->
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="0.035" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-0.035" frame="108" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.035" frame="216" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+    </Artboard>
+</Rive>

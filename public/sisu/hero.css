@@ -1,0 +1,97 @@
+/* Section 1, the hero, and section 2, the facts strip. Their motion is in hero-motion.css.
+   The product picture under the hero copy (phone, cards and Liito) is placed in hero-layout.css,
+   and the phone itself is drawn in today.css. */
+.hero {
+  overflow-x: clip;
+  text-align: center;
+}
+
+main > .hero {
+  padding-top: 16px;
+  padding-bottom: 28px;
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 10vw, 4.25rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.hero-chip {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin: 8px auto 0;
+  padding: 2px clamp(12px, 4vw, 18px) 8px;
+  border-radius: var(--radius-lg);
+  background: var(--green-200);
+  transform: rotate(-2deg);
+}
+
+/* Two short lines, one idea each, then the concept line in smaller type. */
+.hero-lead {
+  max-width: 34rem;
+  margin: 20px auto 0;
+  font-size: 1.125rem;
+  line-height: 1.45;
+}
+
+.lead-line {
+  display: block;
+  text-wrap: balance;
+}
+
+.hero-note {
+  margin: 8px auto 24px;
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+/* Facts strip: a calm white band under the hero with the two facts in reading order. */
+main > .facts {
+  padding: 24px 0 20px;
+  background: var(--surface);
+}
+
+.fact-list {
+  display: grid;
+  gap: 12px;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.fact + .fact {
+  padding-top: 14px;
+  border-top: 2px solid var(--green-100);
+}
+
+.fact-text {
+  font-size: 1.0625rem;
+  line-height: 1.4;
+}
+
+.fact-lead {
+  font-weight: 700;
+}
+
+@media (min-width: 1024px) {
+  main > .facts {
+    padding: 28px 0 24px;
+  }
+
+  .fact-list {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0;
+    width: min(100% - 2 * var(--gutter), 960px);
+  }
+
+  .fact + .fact {
+    padding-top: 0;
+    border-top: 0;
+    border-left: 2px solid var(--green-100);
+  }
+}

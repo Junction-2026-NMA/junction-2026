@@ -1,0 +1,404 @@
+<!-- TabBar  (390x64, flexibleWidth)
+     Bottom bar with four tabs: Today, Ask, Jars, Path.
+
+     View model TabBarVM  (names and types are fixed by rive/contract.json):
+       selected    number             in     default 0
+       tap0        trigger            out
+       tap1        trigger            out
+       tap2        trigger            out
+       tap3        trigger            out
+       label0      string             added  default "Today"
+       label1      string             added  default "Ask"
+       label2      string             added  default "Jars"
+       label3      string             added  default "Path"
+
+     How it works
+       Bar        white box; four tabs share the width equally and reflow with the artboard.
+       Tab n      one layer per tab: off <-> on when `selected` equals n. `on` turns icon and caption dark green.
+       Pill       one pale mint pill behind the icons. Its place comes from `selected` through eased flex weights, so it slides
+                  to the new tab in 0.6 s with a slight overshoot when the app writes `selected`.
+       tap0..3    fired by a click listener on each tab. The file does not change `selected` itself: the app decides and writes it back.
+       label0..3  added string properties for the captions, so no copy is hard-coded (defaults Today, Ask, Jars, Path). -->
+<Rive version="1" kind="fragment">
+    <!-- View model -->
+    <ViewModel defaultInstanceId="7:11" name="TabBarVM" id="7:1">
+        <ViewModelPropertyNumber name="selected" id="7:2"/>
+        <ViewModelPropertyTrigger name="tap0" id="7:3"/>
+        <ViewModelPropertyTrigger name="tap1" id="7:4"/>
+        <ViewModelPropertyTrigger name="tap2" id="7:5"/>
+        <ViewModelPropertyTrigger name="tap3" id="7:6"/>
+        <ViewModelPropertyString name="label0" id="7:7"/>
+        <ViewModelPropertyString name="label1" id="7:8"/>
+        <ViewModelPropertyString name="label2" id="7:9"/>
+        <ViewModelPropertyString name="label3" id="7:10"/>
+        <ViewModelInstance exports="true" name="Default" id="7:11">
+            <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="7:2" id="7:12"/>  <!-- selected -->
+            <ViewModelInstanceTrigger viewModelPropertyId="7:3" id="7:13"/>  <!-- tap0 -->
+            <ViewModelInstanceTrigger viewModelPropertyId="7:4" id="7:14"/>  <!-- tap1 -->
+            <ViewModelInstanceTrigger viewModelPropertyId="7:5" id="7:15"/>  <!-- tap2 -->
+            <ViewModelInstanceTrigger viewModelPropertyId="7:6" id="7:16"/>  <!-- tap3 -->
+            <ViewModelInstanceString propertyValue="Today" viewModelPropertyId="7:7" id="7:17"/>  <!-- label0 -->
+            <ViewModelInstanceString propertyValue="Ask" viewModelPropertyId="7:8" id="7:18"/>  <!-- label1 -->
+            <ViewModelInstanceString propertyValue="Jars" viewModelPropertyId="7:9" id="7:19"/>  <!-- label2 -->
+            <ViewModelInstanceString propertyValue="Path" viewModelPropertyId="7:10" id="7:20"/>  <!-- label3 -->
+        </ViewModelInstance>
+    </ViewModel>
+
+    <!-- Converters used only by this artboard: `selected` (0..3) becomes the flex weights left and right of the sliding pill.
+         The bar is 8 eighths wide and tab n is centred at eighth 2n + 1, so the weights are 2n + 1 and 7 - 2n. -->
+    <DataConverterRangeMapper minInput="0" maxInput="3" minOutput="1" maxOutput="7" clampLower="true" clampUpper="true"
+            name="selected to weight before the pill" id="7:100"/>
+    <DataConverterGroup name="selected to weight before the pill, eased" id="7:101">
+        <DataConverterGroupItem converterId="7:100"/>
+        <DataConverterGroupItem converterId="0:61"/>  <!-- shared: ease to new value -->
+        <DataConverterGroupItem converterId="0:69"/>  <!-- shared: not below 0 -->
+    </DataConverterGroup>
+    <DataConverterRangeMapper minInput="0" maxInput="3" minOutput="7" maxOutput="1" clampLower="true" clampUpper="true"
+            name="selected to weight after the pill" id="7:102"/>
+    <DataConverterGroup name="selected to weight after the pill, eased" id="7:103">
+        <DataConverterGroupItem converterId="7:102"/>
+        <DataConverterGroupItem converterId="0:61"/>  <!-- shared: ease to new value -->
+        <DataConverterGroupItem converterId="0:69"/>  <!-- shared: not below 0 -->
+    </DataConverterGroup>
+
+    <Artboard defaultStateMachineId="7:61" viewModelId="7:1" viewModelInstanceId="7:11" clip="true" width="390" height="64" x="0"
+            y="252" styleId="7:22" name="TabBar" id="7:21">
+        <LayoutComponentStyle name="Artboard Style" id="7:22"/>
+
+        <!-- Scene. The first sibling draws on top. -->
+        <!-- White bar with four equal tabs (fill, weight 1 each). Each tab is its own listener target. -->
+        <LayoutComponent clip="false" styleId="7:24" name="Bar" id="7:23">
+            <SemanticData role="tabList" name="Semantics"/>  <!-- for VoiceOver: role -->
+            <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" flexDirectionValue="row"
+                    layoutAlignmentType="center" paddingLeft="8" paddingLeftUnitsValue="points" paddingRight="8"
+                    paddingRightUnitsValue="points" name="Bar Style" id="7:24"/>
+            <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill>
+            <LayoutComponent clip="false" styleId="7:26" name="Tab 0" id="7:25">
+                <SemanticData role="tab" name="Semantics" id="7:120"><DataBindContext sourcePathIds="7:1-7:7" propertyKey="983"/></SemanticData>  <!-- for VoiceOver: role, label <- the component's text -->
+                <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" flexDirectionValue="column"
+                        layoutAlignmentType="center" gapVertical="3" gapVerticalUnitsValue="points" name="Tab 0 Style" id="7:26"/>
+                <Fill name="Fill"><SolidColor colorValue="00FFFFFF" name="Color"/></Fill>
+                <LayoutComponent width="56" height="30" clip="false" styleId="7:28" name="Pill 0" id="7:27">
+                    <LayoutComponentStyle cornerRadiusTL="15" name="Pill 0 Style" id="7:28"/>
+                    <Fill name="Fill"><SolidColor colorValue="00D2FCD5" name="Color" id="7:29"/></Fill>
+                    <Node x="28" y="15" name="Icon 0">
+                        <Shape name="Sun">
+                            <Ellipse width="10.5" height="10.5" name="Disc"/>
+                            <Rectangle width="2.4" height="4.4" cornerRadiusTL="1.2" x="0" y="-9.4" rotation="0" name="Ray 0"/>
+                            <Rectangle width="2.4" height="4.4" cornerRadiusTL="1.2" x="6.6468" y="-6.6468" rotation="0.7854" name="Ray 1"/>
+                            <Rectangle width="2.4" height="4.4" cornerRadiusTL="1.2" x="9.4" y="0" rotation="1.5708" name="Ray 2"/>
+                            <Rectangle width="2.4" height="4.4" cornerRadiusTL="1.2" x="6.6468" y="6.6468" rotation="2.35619" name="Ray 3"/>
+                            <Rectangle width="2.4" height="4.4" cornerRadiusTL="1.2" x="0" y="9.4" rotation="3.14159" name="Ray 4"/>
+                            <Rectangle width="2.4" height="4.4" cornerRadiusTL="1.2" x="-6.6468" y="6.6468" rotation="3.92699" name="Ray 5"/>
+                            <Rectangle width="2.4" height="4.4" cornerRadiusTL="1.2" x="-9.4" y="0" rotation="4.71239" name="Ray 6"/>
+                            <Rectangle width="2.4" height="4.4" cornerRadiusTL="1.2" x="-6.6468" y="-6.6468" rotation="5.49779" name="Ray 7"/>
+                            <Fill name="Fill"><SolidColor colorValue="FF666666" name="Color" id="7:30"/></Fill>
+                        </Shape>
+                    </Node>
+                </LayoutComponent>
+                <Text wrapValue="noWrap" overflowValue="fitFontSize" name="Caption 0" id="7:31">
+                    <LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" maxWidth="100"
+                            maxWidthUnitsValue="percent" name="Layout"/>
+                    <TextStylePaint fontSize="11" fontAssetId="0:11" familyName="Figtree" styleName="SemiBold" name="Caption 0 Style" id="7:32">
+                        <Fill name="Fill"><SolidColor colorValue="FF666666" name="Color" id="7:33"/></Fill>
+                    </TextStylePaint>
+                    <TextValueRun styleId="7:32" text="" name="Run"><DataBindContext sourcePathIds="7:1-7:7" propertyKey="268"/></TextValueRun>  <!-- text <- label0 -->
+                </Text>
+            </LayoutComponent>
+            <LayoutComponent clip="false" styleId="7:35" name="Tab 1" id="7:34">
+                <SemanticData role="tab" name="Semantics" id="7:121"><DataBindContext sourcePathIds="7:1-7:8" propertyKey="983"/></SemanticData>  <!-- for VoiceOver: role, label <- the component's text -->
+                <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" flexDirectionValue="column"
+                        layoutAlignmentType="center" gapVertical="3" gapVerticalUnitsValue="points" name="Tab 1 Style" id="7:35"/>
+                <Fill name="Fill"><SolidColor colorValue="00FFFFFF" name="Color"/></Fill>
+                <LayoutComponent width="56" height="30" clip="false" styleId="7:37" name="Pill 1" id="7:36">
+                    <LayoutComponentStyle cornerRadiusTL="15" name="Pill 1 Style" id="7:37"/>
+                    <Fill name="Fill"><SolidColor colorValue="00D2FCD5" name="Color" id="7:38"/></Fill>
+                    <Node x="28" y="15" name="Icon 1">
+                        <Shape name="Speech Bubble">
+                            <Rectangle width="20" height="15" cornerRadiusTL="6" y="-1.5" name="Bubble"/>
+                            <PointsPath isClosed="true" name="Tail">
+                                <StraightVertex x="-6.5" y="4"/>
+                                <StraightVertex x="-0.5" y="4"/>
+                                <StraightVertex x="-6.5" y="10.5" radius="1"/>
+                            </PointsPath>
+                            <Fill name="Fill"><SolidColor colorValue="FF666666" name="Color" id="7:39"/></Fill>
+                        </Shape>
+                    </Node>
+                </LayoutComponent>
+                <Text wrapValue="noWrap" overflowValue="fitFontSize" name="Caption 1" id="7:40">
+                    <LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" maxWidth="100"
+                            maxWidthUnitsValue="percent" name="Layout"/>
+                    <TextStylePaint fontSize="11" fontAssetId="0:11" familyName="Figtree" styleName="SemiBold" name="Caption 1 Style" id="7:41">
+                        <Fill name="Fill"><SolidColor colorValue="FF666666" name="Color" id="7:42"/></Fill>
+                    </TextStylePaint>
+                    <TextValueRun styleId="7:41" text="" name="Run"><DataBindContext sourcePathIds="7:1-7:8" propertyKey="268"/></TextValueRun>  <!-- text <- label1 -->
+                </Text>
+            </LayoutComponent>
+            <LayoutComponent clip="false" styleId="7:44" name="Tab 2" id="7:43">
+                <SemanticData role="tab" name="Semantics" id="7:122"><DataBindContext sourcePathIds="7:1-7:9" propertyKey="983"/></SemanticData>  <!-- for VoiceOver: role, label <- the component's text -->
+                <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" flexDirectionValue="column"
+                        layoutAlignmentType="center" gapVertical="3" gapVerticalUnitsValue="points" name="Tab 2 Style" id="7:44"/>
+                <Fill name="Fill"><SolidColor colorValue="00FFFFFF" name="Color"/></Fill>
+                <LayoutComponent width="56" height="30" clip="false" styleId="7:46" name="Pill 2" id="7:45">
+                    <LayoutComponentStyle cornerRadiusTL="15" name="Pill 2 Style" id="7:46"/>
+                    <Fill name="Fill"><SolidColor colorValue="00D2FCD5" name="Color" id="7:47"/></Fill>
+                    <Node x="28" y="15" name="Icon 2">
+                        <Shape name="Jar">
+                            <Rectangle width="15" height="13" cornerRadiusTL="4" y="3.5" name="Body"/>
+                            <Rectangle width="12" height="4" cornerRadiusTL="1.5" y="-7" name="Lid"/>
+                            <Fill name="Fill"><SolidColor colorValue="FF666666" name="Color" id="7:48"/></Fill>
+                        </Shape>
+                    </Node>
+                </LayoutComponent>
+                <Text wrapValue="noWrap" overflowValue="fitFontSize" name="Caption 2" id="7:49">
+                    <LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" maxWidth="100"
+                            maxWidthUnitsValue="percent" name="Layout"/>
+                    <TextStylePaint fontSize="11" fontAssetId="0:11" familyName="Figtree" styleName="SemiBold" name="Caption 2 Style" id="7:50">
+                        <Fill name="Fill"><SolidColor colorValue="FF666666" name="Color" id="7:51"/></Fill>
+                    </TextStylePaint>
+                    <TextValueRun styleId="7:50" text="" name="Run"><DataBindContext sourcePathIds="7:1-7:9" propertyKey="268"/></TextValueRun>  <!-- text <- label2 -->
+                </Text>
+            </LayoutComponent>
+            <LayoutComponent clip="false" styleId="7:53" name="Tab 3" id="7:52">
+                <SemanticData role="tab" name="Semantics" id="7:123"><DataBindContext sourcePathIds="7:1-7:10" propertyKey="983"/></SemanticData>  <!-- for VoiceOver: role, label <- the component's text -->
+                <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" flexDirectionValue="column"
+                        layoutAlignmentType="center" gapVertical="3" gapVerticalUnitsValue="points" name="Tab 3 Style" id="7:53"/>
+                <Fill name="Fill"><SolidColor colorValue="00FFFFFF" name="Color"/></Fill>
+                <LayoutComponent width="56" height="30" clip="false" styleId="7:55" name="Pill 3" id="7:54">
+                    <LayoutComponentStyle cornerRadiusTL="15" name="Pill 3 Style" id="7:55"/>
+                    <Fill name="Fill"><SolidColor colorValue="00D2FCD5" name="Color" id="7:56"/></Fill>
+                    <Node x="28" y="15" name="Icon 3">
+                        <Shape name="Flag">
+                            <Rectangle width="2.4" height="20" cornerRadiusTL="1.2" x="-6" name="Pole"/>
+                            <PointsPath isClosed="true" name="Pennant">
+                                <StraightVertex x="-4.8" y="-9.5" radius="1"/>
+                                <StraightVertex x="8.5" y="-4.8" radius="1.5"/>
+                                <StraightVertex x="-4.8" y="-0.2" radius="1"/>
+                            </PointsPath>
+                            <Fill name="Fill"><SolidColor colorValue="FF666666" name="Color" id="7:57"/></Fill>
+                        </Shape>
+                    </Node>
+                </LayoutComponent>
+                <Text wrapValue="noWrap" overflowValue="fitFontSize" name="Caption 3" id="7:58">
+                    <LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" maxWidth="100"
+                            maxWidthUnitsValue="percent" name="Layout"/>
+                    <TextStylePaint fontSize="11" fontAssetId="0:11" familyName="Figtree" styleName="SemiBold" name="Caption 3 Style" id="7:59">
+                        <Fill name="Fill"><SolidColor colorValue="FF666666" name="Color" id="7:60"/></Fill>
+                    </TextStylePaint>
+                    <TextValueRun styleId="7:59" text="" name="Run"><DataBindContext sourcePathIds="7:1-7:10" propertyKey="268"/></TextValueRun>  <!-- text <- label3 -->
+                </Text>
+            </LayoutComponent>
+            <!-- The selection pill: one pale mint pill that slides between the tabs. Pill Track is pinned over the bar's content
+                 area and holds two empty `fill` boxes, Before (weight 2n + 1) and After (weight 7 - 2n), with a zero-width
+                 Marker between them: the marker always stands on the centre of tab n, and the pill is a box pinned around it.
+                 (The pill is a layout box, not a Shape: a Shape here would draw under the bar's own white fill.)
+                 The weights are eased, so the pill glides to the new tab and overshoots a little.
+                 Pill Track is the last child, so it draws under the icons; the pill's y puts it exactly behind them.
+                 (The two boxes must stay empty: a `fill` box starts from its content's width, which would skew the split.) -->
+            <LayoutComponent clip="false" styleId="7:111" name="Pill Track" id="7:110">
+                <LayoutComponentStyle positionTypeValue="absolute" widthUnitsValue="auto" heightUnitsValue="auto" positionLeft="8"
+                        positionLeftUnitsValue="points" positionRight="8" positionRightUnitsValue="points" positionTop="0"
+                        positionTopUnitsValue="points" positionBottom="0" positionBottomUnitsValue="points" flexDirectionValue="row"
+                        name="Pill Track Style" id="7:111"/>
+                <LayoutComponent clip="false" styleId="7:113" name="Before" id="7:112">
+                    <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" name="Before Style" id="7:113"/>
+                    <DataBindContext sourcePathIds="7:1-7:2" propertyKey="706" converterId="7:101"/>  <!-- fractionalWidth <- 2 * selected + 1 -->
+                </LayoutComponent>
+                <LayoutComponent width="0.1" height="64" clip="false" styleId="7:115" name="Marker" id="7:114">
+                    <LayoutComponentStyle name="Marker Style" id="7:115"/>
+                    <LayoutComponent width="56" height="30" clip="false" styleId="7:117" name="Pill" id="7:116">
+                        <LayoutComponentStyle positionTypeValue="absolute" positionLeft="-28" positionLeftUnitsValue="points"
+                                positionTop="8.9" positionTopUnitsValue="points" cornerRadiusTL="15" name="Pill Style" id="7:117"/>
+                        <Fill name="Fill"><SolidColor colorValue="FFD2FCD5" name="Color"/></Fill>
+                    </LayoutComponent>
+                </LayoutComponent>
+                <LayoutComponent clip="false" styleId="7:119" name="After" id="7:118">
+                    <LayoutComponentStyle layoutWidthScaleType="fill" layoutHeightScaleType="fill" name="After Style" id="7:119"/>
+                    <DataBindContext sourcePathIds="7:1-7:2" propertyKey="706" converterId="7:103"/>  <!-- fractionalWidth <- 7 - 2 * selected -->
+                </LayoutComponent>
+            </LayoutComponent>
+        </LayoutComponent>
+
+        <!-- State machine. Declared before the timelines so the editor opens it first. -->
+        <StateMachine name="Main" id="7:61">
+            <StateMachineListenerSingle targetId="7:25" listenerTypeValue="click" name="Tap 0" id="7:62">  <!-- on Tab 0 -->
+                <ListenerViewModelChange><BindablePropertyTrigger propertyValue="1"><DataBindContext sourcePathIds="7:1-7:3" propertyKey="686" direction="true"/></BindablePropertyTrigger></ListenerViewModelChange>  <!-- fires tap0 -->
+            </StateMachineListenerSingle>
+            <StateMachineListenerSingle targetId="7:34" listenerTypeValue="click" name="Tap 1" id="7:63">  <!-- on Tab 1 -->
+                <ListenerViewModelChange><BindablePropertyTrigger propertyValue="1"><DataBindContext sourcePathIds="7:1-7:4" propertyKey="686" direction="true"/></BindablePropertyTrigger></ListenerViewModelChange>  <!-- fires tap1 -->
+            </StateMachineListenerSingle>
+            <StateMachineListenerSingle targetId="7:43" listenerTypeValue="click" name="Tap 2" id="7:64">  <!-- on Tab 2 -->
+                <ListenerViewModelChange><BindablePropertyTrigger propertyValue="1"><DataBindContext sourcePathIds="7:1-7:5" propertyKey="686" direction="true"/></BindablePropertyTrigger></ListenerViewModelChange>  <!-- fires tap2 -->
+            </StateMachineListenerSingle>
+            <StateMachineListenerSingle targetId="7:52" listenerTypeValue="click" name="Tap 3" id="7:65">  <!-- on Tab 3 -->
+                <ListenerViewModelChange><BindablePropertyTrigger propertyValue="1"><DataBindContext sourcePathIds="7:1-7:6" propertyKey="686" direction="true"/></BindablePropertyTrigger></ListenerViewModelChange>  <!-- fires tap3 -->
+            </StateMachineListenerSingle>
+            <StateMachineLayer name="Tab 0" id="7:66">
+                <AnyState x="0" y="-140" id="7:67"/>
+                <ExitState x="0" y="-280" id="7:68"/>
+                <EntryState x="0" y="0" id="7:69">
+                    <StateTransition stateToId="7:71">  <!-- starts in on if the condition holds -->
+                        <TransitionViewModelCondition>  <!-- selected == 0 -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyNumber><DataBindContext sourcePathIds="7:1-7:2" propertyKey="636"/></BindablePropertyNumber></TransitionPropertyViewModelComparator>
+                            <TransitionValueNumberComparator value="0"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="7:70"/>  <!-- otherwise starts in off -->
+                </EntryState>
+                <AnimationState animationId="7:90" stateName="off" x="240" y="0" id="7:70">
+                    <StateTransition stateToId="7:71" duration="140">  <!-- to on -->
+                        <TransitionViewModelCondition>  <!-- selected == 0 -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyNumber><DataBindContext sourcePathIds="7:1-7:2" propertyKey="636"/></BindablePropertyNumber></TransitionPropertyViewModelComparator>
+                            <TransitionValueNumberComparator value="0"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState animationId="7:91" stateName="on" x="480" y="0" id="7:71">
+                    <StateTransition stateToId="7:70" duration="140">  <!-- to off -->
+                        <TransitionViewModelCondition opValue="notEqual">  <!-- selected != 0 -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyNumber><DataBindContext sourcePathIds="7:1-7:2" propertyKey="636"/></BindablePropertyNumber></TransitionPropertyViewModelComparator>
+                            <TransitionValueNumberComparator value="0"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+            </StateMachineLayer>
+            <StateMachineLayer name="Tab 1" id="7:72">
+                <AnyState x="0" y="-140" id="7:73"/>
+                <ExitState x="0" y="-280" id="7:74"/>
+                <EntryState x="0" y="0" id="7:75">
+                    <StateTransition stateToId="7:77">  <!-- starts in on if the condition holds -->
+                        <TransitionViewModelCondition>  <!-- selected == 1 -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyNumber><DataBindContext sourcePathIds="7:1-7:2" propertyKey="636"/></BindablePropertyNumber></TransitionPropertyViewModelComparator>
+                            <TransitionValueNumberComparator value="1"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="7:76"/>  <!-- otherwise starts in off -->
+                </EntryState>
+                <AnimationState animationId="7:92" stateName="off" x="240" y="0" id="7:76">
+                    <StateTransition stateToId="7:77" duration="140">  <!-- to on -->
+                        <TransitionViewModelCondition>  <!-- selected == 1 -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyNumber><DataBindContext sourcePathIds="7:1-7:2" propertyKey="636"/></BindablePropertyNumber></TransitionPropertyViewModelComparator>
+                            <TransitionValueNumberComparator value="1"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState animationId="7:93" stateName="on" x="480" y="0" id="7:77">
+                    <StateTransition stateToId="7:76" duration="140">  <!-- to off -->
+                        <TransitionViewModelCondition opValue="notEqual">  <!-- selected != 1 -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyNumber><DataBindContext sourcePathIds="7:1-7:2" propertyKey="636"/></BindablePropertyNumber></TransitionPropertyViewModelComparator>
+                            <TransitionValueNumberComparator value="1"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+            </StateMachineLayer>
+            <StateMachineLayer name="Tab 2" id="7:78">
+                <AnyState x="0" y="-140" id="7:79"/>
+                <ExitState x="0" y="-280" id="7:80"/>
+                <EntryState x="0" y="0" id="7:81">
+                    <StateTransition stateToId="7:83">  <!-- starts in on if the condition holds -->
+                        <TransitionViewModelCondition>  <!-- selected == 2 -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyNumber><DataBindContext sourcePathIds="7:1-7:2" propertyKey="636"/></BindablePropertyNumber></TransitionPropertyViewModelComparator>
+                            <TransitionValueNumberComparator value="2"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="7:82"/>  <!-- otherwise starts in off -->
+                </EntryState>
+                <AnimationState animationId="7:94" stateName="off" x="240" y="0" id="7:82">
+                    <StateTransition stateToId="7:83" duration="140">  <!-- to on -->
+                        <TransitionViewModelCondition>  <!-- selected == 2 -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyNumber><DataBindContext sourcePathIds="7:1-7:2" propertyKey="636"/></BindablePropertyNumber></TransitionPropertyViewModelComparator>
+                            <TransitionValueNumberComparator value="2"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState animationId="7:95" stateName="on" x="480" y="0" id="7:83">
+                    <StateTransition stateToId="7:82" duration="140">  <!-- to off -->
+                        <TransitionViewModelCondition opValue="notEqual">  <!-- selected != 2 -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyNumber><DataBindContext sourcePathIds="7:1-7:2" propertyKey="636"/></BindablePropertyNumber></TransitionPropertyViewModelComparator>
+                            <TransitionValueNumberComparator value="2"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+            </StateMachineLayer>
+            <StateMachineLayer name="Tab 3" id="7:84">
+                <AnyState x="0" y="-140" id="7:85"/>
+                <ExitState x="0" y="-280" id="7:86"/>
+                <EntryState x="0" y="0" id="7:87">
+                    <StateTransition stateToId="7:89">  <!-- starts in on if the condition holds -->
+                        <TransitionViewModelCondition>  <!-- selected == 3 -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyNumber><DataBindContext sourcePathIds="7:1-7:2" propertyKey="636"/></BindablePropertyNumber></TransitionPropertyViewModelComparator>
+                            <TransitionValueNumberComparator value="3"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="7:88"/>  <!-- otherwise starts in off -->
+                </EntryState>
+                <AnimationState animationId="7:96" stateName="off" x="240" y="0" id="7:88">
+                    <StateTransition stateToId="7:89" duration="140">  <!-- to on -->
+                        <TransitionViewModelCondition>  <!-- selected == 3 -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyNumber><DataBindContext sourcePathIds="7:1-7:2" propertyKey="636"/></BindablePropertyNumber></TransitionPropertyViewModelComparator>
+                            <TransitionValueNumberComparator value="3"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState animationId="7:97" stateName="on" x="480" y="0" id="7:89">
+                    <StateTransition stateToId="7:88" duration="140">  <!-- to off -->
+                        <TransitionViewModelCondition opValue="notEqual">  <!-- selected != 3 -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyNumber><DataBindContext sourcePathIds="7:1-7:2" propertyKey="636"/></BindablePropertyNumber></TransitionPropertyViewModelComparator>
+                            <TransitionValueNumberComparator value="3"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+            </StateMachineLayer>
+        </StateMachine>
+
+        <!-- Timelines. Most are one-key poses: the state transitions do the blending. -->
+        <LinearAnimation duration="1" name="tab 0: off" id="7:90">
+            <KeyedObject objectId="7:120"><KeyedProperty property="isSelected"><KeyFrameBool value="false" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>  <!-- Tab 0 semantics: selected for VoiceOver -->
+            <KeyedObject objectId="7:29"><KeyedProperty property="colorValue"><KeyFrameColor value="00D2FCD5" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Pill 0 Color -->
+            <KeyedObject objectId="7:30"><KeyedProperty property="colorValue"><KeyFrameColor value="FF666666" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Icon 0 Color -->
+            <KeyedObject objectId="7:33"><KeyedProperty property="colorValue"><KeyFrameColor value="FF666666" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Caption 0 Color -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="tab 0: on" id="7:91">
+            <KeyedObject objectId="7:120"><KeyedProperty property="isSelected"><KeyFrameBool value="true" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>  <!-- Tab 0 semantics: selected for VoiceOver -->
+            <KeyedObject objectId="7:29"><KeyedProperty property="colorValue"><KeyFrameColor value="00D2FCD5" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Pill 0 Color -->
+            <KeyedObject objectId="7:30"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Icon 0 Color -->
+            <KeyedObject objectId="7:33"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Caption 0 Color -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="tab 1: off" id="7:92">
+            <KeyedObject objectId="7:121"><KeyedProperty property="isSelected"><KeyFrameBool value="false" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>  <!-- Tab 1 semantics: selected for VoiceOver -->
+            <KeyedObject objectId="7:38"><KeyedProperty property="colorValue"><KeyFrameColor value="00D2FCD5" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Pill 1 Color -->
+            <KeyedObject objectId="7:39"><KeyedProperty property="colorValue"><KeyFrameColor value="FF666666" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Icon 1 Color -->
+            <KeyedObject objectId="7:42"><KeyedProperty property="colorValue"><KeyFrameColor value="FF666666" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Caption 1 Color -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="tab 1: on" id="7:93">
+            <KeyedObject objectId="7:121"><KeyedProperty property="isSelected"><KeyFrameBool value="true" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>  <!-- Tab 1 semantics: selected for VoiceOver -->
+            <KeyedObject objectId="7:38"><KeyedProperty property="colorValue"><KeyFrameColor value="00D2FCD5" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Pill 1 Color -->
+            <KeyedObject objectId="7:39"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Icon 1 Color -->
+            <KeyedObject objectId="7:42"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Caption 1 Color -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="tab 2: off" id="7:94">
+            <KeyedObject objectId="7:122"><KeyedProperty property="isSelected"><KeyFrameBool value="false" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>  <!-- Tab 2 semantics: selected for VoiceOver -->
+            <KeyedObject objectId="7:47"><KeyedProperty property="colorValue"><KeyFrameColor value="00D2FCD5" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Pill 2 Color -->
+            <KeyedObject objectId="7:48"><KeyedProperty property="colorValue"><KeyFrameColor value="FF666666" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Icon 2 Color -->
+            <KeyedObject objectId="7:51"><KeyedProperty property="colorValue"><KeyFrameColor value="FF666666" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Caption 2 Color -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="tab 2: on" id="7:95">
+            <KeyedObject objectId="7:122"><KeyedProperty property="isSelected"><KeyFrameBool value="true" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>  <!-- Tab 2 semantics: selected for VoiceOver -->
+            <KeyedObject objectId="7:47"><KeyedProperty property="colorValue"><KeyFrameColor value="00D2FCD5" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Pill 2 Color -->
+            <KeyedObject objectId="7:48"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Icon 2 Color -->
+            <KeyedObject objectId="7:51"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Caption 2 Color -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="tab 3: off" id="7:96">
+            <KeyedObject objectId="7:123"><KeyedProperty property="isSelected"><KeyFrameBool value="false" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>  <!-- Tab 3 semantics: selected for VoiceOver -->
+            <KeyedObject objectId="7:56"><KeyedProperty property="colorValue"><KeyFrameColor value="00D2FCD5" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Pill 3 Color -->
+            <KeyedObject objectId="7:57"><KeyedProperty property="colorValue"><KeyFrameColor value="FF666666" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Icon 3 Color -->
+            <KeyedObject objectId="7:60"><KeyedProperty property="colorValue"><KeyFrameColor value="FF666666" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Caption 3 Color -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="tab 3: on" id="7:97">
+            <KeyedObject objectId="7:123"><KeyedProperty property="isSelected"><KeyFrameBool value="true" frame="0" interpolationType="hold"/></KeyedProperty></KeyedObject>  <!-- Tab 3 semantics: selected for VoiceOver -->
+            <KeyedObject objectId="7:56"><KeyedProperty property="colorValue"><KeyFrameColor value="00D2FCD5" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Pill 3 Color -->
+            <KeyedObject objectId="7:57"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Icon 3 Color -->
+            <KeyedObject objectId="7:60"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Caption 3 Color -->
+        </LinearAnimation>
+    </Artboard>
+</Rive>

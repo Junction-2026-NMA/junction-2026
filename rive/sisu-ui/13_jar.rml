@@ -1,0 +1,431 @@
+<!-- Jar  (160x200, contain)
+     A savings goal as a jam jar that fills.
+
+     View model JarVM  (names and types are fixed by rive/contract.json):
+       fill        number             in     default 0.4
+       label       string             in     default "Buffer"
+       full        boolean            in     default false
+       celebrate   trigger            in
+
+     How it works
+       Jam        a Rectangle with its origin at the bottom; its height is bound to `fill` (0..1 -> the level, clamped, eased with
+                  a slight overshoot), and a ClippingShape keeps it inside the glass.
+       Float      a node whose y is bound to the same level. It carries the Surface slab (the visible top of the jam, which the
+                  idle loop tilts a little) and three mint berries that bob under the surface.
+       Full       not full <-> full on `full`: the lid turns from dark green to mint.
+       Celebrate  idle -> bounce on `celebrate`, back to idle when the timeline ends. The jar squashes and hops, the lid pops off
+                  and lands, five sparkles pop.
+                  Two twin states (A, B) play the same timeline, so firing `celebrate` again mid-bounce restarts it.
+       Label      bound to `label`, centred on the cream label; the font shrinks to fit 74 pt. -->
+<Rive version="1" kind="fragment">
+    <!-- View model -->
+    <ViewModel defaultInstanceId="13:6" name="JarVM" id="13:1">
+        <ViewModelPropertyNumber name="fill" id="13:2"/>
+        <ViewModelPropertyString name="label" id="13:3"/>
+        <ViewModelPropertyBoolean name="full" id="13:4"/>
+        <ViewModelPropertyTrigger name="celebrate" id="13:5"/>
+        <ViewModelInstance exports="true" name="Default" id="13:6">
+            <ViewModelInstanceNumber propertyValue="0.4" viewModelPropertyId="13:2" id="13:7"/>  <!-- fill -->
+            <ViewModelInstanceString propertyValue="Buffer" viewModelPropertyId="13:3" id="13:8"/>  <!-- label -->
+            <ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="13:4" id="13:9"/>  <!-- full -->
+            <ViewModelInstanceTrigger viewModelPropertyId="13:5" id="13:10"/>  <!-- celebrate -->
+        </ViewModelInstance>
+    </ViewModel>
+
+    <!-- Converters used only by this artboard -->
+    <!-- The jam body stops 4 pt under the level: the last few points are the Surface slab, which tilts. -->
+    <DataConverterRangeMapper minInput="0" maxInput="1" minOutput="-4" maxOutput="133" clampLower="true" clampUpper="true"
+            name="fill to jam height" id="13:11"/>
+    <!-- The level itself, as a y for the Float node (the jar is drawn upwards from its base, so up is negative). -->
+    <DataConverterRangeMapper minInput="0" maxInput="1" minOutput="0" maxOutput="-137" clampLower="true" clampUpper="true"
+            name="fill to level" id="13:43"/>
+    <DataConverterGroup name="fill to level, eased" id="13:44">
+        <DataConverterGroupItem converterId="13:43"/>
+        <DataConverterGroupItem converterId="0:61"/>  <!-- shared: ease to new value -->
+    </DataConverterGroup>
+    <DataConverterGroup name="fill to jam height, eased" id="13:12">
+        <DataConverterGroupItem converterId="13:11"/>
+        <DataConverterGroupItem converterId="0:61"/>  <!-- shared: ease to new value -->
+    </DataConverterGroup>
+
+    <Artboard defaultStateMachineId="13:25" viewModelId="13:1" viewModelInstanceId="13:6" clip="true" width="160" height="200"
+            x="0" y="572" styleId="13:14" name="Jar" id="13:13">
+        <LayoutComponentStyle name="Artboard Style" id="13:14"/>
+
+        <!-- Scene. The first sibling draws on top. -->
+        <!-- Sparkles for `celebrate`. They sit outside the Jar node so they do not bounce with it. -->
+        <Shape x="20" y="30" scaleX="0" scaleY="0" name="Sparkle 1" id="13:15">
+            <Star width="20" height="20" points="4" innerRadius="0.36" cornerRadius="1.2" name="Star"/>
+            <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+        </Shape>
+        <Shape x="142" y="22" scaleX="0" scaleY="0" name="Sparkle 2" id="13:16">
+            <Star width="16" height="16" points="4" innerRadius="0.36" cornerRadius="1.2" name="Star"/>
+            <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+        </Shape>
+        <Shape x="150" y="74" scaleX="0" scaleY="0" name="Sparkle 3" id="13:17">
+            <Star width="13" height="13" points="4" innerRadius="0.36" cornerRadius="1.2" name="Star"/>
+            <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+        </Shape>
+        <Shape x="12" y="86" scaleX="0" scaleY="0" name="Sparkle 4" id="13:18">
+            <Star width="14" height="14" points="4" innerRadius="0.36" cornerRadius="1.2" name="Star"/>
+            <Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill>
+        </Shape>
+        <Shape x="118" y="8" scaleX="0" scaleY="0" name="Sparkle 5" id="13:19">
+            <Star width="11" height="11" points="4" innerRadius="0.36" cornerRadius="1.2" name="Star"/>
+            <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+        </Shape>
+        <!-- The jar, drawn from its base (the node sits on the ground line, so the bounce squashes from the bottom).
+             Jam is a rectangle growing up from the base; its height is bound to `fill` and it is clipped to the glass. -->
+        <Node x="80" y="190" name="Jar" id="13:20">
+            <SemanticData role="image" name="Semantics"><DataBindContext sourcePathIds="13:1-13:3" propertyKey="983"/></SemanticData>  <!-- for VoiceOver: role, label <- the component's text -->
+            <Shape y="-146" name="Lid" id="13:45">
+                <Rectangle width="104" height="24" cornerRadiusTL="9" name="Lid Path"/>
+                <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color" id="13:21"/></Fill>
+            </Shape>
+            <Text x="0" y="-66" width="74" height="24" originX="0.5" originY="0.5" sizingValue="fixed" alignValue="center"
+                    verticalAlignValue="middle" wrapValue="noWrap" overflowValue="fitFontSize" name="Label" id="13:22">
+                <TextStylePaint fontSize="14" fontAssetId="0:12" familyName="Figtree" styleName="Bold" name="Label Style" id="13:23">
+                    <Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="13:23" text="" name="Run"><DataBindContext sourcePathIds="13:1-13:3" propertyKey="268"/></TextValueRun>  <!-- text <- label -->
+            </Text>
+            <Shape name="Label Plate">
+                <Rectangle width="84" height="40" cornerRadiusTL="10" y="-66" name="Label Path"/>
+                <Fill name="Fill"><SolidColor colorValue="FFF4F1E8" name="Color"/></Fill>
+            </Shape>
+            <Shape name="Glass Outline">
+                <Rectangle width="120" height="132" cornerRadiusTL="30" y="-70" name="Glass Path"/>
+                <Stroke thickness="5" name="Stroke"><SolidColor colorValue="FF004628" name="Color"/></Stroke>
+            </Shape>
+            <!-- Float rides on the jam level (its y is bound to `fill` with the same easing as the jam's height), clipped to the glass.
+                 Surface is a slab of jam whose top edge is the visible surface: the idle loop tilts it a little, so the jam looks alive.
+                 Three mint berries hang under the surface and bob. With little jam they are below the jar's floor, so they are clipped away. -->
+            <Node y="-4" name="Float" id="13:46">
+                <DataBindContext sourcePathIds="13:1-13:2" propertyKey="14" converterId="13:44"/>  <!-- y <- fill: the jam level -->
+                <ClippingShape sourceId="13:24" name="Clip to glass"/>
+                <Node x="-48" y="17" name="Berry 1" id="13:47">
+                    <Shape x="3" y="-5" rotation="-0.7" name="Leaf"><Ellipse width="6" height="3.4" name="Leaf Path"/><Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill></Shape>
+                    <Shape name="Body"><Ellipse width="11" height="11" name="Body Path"/><Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill></Shape>
+                </Node>
+                <Node x="49" y="20" name="Berry 2" id="13:48">
+                    <Shape x="3" y="-5" rotation="-0.7" name="Leaf"><Ellipse width="6" height="3.4" name="Leaf Path"/><Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill></Shape>
+                    <Shape name="Body"><Ellipse width="10" height="10" name="Body Path"/><Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill></Shape>
+                </Node>
+                <Node x="-27" y="33" name="Berry 3" id="13:49">
+                    <Shape x="2.6" y="-4.4" rotation="-0.7" name="Leaf"><Ellipse width="5.4" height="3" name="Leaf Path"/><Fill name="Fill"><SolidColor colorValue="FF004628" name="Color"/></Fill></Shape>
+                    <Shape name="Body"><Ellipse width="9" height="9" name="Body Path"/><Fill name="Fill"><SolidColor colorValue="FF91FA9B" name="Color"/></Fill></Shape>
+                </Node>
+                <Shape y="1.5" name="Surface" id="13:50">
+                    <Rectangle width="130" height="14" originX="0.5" originY="0" name="Surface Path"/>
+                    <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                </Shape>
+            </Node>
+            <Shape y="-4" name="Jam">
+                <Rectangle width="120" height="48.8" originX="0.5" originY="1" name="Jam Path">
+                    <DataBindContext sourcePathIds="13:1-13:2" propertyKey="21" converterId="13:12"/>  <!-- height <- fill, 0..1 mapped to -4..133 (a full jar is covered to the top) -->
+                </Rectangle>
+                <Fill name="Fill"><SolidColor colorValue="FF00AA46" name="Color"/></Fill>
+                <ClippingShape sourceId="13:24" name="Clip to glass"/>
+            </Shape>
+            <Shape name="Glass Mask" id="13:24">
+                <Rectangle width="120" height="132" cornerRadiusTL="30" y="-70" name="Mask Path"/>
+            </Shape>
+            <Shape name="Glass Back">
+                <Rectangle width="120" height="132" cornerRadiusTL="30" y="-70" name="Back Path"/>
+                <Fill name="Fill"><SolidColor colorValue="FFFFFFFF" name="Color"/></Fill>
+            </Shape>
+        </Node>
+
+        <!-- State machine. Declared before the timelines so the editor opens it first. -->
+        <StateMachine name="Main" id="13:25">
+            <StateMachineLayer name="Full" id="13:26">
+                <AnyState x="0" y="-140" id="13:27"/>
+                <ExitState x="0" y="-280" id="13:28"/>
+                <EntryState x="0" y="0" id="13:29">
+                    <StateTransition stateToId="13:31">  <!-- starts in full if the condition holds -->
+                        <TransitionViewModelCondition>  <!-- full is true -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="13:1-13:4" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="13:30"/>  <!-- otherwise starts in not full -->
+                </EntryState>
+                <AnimationState animationId="13:39" stateName="not full" x="240" y="0" id="13:30">
+                    <StateTransition stateToId="13:31" duration="240">  <!-- to full -->
+                        <TransitionViewModelCondition>  <!-- full is true -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="13:1-13:4" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState animationId="13:40" stateName="full" x="480" y="0" id="13:31">
+                    <StateTransition stateToId="13:30" duration="240">  <!-- to not full -->
+                        <TransitionViewModelCondition>  <!-- full is false -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="13:1-13:4" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="false"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+            </StateMachineLayer>
+            <StateMachineLayer name="Celebrate" id="13:32">
+                <AnyState x="0" y="-140" id="13:33"/>
+                <ExitState x="0" y="-280" id="13:34"/>
+                <EntryState x="0" y="0" id="13:35">
+                    <StateTransition stateToId="13:36"/>  <!-- starts in idle -->
+                </EntryState>
+                <AnimationState animationId="13:41" stateName="idle" x="240" y="0" id="13:36">
+                    <StateTransition stateToId="13:37">  <!-- to bounce A -->
+                        <TransitionViewModelCondition>  <!-- celebrate fired -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyTrigger><DataBindContext sourcePathIds="13:1-13:5" propertyKey="686"/></BindablePropertyTrigger></TransitionPropertyViewModelComparator>
+                            <TransitionValueTriggerComparator/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState animationId="13:42" stateName="bounce A" x="480" y="-110" id="13:37">
+                    <StateTransition stateToId="13:38">  <!-- to bounce B -->
+                        <TransitionViewModelCondition>  <!-- celebrate fired -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyTrigger><DataBindContext sourcePathIds="13:1-13:5" propertyKey="686"/></BindablePropertyTrigger></TransitionPropertyViewModelComparator>
+                            <TransitionValueTriggerComparator/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="13:36" enableExitTime="true" exitTimeIsPercetange="true" exitTime="100"/>  <!-- to idle -->
+                </AnimationState>
+                <AnimationState animationId="13:42" stateName="bounce B" x="480" y="110" id="13:38">
+                    <StateTransition stateToId="13:37">  <!-- to bounce A -->
+                        <TransitionViewModelCondition>  <!-- celebrate fired -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyTrigger><DataBindContext sourcePathIds="13:1-13:5" propertyKey="686"/></BindablePropertyTrigger></TransitionPropertyViewModelComparator>
+                            <TransitionValueTriggerComparator/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="13:36" enableExitTime="true" exitTimeIsPercetange="true" exitTime="100"/>  <!-- to idle -->
+                </AnimationState>
+            </StateMachineLayer>
+            <StateMachineLayer name="Float" id="13:51">
+                <AnyState x="0" y="-140" id="13:52"/>
+                <ExitState x="0" y="-280" id="13:53"/>
+                <EntryState x="0" y="0" id="13:54">
+                    <StateTransition stateToId="13:55"/>  <!-- starts in float -->
+                </EntryState>
+                <AnimationState animationId="13:56" stateName="float" x="240" y="0" id="13:55"/>
+            </StateMachineLayer>
+        </StateMachine>
+
+        <!-- Timelines. Most are one-key poses: the state transitions do the blending. -->
+        <LinearAnimation duration="1" name="full: no" id="13:39">
+            <KeyedObject objectId="13:21"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Lid Color -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="full: yes" id="13:40">
+            <KeyedObject objectId="13:21"><KeyedProperty property="colorValue"><KeyFrameColor value="FF91FA9B" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Lid Color -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="celebrate: idle" id="13:41">
+            <KeyedObject objectId="13:45"><KeyedProperty property="y"><KeyFrameDouble value="-146" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Lid -->
+            <KeyedObject objectId="13:20"><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="y"><KeyFrameDouble value="190" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Jar -->
+            <KeyedObject objectId="13:15"><KeyedProperty property="scaleX"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Sparkle 1 -->
+            <KeyedObject objectId="13:16"><KeyedProperty property="scaleX"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Sparkle 2 -->
+            <KeyedObject objectId="13:17"><KeyedProperty property="scaleX"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Sparkle 3 -->
+            <KeyedObject objectId="13:18"><KeyedProperty property="scaleX"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Sparkle 4 -->
+            <KeyedObject objectId="13:19"><KeyedProperty property="scaleX"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Sparkle 5 -->
+        </LinearAnimation>
+        <LinearAnimation duration="44" name="celebrate: play" id="13:42">
+            <KeyedObject objectId="13:45">  <!-- Lid: pops off 12 pt with a tilt as the jar hops, and lands again -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="-146" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="-146" frame="5" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.4" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-159" frame="14" interpolationType="cubic"><CubicEaseInterpolator x1="0.6" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-146" frame="23" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.4" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-149.5" frame="28" interpolationType="cubic"><CubicEaseInterpolator x1="0.6" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-146" frame="33" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="5" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-0.1" frame="14" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.04" frame="23" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="30" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="13:20">  <!-- Jar -->
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.9" frame="5" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.08" frame="13" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.96" frame="21" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.02" frame="29" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="36" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="1" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.07" frame="5" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.95" frame="13" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.03" frame="21" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.99" frame="29" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="36" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="190" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="190" frame="5" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="176" frame="13" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="190" frame="21" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="186" frame="26" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="190" frame="31" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="13:15">  <!-- Sparkle 1 -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="6" interpolationType="cubic"><CubicEaseInterpolator x1="0.34" y1="1.56" x2="0.64" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="15" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="26" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="33" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="6" interpolationType="cubic"><CubicEaseInterpolator x1="0.34" y1="1.56" x2="0.64" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="15" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="26" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="33" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="6" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.9" frame="33" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="13:16">  <!-- Sparkle 2 -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="9" interpolationType="cubic"><CubicEaseInterpolator x1="0.34" y1="1.56" x2="0.64" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="29" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="36" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="9" interpolationType="cubic"><CubicEaseInterpolator x1="0.34" y1="1.56" x2="0.64" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="29" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="36" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="9" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.9" frame="36" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="13:17">  <!-- Sparkle 3 -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="12" interpolationType="cubic"><CubicEaseInterpolator x1="0.34" y1="1.56" x2="0.64" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="21" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="32" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="39" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="12" interpolationType="cubic"><CubicEaseInterpolator x1="0.34" y1="1.56" x2="0.64" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="21" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="32" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="39" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="12" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.9" frame="39" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="13:18">  <!-- Sparkle 4 -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="15" interpolationType="cubic"><CubicEaseInterpolator x1="0.34" y1="1.56" x2="0.64" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="24" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="35" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="42" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="15" interpolationType="cubic"><CubicEaseInterpolator x1="0.34" y1="1.56" x2="0.64" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="24" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="35" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="42" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="15" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.9" frame="42" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="13:19">  <!-- Sparkle 5 -->
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.34" y1="1.56" x2="0.64" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="27" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="38" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="45" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.34" y1="1.56" x2="0.64" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="27" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="38" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="1" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="45" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="0" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.9" frame="45" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+        <!-- 4 s loop, slow and small: the surface tilts about 1.5 degrees each way and the berries bob 1.5 pt, each in its own rhythm. -->
+        <LinearAnimation duration="240" loopValue="loop" name="float: idle" id="13:56">
+            <KeyedObject objectId="13:50">  <!-- Surface -->
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="0.024" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-0.024" frame="120" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.024" frame="240" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="13:47">  <!-- Berry 1 -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="17" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="14" frame="60" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="17" frame="120" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="14" frame="180" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="17" frame="240" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="-0.15" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.15" frame="120" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-0.15" frame="240" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="13:48">  <!-- Berry 2 -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="18.5" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="21.5" frame="60" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="18.5" frame="120" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="21.5" frame="180" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="18.5" frame="240" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="0.2" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="-0.1" frame="120" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.2" frame="240" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="13:49">  <!-- Berry 3 -->
+                <KeyedProperty property="y">
+                    <KeyFrameDouble value="33" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="31" frame="80" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="34.5" frame="160" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="33" frame="240" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="rotation">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0.25" frame="120" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="0" frame="240" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+        </LinearAnimation>
+    </Artboard>
+</Rive>

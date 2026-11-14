@@ -1,0 +1,401 @@
+<!-- IconButton  (48x48, fixed)
+     A round pressable icon button.
+
+     View model IconButtonVM  (names and types are fixed by rive/contract.json):
+       icon        enum IconKind      in     default "settings"   settings | close | back | forward | info | soundOn | soundOff | more
+       style       enum IconStyle     in     default "plain"      plain = dark green icon on nothing, tinted = dark green icon on a
+                                                                  pale mint circle, filled = white icon on deep green
+       enabled     boolean            in     default true
+       pressed     trigger            out
+       _down       boolean            private  default false
+
+     How it works
+       Hit        transparent 48 x 48 shape; all four listeners target it.
+       Face       a node holding the 44 pt disc and the icon. Edge is the same disc 4 pt lower: the darker bottom edge.
+       Icon       a Solo holding the eight drawings, all stroked 2.2 pt with round ends. AnyState -> one state per `icon` value;
+                  the pose keys Solo.activeComponentId.
+       Style      AnyState -> plain | tinted | filled (enabled is true and style matches), or `disabled plain` / `disabled solid`
+                  (enabled is false). Each pose keys the disc, edge and icon colours. The disabled poses also key Hit.x far away,
+                  so taps cannot land. These transitions are instant, so the first frame already shows the right look.
+       Press      up <-> down on the private boolean _down (down / up / exit listeners). The face goes down 4 pt and to 94 % and
+                  the edge fades out in 80 ms; on release it springs back in 320 ms (elastic), like Button.
+       pressed    fired by the click listener: once per completed tap, never while disabled. -->
+<Rive version="1" kind="fragment">
+    <!-- View model -->
+    <ViewModel defaultInstanceId="20:7" name="IconButtonVM" id="20:1">
+        <ViewModelPropertyEnumCustom enumId="0:300" name="icon" id="20:2"/>
+        <ViewModelPropertyEnumCustom enumId="0:320" name="style" id="20:3"/>
+        <ViewModelPropertyBoolean name="enabled" id="20:4"/>
+        <ViewModelPropertyTrigger name="pressed" id="20:5"/>
+        <!-- private: written by the listeners, read by the state machine. The app does not touch it. -->
+        <ViewModelPropertyBoolean name="_down" id="20:6"/>
+        <ViewModelInstance exports="true" name="Default" id="20:7">
+            <ViewModelInstanceEnum propertyValue="0:301" viewModelPropertyId="20:2" id="20:8"/>  <!-- icon = settings -->
+            <ViewModelInstanceEnum propertyValue="0:321" viewModelPropertyId="20:3" id="20:9"/>  <!-- style = plain -->
+            <ViewModelInstanceBoolean propertyValue="true" viewModelPropertyId="20:4" id="20:10"/>  <!-- enabled -->
+            <ViewModelInstanceTrigger viewModelPropertyId="20:5" id="20:11"/>  <!-- pressed -->
+            <ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="20:6" id="20:12"/>  <!-- _down -->
+        </ViewModelInstance>
+    </ViewModel>
+
+    <Artboard defaultStateMachineId="20:40" viewModelId="20:1" viewModelInstanceId="20:7" clip="true" width="48" height="48"
+            x="1600" y="560" styleId="20:14" name="IconButton" id="20:13">
+        <LayoutComponentStyle name="Artboard Style" id="20:14"/>
+
+        <!-- Scene. The first sibling draws on top. -->
+        <!-- Transparent hit area over the whole artboard (the touch target is the full 48 x 48). -->
+        <Shape x="24" y="24" name="Hit" id="20:15">
+            <Rectangle width="48" height="48" name="Path"/>
+            <Fill name="Fill"><SolidColor colorValue="00FFFFFF" name="Color"/></Fill>
+        </Shape>
+        <!-- The face: a 44 pt disc with the icon on it, sitting in the top 44 pt of the artboard. It moves down 4 while pressed. -->
+        <Node x="24" y="22" name="Face" id="20:16">
+            <SemanticData role="button" name="Semantics"><DataBindContext sourcePathIds="20:1-20:4" propertyKey="1002" converterId="0:60"/></SemanticData>  <!-- for VoiceOver: a button, disabled when enabled is false; the app gives it its label -->
+            <Solo scaleX="1.12" scaleY="1.12" activeComponentId="20:21" name="Icon" id="20:20">
+                <Node name="settings" id="20:21">
+                    <Shape name="settings drawing">
+                        <Star width="19" height="19" points="8" innerRadius="0.76" cornerRadius="1.2" name="Cog"/>
+                        <Ellipse width="6.4" height="6.4" name="Hub"/>
+                        <Stroke thickness="2.2" cap="round" join="round" name="Stroke"><SolidColor colorValue="FF004628" name="Color" id="20:31"/></Stroke>
+                    </Shape>
+                </Node>
+                <Node name="close" id="20:22">
+                    <Shape name="close drawing">
+                        <PointsPath isClosed="false" name="Stroke 1"><StraightVertex x="-6" y="-6"/><StraightVertex x="6" y="6"/></PointsPath>
+                        <PointsPath isClosed="false" name="Stroke 2"><StraightVertex x="6" y="-6"/><StraightVertex x="-6" y="6"/></PointsPath>
+                        <Stroke thickness="2.2" cap="round" join="round" name="Stroke"><SolidColor colorValue="FF004628" name="Color" id="20:32"/></Stroke>
+                    </Shape>
+                </Node>
+                <Node name="back" id="20:23">
+                    <Shape name="back drawing">
+                        <PointsPath isClosed="false" name="Chevron"><StraightVertex x="3.2" y="-7"/><StraightVertex x="-3.8" y="0"/><StraightVertex x="3.2" y="7"/></PointsPath>
+                        <Stroke thickness="2.2" cap="round" join="round" name="Stroke"><SolidColor colorValue="FF004628" name="Color" id="20:33"/></Stroke>
+                    </Shape>
+                </Node>
+                <Node name="forward" id="20:24">
+                    <Shape name="forward drawing">
+                        <PointsPath isClosed="false" name="Chevron"><StraightVertex x="-3.2" y="-7"/><StraightVertex x="3.8" y="0"/><StraightVertex x="-3.2" y="7"/></PointsPath>
+                        <Stroke thickness="2.2" cap="round" join="round" name="Stroke"><SolidColor colorValue="FF004628" name="Color" id="20:34"/></Stroke>
+                    </Shape>
+                </Node>
+                <Node name="info" id="20:25">
+                    <Shape name="info drawing">
+                        <Ellipse width="18" height="18" name="Ring"/>
+                        <PointsPath isClosed="false" name="Stem"><StraightVertex x="0" y="-0.6"/><StraightVertex x="0" y="4.6"/></PointsPath>
+                        <Ellipse width="0.6" height="0.6" y="-4.7" name="Dot"/>
+                        <Stroke thickness="2.2" cap="round" join="round" name="Stroke"><SolidColor colorValue="FF004628" name="Color" id="20:35"/></Stroke>
+                    </Shape>
+                </Node>
+                <Node x="-0.6" name="soundOn" id="20:26">
+                    <Shape name="soundOn drawing">
+                        <PointsPath isClosed="true" name="Speaker"><StraightVertex x="-8.5" y="-3" radius="1"/><StraightVertex x="-5" y="-3" radius="0.6"/><StraightVertex x="-0.5" y="-6.8" radius="1"/><StraightVertex x="-0.5" y="6.8" radius="1"/><StraightVertex x="-5" y="3" radius="0.6"/><StraightVertex x="-8.5" y="3" radius="1"/></PointsPath>
+                        <PointsPath isClosed="false" name="Wave 1"><StraightVertex x="3" y="-3.4"/><CubicMirroredVertex x="4.8" y="0" rotation="1.5708" distance="1.9"/><StraightVertex x="3" y="3.4"/></PointsPath>
+                        <PointsPath isClosed="false" name="Wave 2"><StraightVertex x="6" y="-6.4"/><CubicMirroredVertex x="9.2" y="0" rotation="1.5708" distance="3.6"/><StraightVertex x="6" y="6.4"/></PointsPath>
+                        <Stroke thickness="2.2" cap="round" join="round" name="Stroke"><SolidColor colorValue="FF004628" name="Color" id="20:36"/></Stroke>
+                    </Shape>
+                </Node>
+                <Node x="-0.6" name="soundOff" id="20:27">
+                    <Shape name="soundOff drawing">
+                        <PointsPath isClosed="true" name="Speaker"><StraightVertex x="-8.5" y="-3" radius="1"/><StraightVertex x="-5" y="-3" radius="0.6"/><StraightVertex x="-0.5" y="-6.8" radius="1"/><StraightVertex x="-0.5" y="6.8" radius="1"/><StraightVertex x="-5" y="3" radius="0.6"/><StraightVertex x="-8.5" y="3" radius="1"/></PointsPath>
+                        <PointsPath isClosed="false" name="Cross 1"><StraightVertex x="3.6" y="-3"/><StraightVertex x="9.6" y="3"/></PointsPath>
+                        <PointsPath isClosed="false" name="Cross 2"><StraightVertex x="9.6" y="-3"/><StraightVertex x="3.6" y="3"/></PointsPath>
+                        <Stroke thickness="2.2" cap="round" join="round" name="Stroke"><SolidColor colorValue="FF004628" name="Color" id="20:37"/></Stroke>
+                    </Shape>
+                </Node>
+                <Node name="more" id="20:28">
+                    <Shape name="more drawing">
+                        <Ellipse width="1.6" height="1.6" x="-7" name="Dot 1"/>
+                        <Ellipse width="1.6" height="1.6" name="Dot 2"/>
+                        <Ellipse width="1.6" height="1.6" x="7" name="Dot 3"/>
+                        <Stroke thickness="2.2" cap="round" join="round" name="Stroke"><SolidColor colorValue="FF004628" name="Color" id="20:38"/></Stroke>
+                    </Shape>
+                </Node>
+            </Solo>
+            <Shape name="Disc">
+                <Ellipse width="44" height="44" name="Disc Path"/>
+                <Fill name="Fill"><SolidColor colorValue="00D2FCD5" name="Color" id="20:17"/></Fill>
+            </Shape>
+        </Node>
+        <!-- The 4 pt bottom edge: the same disc, 4 pt lower, in a darker green. -->
+        <Shape x="24" y="26" name="Edge" id="20:18">
+            <Ellipse width="44" height="44" name="Edge Path"/>
+            <Fill name="Fill"><SolidColor colorValue="0099D59F" name="Color" id="20:19"/></Fill>
+        </Shape>
+
+        <!-- State machine. Declared before the timelines so the editor opens it first. -->
+        <StateMachine name="Main" id="20:40">
+            <StateMachineListenerSingle targetId="20:15" listenerTypeValue="down" name="Pointer down" id="20:41">  <!-- on Hit -->
+                <ListenerViewModelChange><BindablePropertyBoolean propertyValue="true"><DataBindContext sourcePathIds="20:1-20:6" propertyKey="634" direction="true"/></BindablePropertyBoolean></ListenerViewModelChange>  <!-- _down = true -->
+            </StateMachineListenerSingle>
+            <StateMachineListenerSingle targetId="20:15" listenerTypeValue="up" name="Pointer up" id="20:42">  <!-- on Hit -->
+                <ListenerViewModelChange><BindablePropertyBoolean propertyValue="false"><DataBindContext sourcePathIds="20:1-20:6" propertyKey="634" direction="true"/></BindablePropertyBoolean></ListenerViewModelChange>  <!-- _down = false -->
+            </StateMachineListenerSingle>
+            <StateMachineListenerSingle targetId="20:15" listenerTypeValue="exit" name="Pointer exit" id="20:43">  <!-- on Hit -->
+                <ListenerViewModelChange><BindablePropertyBoolean propertyValue="false"><DataBindContext sourcePathIds="20:1-20:6" propertyKey="634" direction="true"/></BindablePropertyBoolean></ListenerViewModelChange>  <!-- _down = false -->
+            </StateMachineListenerSingle>
+            <StateMachineListenerSingle targetId="20:15" listenerTypeValue="click" name="Tap" id="20:44">  <!-- on Hit -->
+                <ListenerViewModelChange><BindablePropertyTrigger propertyValue="1"><DataBindContext sourcePathIds="20:1-20:5" propertyKey="686" direction="true"/></BindablePropertyTrigger></ListenerViewModelChange>  <!-- fires pressed -->
+            </StateMachineListenerSingle>
+            <StateMachineLayer name="Style" id="20:45">
+                <AnyState x="0" y="-140" id="20:46">
+                    <StateTransition stateToId="20:49">  <!-- to plain -->
+                        <TransitionViewModelCondition>  <!-- enabled is true -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="20:1-20:4" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                        <TransitionViewModelCondition>  <!-- style is plain -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="20:1-20:3" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:321"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="20:50">  <!-- to tinted -->
+                        <TransitionViewModelCondition>  <!-- enabled is true -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="20:1-20:4" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                        <TransitionViewModelCondition>  <!-- style is tinted -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="20:1-20:3" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:322"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="20:51">  <!-- to filled -->
+                        <TransitionViewModelCondition>  <!-- enabled is true -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="20:1-20:4" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                        <TransitionViewModelCondition>  <!-- style is filled -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="20:1-20:3" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:323"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="20:52">  <!-- to disabled plain -->
+                        <TransitionViewModelCondition>  <!-- enabled is false -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="20:1-20:4" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="false"/>
+                        </TransitionViewModelCondition>
+                        <TransitionViewModelCondition>  <!-- style is plain -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="20:1-20:3" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:321"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="20:53">  <!-- to disabled solid -->
+                        <TransitionViewModelCondition>  <!-- enabled is false -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="20:1-20:4" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="false"/>
+                        </TransitionViewModelCondition>
+                        <TransitionViewModelCondition>  <!-- style is tinted -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="20:1-20:3" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:322"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="20:53">  <!-- to disabled solid -->
+                        <TransitionViewModelCondition>  <!-- enabled is false -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="20:1-20:4" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="false"/>
+                        </TransitionViewModelCondition>
+                        <TransitionViewModelCondition>  <!-- style is filled -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="20:1-20:3" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:323"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnyState>
+                <ExitState x="0" y="-280" id="20:47"/>
+                <EntryState x="0" y="0" id="20:48">
+                    <StateTransition stateToId="20:49"/>  <!-- starts in plain -->
+                </EntryState>
+                <AnimationState animationId="20:80" stateName="plain" x="240" y="0" id="20:49"/>
+                <AnimationState animationId="20:81" stateName="tinted" x="240" y="110" id="20:50"/>
+                <AnimationState animationId="20:82" stateName="filled" x="240" y="220" id="20:51"/>
+                <AnimationState animationId="20:83" stateName="disabled plain" x="240" y="330" id="20:52"/>
+                <AnimationState animationId="20:84" stateName="disabled solid" x="240" y="440" id="20:53"/>
+            </StateMachineLayer>
+            <StateMachineLayer name="Icon" id="20:55">
+                <AnyState x="0" y="-140" id="20:56">
+                    <StateTransition stateToId="20:59">  <!-- to settings -->
+                        <TransitionViewModelCondition>  <!-- icon is settings -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="20:1-20:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:301"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="20:60">  <!-- to close -->
+                        <TransitionViewModelCondition>  <!-- icon is close -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="20:1-20:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:302"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="20:61">  <!-- to back -->
+                        <TransitionViewModelCondition>  <!-- icon is back -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="20:1-20:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:303"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="20:62">  <!-- to forward -->
+                        <TransitionViewModelCondition>  <!-- icon is forward -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="20:1-20:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:304"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="20:63">  <!-- to info -->
+                        <TransitionViewModelCondition>  <!-- icon is info -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="20:1-20:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:305"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="20:64">  <!-- to soundOn -->
+                        <TransitionViewModelCondition>  <!-- icon is soundOn -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="20:1-20:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:306"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="20:65">  <!-- to soundOff -->
+                        <TransitionViewModelCondition>  <!-- icon is soundOff -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="20:1-20:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:307"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="20:66">  <!-- to more -->
+                        <TransitionViewModelCondition>  <!-- icon is more -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="20:1-20:2" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:308"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnyState>
+                <ExitState x="0" y="-280" id="20:57"/>
+                <EntryState x="0" y="0" id="20:58">
+                    <StateTransition stateToId="20:59"/>  <!-- starts in settings -->
+                </EntryState>
+                <AnimationState animationId="20:85" stateName="settings" x="240" y="0" id="20:59"/>
+                <AnimationState animationId="20:86" stateName="close" x="240" y="110" id="20:60"/>
+                <AnimationState animationId="20:87" stateName="back" x="240" y="220" id="20:61"/>
+                <AnimationState animationId="20:88" stateName="forward" x="240" y="330" id="20:62"/>
+                <AnimationState animationId="20:89" stateName="info" x="240" y="440" id="20:63"/>
+                <AnimationState animationId="20:90" stateName="soundOn" x="240" y="550" id="20:64"/>
+                <AnimationState animationId="20:91" stateName="soundOff" x="240" y="660" id="20:65"/>
+                <AnimationState animationId="20:92" stateName="more" x="240" y="770" id="20:66"/>
+            </StateMachineLayer>
+            <StateMachineLayer name="Press" id="20:70">
+                <AnyState x="0" y="-140" id="20:71"/>
+                <ExitState x="0" y="-280" id="20:72"/>
+                <EntryState x="0" y="0" id="20:73">
+                    <StateTransition stateToId="20:74"/>  <!-- starts in up -->
+                </EntryState>
+                <AnimationState animationId="20:93" stateName="up" x="240" y="0" id="20:74">
+                    <StateTransition stateToId="20:75" duration="80">  <!-- to down: 80 ms -->
+                        <TransitionViewModelCondition>  <!-- _down is true -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="20:1-20:6" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState animationId="20:94" stateName="down" x="480" y="0" id="20:75">
+                    <StateTransition stateToId="20:74" duration="320" interpolationType="elastic">  <!-- to up: springs back -->
+                        <ElasticInterpolator easingValue="easeOut" amplitude="1" period="0.5"/>
+                        <TransitionViewModelCondition>  <!-- _down is false -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="20:1-20:6" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="false"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+            </StateMachineLayer>
+        </StateMachine>
+
+        <!-- Timelines. All are one-key poses: the state transitions do the blending. -->
+        <LinearAnimation duration="1" name="style: plain" id="20:80">
+            <KeyedObject objectId="20:17"><KeyedProperty property="colorValue"><KeyFrameColor value="00D2FCD5" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Disc Color -->
+            <KeyedObject objectId="20:19"><KeyedProperty property="colorValue"><KeyFrameColor value="0099D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Edge Color -->
+            <KeyedObject objectId="20:31"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- settings Color -->
+            <KeyedObject objectId="20:32"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- close Color -->
+            <KeyedObject objectId="20:33"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- back Color -->
+            <KeyedObject objectId="20:34"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- forward Color -->
+            <KeyedObject objectId="20:35"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- info Color -->
+            <KeyedObject objectId="20:36"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- soundOn Color -->
+            <KeyedObject objectId="20:37"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- soundOff Color -->
+            <KeyedObject objectId="20:38"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- more Color -->
+            <KeyedObject objectId="20:15"><KeyedProperty property="x"><KeyFrameDouble value="24" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Hit -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="style: tinted" id="20:81">
+            <KeyedObject objectId="20:17"><KeyedProperty property="colorValue"><KeyFrameColor value="FFD2FCD5" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Disc Color -->
+            <KeyedObject objectId="20:19"><KeyedProperty property="colorValue"><KeyFrameColor value="FF99D59F" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Edge Color -->
+            <KeyedObject objectId="20:31"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- settings Color -->
+            <KeyedObject objectId="20:32"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- close Color -->
+            <KeyedObject objectId="20:33"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- back Color -->
+            <KeyedObject objectId="20:34"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- forward Color -->
+            <KeyedObject objectId="20:35"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- info Color -->
+            <KeyedObject objectId="20:36"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- soundOn Color -->
+            <KeyedObject objectId="20:37"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- soundOff Color -->
+            <KeyedObject objectId="20:38"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- more Color -->
+            <KeyedObject objectId="20:15"><KeyedProperty property="x"><KeyFrameDouble value="24" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Hit -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="style: filled" id="20:82">
+            <KeyedObject objectId="20:17"><KeyedProperty property="colorValue"><KeyFrameColor value="FF007841" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Disc Color -->
+            <KeyedObject objectId="20:19"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Edge Color -->
+            <KeyedObject objectId="20:31"><KeyedProperty property="colorValue"><KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- settings Color -->
+            <KeyedObject objectId="20:32"><KeyedProperty property="colorValue"><KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- close Color -->
+            <KeyedObject objectId="20:33"><KeyedProperty property="colorValue"><KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- back Color -->
+            <KeyedObject objectId="20:34"><KeyedProperty property="colorValue"><KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- forward Color -->
+            <KeyedObject objectId="20:35"><KeyedProperty property="colorValue"><KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- info Color -->
+            <KeyedObject objectId="20:36"><KeyedProperty property="colorValue"><KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- soundOn Color -->
+            <KeyedObject objectId="20:37"><KeyedProperty property="colorValue"><KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- soundOff Color -->
+            <KeyedObject objectId="20:38"><KeyedProperty property="colorValue"><KeyFrameColor value="FFFFFFFF" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- more Color -->
+            <KeyedObject objectId="20:15"><KeyedProperty property="x"><KeyFrameDouble value="24" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Hit -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="style: disabled plain" id="20:83">
+            <KeyedObject objectId="20:17"><KeyedProperty property="colorValue"><KeyFrameColor value="00E6E6E6" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Disc Color -->
+            <KeyedObject objectId="20:19"><KeyedProperty property="colorValue"><KeyFrameColor value="00E6E6E6" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Edge Color -->
+            <KeyedObject objectId="20:31"><KeyedProperty property="colorValue"><KeyFrameColor value="FF949494" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- settings Color -->
+            <KeyedObject objectId="20:32"><KeyedProperty property="colorValue"><KeyFrameColor value="FF949494" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- close Color -->
+            <KeyedObject objectId="20:33"><KeyedProperty property="colorValue"><KeyFrameColor value="FF949494" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- back Color -->
+            <KeyedObject objectId="20:34"><KeyedProperty property="colorValue"><KeyFrameColor value="FF949494" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- forward Color -->
+            <KeyedObject objectId="20:35"><KeyedProperty property="colorValue"><KeyFrameColor value="FF949494" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- info Color -->
+            <KeyedObject objectId="20:36"><KeyedProperty property="colorValue"><KeyFrameColor value="FF949494" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- soundOn Color -->
+            <KeyedObject objectId="20:37"><KeyedProperty property="colorValue"><KeyFrameColor value="FF949494" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- soundOff Color -->
+            <KeyedObject objectId="20:38"><KeyedProperty property="colorValue"><KeyFrameColor value="FF949494" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- more Color -->
+            <KeyedObject objectId="20:15"><KeyedProperty property="x"><KeyFrameDouble value="-10000" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Hit -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="style: disabled solid" id="20:84">
+            <KeyedObject objectId="20:17"><KeyedProperty property="colorValue"><KeyFrameColor value="FFE6E6E6" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Disc Color -->
+            <KeyedObject objectId="20:19"><KeyedProperty property="colorValue"><KeyFrameColor value="00E6E6E6" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Edge Color -->
+            <KeyedObject objectId="20:31"><KeyedProperty property="colorValue"><KeyFrameColor value="FF666666" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- settings Color -->
+            <KeyedObject objectId="20:32"><KeyedProperty property="colorValue"><KeyFrameColor value="FF666666" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- close Color -->
+            <KeyedObject objectId="20:33"><KeyedProperty property="colorValue"><KeyFrameColor value="FF666666" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- back Color -->
+            <KeyedObject objectId="20:34"><KeyedProperty property="colorValue"><KeyFrameColor value="FF666666" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- forward Color -->
+            <KeyedObject objectId="20:35"><KeyedProperty property="colorValue"><KeyFrameColor value="FF666666" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- info Color -->
+            <KeyedObject objectId="20:36"><KeyedProperty property="colorValue"><KeyFrameColor value="FF666666" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- soundOn Color -->
+            <KeyedObject objectId="20:37"><KeyedProperty property="colorValue"><KeyFrameColor value="FF666666" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- soundOff Color -->
+            <KeyedObject objectId="20:38"><KeyedProperty property="colorValue"><KeyFrameColor value="FF666666" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- more Color -->
+            <KeyedObject objectId="20:15"><KeyedProperty property="x"><KeyFrameDouble value="-10000" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Hit -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="icon: settings" id="20:85">
+            <KeyedObject objectId="20:20"><KeyedProperty property="activeComponentId"><KeyFrameId value="20:21" frame="0"/></KeyedProperty></KeyedObject>  <!-- Icon -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="icon: close" id="20:86">
+            <KeyedObject objectId="20:20"><KeyedProperty property="activeComponentId"><KeyFrameId value="20:22" frame="0"/></KeyedProperty></KeyedObject>  <!-- Icon -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="icon: back" id="20:87">
+            <KeyedObject objectId="20:20"><KeyedProperty property="activeComponentId"><KeyFrameId value="20:23" frame="0"/></KeyedProperty></KeyedObject>  <!-- Icon -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="icon: forward" id="20:88">
+            <KeyedObject objectId="20:20"><KeyedProperty property="activeComponentId"><KeyFrameId value="20:24" frame="0"/></KeyedProperty></KeyedObject>  <!-- Icon -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="icon: info" id="20:89">
+            <KeyedObject objectId="20:20"><KeyedProperty property="activeComponentId"><KeyFrameId value="20:25" frame="0"/></KeyedProperty></KeyedObject>  <!-- Icon -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="icon: soundOn" id="20:90">
+            <KeyedObject objectId="20:20"><KeyedProperty property="activeComponentId"><KeyFrameId value="20:26" frame="0"/></KeyedProperty></KeyedObject>  <!-- Icon -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="icon: soundOff" id="20:91">
+            <KeyedObject objectId="20:20"><KeyedProperty property="activeComponentId"><KeyFrameId value="20:27" frame="0"/></KeyedProperty></KeyedObject>  <!-- Icon -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="icon: more" id="20:92">
+            <KeyedObject objectId="20:20"><KeyedProperty property="activeComponentId"><KeyFrameId value="20:28" frame="0"/></KeyedProperty></KeyedObject>  <!-- Icon -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="press: up" id="20:93">
+            <KeyedObject objectId="20:16"><KeyedProperty property="y"><KeyFrameDouble value="22" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Face -->
+            <KeyedObject objectId="20:18"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Edge -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="press: down" id="20:94">
+            <KeyedObject objectId="20:16"><KeyedProperty property="y"><KeyFrameDouble value="26" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleX"><KeyFrameDouble value="0.94" frame="0" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="0.94" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Face -->
+            <KeyedObject objectId="20:18"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Edge -->
+        </LinearAnimation>
+    </Artboard>
+</Rive>

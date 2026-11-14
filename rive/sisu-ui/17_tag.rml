@@ -1,0 +1,92 @@
+<!-- Tag  (200x28, fixed)
+     Small label such as 'Simulated, no real switch' or 'Sample data'.
+
+     View model TagVM  (names and types are fixed by rive/contract.json):
+       text        string             in     default "Simulated, no real switch"
+       tone        enum TagTone       in     default "amber"
+
+     How it works
+       Pill       hugs its text (12 pt padding each side) and is anchored to the left edge of the fixed 200 x 28 artboard.
+                  The text is at most 176 pt wide; a longer one shrinks its font.
+       Tone       AnyState -> neutral | amber | info on `tone`; the pose keys the pill and text colours. -->
+<Rive version="1" kind="fragment">
+    <!-- View model -->
+    <ViewModel defaultInstanceId="17:4" name="TagVM" id="17:1">
+        <ViewModelPropertyString name="text" id="17:2"/>
+        <ViewModelPropertyEnumCustom enumId="0:280" name="tone" id="17:3"/>
+        <ViewModelInstance exports="true" name="Default" id="17:4">
+            <ViewModelInstanceString propertyValue="Simulated, no real switch" viewModelPropertyId="17:2" id="17:5"/>  <!-- text -->
+            <ViewModelInstanceEnum propertyValue="0:282" viewModelPropertyId="17:3" id="17:6"/>  <!-- tone = amber -->
+        </ViewModelInstance>
+    </ViewModel>
+
+    <Artboard defaultStateMachineId="17:15" viewModelId="17:1" viewModelInstanceId="17:4" clip="true" width="200" height="28"
+            x="520" y="1586" styleId="17:8" name="Tag" id="17:7">
+        <LayoutComponentStyle name="Artboard Style" id="17:8"/>
+
+        <!-- Scene. The first sibling draws on top. -->
+        <!-- The pill hugs its text and sits at the artboard's left edge, so a short tag is a short pill inside the app's fixed
+             200 x 28 frame. The text is at most 176 pt wide (a full-width pill); past that it shrinks its font rather than being cut. -->
+        <LayoutComponent height="28" clip="true" styleId="17:10" name="Pill" id="17:9">
+            <SemanticData role="text" name="Semantics"><DataBindContext sourcePathIds="17:1-17:2" propertyKey="983"/></SemanticData>  <!-- for VoiceOver: role, label <- the component's text -->
+            <LayoutComponentStyle layoutWidthScaleType="hug" layoutHeightScaleType="fixed" flexDirectionValue="row"
+                    layoutAlignmentType="center" cornerRadiusTL="14" paddingLeft="12" paddingLeftUnitsValue="points" paddingRight="12"
+                    paddingRightUnitsValue="points" name="Pill Style" id="17:10"/>
+            <Fill name="Fill"><SolidColor colorValue="FFFFF1D8" name="Color" id="17:11"/></Fill>
+            <Text wrapValue="noWrap" overflowValue="fitFontSize" name="Text" id="17:12">
+                <LayoutParticipant layoutWidthScaleType="hug" layoutHeightScaleType="hug" maxWidth="176" maxWidthUnitsValue="points" name="Layout"/>
+                <TextStylePaint fontSize="12" fontAssetId="0:11" familyName="Figtree" styleName="SemiBold" name="Text Style" id="17:13">
+                    <Fill name="Fill"><SolidColor colorValue="FF885600" name="Color" id="17:14"/></Fill>
+                </TextStylePaint>
+                <TextValueRun styleId="17:13" text="" name="Run"><DataBindContext sourcePathIds="17:1-17:2" propertyKey="268"/></TextValueRun>  <!-- text <- text -->
+            </Text>
+        </LayoutComponent>
+
+        <!-- State machine. Declared before the timelines so the editor opens it first. -->
+        <StateMachine name="Main" id="17:15">
+            <StateMachineLayer name="Tone" id="17:16">
+                <AnyState x="0" y="-140" id="17:17">
+                    <StateTransition stateToId="17:20">  <!-- to neutral -->
+                        <TransitionViewModelCondition>  <!-- tone is neutral -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="17:1-17:3" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:281"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="17:21">  <!-- to amber -->
+                        <TransitionViewModelCondition>  <!-- tone is amber -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="17:1-17:3" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:282"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="17:22">  <!-- to info -->
+                        <TransitionViewModelCondition>  <!-- tone is info -->
+                            <TransitionPropertyViewModelComparator><BindablePropertyEnum><DataBindContext sourcePathIds="17:1-17:3" propertyKey="637"/></BindablePropertyEnum></TransitionPropertyViewModelComparator>
+                            <TransitionValueEnumComparator value="0:283"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnyState>
+                <ExitState x="0" y="-280" id="17:18"/>
+                <EntryState x="0" y="0" id="17:19">
+                    <StateTransition stateToId="17:21"/>  <!-- starts in amber -->
+                </EntryState>
+                <AnimationState animationId="17:23" stateName="neutral" x="240" y="0" id="17:20"/>
+                <AnimationState animationId="17:24" stateName="amber" x="240" y="110" id="17:21"/>
+                <AnimationState animationId="17:25" stateName="info" x="240" y="220" id="17:22"/>
+            </StateMachineLayer>
+        </StateMachine>
+
+        <!-- Timelines. Most are one-key poses: the state transitions do the blending. -->
+        <LinearAnimation duration="1" name="tone: neutral" id="17:23">
+            <KeyedObject objectId="17:11"><KeyedProperty property="colorValue"><KeyFrameColor value="FFD2FCD5" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Pill Color -->
+            <KeyedObject objectId="17:14"><KeyedProperty property="colorValue"><KeyFrameColor value="FF004628" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Text Color -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="tone: amber" id="17:24">
+            <KeyedObject objectId="17:11"><KeyedProperty property="colorValue"><KeyFrameColor value="FFFFF1D8" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Pill Color -->
+            <KeyedObject objectId="17:14"><KeyedProperty property="colorValue"><KeyFrameColor value="FF885600" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Text Color -->
+        </LinearAnimation>
+        <LinearAnimation duration="1" name="tone: info" id="17:25">
+            <KeyedObject objectId="17:11"><KeyedProperty property="colorValue"><KeyFrameColor value="FFE0F4FF" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Pill Color -->
+            <KeyedObject objectId="17:14"><KeyedProperty property="colorValue"><KeyFrameColor value="FF006E87" frame="0" interpolationType="linear"/></KeyedProperty></KeyedObject>  <!-- Text Color -->
+        </LinearAnimation>
+    </Artboard>
+</Rive>

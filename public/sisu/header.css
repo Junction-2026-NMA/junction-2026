@@ -1,0 +1,281 @@
+/* The bank shell, top of the page: the skip link, the concept notice and the header's layout.
+   Written from scratch after the screenshots in context/landing. The header's scripted parts
+   and the breadcrumb are in more.css, the footer in shell.css. Like the bank's site, the shell
+   has no motion. A phone bar below 1024px, two full-width rows from 1024px. Sizes follow the
+   bank's header: on a phone a small logo and a large Kirjaudu pill, on a desktop wide pills
+   and roomy rows. Whatever closes a list is under the js class, so without scripts it is open. */
+.skip-link {
+  position: absolute;
+  top: 0;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  width: fit-content;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: var(--radius-full);
+  background: var(--white);
+  color: var(--green-900);
+  font-weight: 700;
+  transform: translateY(-250%);
+}
+
+/* On focus the skip link takes its own row above the notice. */
+.skip-link:focus {
+  position: static;
+  margin: 8px 16px;
+  transform: none;
+}
+
+.concept-note {
+  padding: 10px 16px;
+  background: var(--green-900);
+  color: var(--white);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.site-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 16px;
+  background: var(--shell-pale);
+  color: var(--green-900);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+/* The header's outline icons are a little heavier than the content's, as on the bank's site. */
+.site-header .line-icon {
+  stroke-width: 2.25;
+}
+
+/* The logo link is the header's first child. The image keeps its box when it cannot load.
+   Its alt text is small on purpose: Safari draws the alt text of a missing image only when
+   it fits above the error icon. With scripts on, more.css shows the name as text instead.
+   On a phone the mark is drawn at about the bank's phone size, in a box that keeps its height. */
+.site-header > a:first-child {
+  grid-area: 1 / 1;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-width: 48px;
+  min-height: 48px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+}
+
+.site-header > a:first-child img {
+  display: block;
+  width: 76px;
+  height: 46px;
+  max-width: none;
+  object-fit: contain;
+  object-position: left center;
+  color: var(--green-900);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.login-pill {
+  grid-area: 1 / 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0 14px 0 12px;
+  border-radius: var(--radius-full);
+  background: var(--green-200);
+  color: var(--green-900);
+  font-size: 1.0625rem;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+/* Everything the menu button opens: full-width rows that push the page down. */
+.header-menu {
+  grid-area: 2 / 1 / 3 / -1;
+  display: grid;
+  gap: 8px;
+  margin: -4px -16px -4px;
+  padding: 16px;
+  border-top: 2px solid var(--shell-grey);
+  background: var(--white);
+}
+
+.header-menu a,
+.segment-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0 16px;
+  border-radius: var(--radius-full);
+  color: var(--green-900);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-decoration: none;
+}
+
+.header-menu a:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.segment,
+.segment-list,
+.nav-list {
+  display: grid;
+  gap: 8px;
+}
+
+.segment-list {
+  padding-left: 16px;
+}
+
+.segment-button {
+  justify-content: space-between;
+  width: 100%;
+  border: 2px solid var(--green-900);
+  background: var(--white);
+  cursor: pointer;
+}
+
+.nav-list [aria-current] {
+  background: var(--shell-grey);
+}
+
+/* From 390px the Kirjaudu pill takes the bank's phone size. */
+@media (min-width: 390px) {
+  .login-pill {
+    padding: 0 18px;
+    font-size: 1.125rem;
+  }
+}
+
+@media (min-width: 600px) {
+  .site-header > a:first-child img {
+    width: 107px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .site-header {
+    grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "logo segment . svenska login"
+      "nav nav nav support branches";
+    gap: 24px 16px;
+    padding: 16px 24px;
+    background: var(--white);
+  }
+
+  .site-header > a:first-child {
+    grid-area: logo;
+  }
+
+  .site-header > a:first-child img {
+    width: 112px;
+    height: 48px;
+  }
+
+  .header-menu {
+    display: contents;
+  }
+
+  .segment {
+    grid-area: segment;
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-left: 24px;
+  }
+
+  .segment-button {
+    width: auto;
+    gap: 12px;
+    padding: 0 22px 0 24px;
+    font-weight: 600;
+  }
+
+  .segment-list {
+    display: flex;
+    flex-wrap: wrap;
+    padding-left: 0;
+  }
+
+  .header-menu .util-sv {
+    grid-area: svenska;
+    justify-self: end;
+    padding: 0 26px;
+    font-weight: 600;
+  }
+
+  .login-pill {
+    grid-area: login;
+    justify-self: end;
+    gap: 7px;
+    padding: 0 26px 0 25px;
+    font-size: 1.0625rem;
+  }
+
+  /* Row 2 starts a little inside the logo. Its links sit 42px apart, text to text, so that
+     five of them fit before "Katso lisää" at 1280px; from 1440px they take the bank's 54px.
+     The "Katso lisää" pill (more.css) takes the row's type size. */
+  .main-nav {
+    grid-area: nav;
+    margin-left: -11px;
+  }
+
+  .nav-list {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 1rem;
+  }
+
+  .nav-list a {
+    padding: 0 17px;
+    font-size: inherit;
+    font-weight: 600;
+  }
+
+  .util-support {
+    grid-area: support;
+    justify-self: end;
+    align-self: start;
+  }
+
+  .util-branches {
+    grid-area: branches;
+    justify-self: end;
+    align-self: start;
+  }
+}
+
+/* The bank's own row 2: 17px links 54px apart, kept at least 32px clear of Asiakastuki. */
+@media (min-width: 1440px) {
+  .main-nav {
+    margin-right: 32px;
+  }
+
+  .nav-list {
+    font-size: 1.0625rem;
+  }
+
+  .nav-list a {
+    padding: 0 23px;
+  }
+}
