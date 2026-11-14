@@ -1,0 +1,298 @@
+/* Section 1, the hero, and section 2, the facts strip. Their motion is in hero-motion.css.
+   The phone itself is drawn in today.css; here it gets its size and its place. */
+.hero {
+  overflow-x: clip;
+  text-align: center;
+}
+
+main > .hero {
+  padding-top: 16px;
+  padding-bottom: 28px;
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 10vw, 4.25rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.hero-chip {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin: 8px auto 0;
+  padding: 2px clamp(12px, 4vw, 18px) 8px;
+  border-radius: var(--radius-lg);
+  background: var(--green-200);
+  transform: rotate(-2deg);
+}
+
+/* Two short lines, one idea each, then the concept line in smaller type. */
+.hero-lead {
+  max-width: 34rem;
+  margin: 20px auto 0;
+  font-size: 1.125rem;
+  line-height: 1.45;
+}
+
+.lead-line {
+  display: block;
+  text-wrap: balance;
+}
+
+.hero-note {
+  margin: 8px auto 24px;
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+/* The product picture is one grid of three columns with the phone in the middle one.
+   Below 1024px it is one compact picture: Liito at the phone's upper right, the two cards
+   over its lower corners, where the phone shows only its empty home strip.
+   The cards are sized in em, so the figure's font-size scales them at each breakpoint. */
+.hero-figure {
+  --phone-w: 220px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--phone-w) minmax(0, 1fr);
+  width: min(100% - 2 * var(--gutter), 340px);
+  margin-top: 32px;
+  font-size: 12px;
+}
+
+.phone {
+  grid-area: 1 / 2;
+  font-size: 13px;
+}
+
+.float-card,
+.sticker {
+  --tilt: 0deg;
+  z-index: 1;
+  transform: rotate(var(--tilt));
+}
+
+.float-card {
+  padding: 1em 0.875em 1.125em;
+  border: 2px solid var(--green-300);
+  border-radius: 1.5em;
+  background: var(--surface);
+  text-align: left;
+}
+
+.streak-card {
+  --tilt: -5deg;
+  grid-area: 2 / 1 / 3 / 3;
+  justify-self: start;
+  align-self: start;
+  width: 8.5em;
+  margin-top: -2em;
+  text-align: center;
+}
+
+.streak-card .flame {
+  width: 2.25em;
+  height: 2.25em;
+}
+
+/* The count clips its own line, so the number can rise into it (see hero-motion.css). */
+.streak-count {
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-size: 2.75em;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.streak-figure {
+  display: block;
+  position: relative;
+}
+
+.streak-label {
+  color: var(--text-muted);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.jar-card {
+  --tilt: 4deg;
+  grid-area: 2 / 2 / 3 / 4;
+  justify-self: end;
+  align-self: start;
+  width: 9.5em;
+  margin-top: -1.25em;
+}
+
+.jar-card-top {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.jar-chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 2.25em;
+  height: 2.25em;
+  border-radius: var(--radius-full);
+  background: var(--green-100);
+  fill: var(--green-900);
+}
+
+.jar-chip svg {
+  width: 1.375em;
+  height: 1.375em;
+}
+
+.jar-card-sum {
+  margin: 0.5em 0 0.625em;
+  font-variant-numeric: tabular-nums;
+}
+
+.jar-card .meter {
+  height: 0.875em;
+}
+
+/* Liito as a sticker: white die-cut border, tilted. */
+.sticker {
+  --tilt: 6deg;
+  grid-area: 1 / 2 / 2 / 4;
+  justify-self: end;
+  align-self: start;
+  width: 80px;
+  height: 80px;
+  margin-top: 18px;
+  border: 4px solid var(--white);
+  border-radius: var(--radius-lg);
+}
+
+.hero-figure .example-note {
+  grid-area: 3 / 1 / 4 / -1;
+  margin-top: 14px;
+}
+
+/* Facts strip: a calm white band under the hero with the two facts in reading order. */
+main > .facts {
+  padding: 24px 0 20px;
+  background: var(--surface);
+}
+
+.fact-list {
+  display: grid;
+  gap: 12px;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.fact + .fact {
+  padding-top: 14px;
+  border-top: 2px solid var(--green-100);
+}
+
+.fact-text {
+  font-size: 1.0625rem;
+  line-height: 1.4;
+}
+
+.fact-lead {
+  font-weight: 700;
+}
+
+@media (min-width: 600px) {
+  .hero-figure {
+    --phone-w: 280px;
+    width: min(100% - 2 * var(--gutter), 480px);
+    font-size: 14px;
+  }
+
+  .phone {
+    font-size: 15px;
+  }
+
+  .sticker {
+    width: 100px;
+    height: 100px;
+    margin-top: 22px;
+  }
+}
+
+/* From 1024px: an 820px composition around a 352px phone. The cards float beside it and
+   overlap its edges only where the screen is empty. The hero's lower edge cuts off part of
+   the phone's empty home strip (flow-root keeps the figure's negative margin inside the hero),
+   so the phone seems to stand in the facts band. The cut is shorter than that strip. */
+@media (min-width: 1024px) {
+  .hero {
+    display: flow-root;
+    overflow: hidden;
+    overflow: clip;
+  }
+
+  main > .hero {
+    padding-bottom: 0;
+  }
+
+  .hero-figure {
+    --phone-w: 352px;
+    width: min(100% - 2 * var(--gutter), 820px);
+    margin-bottom: -28px;
+    font-size: 16px;
+  }
+
+  .phone {
+    font-size: 16px;
+  }
+
+  .streak-card {
+    grid-area: 1 / 1;
+    justify-self: end;
+    width: 10.5em;
+    margin: 44px -20px 0 0;
+  }
+
+  .jar-card {
+    grid-area: 1 / 3;
+    justify-self: start;
+    width: 14.5em;
+    margin: 232px 0 0 -14px;
+  }
+
+  .sticker {
+    --tilt: 5deg;
+    grid-area: 1 / 3;
+    justify-self: start;
+    width: 116px;
+    height: 116px;
+    margin: -20px 0 0 -40px;
+  }
+
+  .hero-figure .example-note {
+    grid-area: 1 / 1;
+    justify-self: end;
+    align-self: end;
+    margin: 0 36px 64px 0;
+  }
+
+  main > .facts {
+    padding: 28px 0 24px;
+  }
+
+  .fact-list {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0;
+    width: min(100% - 2 * var(--gutter), 960px);
+  }
+
+  .fact + .fact {
+    padding-top: 0;
+    border-top: 0;
+    border-left: 2px solid var(--green-100);
+  }
+}

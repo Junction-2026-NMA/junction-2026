@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="fi" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sisu, your money coach in S-mobiili | S-Pankki</title>
+<meta name="description" content="Sisu turns your own transactions into one small win a day. Concept for Junction 2026. Not an official S-Pankki page.">
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="shell.css">
+<link rel="stylesheet" href="header.css">
+<link rel="stylesheet" href="more.css">
+<link rel="stylesheet" href="hero.css">
+<link rel="stylesheet" href="hero-motion.css">
+<link rel="stylesheet" href="today.css">
+<link rel="stylesheet" href="sections.css">
+<link rel="stylesheet" href="baskets.css">
+<link rel="stylesheet" href="panels.css">
+<link rel="stylesheet" href="mockups.css">
+<link rel="stylesheet" href="panels-motion.css">
+<link rel="stylesheet" href="week.css">
+<link rel="stylesheet" href="week-motion.css">
+<link rel="stylesheet" href="closing.css">
+<script src="boot.js"></script>
+<script src="page.js" defer></script>
+<script src="nav.js" defer></script>
+<script src="panels.js" defer></script>
+<script src="faq.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#sisalto">Siirry suoraan sisältöön</a>
+<div class="concept-note">
+  <p lang="en">Concept for Junction 2026. Not an official S-Pankki page.</p>
+</div>
+
+<!-- Bank shell, written from scratch after the screenshots in context/landing. Icons are plain outline shapes. -->
+<header class="site-header">
+  <a href="https://www.s-pankki.fi/fi/" aria-label="Etusivulle"><img src="https://www.s-pankki.fi/Assets/img/logos/s-pankki-logo-107x46.svg" alt="S-Pankki" width="107" height="46"></a>
+  <button class="menu-button" type="button" aria-label="Mobiilivalikko" aria-expanded="false" aria-controls="paavalikko">
+    <span class="menu-lines" aria-hidden="true"></span>
+  </button>
+  <div class="header-menu">
+    <div class="segment">
+      <button class="segment-button" type="button" aria-expanded="false" aria-controls="asiakasryhmat">
+        Henkilöasiakkaat
+        <svg class="line-icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 8.5 7 7 7-7"/></svg>
+      </button>
+      <ul class="segment-list" id="asiakasryhmat">
+        <li><a href="https://www.s-pankki.fi/fi/private-banking-ja-varainhoito/">Private Banking</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/varainhoito-instituutioasiakkaille/">Instituutiot</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/yhtiot/">Yritykset</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/s-pankki-yrityksena/">S-Pankki yrityksenä</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/s-pankki-yrityksena/medialle/">Medialle</a></li>
+      </ul>
+    </div>
+    <a class="util-link util-sv" href="https://www.s-pankki.fi/sv/" lang="sv">På svenska</a>
+    <nav class="main-nav" id="paavalikko" aria-label="Päävalikko">
+      <ul class="nav-list">
+        <li><a href="https://www.s-pankki.fi/fi/tilit/">Tilit ja maksut</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/verkkopalvelut/" aria-current="true">Verkkopalvelut</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/kortit/">Kortit</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/lainat/">Lainat</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/saastaminen-ja-sijoittaminen/">Säästäminen ja sijoittaminen</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/tule-asiakkaaksi/">Tule asiakkaaksi</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/elamantilanteet/">Elämäntilanteet</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/turvallisuus-s-pankissa/">Turvallisuus</a></li>
+      </ul>
+    </nav>
+    <a class="util-link util-support" href="https://www.s-pankki.fi/fi/asiakaspalvelu/">
+      <span class="util-label">Asiakastuki</span>
+      <svg class="line-icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v5.5"/><path d="M12 7.5v.25"/></svg>
+    </a>
+    <a class="util-link util-branches" href="https://www.s-pankki.fi/fi/toimipaikat/">
+      Toimipaikat
+      <svg class="line-icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21.5s7-6.2 7-11.5a7 7 0 0 0-14 0c0 5.3 7 11.5 7 11.5z"/><circle cx="12" cy="10" r="2.5"/></svg>
+    </a>
+  </div>
+  <a class="login-pill" href="https://www.s-pankki.fi/fi/">
+    <svg class="line-icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="10.5" width="13" height="10.5" rx="2"/><path d="M8.5 10.5V7a3.5 3.5 0 0 1 7 0v3.5"/></svg>
+    Kirjaudu
+  </a>
+</header>
+
+<nav aria-label="Murupolku">
+  <ol class="crumbs">
+    <li class="crumb"><a href="https://www.s-pankki.fi/fi/">Etusivu</a></li>
+    <li class="crumb"><a href="https://www.s-pankki.fi/fi/verkkopalvelut/">Verkkopalvelut</a></li>
+    <li class="crumb crumb-parent"><a href="https://www.s-pankki.fi/fi/verkkopalvelut/s-mobiili/"><svg class="line-icon crumb-arrow" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12H5"/><path d="m11 6-6 6 6 6"/></svg>S-mobiili</a></li>
+    <li class="crumb"><span aria-current="page">Sisu</span></li>
+  </ol>
+</nav>
+
+<!-- Sisu content. Basket and jar icons: Phosphor Icons, MIT licence, see img/PHOSPHOR-LICENSE.txt. -->
+<main id="sisalto" lang="en">
+
+  <section class="hero">
+    <div class="hero-copy reveal">
+      <h1 class="hero-title">Small wins with <span class="hero-chip">your own money.</span></h1>
+      <p class="hero-lead"><span class="lead-line">Know what is safe to spend until payday.</span> <span class="lead-line">Then take one small step a day.</span></p>
+      <p class="hero-note">A money coach concept for <span class="keep">S-mobiili</span>.</p>
+      <a class="demo-button btn-primary" href="/">Open the Sisu demo</a>
+    </div>
+    <figure class="hero-figure reveal">
+      <div class="phone">
+        <div class="phone-screen">
+          <div class="today-hero">
+            <p class="today-date">Monday 9 Nov</p>
+            <p class="today-label">Safe to spend</p>
+            <p class="today-amount"><span class="today-figure js-count" data-count-ms="900">€64</span></p>
+            <p class="today-context">6 days to payday</p>
+          </div>
+          <div class="today-baskets">
+            <p class="today-heading">This pay period</p>
+            <div class="basket-bar">
+              <span class="bar-part bar-fixed"></span>
+              <span class="bar-part bar-curveballs"></span>
+              <span class="bar-part bar-leaks"></span>
+              <span class="bar-part bar-jars"></span>
+            </div>
+            <p class="legend-row"><span class="legend-dot bar-fixed"></span> <span class="legend-name">Fixed</span> <span class="legend-sum">€612</span></p>
+            <p class="legend-row"><span class="legend-dot bar-curveballs"></span> <span class="legend-name">Curveballs</span> <span class="legend-sum">€85</span></p>
+            <p class="legend-row"><span class="legend-dot bar-leaks"></span> <span class="legend-name">Leaks</span> <span class="legend-sum">€143</span></p>
+            <p class="legend-row"><span class="legend-dot bar-jars"></span> <span class="legend-name">Jars</span> <span class="legend-sum">€40</span></p>
+          </div>
+          <p class="phone-tabs">
+            <span class="phone-tab phone-tab-on">Today</span>
+            <span class="phone-tab">Chat</span>
+            <span class="phone-tab">Jars</span>
+            <span class="phone-tab">Path</span>
+          </p>
+        </div>
+      </div>
+      <div class="float-card streak-card">
+        <svg class="flame" width="36" height="36" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c0 4 6 6.5 6 12a6 6 0 0 1-12 0c0-2 .8-3.6 2-5 .2 1.6 1 2.6 2 3 0-3.5.5-7 2-10z"/></svg>
+        <p class="streak-count"><span class="streak-figure js-count" data-count-ms="700">12</span></p>
+        <p class="streak-label">days in a row</p>
+      </div>
+      <div class="float-card jar-card">
+        <p class="jar-card-top">
+          <span class="jar-chip"><svg width="24" height="24" viewBox="0 0 256 256" aria-hidden="true"><path d="M184,48.81V32a16,16,0,0,0-16-16H88A16,16,0,0,0,72,32V48.81A40.05,40.05,0,0,0,40,88V200a40,40,0,0,0,40,40h96a40,40,0,0,0,40-40V88A40.05,40.05,0,0,0,184,48.81ZM120,48V32h16V48Zm48,0H152V32h16ZM104,32V48H88V32Z"/></svg></span>
+          <span class="jar-card-name">Buffer jar</span>
+        </p>
+        <p class="jar-card-sum">€120 of €500</p>
+        <span class="meter meter-buffer"><span class="meter-fill"></span></span>
+      </div>
+      <img class="sticker" src="img/liito-glide.png" width="96" height="96" alt="Liito, the flying squirrel, gliding">
+      <figcaption class="example-note">Example figures</figcaption>
+    </figure>
+  </section>
+
+  <section class="facts" aria-label="S-mobiili in numbers">
+    <ul class="fact-list reveal">
+      <li class="fact">
+        <p class="fact-text"><span class="fact-lead">About 2.9 million</span> people use <span class="keep">S-mobiili</span>.</p>
+        <a class="source-link" href="https://www.s-pankki.fi/fi/tiedotteet/2026/s-pankki-oyjn-osavuosikatsaus-1.1.30.9.2026/">S-Pankki interim report, 1 Jan to 30 Sep 2026</a>
+      </li>
+      <li class="fact">
+        <p class="fact-text"><span class="fact-lead">Best bank mobile app</span> in Finland, EPSI Rating 2026.</p>
+        <a class="source-link" href="https://www.sttinfo.fi/tiedote/72337793/epsi-rating-s-pankilla-tyytyvaisimmat-pankkiasiakkaat-ja-paras-mobiilisovellus?lang=fi">EPSI Rating bank study 2026, press release on STT Info</a>
+      </li>
+    </ul>
+  </section>
+
+  <section class="baskets">
+    <div class="section-head reveal">
+      <h2>Three baskets for your spending.</h2>
+      <p>See what is committed, what comes up and what you spend day to day.</p>
+      <p class="basket-key"><span class="keep"><span class="key-dots" aria-hidden="true"><span class="key-dot"></span><span class="key-dot key-curveballs"></span><span class="key-dot key-leaks"></span></span>The darker the green,</span> <span class="keep">the more fixed the money.</span></p>
+    </div>
+    <div class="basket-grid">
+      <article class="basket-card basket-fixed reveal">
+        <span class="icon-chip"><svg width="28" height="28" viewBox="0 0 256 256" aria-hidden="true"><path d="M224,144c0,38.11-27.67,45.66-49.9,51.72C149.77,202.36,136,207.31,136,232a8,8,0,0,1-16,0c0-24.69-13.77-29.64-38.1-36.28C59.67,189.66,32,182.11,32,144a8,8,0,0,1,16,0c0,24.69,13.77,29.64,38.1,36.28,11.36,3.1,24.12,6.6,33.9,14.34V128H88a8,8,0,0,1,0-16h32V82.83a28,28,0,1,1,16,0V112h32a8,8,0,0,1,0,16H136v66.62c9.78-7.74,22.54-11.24,33.9-14.34C194.23,173.64,208,168.69,208,144a8,8,0,0,1,16,0Z"/></svg></span>
+        <h3 class="basket-name">Fixed</h3>
+        <p class="basket-fi" lang="fi">Kiinteät</p>
+        <p class="basket-text">Bills that come every month. <span class="basket-eg">Rent, phone, insurance.</span></p>
+      </article>
+      <article class="basket-card basket-curveballs reveal">
+        <span class="icon-chip"><svg width="28" height="28" viewBox="0 0 256 256" aria-hidden="true"><path d="M213.85,125.46l-112,120a8,8,0,0,1-13.69-7l14.66-73.33L45.19,143.49a8,8,0,0,1-3-13l112-120a8,8,0,0,1,13.69,7L153.18,90.9l57.63,21.61a8,8,0,0,1,3,12.95Z"/></svg></span>
+        <h3 class="basket-name">Curveballs</h3>
+        <p class="basket-fi" lang="fi">Yllärit</p>
+        <p class="basket-text">Bills that come now and then. <span class="basket-eg">The dentist, repairs, yearly fees.</span></p>
+      </article>
+      <article class="basket-card basket-leaks reveal">
+        <span class="icon-chip"><svg width="28" height="28" viewBox="0 0 256 256" aria-hidden="true"><path d="M174,47.75a254.19,254.19,0,0,0-41.45-38.3,8,8,0,0,0-9.18,0A254.19,254.19,0,0,0,82,47.75C54.51,79.32,40,112.6,40,144a88,88,0,0,0,176,0C216,112.6,201.49,79.32,174,47.75Zm9.85,105.59a57.6,57.6,0,0,1-46.56,46.55A8.75,8.75,0,0,1,136,200a8,8,0,0,1-1.32-15.89c16.57-2.79,30.63-16.85,33.44-33.45a8,8,0,0,1,15.78,2.68Z"/></svg></span>
+        <h3 class="basket-name">Leaks</h3>
+        <p class="basket-fi" lang="fi">Vuodot</p>
+        <p class="basket-text">Everyday spending that adds up. <span class="basket-eg">Coffee, delivery, subscriptions.</span></p>
+      </article>
+    </div>
+    <p class="basket-next reveal"><strong>Next:</strong> what is left until payday.</p>
+  </section>
+
+  <section class="daily">
+    <div class="section-head reveal">
+      <h2>What Sisu does each day.</h2>
+    </div>
+    <div class="panel-stack">
+      <article class="panel panel-safe reveal">
+        <div class="panel-copy">
+          <h3>Know what is safe to spend.</h3>
+          <p>One number shows what you can spend before payday.</p>
+          <ul class="tick-list">
+            <li>Bills still to come are already set aside.</li>
+            <li>The number updates with every card payment.</li>
+            <li>The days to payday stay in view.</li>
+          </ul>
+        </div>
+        <figure class="panel-visual">
+          <div class="mock mock-safe">
+            <div class="safe-block">
+              <p class="safe-label">Safe to spend today</p>
+              <p class="safe-amount js-count" data-count-ms="800">€64</p>
+              <p class="safe-context">Monday, 6 days to payday</p>
+              <span class="period-bar"><span class="period-fill"></span></span>
+            </div>
+            <p class="safe-row"><span>Balance</span> <span class="num">€402</span></p>
+            <p class="safe-row"><span>Bills still to come</span> <span class="num">−€298</span></p>
+            <p class="safe-row"><span>Set aside for jars</span> <span class="num">−€40</span></p>
+          </div>
+          <figcaption class="example-note">Example figures</figcaption>
+        </figure>
+      </article>
+
+      <article class="panel panel-chat reveal">
+        <div class="panel-copy">
+          <h3>Ask your money a question.</h3>
+          <p>Liito answers in plain words, with your own numbers.</p>
+          <ul class="tick-list">
+            <li>The answer comes first, in one line.</li>
+            <li>Every number names where it comes from.</li>
+            <li>Each reply ends with one next step.</li>
+          </ul>
+        </div>
+        <figure class="panel-visual">
+          <div class="mock mock-chat">
+            <p class="chat-name chat-name-user">You</p>
+            <p class="bubble bubble-user">€45 for a concert on Friday. Can I afford it?</p>
+            <p class="chat-name chat-name-liito">Liito</p>
+            <p class="bubble bubble-liito bubble-answer">Yes, just. <span class="num">€19</span> is left for 6 days after the ticket.</p>
+            <div class="bubble bubble-liito bubble-follow">
+              <p>Leaks usually take about €30 in 6 days. Want me to find €11?</p>
+              <div class="data-card">
+                <p class="data-label">Leaks in a usual 6 days</p>
+                <p class="data-number">€30</p>
+                <p class="data-source">From your card payments, 1 to 31 Oct</p>
+              </div>
+            </div>
+            <p class="chat-steps"><span class="chat-step">Find €11</span> <span class="chat-step">Show my week</span></p>
+          </div>
+          <figcaption class="example-note">Example figures</figcaption>
+        </figure>
+      </article>
+
+      <article class="panel panel-daily reveal">
+        <div class="panel-copy">
+          <h3>Do one small thing a day.</h3>
+          <p>One tiny action keeps your streak going.</p>
+          <ul class="tick-list">
+            <li>A check-in takes one tap.</li>
+            <li>Sorting one payment counts too.</li>
+            <li>Buying something never breaks your streak.</li>
+          </ul>
+        </div>
+        <figure class="panel-visual">
+          <div class="mock mock-daily">
+            <p class="daily-top">
+              <svg class="flame" width="32" height="32" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c0 4 6 6.5 6 12a6 6 0 0 1-12 0c0-2 .8-3.6 2-5 .2 1.6 1 2.6 2 3 0-3.5.5-7 2-10z"/></svg>
+              <span class="daily-day">Day 12</span>
+              <span class="daily-done">2 of 3 done</span>
+            </p>
+            <span class="meter meter-daily"><span class="meter-fill"></span></span>
+            <p class="task task-done"><span class="task-check"></span> <span class="task-name">Check in</span></p>
+            <p class="task task-done"><span class="task-check"></span> <span class="task-name">Sort one payment</span></p>
+            <p class="task"><span class="task-check"></span> <span class="task-name">Move €1 to your jar</span></p>
+            <div class="daily-jar">
+              <span class="jar jar-buffer"><span class="jar-lid"></span><span class="jar-glass"><span class="jar-fill"></span></span></span>
+              <p class="daily-jar-text"><span class="daily-jar-name">Buffer jar</span> <span class="num">€120 of €500</span></p>
+            </div>
+          </div>
+          <figcaption class="example-note">Example figures</figcaption>
+        </figure>
+      </article>
+    </div>
+  </section>
+
+  <section class="peers">
+    <div class="section-head reveal">
+      <h2>You are not the only one.</h2>
+      <p>Money worry is common. One small step is a good place to start.</p>
+    </div>
+    <!-- Each row of ten dots draws the share: 48% about 5 in 10, 21% about 2, 11% about 1. -->
+    <ul class="stat-grid">
+      <li class="stat-card stat-large reveal">
+        <p class="stat-figure js-count" data-count-ms="700">48%</p>
+        <span class="stat-dots" aria-hidden="true"><span class="dot dot-on"></span><span class="dot dot-on"></span><span class="dot dot-on"></span><span class="dot dot-on"></span><span class="dot dot-on"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>
+        <p class="stat-text">of under-30s in Finland worry about money at least once a week.</p>
+        <a class="source-link" href="https://www.sttinfo.fi/tiedote/72282300/s-pankin-tutkimus-nuoret-kokevat-arjen-turvalliseksi-vaikka-talous-huolettaakin?lang=fi">S-Pankki study of young adults, press release on STT Info</a>
+      </li>
+      <li class="stat-card reveal">
+        <p class="stat-figure js-count" data-count-ms="700">21%</p>
+        <span class="stat-dots" aria-hidden="true"><span class="dot dot-on"></span><span class="dot dot-on"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>
+        <p class="stat-text">of under-30s in Finland have no savings at all.</p>
+        <a class="source-link" href="https://www.sttinfo.fi/tiedote/72282300/s-pankin-tutkimus-nuoret-kokevat-arjen-turvalliseksi-vaikka-talous-huolettaakin?lang=fi">S-Pankki study of young adults, press release on STT Info</a>
+      </li>
+      <li class="stat-card reveal">
+        <p class="stat-figure js-count" data-count-ms="700">11%</p>
+        <span class="stat-dots" aria-hidden="true"><span class="dot dot-on"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>
+        <p class="stat-text">of the people who use S-Pankki's <span lang="fi">Säästäjä</span> are 18 to 25.</p>
+        <a class="source-link" href="https://dokumentit.s-pankki.fi/tiedostot/s-pankki-saastajien-suomi-032026">S-Pankki report Säästäjien Suomi, March 2026</a>
+      </li>
+    </ul>
+  </section>
+
+  <section class="week">
+    <div class="section-head reveal">
+      <h2>Your week on one receipt.</h2>
+    </div>
+    <!-- The receipt and the shelf close the example week that starts in section 4 (Monday, 6 days to payday).
+         Each figure is its own reveal trigger, so the receipt prints and the jars fill when they come into view. -->
+    <div class="week-grid">
+      <div class="tall-card tall-receipt reveal">
+        <div class="tall-head">
+          <h3>The weekly receipt</h3>
+          <p class="tall-lead">Every Sunday, your week fits on one slip.</p>
+        </div>
+        <figure class="receipt-figure reveal">
+          <div class="receipt">
+            <p class="receipt-title">Your week</p>
+            <p class="receipt-dates">9 to 15 Nov 2026</p>
+            <p class="receipt-row"><span>Fixed</span> <span class="num">€254.50</span></p>
+            <p class="receipt-row"><span>Curveballs</span> <span class="num">€32.50</span></p>
+            <p class="receipt-row"><span>Leaks</span> <span class="num">€29.40</span></p>
+            <p class="receipt-row receipt-concert"><span>Concert ticket</span> <span class="num">€45.00</span></p>
+            <p class="receipt-row receipt-rule"><span>Into jars</span> <span class="num">+€40.00</span></p>
+            <p class="receipt-row">
+              <span>Streak</span>
+              <span class="num receipt-streak"><svg class="flame" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c0 4 6 6.5 6 12a6 6 0 0 1-12 0c0-2 .8-3.6 2-5 .2 1.6 1 2.6 2 3 0-3.5.5-7 2-10z"/></svg> 18 days</span>
+            </p>
+            <p class="receipt-liito">Liito: 7 check-ins. The concert fit, with €0.60 to spare.</p>
+          </div>
+          <figcaption class="example-note">Example figures</figcaption>
+        </figure>
+      </div>
+      <div class="tall-card tall-shelf reveal">
+        <div class="tall-head">
+          <h3>The jar shelf</h3>
+          <p class="tall-lead">Each jar is one goal with a name and a target.</p>
+        </div>
+        <figure class="shelf-figure reveal">
+          <div class="shelf">
+            <div class="shelf-slot">
+              <p class="slot-stand"><span class="jar jar-buffer"><span class="jar-lid"></span><span class="jar-glass"><span class="jar-fill"></span></span></span></p>
+              <p class="slot-name">Buffer</p>
+              <p class="slot-sum"><span class="num js-count" data-count-ms="700">€160</span> <span class="slot-goal">of €500</span></p>
+            </div>
+            <div class="shelf-slot">
+              <p class="slot-stand"><span class="jar jar-trip"><span class="jar-lid"></span><span class="jar-glass"><span class="jar-fill"></span></span></span></p>
+              <p class="slot-name">Summer trip</p>
+              <p class="slot-sum"><span class="num js-count" data-count-ms="700">€260</span> <span class="slot-goal">of €400</span></p>
+            </div>
+            <div class="shelf-slot">
+              <p class="slot-stand"><span class="jar-empty"><span class="jar-plus"></span></span></p>
+              <p class="slot-name">Empty slot</p>
+              <p class="slot-sum"><span class="slot-goal">Room for one more jar</span></p>
+            </div>
+          </div>
+          <figcaption class="example-note">Example figures</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="faq">
+    <div class="faq-layout">
+      <div class="section-head reveal">
+        <h2>Good to know.</h2>
+        <p>Straight answers before you try it.</p>
+      </div>
+      <div class="faq-list reveal">
+        <details class="faq-item">
+          <summary>Is Sisu a real S-Pankki service?<span class="faq-sign" aria-hidden="true"></span></summary>
+          <p class="faq-answer">No. Sisu is a concept built at Junction 2026 for S-Pankki's challenge. It runs on synthetic data. It is not a service that S-Pankki offers.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Where does the data come from?<span class="faq-sign" aria-hidden="true"></span></summary>
+          <p class="faq-answer">From synthetic data that S-Pankki provided for the challenge. No real customer's transactions are in it.</p>
+        </details>
+        <details class="faq-item">
+          <summary>What does Sisu cost?<span class="faq-sign" aria-hidden="true"></span></summary>
+          <p class="faq-answer">Nothing. The concept is free for customers, and nothing is locked behind payment.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Can spending break my streak?<span class="faq-sign" aria-hidden="true"></span></summary>
+          <p class="faq-answer">No. The streak never depends on not spending, so buying something cannot break it. One tiny action a day keeps it going.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Does Sisu sell loans or credit?<span class="faq-sign" aria-hidden="true"></span></summary>
+          <p class="faq-answer">No. Sisu never sells or markets loans, credit or pay-later, and it earns nothing from debt.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="closing">
+    <div class="closing-block reveal">
+      <div class="closing-copy">
+        <h2>Start with one small win.</h2>
+        <p class="closing-lead">See what is safe to spend, then take your first small step.</p>
+        <p class="closing-note">Pick Aino, Eetu or Sanna, three demo customers on synthetic data.</p>
+        <a class="demo-button demo-button-dark btn-primary" href="/">Open the Sisu demo</a>
+      </div>
+      <!-- A picture of the demo's Today screen on day 1, built from HTML and CSS. Decoration only. -->
+      <div class="closing-phone" aria-hidden="true">
+        <div class="closing-screen">
+          <div class="closing-today">
+            <p><span lang="fi">Hei</span> Aino</p>
+            <p class="closing-day"><svg class="flame" width="36" height="36" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c0 4 6 6.5 6 12a6 6 0 0 1-12 0c0-2 .8-3.6 2-5 .2 1.6 1 2.6 2 3 0-3.5.5-7 2-10z"/></svg>Day 1</p>
+            <p class="closing-sub">Your streak starts today.</p>
+          </div>
+          <div class="closing-tasks">
+            <p class="closing-label">Today's small win</p>
+            <p class="closing-task"><span class="closing-check"></span><span class="closing-done">Check in</span></p>
+            <p class="closing-week"><span class="closing-check"></span><span></span><span></span><span></span><span></span><span></span><span></span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="footer-columns">
+    <div class="footer-block footer-service">
+      <h2>Asiakaspalvelu</h2>
+      <a class="support-pill" href="https://www.s-pankki.fi/fi/asiakaspalvelu/">
+        Asiakastuki
+        <svg class="line-icon" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 9a3.5 3.5 0 1 1 5.3 3c-1.1.7-1.8 1.4-1.8 2.7"/><path d="M12 18.5v.5"/></svg>
+      </a>
+      <h3>Pankkitunnusten sulkupalvelu 24h</h3>
+      <p><a href="tel:0969646820">09 6964 6820</a> (pvm/mpm)</p>
+      <h3>Korttien sulkupalvelu 24h</h3>
+      <p><a href="tel:020333">020 333</a> (pvm/mpm)</p>
+    </div>
+    <div class="footer-block footer-shortcuts">
+      <h2>Oikopolut</h2>
+      <ul class="shortcut-list">
+        <li><a href="https://www.s-pankki.fi/fi/kampanjat/paivita-asiakastietosi/">Päivitä asiakastietosi</a></li>
+        <li><a href="https://pankkitunnukset.s-pankki.fi/?initialLang=fi">Tarkista verkkopankkitunnuksesi</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/tule-asiakkaaksi/">Tule asiakkaaksi</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/verkkopalvelut/verkkopankki/palveluhinnasto/">Palveluhinnasto</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/asiakaspalvelu/ukk/listaus/">Usein kysyttyä</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/turvallisuus-s-pankissa/turvallinen-pankkiasiointi/">Turvallinen pankkiasiointi</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/saastaminen-ja-sijoittaminen/rahastot/">Rahastojen arvot</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/tiedotteet/">Tiedotteet</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/artikkelit/">Artikkelit</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/vuokrattavat-toimitilat/">Vuokrattavat toimitilat</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/asiakaspalvelu/asiakaspalaute/">Anna palautetta</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/asiakaspalvelu/asiakaspalaute/">Reklamaatiot</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/asiakaspalvelu/peruutuspyynto/">Peruutuspyyntö</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/ajanvaraus/">Ajanvaraus</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/asiakaspalvelu/verkkotapaaminen/">Verkkotapaaminen</a></li>
+      </ul>
+      <ul class="shortcut-list">
+        <li><a href="https://www.s-pankki.fi/fi/s-pankki-yrityksena/">Tietoa S-Pankista</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/s-pankki-yrityksena/medialle/">Medialle</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/s-pankki-yrityksena/sijoittajille/">Sijoittajille</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/s-pankki-yrityksena/sijoittajille/debt-investors/">Investors</a></li>
+      </ul>
+    </div>
+    <div class="footer-block footer-company">
+      <div class="footer-logo"><img src="https://www.s-pankki.fi/Assets/img/logos/s-pankki-logo-107x46.svg" alt="S-Pankki" width="188" height="81"></div>
+      <p>Y-tunnus: 2557308-3</p>
+      <p>BIC-tunnus: SBANFIHH</p>
+      <p>Postiosoite: S-Pankki Oyj,<br>PL 77, 00088 S-RYHMÄ</p>
+      <p>Katuosoite: Fleminginkatu 34,<br>00510 HELSINKI (ei asiakaspalvelua)</p>
+      <div class="footer-note">
+        <p lang="en">Concept for Junction 2026. Not an official S-Pankki page.</p>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="footer-legal">
+      <ul class="legal-list">
+        <li><a href="https://www.s-pankki.fi/fi/kayttoehdot/">Käyttöehdot</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/tietosuoja/">Tietosuoja</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/saavutettavuusselosteet/">Saavutettavuusseloste</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/evasteet/">Evästeet</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/verkkopalvelut/kayton-edellytykset/">Verkkopalvelujen käytön edellytykset</a></li>
+        <li><a href="https://www.s-pankki.fi/fi/ehdot-ja-muut-asiakirjat/">Ehdot ja muut asiakirjat</a></li>
+      </ul>
+      <p class="copyright">© S-Pankki</p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

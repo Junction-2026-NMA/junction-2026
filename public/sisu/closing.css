@@ -1,0 +1,295 @@
+/* Sections 7 and 8: the closing banner and its phone, both sections' two columns from 1024px and
+   their entrance motion (question cards: sections.css). The phone is a picture built from HTML and
+   CSS, hidden from screen readers; the banner's bottom edge crops only the empty end of its screen. */
+
+/* Closing banner: flat dark green, white copy, the mint demo button. */
+.closing-block {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 48px clamp(20px, 5vw, 40px) 0;
+  border-radius: var(--radius-xl);
+  background: var(--green-900);
+  color: var(--white);
+  text-align: center;
+}
+
+/* One deep green circle in the top left corner, behind the copy and clipped by the banner. */
+.closing-block::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -150px;
+  left: -90px;
+  width: 220px;
+  height: 220px;
+  border-radius: var(--radius-full);
+  background: var(--green-700);
+}
+
+.closing-copy {
+  padding-bottom: 40px;
+}
+
+.closing-lead,
+.closing-note {
+  max-width: 30rem;
+  margin: 16px auto 0;
+  color: var(--green-100);
+  font-size: 1.125rem;
+  line-height: 1.45;
+}
+
+.closing-note {
+  margin: 8px auto 28px;
+  color: var(--green-300);
+  font-size: 0.9375rem;
+}
+
+.closing-block :focus-visible {
+  outline-color: var(--white);
+}
+
+/* The phone: a deep green frame around a Today screen in dark green and white, like the hero's.
+   The screen is taller than what it shows, so the crop only ever cuts its empty end. */
+.closing-phone {
+  width: min(100%, 260px);
+  margin: 0 auto -150px;
+  padding: 8px;
+  border-radius: var(--radius-xl);
+  background: var(--green-700);
+  text-align: left;
+}
+
+.closing-screen {
+  min-height: 460px;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--white);
+  color: var(--green-900);
+}
+
+.closing-today {
+  padding: 20px 20px 22px;
+  background: var(--green-900);
+  color: var(--white);
+  font-weight: 700;
+}
+
+.closing-day {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  color: var(--green-200);
+  font-family: var(--font-display);
+  font-size: 2.75rem;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.closing-sub,
+.closing-label {
+  color: var(--green-300);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.closing-label {
+  color: var(--text-muted);
+}
+
+.closing-tasks {
+  display: grid;
+  gap: 12px;
+  padding: 16px 14px;
+}
+
+/* A done row as in the daily checklist, then the week so far: seven days, the first one done. */
+.closing-task {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--green-100);
+  font-weight: 600;
+}
+
+.closing-done {
+  text-decoration: line-through;
+}
+
+.closing-week {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 4px 0;
+}
+
+.closing-week > *,
+.closing-check {
+  position: relative;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--green-300);
+  border-radius: var(--radius-full);
+}
+
+.closing-check {
+  border-color: var(--green-700);
+  background: var(--green-700);
+}
+
+.closing-check::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 6px;
+  width: 7px;
+  height: 11px;
+  border: solid var(--white);
+  border-width: 0 3px 3px 0;
+  transform: rotate(45deg);
+}
+
+/* From 1024px: heading and intro beside the questions, copy beside the phone. */
+@media (min-width: 1024px) {
+  .faq-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    align-items: start;
+    column-gap: 64px;
+  }
+
+  .faq .section-head {
+    margin: 0;
+    text-align: left;
+  }
+
+  .faq .faq-list {
+    max-width: none;
+    margin: 0;
+  }
+
+  .closing-block {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    column-gap: 48px;
+    padding: 0 72px;
+    text-align: left;
+  }
+
+  .closing-copy {
+    max-width: 30rem;
+    padding: 72px 0;
+  }
+
+  .closing-phone {
+    align-self: end;
+    justify-self: center;
+    width: 320px;
+    margin: 40px 0 -150px;
+  }
+
+  .closing-screen {
+    min-height: 500px;
+  }
+
+  .closing-day {
+    font-size: 3.25rem;
+  }
+}
+
+/* Entrance motion, once, when each block enters the view (page.js adds is-in). The list and the
+   banner themselves stay put; their parts arrive in order and end in their normal state. */
+@media (prefers-reduced-motion: no-preference) {
+  .js .faq .faq-list.reveal.is-waiting,
+  .js .closing .closing-block.reveal.is-waiting {
+    opacity: 1;
+    transform: none;
+  }
+
+  .js .faq-list.is-waiting .faq-item,
+  .js .closing-block.is-waiting .closing-copy > *,
+  .js .closing-block.is-waiting .closing-phone {
+    opacity: 0;
+  }
+
+  /* Questions: the rows rise 8px, top to bottom, 60ms apart. */
+  .js .faq-list.is-in .faq-item {
+    animation: closing-rise 240ms var(--ease-out) 1 backwards;
+  }
+
+  .js .faq-list.is-in .faq-item:nth-child(2) { animation-delay: 60ms; }
+  .js .faq-list.is-in .faq-item:nth-child(3) { animation-delay: 120ms; }
+  .js .faq-list.is-in .faq-item:nth-child(4) { animation-delay: 180ms; }
+  .js .faq-list.is-in .faq-item:nth-child(5) { animation-delay: 240ms; }
+
+  /* The sign turns as its question opens or closes; faq.js animates the height. */
+  .js .faq-sign,
+  .js .faq-sign::before,
+  .js .faq-sign::after {
+    transition: transform 160ms var(--ease-out), background-color 160ms var(--ease-out);
+  }
+
+  /* Closing: heading, lines and button rise in turn, the phone rises from the bottom edge and
+     the corner circle grows into place, all within 750ms. */
+  .js .closing-block.is-in .closing-copy > * {
+    animation: closing-rise 320ms cubic-bezier(0.22, 1, 0.36, 1) 1 backwards;
+  }
+
+  .js .closing-block.is-in .closing-lead { animation-delay: 70ms; }
+  .js .closing-block.is-in .closing-note { animation-delay: 105ms; }
+  .js .closing-block.is-in .demo-button { animation-delay: 140ms; }
+
+  .js .closing-block.is-in .closing-phone {
+    animation: closing-phone-rise 600ms cubic-bezier(0.22, 1, 0.36, 1) 150ms 1 backwards;
+  }
+
+  .js .closing-block.is-in::before {
+    animation: closing-shape-grow 500ms cubic-bezier(0.22, 1, 0.36, 1) 1 backwards;
+  }
+
+  /* faq.js holds an entrance (is-held) until the block's top is a quarter up the view or scrolling stops. */
+  .js .faq-list.is-held .faq-item,
+  .js .closing-block.is-held .closing-copy > *,
+  .js .closing-block.is-held .closing-phone,
+  .js .closing-block.is-held::before {
+    animation-play-state: paused;
+  }
+}
+
+/* Each keyframe set gives only its start: every animation ends in the element's own state. */
+@keyframes closing-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes closing-phone-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+}
+
+@keyframes closing-shape-grow {
+  0% {
+    transform: scale(0.85);
+  }
+}
+
+/* Print: every row and every part of the banner, whatever the scroll state. */
+@media print {
+  .js .faq-item,
+  .js .closing-copy > *,
+  .js .closing-phone {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

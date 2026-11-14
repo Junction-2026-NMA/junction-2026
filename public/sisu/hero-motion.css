@@ -1,0 +1,255 @@
+/* Motion for the hero (section 1) and the facts strip (section 2).
+   The hero plays once on load: the copy in reading order, then the phone rises out of the facts
+   band, the amount rises into its line and counts up (page.js counts it as soon as it shows), the
+   cards settle around the phone, Liito glides in from a top corner and the basket bar grows.
+   The facts strip plays when page.js reveals it. Every animation holds its first keyframe during
+   its delay ("backwards"), ends in the element's normal CSS state, runs once and is over by 1.6 s.
+   Without the js class, or with reduced motion, none of this applies and the page is complete. */
+@media (prefers-reduced-motion: no-preference) {
+  .js .hero-title {
+    animation: hero-rise 450ms var(--ease-out) backwards;
+  }
+
+  .js .hero-chip {
+    animation: hero-chip-pop 620ms var(--ease-spring) 160ms backwards;
+  }
+
+  .js .hero-lead,
+  .js .hero-note,
+  .js .hero-copy .demo-button {
+    animation: hero-line-rise 420ms cubic-bezier(0.22, 1, 0.36, 1) 120ms backwards;
+  }
+
+  .js .hero-note {
+    animation-delay: 160ms;
+  }
+
+  .js .hero-copy .demo-button {
+    animation-delay: 200ms;
+  }
+
+  .js .hero-figure .phone {
+    animation: hero-phone-rise 720ms cubic-bezier(0.22, 1, 0.36, 1) 200ms backwards;
+  }
+
+  /* The amount moves with top, not transform, on purpose: the counter in page.js starts when the
+     number first shows inside its clipped line, and an observer only sees a position the main
+     thread lays out. It starts 1.6em down, well below its 1.1em line: the observer measures tilted
+     boxes by their larger bounding boxes, and the tilt must not make it look visible early. */
+  .js .today-figure {
+    animation: hero-slot-up 380ms cubic-bezier(0.22, 1, 0.36, 1) 400ms backwards;
+  }
+
+  .js .hero-figure .bar-part {
+    transform-origin: left center;
+    animation: hero-grow-x 420ms cubic-bezier(0.22, 1, 0.36, 1) 760ms backwards;
+  }
+
+  .js .hero-figure .bar-part:nth-child(2) {
+    animation-delay: 840ms;
+  }
+
+  .js .hero-figure .bar-part:nth-child(3) {
+    animation-delay: 920ms;
+  }
+
+  .js .hero-figure .bar-part:nth-child(4) {
+    animation-delay: 1000ms;
+  }
+
+  .js .hero-figure .float-card {
+    animation: hero-card-settle 480ms cubic-bezier(0.22, 1, 0.36, 1) 360ms backwards;
+  }
+
+  .js .hero-figure .jar-card {
+    animation-delay: 480ms;
+  }
+
+  .js .streak-card .flame {
+    animation: hero-pop 420ms var(--ease-spring) 520ms backwards;
+  }
+
+  .js .streak-figure {
+    animation: hero-slot-up 320ms cubic-bezier(0.22, 1, 0.36, 1) 560ms backwards;
+  }
+
+  .js .hero-figure .jar-card .meter-fill {
+    transform-origin: left center;
+    animation: hero-grow-x var(--duration-fill) var(--ease-spring) 900ms backwards;
+  }
+
+  .js .hero-figure .sticker {
+    animation: hero-glide 620ms var(--ease-spring) 600ms backwards;
+  }
+
+  .js .hero-figure .example-note {
+    animation: hero-fade 300ms var(--ease-out) 760ms backwards;
+  }
+
+  /* Facts strip: the list fades in over 300 ms with an 8 px rise (base.css does the fade),
+     then its two facts follow in reading order. The numbers stay as they are. */
+  .js .fact-list.reveal.is-waiting {
+    transform: translateY(8px);
+  }
+
+  .js .fact-list.reveal.is-in {
+    transition-duration: 300ms;
+  }
+
+  .js .fact-list.is-in .fact {
+    animation: facts-rise 260ms cubic-bezier(0.22, 1, 0.36, 1) 100ms backwards;
+  }
+
+  .js .fact-list.is-in .fact + .fact {
+    animation-delay: 220ms;
+  }
+}
+
+@keyframes hero-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hero-chip-pop {
+  0% {
+    opacity: 0;
+    transform: rotate(-10deg) scale(0.7);
+  }
+
+  40% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: rotate(-2deg) scale(1);
+  }
+}
+
+@keyframes hero-line-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hero-phone-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(36px) rotate(-3deg);
+  }
+
+  40% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+}
+
+@keyframes hero-slot-up {
+  0% {
+    top: 1.6em;
+  }
+
+  100% {
+    top: 0;
+  }
+}
+
+@keyframes hero-grow-x {
+  0% {
+    transform: scaleX(0);
+  }
+
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes hero-card-settle {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) rotate(calc(var(--tilt) + 3deg));
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(0) rotate(var(--tilt));
+  }
+}
+
+@keyframes hero-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes hero-glide {
+  0% {
+    opacity: 0;
+    transform: translate(14px, -30px) rotate(calc(var(--tilt) + 14deg)) scale(0.8);
+  }
+
+  35% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(0, 0) rotate(var(--tilt)) scale(1);
+  }
+}
+
+@keyframes hero-fade {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes facts-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* A print taken while the hero is still moving shows it finished. */
+@media print {
+  .js .hero *,
+  .js .facts * {
+    animation: none !important;
+  }
+}
