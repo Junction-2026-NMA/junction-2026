@@ -108,6 +108,12 @@ export async function GET(request: Request) {
     return Response.json({ part, exa, exaHighlights });
   }
 
+  if (part === "web") {
+    // What a web search hands the model for a question, to see whether a figure it quoted was really on the page.
+    const results = await exaSearch(params.get("query") ?? "ECB deposit facility rate", { numResults: 4, highlights: true });
+    return Response.json({ part, results: results.map((r) => ({ url: r.url, title: r.title, highlights: r.highlights.join(" ").slice(0, 700) })) });
+  }
+
   if (part === "extract") {
     const urls = (params.get("urls") ?? "").split(",").filter((url) => /^https:\/\//.test(url)).slice(0, 3);
     if (!urls.length) return jsonError("Pass urls=https://...,https://... (up to 3).", 400);

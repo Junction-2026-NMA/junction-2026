@@ -12,7 +12,7 @@ import { type StageDraft, type ToolContext, type ToolOutcome, failure, outcome }
 import { safeExcerpt, safeTitle } from "./untrusted";
 
 const RESEARCH_HARD_LIMIT_MS = 8_500; // every page has an 8 s limit of its own
-const EXCERPT_CHARS = 600;
+const EXCERPT_CHARS = 900; // long enough that the figure a page is cited for is usually inside the excerpt the model sees
 const hostOf = (url: string): string => new URL(url).hostname.replace(/^www\./, "");
 
 export function billTypeOf(args: Record<string, unknown>): BillType | null {
