@@ -4,7 +4,7 @@
 // their account, the web, the sums. Everything drawn here came from the server as it happened.
 import type { BillType } from "@/lib/types";
 import { useCountUp, useTyped } from "./hooks";
-import type { Act, Lane, PageState, PlanView } from "@/lib/agent/usePlan";
+import type { Act, CheckLane, Lane, PageState, PlanView } from "@/lib/agent/usePlan";
 
 export const euro = (value: number): string => `€${Math.round(value).toLocaleString("en-US")}`;
 const BILL_LABEL: Record<BillType, string> = { electricity: "Electricity", internet: "Home internet", mobile: "Mobile plan" };
@@ -104,6 +104,7 @@ function PageRow({ page }: { page: PageState }) {
       )}
       {page.state === "read" && (
         <span className="tabular shrink-0 text-white/60">
+          {page.reader === "exa" && <span className="mr-1.5 rounded bg-[var(--exa)] px-1 py-px text-[9px] font-bold lowercase text-white">exa</span>}
           {page.offers} {page.offers === 1 ? "offer" : "offers"}
           {(page.ageMs ?? 0) >= 60_000 && ` · read ${Math.round((page.ageMs ?? 0) / 60_000)} min ago`}
         </span>
@@ -145,6 +146,39 @@ function SearchLane({ lane, index }: { lane: Lane; index: number }) {
   );
 }
 
+// A question Exa researches across several sources: a rule or a price that this customer's own figures make
+// worth checking. The query types itself, then the finding and the sites it came from appear.
+function ResearchLane({ lane, index }: { lane: CheckLane; index: number }) {
+  const typed = useTyped(lane.query, 9);
+  const check = lane.check;
+  return (
+    <div className="plan-in rounded-2xl border border-[var(--exa)]/50 bg-[var(--exa)]/10 p-2.5" style={{ animationDelay: `${index * 70}ms` }}>
+      <p className="mb-1.5 flex items-center justify-between gap-2 px-1 text-[10px] font-semibold uppercase tracking-wider text-white/60">
+        <span className="min-w-0 truncate">{lane.title}</span>
+        <span className="shrink-0 text-white/40">research</span>
+      </p>
+      <div className="flex min-h-9 items-center gap-2 rounded-xl bg-black/25 py-1.5 pl-1.5 pr-3">
+        <span className="plan-pop shrink-0 rounded-lg bg-[var(--exa)] px-2 py-1 text-[11px] font-bold lowercase leading-none tracking-wide text-white">exa</span>
+        <span className="min-w-0 flex-1 font-mono text-[12px] leading-snug text-white/90">
+          {typed.shown}
+          {!typed.done && <span className="plan-caret ml-px inline-block h-3 w-[6px] translate-y-0.5 bg-lime" />}
+        </span>
+      </div>
+      {!check && typed.done && (
+        <p className="mt-2 flex items-center gap-2 px-1 text-[12px] text-white/55">
+          <span className="plan-pulse h-1.5 w-1.5 rounded-full bg-lime" /> Reading several sources
+        </p>
+      )}
+      {check && (
+        <div className="plan-in mt-2 space-y-1.5 px-1">
+          <p className="line-clamp-4 text-[13px] leading-snug text-white/90">{check.finding ?? (check.ok ? "Sources found, but no clear answer in them." : "This could not be researched just now.")}</p>
+          {check.sources.length > 0 && <p className="truncate font-mono text-[11px] text-white/50">{check.sources.slice(0, 3).map((source) => new URL(source.url).hostname.replace(/^www\./, "")).join(" · ")}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function WebAct({ view }: { view: PlanView }) {
   return (
     <div className="plan-act space-y-3">
@@ -154,10 +188,12 @@ function WebAct({ view }: { view: PlanView }) {
           <span className="plan-pop rounded-xl bg-[var(--exa)] px-3 py-1 text-xl font-bold lowercase leading-none tracking-wide text-white shadow-[0_6px_24px_-6px_var(--exa)]">exa</span>
         </p>
         <p className="plan-in mt-1 text-[13px] text-[var(--stage-dim)]" style={{ animationDelay: "240ms" }}>
-          Each page is read by Context.dev, then compared with your own bill.
+          Each page is read by Context.dev, or by Exa when it is busy, then compared with your own bill.
         </p>
       </div>
-      {view.lanes.map((lane, index) => <SearchLane key={lane.billType} lane={lane} index={index} />)}
+      {/* The research answers arrive first (about two seconds), so they sit on top where they are seen. */}
+      {view.checks.map((lane, index) => <ResearchLane key={lane.id} lane={lane} index={index} />)}
+      {view.lanes.map((lane, index) => <SearchLane key={lane.billType} lane={lane} index={view.checks.length + index} />)}
     </div>
   );
 }

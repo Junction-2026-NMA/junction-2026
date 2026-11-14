@@ -2,7 +2,7 @@
 
 // What Sisu found and set up, with one button to approve all of it. Shown when the work on the stage is finished.
 import { useEffect, useRef } from "react";
-import type { AgentAction, PlanItem, PlanProjection } from "@/lib/types";
+import type { AgentAction, PlanCheck, PlanItem, PlanProjection } from "@/lib/types";
 import { euro } from "./Stage";
 import type { PlanView } from "@/lib/agent/usePlan";
 
@@ -28,6 +28,32 @@ function Item({ item, index }: { item: PlanItem; index: number }) {
         <summary className="cursor-pointer text-xs underline decoration-line underline-offset-2">How Sisu worked this out</summary>
         <p className="mt-1 leading-snug">{item.detail}</p>
       </details>
+    </li>
+  );
+}
+
+// A rule or price outside the account, researched live. Sisu shows what the sources say and the customer's own
+// figure beside it. It does not decide that they qualify for anything.
+function Check({ check }: { check: PlanCheck }) {
+  if (!check.finding && !check.sources.length) return null;
+  return (
+    <li className="space-y-1.5 rounded-xl border border-line bg-paper/60 p-3 text-sm">
+      <p className="font-medium leading-snug">{check.title}</p>
+      {check.finding && <p className="leading-snug text-muted">{check.finding}</p>}
+      {check.yours && (
+        <p className="tabular text-[13px]">
+          {check.yours.label}: <span className="font-semibold">{euro(check.yours.value)}{check.yours.unit === "EUR/month" ? " a month" : ""}</span>
+        </p>
+      )}
+      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+        <span className="rounded bg-[#2b54ff] px-1.5 py-px text-[10px] font-bold lowercase text-white">exa</span>
+        {check.sources.slice(0, 4).map((source) => (
+          <a key={source.url} href={source.url} target="_blank" rel="noreferrer" className="underline decoration-line underline-offset-2">
+            {hostOf(source.url)}
+          </a>
+        ))}
+      </p>
+      <p className="text-[11px] leading-snug text-muted">{check.mock ? "Example data, not a live search." : check.figuresConfirmed ? "What the sources say today. The figures were found in the pages' own text. It is not a decision about your case: check with the source." : "What the sources say today, as summarised by Exa. Check the figures at the source before relying on them."}</p>
     </li>
   );
 }
@@ -119,6 +145,13 @@ export function PlanCard({ view, onApprove, onDecline, onAgain }: { view: PlanVi
       {view.approval === "declined" && <p className="rounded-xl bg-paper p-3 text-sm text-muted">Nothing was approved. The actions stay waiting for 30 minutes, then expire.</p>}
 
       {approved && plan.projection && <FiveYears projection={plan.projection} />}
+
+      {plan.checks.some((check) => check.finding || check.sources.length) && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Worth checking, from the web today</p>
+          <ul className="space-y-2">{plan.checks.map((check) => <Check key={check.id} check={check} />)}</ul>
+        </div>
+      )}
 
       {plan.notices.length > 0 && (
         <div className="space-y-1.5">

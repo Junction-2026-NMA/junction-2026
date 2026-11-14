@@ -321,6 +321,8 @@ A working page is at `/plan` (`app/plan/`). It is self-contained: lift `Stage`, 
 | `search_pages` | Exa answered | the `pages` found (host, title) |
 | `page_read` | Context.dev finished one page | tick and `offers` count, or "could not be read" when `ok` is false. `ageMs` is set when the page was read earlier |
 | `offers` | the saving is worked out | `best`, `yearlySavingEur`, or a `note` when nothing is cheaper |
+| `check_start` | Exa starts researching a rule or price worth checking | the `title` and the `query` typing itself |
+| `check_done` | that research finished (about 2 s) | `check.finding`, `check.sources`, and `check.yours` (the customer's own figure to show beside it) |
 | `calc` | everything is added up | `steps` and `totalYearlyEur`, `effortlessYearlyEur` |
 | `action` | each action set up | an `AgentAction` awaiting approval (section 5) |
 | `projection` | five years ahead | change nothing, kept as cash, invested with its range |
@@ -332,6 +334,8 @@ Rules for the screen:
 - `usePlan` plays events one after another with a short pause each, so a burst is still readable. It never shows a step the server did not send.
 - An item with `needs: "spending-change"` saves money only if the customer really spends less. Say so next to it, and show `action.warning` on its transfer.
 - One tap approves everything: `POST /api/actions/approve-all` with `{ customerId, actionIds, confirm: true }` returns `{ approved, failed }`. Each action is approved, simulated and logged on its own.
+- A `check` is what sources say today, never a decision about the customer's case. Show its sources, show `check.yours` beside it, and use `check.figuresConfirmed` to say whether the figures were found in the pages' own text.
+- `page_read.reader` is `"context.dev"` or `"exa"`: Exa reads a page when Context.dev cannot.
 - `fresh: false` reuses a recent search instead of searching now. Context.dev allows our key 10 page reads a minute and a plan uses up to 7, so a page read in the last 10 minutes is reused and marked with its age.
 
 ## 9c. Charts and the mascot (new 14 Nov)

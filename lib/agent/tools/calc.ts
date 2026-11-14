@@ -12,8 +12,15 @@ export const CALC_UNITS: FactUnit[] = ["EUR", "EUR/month", "EUR/year", "kWh/year
 
 // Evaluates + - * / and brackets, left to right with the usual precedence. Throws on anything else.
 export function evaluate(expression: string): number {
-  const text = expression.replace(/\s+/g, "").replace(/,/g, ".").replace(/[x×]/gi, "*").replace(/÷/g, "/");
-  if (!text || text.length > MAX_LENGTH || !/^[\d.+\-*/()]+$/.test(text)) throw new Error("Only numbers, + - * / and brackets can be used.");
+  // "13,140" is thirteen thousand, "4,5" is four and a half: a comma followed by exactly three digits groups
+  // thousands, any other comma is a decimal point.
+  const text = expression
+    .replace(/[€\s]/g, "")
+    .replace(/(\d),(?=\d{3}(?!\d))/g, "$1")
+    .replace(/,/g, ".")
+    .replace(/[x×]/gi, "*")
+    .replace(/÷/g, "/");
+  if (!text || text.length > MAX_LENGTH || !/^[\d.+\-*/()]+$/.test(text)) throw new Error("Write only numbers with + - * / and brackets, for example 3 * 12 * 365 / 1000 * 4.5. Put units and names in `figures`, not in the expression.");
   let position = 0;
 
   const number = (): number => {

@@ -58,7 +58,7 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
     { billType: { type: "string", enum: BILL_TYPES }, yearlyKwh: { type: "number", description: "electricity only, ONLY if the customer said it" } },
     ["billType"],
   ),
-  tool("web_search", "Live web search (Exa) for anything in the outside world: rents and prices nearby, typical water or energy use, benefits, rates, rules, a company, how something works. Keep the query general: place and topic, no personal figures.", { query: { type: "string" } }, ["query"]),
+  tool("web_search", "Live web search (Exa) for anything in the outside world: rents and prices nearby, typical water or energy use, benefits, rates, rules, a company, how something works. Keep the query general: place and topic, no personal figures.", { query: { type: "string" }, deep: { type: "boolean", description: "true for an open question that needs several sources put together (who can get a benefit, what changes next year, how a rule works for someone like them). Takes a few seconds longer. Leave out for a single fact or price." } }, ["query"]),
   tool(
     "calculate",
     "Does arithmetic for you: an estimate from web figures, or combining amounts. Use it instead of working anything out yourself.",

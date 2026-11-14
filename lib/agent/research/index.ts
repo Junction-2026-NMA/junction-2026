@@ -7,7 +7,7 @@ import type { BillType } from "@/lib/types";
 import { getConfig } from "../config";
 import { mockRawOffers } from "../mock";
 import { safeTitle } from "../tools/untrusted";
-import { extractOffers } from "./contextdev";
+import { readOffers } from "./reader";
 import { exaSearch } from "./exa";
 import type { RawResearch } from "./types";
 
@@ -121,12 +121,12 @@ async function run(entry: Entry): Promise<void> {
   await Promise.all(
     pages.map(async (page) => {
       try {
-        const extraction = await extractOffers(page.url, entry.snapshot.billType);
+        const extraction = await readOffers(page.url, entry.snapshot.billType);
         update(entry, {
           status: "partial",
           pagesDone: entry.snapshot.pagesDone + 1,
           offers: [...entry.snapshot.offers, ...extraction.offers],
-          citations: [...entry.snapshot.citations, { title: safeTitle(page.title, new URL(page.url).hostname), url: page.url, retrievedAt: new Date().toISOString(), cacheAgeMs: extraction.cacheAgeMs }],
+          citations: [...entry.snapshot.citations, { title: safeTitle(page.title, new URL(page.url).hostname), url: page.url, retrievedAt: new Date().toISOString(), cacheAgeMs: extraction.cacheAgeMs, readBy: extraction.reader }],
           errors: extraction.dropped ? [...entry.snapshot.errors, `${new URL(page.url).hostname}: ${extraction.dropped} offer(s) left out because their text did not read like a provider or plan name`] : entry.snapshot.errors,
         });
       } catch (error) {

@@ -7,7 +7,7 @@ const PAGE_TIMEOUT_MS = 8_000;
 const MAX_PAGE_AGE_MS = 15 * 60_000; // accept a copy up to 15 minutes old; its age is reported
 const MAX_OFFERS_PER_PAGE = 6;
 
-const OFFER_SCHEMA = {
+export const OFFER_SCHEMA = {
   type: "object",
   required: ["offers"],
   properties: {
@@ -48,6 +48,13 @@ type ScrapeResponse = {
 const numberOrNull = (value: unknown): number | null => (typeof value === "number" && Number.isFinite(value) ? value : null);
 const textOrNull = (value: unknown): string | null => (typeof value === "string" && value.trim() ? value.trim() : null);
 
+// The same question, for any reader that takes one (Exa reads pages with it when Context.dev cannot).
+export const OFFER_QUESTION: Record<BillType, string> = {
+  electricity: `${INSTRUCTIONS.electricity} At most ${MAX_OFFERS_PER_PAGE} offers.`,
+  mobile: `${INSTRUCTIONS.mobile} At most ${MAX_OFFERS_PER_PAGE} offers.`,
+  internet: `${INSTRUCTIONS.internet} At most ${MAX_OFFERS_PER_PAGE} offers.`,
+};
+
 // Page text is untrusted. An offer is kept only if its provider and plan read like names: short, no links,
 // nothing phrased as an instruction. Anything else is dropped and counted, never passed to the model.
 export function cleanOffers(extracted: Partial<RawOffer>[], url: string): { offers: RawOffer[]; dropped: number } {
@@ -75,23 +82,9 @@ export function cleanOffers(extracted: Partial<RawOffer>[], url: string): { offe
 
 // Turns one offer page into typed offers. This is the slowest step in the whole agent (3 to 6 s),
 // so callers start it early and share the result; see research/index.ts.
-// Context.dev allows this key 10 page reads a minute. A page read in the last ten minutes is served from here
-// instead, with its real age, so a second search soon after the first does not run into that limit.
-const PAGE_REUSE_MS = 10 * 60_000;
-const recentPages: Map<string, { at: number; extraction: PageExtraction }> = ((globalThis as unknown as { __sisuPages?: Map<string, { at: number; extraction: PageExtraction }> }).__sisuPages ??= new Map());
-
-// For tests: start with no remembered pages.
-export const forgetRecentPages = (): void => recentPages.clear();
-
 export async function extractOffers(url: string, billType: BillType): Promise<PageExtraction> {
   const { contextDev } = getConfig();
   if (!contextDev.apiKey) throw missingKey("Context.dev", "CONTEXT_DEV_API_KEY");
-
-  const recent = recentPages.get(`${billType}:${url}`);
-  if (recent && Date.now() - recent.at < PAGE_REUSE_MS) {
-    const ageMs = Date.now() - recent.at;
-    return { ...recent.extraction, cacheAgeMs: (recent.extraction.cacheAgeMs ?? 0) + ageMs, tookMs: 0 };
-  }
 
   const started = Date.now();
   const response = await fetch("https://api.context.dev/v1/web/scrape", {
@@ -116,7 +109,5 @@ export async function extractOffers(url: string, billType: BillType): Promise<Pa
   if (body.json?.success !== true) throw new Error(body.json?.message ?? "Context.dev found no offers on the page.");
 
   const { offers, dropped } = cleanOffers(body.json.data?.offers ?? [], url);
-  const extraction: PageExtraction = { url, offers, dropped, cacheAgeMs: numberOrNull(body.cache_metadata?.age_ms), tookMs: Date.now() - started };
-  if (offers.length) recentPages.set(`${billType}:${url}`, { at: Date.now(), extraction });
-  return extraction;
+  return { url, offers, dropped, cacheAgeMs: numberOrNull(body.cache_metadata?.age_ms), tookMs: Date.now() - started };
 }
