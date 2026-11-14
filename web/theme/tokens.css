@@ -114,6 +114,23 @@
   /* The tab bar stepping aside for the keyboard, the celebration fade. */
   --sisu-motion-keyboard-duration: 200ms;
   --sisu-motion-fade-duration: 250ms;
+  /* One calm vocabulary for things arriving and leaving (sheets, cards, notices, buttons): a quick, soft
+     ease-out in (emphasized decelerate), a shorter ease-in out, and a short press. */
+  --sisu-motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --sisu-motion-ease-emphasized: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --sisu-motion-ease-exit: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --sisu-motion-enter-duration: 360ms;
+  --sisu-motion-exit-duration: 200ms;
+  --sisu-motion-press-duration: 120ms;
+  --sisu-motion-sheet-duration: 420ms;
+  --sisu-motion-sheet-easing: cubic-bezier(0.32, 0.72, 0, 1);
+  --sisu-motion-enter-distance: 10px;
+
+  /* The app background's paper grain: fractal noise in green-900 at about 4% (alpha 0.13 x noise - 0.03),
+     a 180 px seamless tile (no seams, so any layer can paint it without lining up), under 1 KB, light only.
+     Cards stay solid white on top of it. */
+  --sisu-texture: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 .27 0 0 0 0 .16 .13 0 0 0 -.03'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23g)'/%3E%3C/svg%3E");
+  --sisu-texture-size: 180px 180px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -122,6 +139,21 @@
     --sisu-motion-state-duration: 0ms;
     --sisu-motion-tab-duration: var(--sisu-motion-reduced-duration);
     --sisu-motion-tab-easing: var(--sisu-motion-ease-in-out);
+    /* Arrivals become a short fade in place; presses and sheets keep a brief, plain ease. */
+    --sisu-motion-enter-duration: 180ms;
+    --sisu-motion-exit-duration: 120ms;
+    --sisu-motion-enter-distance: 0px;
+    --sisu-motion-sheet-duration: 200ms;
+    --sisu-motion-sheet-easing: var(--sisu-motion-ease-in-out);
+    --sisu-motion-press-duration: 0ms;
+  }
+}
+
+/* More contrast asked for: a flat background, no grain. */
+@media (prefers-contrast: more) {
+  .sisu-root,
+  .sisu-layer {
+    --sisu-texture: none;
   }
 }
 
@@ -134,7 +166,10 @@ html:has(.sisu-root) body {
 
 .sisu-root {
   color-scheme: light;
-  background: var(--sisu-color-background);
+  /* Every screen sits on this: screens leave their own background transparent; cards and sheets stay solid. */
+  background-color: var(--sisu-color-background);
+  background-image: var(--sisu-texture);
+  background-size: var(--sisu-texture-size);
   color: var(--sisu-color-text);
   font: var(--sisu-type-body);
   -webkit-font-smoothing: antialiased;

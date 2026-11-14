@@ -14,6 +14,7 @@
 import { Store, type CoachSession } from "@/web/core/CoachSession";
 import { VoiceAudioFormat, VoiceButtonPresenter, VoicePressRule, VoiceText } from "@/web/core/AppLogic/VoiceLogic";
 import type { RiveBindings } from "@/web/core/RiveContract";
+import { VoicePrefs } from "./VoicePrefs";
 import { SpeechPlayer } from "./SpeechPlayer";
 import { VoiceRecorder, VoiceRecording } from "./VoiceRecorder";
 
@@ -47,9 +48,12 @@ export class VoiceController extends Store<VoiceControllerState> {
   private readonly unsubscribe: () => void;
 
   constructor(readonly session: CoachSession, fixture: VoiceRecording | null = null) {
-    super({ state: "idle", notice: null, clipsPlayed: 0, isMuted: false, speakTypedReplies: false, isRecording: false });
+    // "Speak replies" off in the person's preferences starts the new session muted.
+    const muted = !VoicePrefs.prefs().speakReplies;
+    super({ state: "idle", notice: null, clipsPlayed: 0, isMuted: muted, speakTypedReplies: false, isRecording: false });
     this.fixture = fixture;
     this.player = new SpeechPlayer(session.client, session);
+    this.player.isMuted = muted;
     session.speech = this.player;
     session.speakReplies = false;
     this.player.onFailure = (sentence) => this.update({ notice: sentence });
@@ -161,7 +165,7 @@ export class VoiceController extends Store<VoiceControllerState> {
       if (outcome === "tooLarge") return this.update({ notice: VoiceText.tooLong });
       if (!recording) return;
       this.session.speakReplies = !this.state.isMuted;
-      void this.session.sendVoice(recording.data, recording.fileName, recording.mimeType);
+      void this.session.sendVoice(recording.data, recording.fileName, recording.mimeType, VoicePrefs.recogniserLanguage());
     });
   }
 

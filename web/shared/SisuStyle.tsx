@@ -11,15 +11,16 @@ import "./shared.css";
 
 /** A white card with 24 px corners and a hairline that separates it from the near-white screen. No shadow, no
  *  glass: money figures, charts and lists always sit on this solid surface. Children stack 12 px apart. */
-export function SisuCard({ padding, className, style, children }: {
+export function SisuCard({ padding, className, style, testId, children }: {
   padding?: number;
   className?: string;
   style?: CSSProperties;
+  testId?: string;
   children: ReactNode;
 }) {
   const own: CSSProperties = padding === undefined ? {} : { padding };
   return (
-    <div className={join("sisu-card sisu-card-surface", className)} style={{ ...own, ...style }}>
+    <div className={join("sisu-card sisu-card-surface", className)} style={{ ...own, ...style }} data-testid={testId}>
       {children}
     </div>
   );
@@ -63,9 +64,10 @@ export const SisuMotion = {
   state(reduceMotion: boolean): string | null {
     return reduceMotion ? null : `${SisuSprings.state.durationMs}ms ${SisuSprings.state.easing}`;
   },
-  /** How something new comes in: a class that rises it into place, or a plain fade with Reduce Motion. */
+  /** How something new comes in: a calm fade while rising a few px (the enter tokens), or a plain fade with
+   *  Reduce Motion. */
   entrance(reduceMotion: boolean): string {
-    return reduceMotion ? "sisu-enter-fade" : "sisu-enter-rise";
+    return reduceMotion ? "sisu-enter-fade" : "sisu-enter-soft";
   },
 } as const;
 

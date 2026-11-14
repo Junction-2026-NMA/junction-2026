@@ -25,7 +25,9 @@
   max-height: calc(100% - env(safe-area-inset-top, 0px) - 10px);
   display: flex;
   flex-direction: column;
-  background: var(--sisu-color-background);
+  background-color: var(--sisu-color-background);
+  background-image: var(--sisu-texture);
+  background-size: var(--sisu-texture-size);
   border-radius: var(--sisu-radius-sheet) var(--sisu-radius-sheet) 0 0;
   box-shadow: 0 -2px 24px rgba(24, 33, 28, 0.08);
   transform: translate3d(0, 100%, 0);

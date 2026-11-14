@@ -10,7 +10,8 @@ import { CoachClient } from "@/web/core/CoachClient";
 import type { TeachingCard } from "@/web/core/CoachModels";
 import { CoachText } from "@/web/core/CoachPresentation";
 import { CoachErrors, type CoachDataLabel } from "@/web/core/CoachSession";
-import { LessonPathPresenter, LessonProgress, type LessonNode } from "@/web/core/AppLogic/LessonPath";
+import { LessonPathPresenter, LessonProgress, LessonWording, type LessonNode } from "@/web/core/AppLogic/LessonPath";
+import { LessonAttempt } from "@/web/core/AppLogic/LessonFollowUps";
 import type { SisuDefaults } from "@/web/app/Defaults";
 
 /** The lesson the sheet shows. `token` counts presentations, so a lesson opened again starts fresh. */
@@ -18,6 +19,8 @@ export interface OpenLesson {
   readonly card: TeachingCard;
   readonly id: string;
   readonly token: number;
+  /** Where the person was in this lesson (restored after "Ask Sisu"). */
+  readonly attempt: LessonAttempt;
 }
 
 export type PathState =
@@ -32,8 +35,8 @@ export interface PathSnapshot {
   readonly dataTag: string | null;
   /** The lesson sheet. */
   readonly openLesson: OpenLesson | null;
-  /** Set when the last lesson is finished; the screen shows the Rive celebration and clears it. */
-  readonly celebration: { readonly headline: string; readonly detail: string } | null;
+  /** The line shown for a moment after tapping a locked lesson (`Finish "Three baskets" first.`). */
+  readonly lockedNotice: { readonly text: string; readonly token: number } | null;
 }
 
 const initial: PathSnapshot = {
@@ -42,7 +45,7 @@ const initial: PathSnapshot = {
   progress: LessonProgress.make(),
   dataTag: null,
   openLesson: null,
-  celebration: null,
+  lockedNotice: null,
 };
 
 export class PathModel {
@@ -87,7 +90,7 @@ export class PathModel {
     const client = live ? CoachClient.live(baseURL) : CoachClient.sample();
     const run = async () => {
       try {
-        const cards = await client.teachingCards(customerId);
+        const cards = (await client.teachingCards(customerId)).map(LessonWording.card);
         let label: CoachDataLabel = client.kind === "bundledSample" ? "sample" : "live";
         if (label === "live") {
           const warm = await client.warm().catch(() => null);
@@ -112,37 +115,59 @@ export class PathModel {
     return this.load(customerId, live, baseURL, defaults, true);
   }
 
-  /** Counts a lesson as done (once). Returns the berries earned now. */
-  complete(card: TeachingCard): number {
-    const { progress, earned } = LessonProgress.complete(this.snapshot.progress, card.concept);
-    if (earned > 0) {
+  /** Counts a lesson as done (once), after a right answer. Returns true when that finished the whole path. */
+  complete(card: TeachingCard): boolean {
+    const wasAllDone = this.allDone;
+    const { progress, added } = LessonProgress.complete(this.snapshot.progress, card.concept);
+    if (added) {
       this.set({ progress });
       this.save();
     }
-    return earned;
+    return added && !wasAllDone && this.allDone;
   }
 
-  /** Called when the user closes a lesson with Done. Celebrates when that finished the whole path. */
-  finished(_card: TeachingCard, justCompletedPath: boolean) {
-    this.set({
-      openLesson: null,
-      ...(justCompletedPath ? { celebration: LessonPathPresenter.celebration(this.snapshot.cards) } : {}),
-    });
-  }
-
-  /** Opens a lesson in the sheet (Swift `path.openLesson = OpenLesson(card:)`). */
+  /** Opens a lesson in the sheet, where the person left it if they stepped out to ask Sisu. A locked lesson does
+   *  not open: it says which lesson comes first. */
   open(card: TeachingCard) {
+    const concepts = this.snapshot.cards.map((c) => c.concept);
+    if (!LessonProgress.isOpen(this.snapshot.progress, concepts, card.concept)) {
+      const reason = this.nodes.find((node) => node.concept === card.concept)?.lockedReason ?? "Finish the lessons before this one first.";
+      this.presentations += 1;
+      this.set({ lockedNotice: { text: reason, token: this.presentations } });
+      return;
+    }
+    const saved = this.readAttempt();
+    const attempt = saved && saved.concept === card.id ? saved : LessonAttempt.make(card.concept);
     this.presentations += 1;
-    this.set({ openLesson: { card, id: card.id, token: this.presentations } });
+    this.set({ openLesson: { card, id: card.id, token: this.presentations, attempt }, lockedNotice: null });
   }
 
-  /** The sheet went away (dragged down, backdrop, Escape). */
+  /** Keeps the place in the open lesson (each answer, and before "Ask Sisu" leaves the tab). */
+  keep(attempt: LessonAttempt, resume = false) {
+    this.defaults?.setJSON(PathModel.attemptKey(this.customerId), { ...attempt, resume });
+  }
+
+  /** The lesson to reopen when the path comes back (after "Ask Sisu"), once. */
+  takeResume(): TeachingCard | null {
+    const stored = this.defaults?.json(PathModel.attemptKey(this.customerId)) as Record<string, unknown> | null | undefined;
+    const attempt = LessonAttempt.decode(stored);
+    if (!attempt || stored?.resume !== true) return null;
+    this.keep(attempt, false);
+    return this.snapshot.cards.find((card) => card.id === attempt.concept) ?? null;
+  }
+
+  /** The lesson is finished or closed for good: forget the place. */
+  forgetAttempt() {
+    this.defaults?.remove(PathModel.attemptKey(this.customerId));
+  }
+
+  /** The sheet went away (dragged down, backdrop, Escape, Done). The place stays, so it opens where it was. */
   closeLesson() {
     if (this.snapshot.openLesson) this.set({ openLesson: null });
   }
 
-  clearCelebration() {
-    if (this.snapshot.celebration) this.set({ celebration: null });
+  clearLockedNotice() {
+    if (this.snapshot.lockedNotice) this.set({ lockedNotice: null });
   }
 
   /** Screenshots only: start with the first `count` lessons done. */
@@ -162,5 +187,10 @@ export class PathModel {
     return LessonProgress.decode(defaults.json(PathModel.key(customerId))) ?? LessonProgress.make();
   }
 
+  private readAttempt(): LessonAttempt | null {
+    return LessonAttempt.decode(this.defaults?.json(PathModel.attemptKey(this.customerId)));
+  }
+
   private static key(customerId: string): string { return `sisu.lessons.${customerId}`; }
+  private static attemptKey(customerId: string): string { return `sisu.lessonAttempt.${customerId}`; }
 }

@@ -1,11 +1,12 @@
 "use client";
-// The teaching path: a fixed header (title, streak and berries, progress), then a winding path of seven lessons
-// built from the customer's own numbers. Every lesson opens in any order; the path only suggests the next one.
+// The teaching path: a fixed header (title, settings, "3 of 7 lessons"), then a winding path of seven lessons
+// built from the customer's own numbers. Lessons open one after another; a locked one says which comes first.
+// "Ask Sisu" inside a lesson keeps the place and reopens the lesson when the person comes back.
 // With `?voicelab=1` this tab shows the voice lab instead. Port of ios/Sisu/Features/Path/PathScreen.swift.
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { FixtureAPI } from "@/web/core/API";
 import { useAppModel, useAppSelector } from "@/web/app/AppProvider";
-import { CelebrationOverlay } from "@/web/features/Main/CelebrationOverlay";
+import { SettingsSheet } from "@/web/features/Sheets/SettingsSheet";
 import { Screen } from "@/web/shared/Screen";
 import { VoiceLaunch } from "@/web/voice/VoiceLaunch";
 import VoiceLabScreen from "@/web/voice/VoiceLabScreen";
@@ -13,7 +14,7 @@ import { LessonPathPresenter } from "@/web/core/AppLogic/LessonPath";
 import { LessonSheet } from "./LessonSheet";
 import { PathHeader } from "./PathHeader";
 import { PathModel } from "./PathModel";
-import { ErrorState, PathLoading } from "./PathStates";
+import { ErrorState, LockedNotice, PathLoading } from "./PathStates";
 import { PathTrail } from "./PathTrail";
 import "./path.css";
 
@@ -30,6 +31,7 @@ function LessonPathScreen() {
   const didApplyLaunch = useRef(false);
   /** Screenshots: the option to pick in the lesson the launch options opened. */
   const [autoAnswer, setAutoAnswer] = useState<number | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const customer = useAppSelector((s) => s.customer);
   const isLive = useAppSelector((s) => s.isLive);
@@ -60,6 +62,10 @@ function LessonPathScreen() {
       await path.load(customerId, isLive, baseURL, model.launch.defaults);
       if (cancelled) return;
       await applyLaunch(() => cancelled);
+      // Back from "Ask Sisu": the lesson opens again where it was left.
+      if (cancelled || path.state.kind !== "loaded" || path.getSnapshot().openLesson) return;
+      const resume = path.takeResume();
+      if (resume) path.open(resume);
     };
     void run();
     return () => { cancelled = true; };
@@ -72,7 +78,7 @@ function LessonPathScreen() {
   const { state } = snapshot;
   return (
     <>
-      <Screen header={<PathHeader path={snapshot} />} className="sisu-path" testId="screen.path">
+      <Screen header={<PathHeader path={snapshot} openSettings={() => setSettingsOpen(true)} />} className="sisu-path" testId="screen.path">
         {state.kind === "failed" ? (
           <ErrorState message={state.message} retry={reload} />
         ) : state.kind === "empty" ? (
@@ -83,14 +89,19 @@ function LessonPathScreen() {
           <PathLoading />
         )}
       </Screen>
-      <CelebrationOverlay celebration={snapshot.celebration} onDismiss={() => path.clearCelebration()} />
+      <LockedNotice notice={snapshot.lockedNotice} onDone={() => path.clearLockedNotice()} />
       <LessonSheet
         lesson={snapshot.openLesson}
         path={path}
         autoAnswer={autoAnswer}
+        onAskSisu={(question) => {
+          path.closeLesson();
+          model.askSisu(question);
+        }}
         onClose={() => path.closeLesson()}
         onClosed={() => setAutoAnswer(null)}
       />
+      <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </>
   );
 }

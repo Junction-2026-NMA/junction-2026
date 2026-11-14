@@ -135,3 +135,23 @@
 .sisu-enter-fade {
   animation: sisu-fade-in 200ms ease both;
 }
+
+/* The calm arrival used for cards, notices and new rows: fade in while rising a few px, emphasized ease.
+   With Reduce Motion the tokens turn it into a short fade in place. */
+@keyframes sisu-enter-soft-kf {
+  from { opacity: 0; transform: translateY(var(--sisu-motion-enter-distance)); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes sisu-exit-soft-kf {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(calc(var(--sisu-motion-enter-distance) * 0.5)); }
+}
+
+.sisu-enter-soft {
+  animation: sisu-enter-soft-kf var(--sisu-motion-enter-duration) var(--sisu-motion-ease-emphasized) both;
+}
+
+.sisu-exit-soft {
+  animation: sisu-exit-soft-kf var(--sisu-motion-exit-duration) var(--sisu-motion-ease-exit) both;
+}
