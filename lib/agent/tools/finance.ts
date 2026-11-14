@@ -146,14 +146,20 @@ export function findPatternsTool(ctx: ToolContext): ToolOutcome {
     return ({ Electricity: "electricity", "Home internet": "internet", "Mobile plan": "mobile" } as Record<string, BillType>)[guess] ?? null;
   };
   const patterns = findPatterns(ctx.overview, ctx.cashFlow(), billTypeOf).slice(0, PATTERNS_SHOWN);
+  // If two findings with a euro figure concern different things, their total is worked out here, so the model never adds.
+  const withEuros = patterns.filter((p) => p.yearlyImpactEur !== null);
+  const second = withEuros.find((p) => p.evidence.category !== withEuros[0]?.evidence.category && p.kind !== withEuros[0]?.kind);
+  const combined = withEuros[0] && second ? { yearlyEur: round2((withEuros[0].yearlyImpactEur as number) + (second.yearlyImpactEur as number)), of: [withEuros[0].title, second.title] } : null;
+  const combinedFact = combined ? [fact("patterns:top-two", "The two largest separate findings, together per year", combined.yearlyEur, "EUR/year", `${combined.of[0]} plus ${combined.of[1]}`, { source: "calculation" })] : [];
   return outcome({
     content: JSON.stringify({
       rankedBy: "yearly euros, largest first",
-      important: "Each finding stands alone and some overlap. Never add their amounts together or work out a combined total.",
+      important: "Never add amounts together yourself. If a total helps, use twoLargestTogether, which is already worked out.",
+      twoLargestTogether: combined,
       patterns: patterns.map((p) => ({ id: p.id, what: p.title, detail: p.detail, yearlyEur: p.yearlyImpactEur, confidence: p.confidence, canResearchOffersFor: p.billType, usefulNextTools: p.nextSteps, numbers: factsForModel(p.facts) })),
     }),
     summary: patterns.length ? `${patterns.length} patterns found; top: ${patterns[0].title}` : "No notable pattern found",
-    facts: patterns.flatMap((p) => p.facts),
+    facts: [...patterns.flatMap((p) => p.facts), ...combinedFact],
     stages: [{ kind: "lead", title: "What Sisu noticed", summary: patterns[0]?.title ?? "Nothing notable", source: "bank-data", data: { kind: "lead", patterns } }],
   });
 }

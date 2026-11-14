@@ -282,13 +282,16 @@ export type Fact = {
 };
 
 export type NumberCheck = {
-  value: number; // the number as Sisu said it
+  value: number; // the number as it appears in the final answer
   status: "receipt" | "context" | "trivial" | "unverified";
   factId: string | null; // set when status is "receipt"
 };
 
+// The model copied a figure almost right (a slipped digit). Sisu replaced it with the receipt's value before showing or speaking it.
+export type NumberCorrection = { said: number; corrected: number; factId: string };
+
 // Result of checking every number in the answer against the receipts. `ok` is false if any number has no source.
-export type Grounding = { ok: boolean; checked: number; unverified: number[]; numbers: NumberCheck[] };
+export type Grounding = { ok: boolean; checked: number; unverified: number[]; numbers: NumberCheck[]; corrections: NumberCorrection[] };
 
 export type PatternKind = "bill-opportunity" | "bill-creep" | "overdraft-risk" | "payday-spike" | "category-drift" | "peer-gap" | "small-purchases" | "lumpy-costs" | "idle-cash";
 

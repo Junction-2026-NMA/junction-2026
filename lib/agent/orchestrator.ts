@@ -4,9 +4,9 @@ import { findCustomer } from "@/lib/finance/data";
 import { buildOverview } from "@/lib/finance/overview";
 import { findPatterns } from "@/lib/finance/patterns";
 import { getMemory } from "@/lib/memory";
-import type { AgentRequest, BillType, CashFlow, Citation, Fact, SisuEvent, Stage, ToolTrace, TurnTimings } from "@/lib/types";
+import type { AgentRequest, BillType, CashFlow, Citation, Fact, NumberCorrection, SisuEvent, Stage, ToolTrace, TurnTimings } from "@/lib/types";
 import { getConfig } from "./config";
-import { checkGrounding, overviewFacts } from "./grounding";
+import { type Sources, checkGrounding, correctNumbers, overviewFacts } from "./grounding";
 import { type ChatMessage, type ToolCall, streamChat } from "./model";
 import { buildSystemPrompt, customerSummary } from "./prompt";
 import { ensureResearch, isResearchReady } from "./research";
@@ -14,14 +14,15 @@ import { createSentenceSplitter, forSpeech } from "./sentences";
 import { speculate } from "./speculate";
 import { TOOL_SCHEMAS, type ToolContext, type ToolOutcome, billTypeOf, executeTool, parseArgs } from "./tools";
 import { failure } from "./tools/types";
+import { FORGED_NOTE, looksForged } from "./tools/untrusted";
 
 const MAX_MODEL_STEPS = { chat: 4, investigate: 9 };
 const MAX_TOOLS_PER_STEP = 4;
 const MAX_HISTORY_TURNS = 8;
 const MAX_TOKENS = { voice: 220, text: 420, investigate: 520 };
 const MAX_NUDGES = 2;
-// A short reply that promises to do something instead of doing it.
-const PROMISE_PATTERN = /\b(i can|i could|i'll|i will|let me|shall i)\b[^.?!]*\b(run|check|look|find|search|calculate|work out|pull)\b/i;
+// A short reply that promises to do something instead of doing it. "I can only search for..." is a refusal, not a promise.
+export const PROMISE_PATTERN = /\b(i can(?!not|'t| only| not)|i could(?! not|n't)|i'll|i will|let me|shall i)\b[^.?!]*\b(run|check|look|find|search|calculate|work out|pull)\b/i;
 const PROMISE_MAX_CHARS = 120;
 export const INVESTIGATE_TEXT = "Look into my finances on your own and come back with the one best thing I can do, checked and ready for me to approve.";
 
@@ -82,12 +83,14 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
   if (investigate) yield { type: "filler", text: `Give me a moment, ${overview.displayName}. I'm going through your last twelve months.` };
 
   const history = (request.history ?? []).slice(-MAX_HISTORY_TURNS);
-  const userTexts = [...history.filter((turn) => turn.role === "user").map((turn) => turn.content), request.text];
+  // Text dressed up as a tool result or system message is labelled for the model, and its numbers stop counting as "the user said so".
+  const forged = looksForged(request.text);
+  const userTexts = forged ? [] : [...history.filter((turn) => turn.role === "user").map((turn) => turn.content), request.text];
   const context: ToolContext = { customerId: request.customerId, overview, city: customer.area, memory, cashFlow, userTexts, signal };
   const messages: ChatMessage[] = [
     { role: "system", content: buildSystemPrompt({ overview, city: customer.area, mode: request.mode, memory, investigate }) },
     ...history.map((turn) => ({ role: turn.role, content: turn.content })),
-    { role: "user", content: request.text },
+    { role: "user", content: forged ? `${request.text}\n\n${FORGED_NOTE}` : request.text },
   ];
 
   const splitter = createSentenceSplitter();
@@ -105,9 +108,19 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
   let offerFound = false;
   let researched = false;
 
+  // Everything the answer's numbers may be checked against. Tool results are added as they arrive.
+  const summaryFacts = overviewFacts(overview);
+  const summaryText = customerSummary(overview, customer.area);
+  const sources = (): Sources => ({ facts: [...toolFacts, ...summaryFacts], contextTexts: [summaryText, ...toolContents, ...memory.items.map((item) => item.value)], userTexts });
+  const corrections: NumberCorrection[] = [];
+
+  // A sentence is checked the moment it is complete, before it is shown as a sentence or spoken:
+  // a figure the model copied with a slipped digit is replaced by the receipt's value.
   function* emitSentences(sentences: string[]): Generator<SisuEvent> {
     for (const sentence of sentences) {
-      const text = request.mode === "voice" ? forSpeech(sentence) : sentence;
+      const fixed = correctNumbers(sentence, sources());
+      corrections.push(...fixed.corrections);
+      const text = request.mode === "voice" ? forSpeech(fixed.text) : fixed.text;
       if (!text) continue;
       timings.firstSentenceMs ??= sinceStart();
       yield { type: "sentence", index: sentenceIndex++, text };
@@ -129,15 +142,17 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
       })) {
         if (chunk.type === "delta") {
           timings.firstTokenMs ??= sinceStart();
+          // Text from an earlier step is already on screen; keep the two apart.
+          const gap = !stepText && answer && !/\s$/.test(answer) && !/^\s/.test(chunk.text) ? " " : "";
           stepText += chunk.text;
-          yield { type: "delta", text: chunk.text };
-          yield* emitSentences(splitter.push(chunk.text));
+          yield { type: "delta", text: gap + chunk.text };
+          yield* emitSentences(splitter.push(gap + chunk.text));
         } else {
           toolCalls = chunk.toolCalls.slice(0, MAX_TOOLS_PER_STEP);
           timings.modelSteps = [...timings.modelSteps, { model: chunk.model, provider: chunk.provider, usedBackup: chunk.usedBackup, firstTokenMs: chunk.firstTokenMs, totalMs: chunk.totalMs }];
         }
       }
-      answer += stepText;
+      answer += answer && stepText && !/\s$/.test(answer) && !/^\s/.test(stepText) ? ` ${stepText}` : stepText;
 
       // Rule 4: no tool calls means the model had what it needed. The turn ends here,
       // and any speculative research simply stays in the cache.
@@ -215,15 +230,17 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
     yield* emitSentences(splitter.flush());
 
     // Every number in the answer is checked against the receipts before the turn is declared done.
-    const summaryFacts = overviewFacts(overview);
-    const grounding = checkGrounding(answer, [...toolFacts, ...summaryFacts], [customerSummary(overview, customer.area), ...toolContents, ...memory.items.map((item) => item.value)], userTexts);
+    const finalText = correctNumbers(answer, sources()).text;
+    const { facts: allFacts, contextTexts } = sources();
+    const grounding = checkGrounding(finalText, allFacts, contextTexts, userTexts, corrections);
+    if (corrections.length) console.error(`[agent] corrected slipped figures: ${corrections.map((c) => `${c.said} -> ${c.corrected}`).join(", ")}`);
     const usedIds = new Set(grounding.numbers.map((n) => n.factId));
     const facts = [...toolFacts, ...summaryFacts.filter((f) => usedIds.has(f.id))].filter((f, index, all) => all.findIndex((other) => other.id === f.id) === index);
     if (!grounding.ok) console.error(`[agent] ungrounded numbers in answer: ${grounding.unverified.join(", ")}`);
     yield { type: "grounding", grounding, facts };
 
     timings.totalMs = sinceStart();
-    yield { type: "done", text: answer.trim(), citations, timings };
+    yield { type: "done", text: finalText.trim(), citations, timings };
   } catch (error) {
     if (signal?.aborted) return; // the user interrupted; nothing to report
     console.error("[agent] turn failed", error);

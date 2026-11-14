@@ -2,16 +2,28 @@
 // first the facts tools returned, then the customer summary and raw tool output, then what the user said.
 // A number with no source is reported as "unverified", so the UI can flag it and the gauntlet can count it.
 import { fact } from "@/lib/finance/facts";
-import type { Fact, Grounding, NumberCheck, Overview } from "@/lib/types";
+import type { Fact, Grounding, NumberCheck, NumberCorrection, Overview } from "@/lib/types";
 
 const TRIVIAL_MAX = 12; // small counts ("three offers", "12 months") are not financial claims
-const NUMBER = /\d{1,3}(?:[,\u00a0 ]\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?/g;
+// Digits glued to letters (an ID such as CUST04414) are a name, not a number.
+const NUMBER = /(?<![A-Za-z\d.])(?:\d{1,3}(?:[,\u00a0 ]\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)/g;
+const DATES = /\b\d{4}-\d{2}(?:-\d{2})?\b|\b\d{1,2}:\d{2}\b/g;
+// A figure this close to a receipt is the same figure with a slipped digit, not a different claim.
+const SLIP_ABSOLUTE = 0.05;
+const SLIP_RELATIVE = 0.001;
 
-// Numbers in a piece of text. "1,932.43", "1 932" and "40" all work. Dates like 2026-09-30 are skipped.
-export function numbersIn(text: string): number[] {
-  const withoutDates = text.replace(/\b\d{4}-\d{2}(?:-\d{2})?\b/g, " ").replace(/\b\d{1,2}:\d{2}\b/g, " ");
-  return [...withoutDates.matchAll(NUMBER)].map((match) => Number(match[0].replace(/[,\u00a0 ]/g, ""))).filter((n) => Number.isFinite(n));
+type Found = { value: number; raw: string; index: number };
+
+// Numbers in a piece of text, with where they are. "1,932.43", "1 932" and "40" all work. Dates and times are skipped.
+function findNumbers(text: string): Found[] {
+  const blanked = text.replace(DATES, (match) => " ".repeat(match.length)); // same length, so positions still line up
+  return [...blanked.matchAll(NUMBER)].map((match) => ({ value: Number(match[0].replace(/[,\u00a0 ]/g, "")), raw: match[0], index: match.index })).filter((n) => Number.isFinite(n.value));
 }
+
+export const numbersIn = (text: string): number[] => findNumbers(text).map((n) => n.value);
+
+// Years named in the data or by the user ("September 2026") are dates, not amounts.
+const yearsIn = (texts: string[]): number[] => texts.flatMap((text) => [...text.matchAll(/\b(20\d{2})\b/g)].map((match) => Number(match[1])));
 
 // "About 140" or "about 1,900" is a rounded figure. 1,536 is not: a precise-looking number must match precisely.
 const isRound = (n: number): boolean => Number.isInteger(n) && n % 5 === 0;
@@ -29,20 +41,48 @@ export function matches(said: number, value: number): boolean {
 // Monthly and yearly versions of the same figure count as supported: "about 12 a month" for 139 a year.
 const matchesDerived = (said: number, value: number): boolean => matches(said, value * 12) || matches(said, value / 12);
 
-export function checkGrounding(answer: string, facts: Fact[], contextTexts: string[], userTexts: string[]): Grounding {
-  const contextNumbers = contextTexts.flatMap(numbersIn);
-  const userNumbers = userTexts.flatMap(numbersIn);
-  const numbers: NumberCheck[] = numbersIn(answer).map((value): NumberCheck => {
-    const receipt = facts.find((f) => matches(value, f.value));
-    if (receipt) return { value, status: "receipt", factId: receipt.id };
-    if (contextNumbers.some((n) => matches(value, n)) || userNumbers.some((n) => matches(value, n))) return { value, status: "context", factId: null };
-    const derived = facts.find((f) => (f.unit === "EUR/month" || f.unit === "EUR/year" || f.unit === "EUR") && matchesDerived(value, f.value));
-    if (derived) return { value, status: "context", factId: derived.id };
-    if (Number.isInteger(value) && value <= TRIVIAL_MAX) return { value, status: "trivial", factId: null };
-    return { value, status: "unverified", factId: null };
-  });
+export type Sources = { facts: Fact[]; contextTexts: string[]; userTexts: string[] };
+
+function classify(value: number, sources: Sources, contextNumbers: number[], years: number[]): NumberCheck {
+  const receipt = sources.facts.find((f) => matches(value, f.value));
+  if (receipt) return { value, status: "receipt", factId: receipt.id };
+  if (contextNumbers.some((n) => matches(value, n))) return { value, status: "context", factId: null };
+  if (Number.isInteger(value) && years.includes(value)) return { value, status: "trivial", factId: null };
+  const derived = sources.facts.find((f) => (f.unit === "EUR/month" || f.unit === "EUR/year" || f.unit === "EUR") && matchesDerived(value, f.value));
+  if (derived) return { value, status: "context", factId: derived.id };
+  if (Number.isInteger(value) && value <= TRIVIAL_MAX) return { value, status: "trivial", factId: null };
+  return { value, status: "unverified", factId: null };
+}
+
+const prepared = (sources: Sources) => ({
+  contextNumbers: [...sources.contextTexts, ...sources.userTexts].flatMap(numbersIn),
+  years: [...yearsIn([...sources.contextTexts, ...sources.userTexts]), new Date().getFullYear()],
+});
+
+// Fixes slipped digits. A number with no source that sits within a hair of a receipt (1,059.49 for 1,059.47) is
+// replaced by the receipt's value, written the way the model wrote it. Anything further away is left for the report.
+export function correctNumbers(text: string, sources: Sources): { text: string; corrections: NumberCorrection[] } {
+  const { contextNumbers, years } = prepared(sources);
+  const corrections: NumberCorrection[] = [];
+  let corrected = text;
+  for (const found of findNumbers(text).reverse()) {
+    if (classify(found.value, sources, contextNumbers, years).status !== "unverified") continue;
+    const near = sources.facts.find((f) => Math.abs(Math.abs(f.value) - found.value) <= Math.max(SLIP_ABSOLUTE, Math.abs(f.value) * SLIP_RELATIVE));
+    if (!near) continue;
+    const decimals = found.raw.includes(".") ? found.raw.split(".")[1].length : 0;
+    const replacement = Math.abs(near.value).toFixed(decimals);
+    corrected = corrected.slice(0, found.index) + replacement + corrected.slice(found.index + found.raw.length);
+    corrections.unshift({ said: found.value, corrected: Number(replacement), factId: near.id });
+  }
+  return { text: corrected, corrections };
+}
+
+export function checkGrounding(answer: string, facts: Fact[], contextTexts: string[], userTexts: string[], corrections: NumberCorrection[] = []): Grounding {
+  const sources = { facts, contextTexts, userTexts };
+  const { contextNumbers, years } = prepared(sources);
+  const numbers = numbersIn(answer).map((value) => classify(value, sources, contextNumbers, years));
   const unverified = numbers.filter((n) => n.status === "unverified").map((n) => n.value);
-  return { ok: unverified.length === 0, checked: numbers.length, unverified, numbers };
+  return { ok: unverified.length === 0, checked: numbers.length, unverified, numbers, corrections };
 }
 
 // Receipts for the figures in the customer summary, so an answer that needed no tool still has sources.

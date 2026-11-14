@@ -92,6 +92,7 @@ export async function searchOffers(args: Record<string, unknown>, ctx: ToolConte
       retrievedAt: research.finishedAt,
       assumptions: research.assumptions,
       problems: research.errors,
+      next: best ? "If the customer asked what this adds up to over time, call run_scenario with billSavingPerMonth set to best.estimatedMonthlySavingEur; never multiply it yourself. If they asked you to prepare it or go ahead, call prepare_action with kind switch_contract." : undefined,
     }),
     ok,
     summary: ok

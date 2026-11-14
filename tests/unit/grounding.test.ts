@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { AINO } from "./helpers";
-import { checkGrounding, matches, numbersIn, overviewFacts } from "@/lib/agent/grounding";
+import { checkGrounding, correctNumbers, matches, numbersIn, overviewFacts } from "@/lib/agent/grounding";
 import { fact } from "@/lib/finance/facts";
 import { buildOverview } from "@/lib/finance/overview";
 
@@ -10,6 +10,7 @@ describe("number verifier", () => {
     assert.deepEqual(numbersIn("You spent €1,932.43 and 40 euros, about 1 200 in total."), [1932.43, 40, 1200]);
     assert.deepEqual(numbersIn("Payday is 2026-10-15 at 09:30, in 15 days."), [15]);
     assert.deepEqual(numbersIn("No figures here."), []);
+    assert.deepEqual(numbersIn("I cannot show customer CUST04414's data, only your 40 euros."), [40]); // an ID is not an amount
   });
 
   it("accepts exact, rounded and honest 'about' figures, and rejects different ones", () => {
@@ -46,6 +47,33 @@ describe("number verifier", () => {
     const result = checkGrounding("Saving 50 euros a month for 5 years; the offer is 34.27 a month, and the extra is about 62 a month.", facts, ['{"estimatedMonthlyCostEur":34.27}'], ["What if I save 50 euros a month for 5 years?"]);
     assert.equal(result.ok, true);
     assert.deepEqual(result.numbers.map((n) => n.status), ["context", "trivial", "context", "context"].map((s, i) => (i === 1 ? "context" : s)));
+  });
+
+  // Regression: live evaluation round 1. Nemotron said "April, with 1059.49 euros" when the tool returned 1059.47.
+  it("replaces a slipped digit with the receipt's value, and leaves a genuinely different number alone", () => {
+    const groceries = [fact("g:apr", "Groceries, 2026-04", 1059.47, "EUR", "test"), fact("g:feb", "Groceries, 2026-02", 1008.49, "EUR", "test")];
+    const sources = { facts: groceries, contextTexts: [], userTexts: [] };
+    const fixed = correctNumbers("April was highest at 1059.49 euros; February came close at 1008.49 euros.", sources);
+    assert.equal(fixed.text, "April was highest at 1059.47 euros; February came close at 1008.49 euros.");
+    assert.deepEqual(fixed.corrections, [{ said: 1059.49, corrected: 1059.47, factId: "g:apr" }]);
+    assert.equal(checkGrounding(fixed.text, groceries, [], [], fixed.corrections).ok, true);
+
+    const invented = correctNumbers("Over five years that adds up to about €333.60.", sources);
+    assert.deepEqual([invented.text, invented.corrections.length], ["Over five years that adds up to about €333.60.", 0]);
+    assert.deepEqual(checkGrounding(invented.text, groceries, [], []).unverified, [333.6]);
+  });
+
+  it("keeps the model's own formatting when it corrects a figure", () => {
+    const sources = { facts: [fact("x", "Bill", 1932.43, "EUR", "test")], contextTexts: [], userTexts: [] };
+    assert.equal(correctNumbers("That is 1,932.45 in all.", sources).text, "That is 1932.43 in all.");
+    assert.equal(correctNumbers("Nothing to fix: 1,932.43.", sources).text, "Nothing to fix: 1,932.43.");
+  });
+
+  // Regression: live evaluation round 1. "September 2026" was reported as an unverified number.
+  it("does not mistake a year from the data for an amount", () => {
+    const result = checkGrounding("In September 2026 you spent 277 euros, averaged from October 2025.", facts, ['{"averagesCover":"2025-10-01 to 2026-09-30"}'], []);
+    assert.equal(result.ok, true);
+    assert.deepEqual(result.unverified, []);
   });
 
   it("treats small counts as trivial, not as financial claims", () => {
