@@ -7,7 +7,7 @@ import type { RiveSizing } from "./contract";
 /**
  * The box a component takes, before the parent's own className/style:
  * - fixed: exactly the design size.
- * - flexibleWidth: the full width at the design height.
+ * - flexibleWidth: the full width at the design height, never squashed below it.
  * - contain: the design size, never wider than its parent, keeping its proportions. Give it a width and a height
  *   (style or a class) and it scales to fit inside them.
  * - fill: fills its parent (give the parent a height).
@@ -20,7 +20,8 @@ export function riveBoxStyle(designSize: { width: number; height: number }, sizi
     case "fixed":
       return { width, height, flex: "none" };
     case "flexibleWidth":
-      return { width: "100%", height, minWidth: 0 };
+      // minHeight: a column flex layout must never squash the design height (a button cut in half).
+      return { width: "100%", height, minHeight: height, minWidth: 0 };
     case "contain":
       return { width, maxWidth: "100%", aspectRatio: `${width} / ${height}` };
     case "fill":

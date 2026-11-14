@@ -266,3 +266,22 @@
   background: var(--sisu-color-primary);
   color: var(--sisu-color-on-primary);
 }
+
+/* Short screens (an iPhone SE, a browser tab with its toolbars): Liito shrinks so the button below the text
+   stays on screen instead of being pushed off it. */
+.sisu-onb-welcome .sisu-onb-liito > .sisu-rive {
+  width: min(240px, 26dvh) !important;
+  height: min(240px, 26dvh) !important;
+}
+
+.sisu-onb-reading [data-rive="Liito"] {
+  width: min(200px, 24dvh) !important;
+  height: min(200px, 24dvh) !important;
+}
+
+/* The welcome button never leaves the screen: on a very short screen the text scrolls under it. */
+.sisu-onb-welcome > [data-rive="Button"] {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+}
