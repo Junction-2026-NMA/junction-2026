@@ -73,6 +73,119 @@
   color: var(--gate-muted);
 }
 
+/* Demo code under the QR: opens the app on a computer, in an iPhone-sized frame (DesktopPhone.tsx). */
+
+.sisu-gate-code {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.sisu-gate-code-label {
+  font-size: 14px;
+  color: var(--gate-muted);
+}
+
+.sisu-gate-code-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.sisu-gate .sisu-gate-code-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 48px;
+  padding: 0 16px;
+  border-radius: 16px;
+  border: 1px solid var(--gate-hairline);
+  background: var(--gate-card);
+  color: var(--gate-text);
+  font: inherit;
+  font-size: 18px;
+  letter-spacing: 0.2em;
+  text-align: center;
+}
+
+.sisu-gate .sisu-gate-code-input:focus-visible {
+  outline: 2px solid var(--gate-accent);
+  outline-offset: 1px;
+}
+
+.sisu-gate .sisu-gate-code-input[aria-invalid="true"] {
+  border-color: #cf8300;
+}
+
+.sisu-gate .sisu-gate-code-button {
+  flex: none;
+  height: 48px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--gate-primary);
+  color: #ffffff;
+  font: inherit;
+  font-weight: 700;
+  font-size: 16px;
+  box-shadow: inset 0 -4px 0 0 var(--gate-primary-edge);
+  cursor: pointer;
+}
+
+.sisu-gate .sisu-gate-code-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.sisu-gate-code-error {
+  margin: 0;
+  font-size: 14px;
+  color: #8a5a00;
+}
+
+/* The app on a computer: an iPhone-sized screen in a dark frame, scaled down to fit (never up). */
+
+.sisu-gate-desk {
+  gap: 16px;
+  padding: 24px;
+  overflow: hidden;
+}
+
+.sisu-gate-desk-stage {
+  position: relative;
+  flex: none;
+}
+
+.sisu-gate-desk-phone {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+  border-radius: 68px;
+  background: #18211c;
+  box-shadow: 0 24px 60px rgba(24, 33, 28, 0.22), inset 0 0 0 2px #3a443f;
+}
+
+.sisu-gate-desk-screen {
+  display: block;
+  border: 0;
+  border-radius: 54px;
+  background: #f6f8f7;
+}
+
+.sisu-gate .sisu-gate-link {
+  border: 0;
+  background: none;
+  color: var(--gate-primary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px;
+}
+
 /* Phone install steps */
 
 .sisu-gate-install {
