@@ -86,6 +86,10 @@ function decide(customerId: string, actionId: string, approve: boolean, impactOf
   if (action.status === "expired") return { ok: false, status: 410, reason: "This action has expired because prices may have changed. Ask Sisu to prepare it again." };
   if (!isOpen(action)) return { ok: false, status: 409, reason: `This action was already ${action.status === "declined" ? "declined" : "approved"}.` };
 
+  if (approve && action.kind === "switch_contract" && approvedSwitch(customerId, action.billType)) {
+    return { ok: false, status: 409, reason: "This bill already has an approved simulated switch. Decline this competing offer." };
+  }
+
   const decided: AgentAction = approve
     ? { ...action, status: "executed_simulated", decidedAt: now.toISOString(), impact: impactOf(action), confirmation: `Done (simulation). Reference SIM-${action.id.slice(0, 8).toUpperCase()}.` }
     : { ...action, status: "declined", decidedAt: now.toISOString() };
