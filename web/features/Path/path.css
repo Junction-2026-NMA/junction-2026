@@ -1,0 +1,263 @@
+/* The Path tab (PathScreen.tsx, PathHeader.tsx, PathTrail.tsx, PathStates.tsx) and the lesson sheet
+   (LessonSheet.tsx). Port of the layout in ios/Sisu/Features/Path. */
+
+/* .scrollIndicators(.hidden) */
+.sisu-path .sisu-screen-scroll {
+  scrollbar-width: none;
+}
+
+.sisu-path .sisu-screen-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Header: 20 px sides, 8 px top, 12 px bottom, rows 12 px apart. */
+.sisu-path-header {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 3);
+  padding: calc(var(--sisu-space-grid) * 2) var(--sisu-space-margin) calc(var(--sisu-space-grid) * 3);
+  padding-left: calc(var(--sisu-space-margin) + env(safe-area-inset-left, 0px));
+  padding-right: calc(var(--sisu-space-margin) + env(safe-area-inset-right, 0px));
+  background: var(--sisu-color-background);
+}
+
+.sisu-path-header-row {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+}
+
+.sisu-path-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font: var(--sisu-type-h1);
+  color: var(--sisu-color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sisu-path-pills {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+}
+
+.sisu-path-subtitle {
+  margin: 0;
+  font: var(--sisu-type-caption);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-path-progress {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 2);
+}
+
+.sisu-path-progress-text {
+  font: var(--sisu-type-label);
+  color: var(--sisu-color-text);
+}
+
+/* Loading and error: centred in the room above the tab bar. */
+.sisu-path-fill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sisu-space-card);
+  min-height: calc(100% - var(--sisu-tabbar-room, 0px));
+  width: 100%;
+}
+
+.sisu-path-error {
+  align-items: stretch;
+  padding: 0 var(--sisu-space-margin);
+}
+
+.sisu-path-loading-text {
+  margin: 0;
+  font: var(--sisu-type-body);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-path-error-text {
+  margin: 0;
+  font: var(--sisu-type-body-large);
+  color: var(--sisu-color-text);
+  text-align: center;
+}
+
+/* ProgressView().tint(green700) */
+.sisu-path-spinner {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2.5px solid var(--sisu-green-100, #d2fcd5);
+  border-top-color: var(--sisu-green-700);
+  animation: sisu-path-spin 0.9s linear infinite;
+}
+
+@keyframes sisu-path-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* The trail: nodes 8 px apart, 16 px from the header, 64 px of room after the last. */
+.sisu-path-trail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+  width: 100%;
+  padding: calc(var(--sisu-space-grid) * 4) var(--sisu-space-margin) calc(var(--sisu-space-section) * 2);
+}
+
+.sisu-path-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  border-radius: var(--sisu-radius-card);
+}
+
+.sisu-path-node-tag {
+  display: block;
+  pointer-events: none;
+}
+
+/* The 96 px sticker with 8 px around it; the ring and the check sit on that 112 px box. */
+.sisu-path-node-badge {
+  position: relative;
+  display: block;
+  width: 112px;
+  height: 112px;
+}
+
+.sisu-path-node-sticker {
+  position: relative;
+  display: block;
+  padding: calc(var(--sisu-space-grid) * 2);
+  pointer-events: none;
+}
+
+.sisu-path-node[data-state="upcoming"] .sisu-path-node-sticker {
+  opacity: 0.55;
+}
+
+/* Circle().stroke(green500, lineWidth: 6): the stroke is centred on the box's edge. */
+.sisu-path-node[data-state="current"] .sisu-path-node-sticker::before {
+  content: "";
+  position: absolute;
+  inset: calc(var(--sisu-space-grid) * -0.75);
+  border: calc(var(--sisu-space-grid) * 1.5) solid var(--sisu-green-500);
+  border-radius: 50%;
+}
+
+.sisu-path-node-check {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--sisu-green-700);
+  color: var(--sisu-white);
+}
+
+/* Liito beside the current node, on the side the path curves away from, 12 px from the badge. */
+.sisu-path-node-liito {
+  position: absolute;
+  top: 4px;
+  display: block;
+  pointer-events: none;
+}
+
+.sisu-path-node-liito[data-side="leading"] {
+  left: 0;
+  transform: translateX(-116px);
+}
+
+.sisu-path-node-liito[data-side="trailing"] {
+  right: 0;
+  transform: translateX(116px);
+}
+
+.sisu-path-node-title {
+  display: -webkit-box;
+  width: 150px;
+  font: var(--sisu-type-label);
+  color: var(--sisu-color-text);
+  text-align: center;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.sisu-path-node[data-state="current"] .sisu-path-node-title {
+  font: var(--sisu-type-button);
+}
+
+.sisu-path-node[data-state="upcoming"] .sisu-path-node-title {
+  color: var(--sisu-color-text-muted);
+}
+
+/* The lesson sheet: 20 px sides, 32 px top and bottom, rows 16 px apart. */
+.sisu-lesson {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--sisu-space-card);
+  padding: var(--sisu-space-section) var(--sisu-space-margin);
+}
+
+.sisu-lesson p,
+.sisu-lesson h1 {
+  margin: 0;
+}
+
+.sisu-lesson-title {
+  font: var(--sisu-type-h1);
+  color: var(--sisu-color-text);
+}
+
+.sisu-lesson-explanation {
+  font: var(--sisu-type-body-large);
+  color: var(--sisu-color-text);
+}
+
+.sisu-lesson-quiz {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: calc(var(--sisu-space-grid) * 3);
+  padding-top: calc(var(--sisu-space-grid) * 2);
+}
+
+.sisu-lesson-question,
+.sisu-lesson-feedback {
+  font: var(--sisu-type-h3);
+  color: var(--sisu-color-text);
+}
+
+.sisu-lesson-reveal {
+  font: var(--sisu-type-body);
+  color: var(--sisu-color-text);
+}
+
+.sisu-lesson-done {
+  padding-top: calc(var(--sisu-space-grid) * 2);
+}

@@ -1,0 +1,42 @@
+data: {"type":"start","turnId":"37b111bf-bd0c-49bd-b998-0e1b13522eed","provider":"mock","model":"mock","mock":true}
+
+data: {"type":"tool_start","id":"mock_get_spending_1u2y6a","name":"get_spending","args":{"from":"2026-06-01","to":"2026-09-30","category":"Restaurants","groupBy":"month"},"label":"Adding up your restaurants from 2026-06-01 to 2026-09-30"}
+
+data: {"type":"tool_end","trace":{"id":"mock_get_spending_1u2y6a","name":"get_spending","args":{"from":"2026-06-01","to":"2026-09-30","category":"Restaurants","groupBy":"month"},"source":"finance","startedAtMs":254,"tookMs":1,"ok":true,"summary":"€2456.94 on Restaurants across 40 transactions, 2026-06-01 to 2026-09-30","joinedPrefetch":false}}
+
+data: {"type":"stage","stage":{"kind":"evidence","title":"Spending on Restaurants","summary":"€2456.94 across 40 transactions, 2026-06-01 to 2026-09-30","source":"bank-data","data":{"kind":"evidence","filter":{"from":"2026-06-01","to":"2026-09-30","category":"Restaurants"},"count":40,"totalEur":2456.94,"largest":[{"date":"2026-06-19","amount":188.02,"category":"Restaurants","merchantType":"Bar"},{"date":"2026-08-21","amount":140.91,"category":"Restaurants","merchantType":"Restaurant"},{"date":"2026-07-11","amount":120.56,"category":"Restaurants","merchantType":"Fast food"}]},"id":"37b111bf-bd0c-49bd-b998-0e1b13522eed:0","toolCallId":"mock_get_spending_1u2y6a","atMs":255,"facts":[{"id":"spending:total","label":"Spent on Restaurants, 2026-06-01 to 2026-09-30","value":2456.94,"unit":"EUR","source":"bank-data","basis":"sum of 40 transactions","evidence":{"from":"2026-06-01","to":"2026-09-30","category":"Restaurants"}},{"id":"spending:per-day","label":"Restaurants, average per day","value":20.14,"unit":"EUR","source":"calculation","basis":"total divided by 122 days","evidence":{"from":"2026-06-01","to":"2026-09-30","category":"Restaurants"}},{"id":"spending:per-month","label":"Restaurants, average per month","value":612.56,"unit":"EUR/month","source":"calculation","basis":"total divided by 122 days, times an average month","evidence":{"from":"2026-06-01","to":"2026-09-30","category":"Restaurants"}},{"id":"spending:usual","label":"Restaurants, 12-month average","value":387.04,"unit":"EUR/month","source":"bank-data","basis":"average of the last 12 months"},{"id":"spending:count","label":"Transactions on Restaurants, 2026-06-01 to 2026-09-30","value":40,"unit":"count","source":"bank-data","basis":"number of matching transactions","evidence":{"from":"2026-06-01","to":"2026-09-30","category":"Restaurants"}},{"id":"spending:group:2026-06","label":"Restaurants, 2026-06","value":774.07,"unit":"EUR","source":"bank-data","basis":"sum of 10 transactions","evidence":{"from":"2026-06-01","to":"2026-06-30","category":"Restaurants"}},{"id":"spending:group:2026-07","label":"Restaurants, 2026-07","value":855.53,"unit":"EUR","source":"bank-data","basis":"sum of 10 transactions","evidence":{"from":"2026-07-01","to":"2026-07-31","category":"Restaurants"}},{"id":"spending:group:2026-08","label":"Restaurants, 2026-08","value":693.47,"unit":"EUR","source":"bank-data","basis":"sum of 10 transactions","evidence":{"from":"2026-08-01","to":"2026-08-31","category":"Restaurants"}},{"id":"spending:group:2026-09","label":"Restaurants, 2026-09","value":133.87,"unit":"EUR","source":"bank-data","basis":"sum of 10 transactions","evidence":{"from":"2026-09-01","to":"2026-09-30","category":"Restaurants"}},{"id":"spending:largest:1","label":"Largest 1: Bar on 2026-06-19","value":188.02,"unit":"EUR","source":"bank-data","basis":"a single transaction","evidence":{"from":"2026-06-01","to":"2026-09-30","category":"Restaurants"}},{"id":"spending:largest:2","label":"Largest 2: Restaurant on 2026-08-21","value":140.91,"unit":"EUR","source":"bank-data","basis":"a single transaction","evidence":{"from":"2026-06-01","to":"2026-09-30","category":"Restaurants"}},{"id":"spending:largest:3","label":"Largest 3: Fast food on 2026-07-11","value":120.56,"unit":"EUR","source":"bank-data","basis":"a single transaction","evidence":{"from":"2026-06-01","to":"2026-09-30","category":"Restaurants"}}]}}
+
+data: {"type":"delta","text":"Mock "}
+
+data: {"type":"delta","text":"answer. "}
+
+data: {"type":"delta","text":"You "}
+
+data: {"type":"delta","text":"spent "}
+
+data: {"type":"delta","text":"2456.94 "}
+
+data: {"type":"delta","text":"euros "}
+
+data: {"type":"delta","text":"on "}
+
+data: {"type":"delta","text":"Restaurants "}
+
+data: {"type":"delta","text":"across "}
+
+data: {"type":"delta","text":"40 "}
+
+data: {"type":"delta","text":"purchases "}
+
+data: {"type":"delta","text":"in "}
+
+data: {"type":"delta","text":"that "}
+
+data: {"type":"delta","text":"period. "}
+
+data: {"type":"sentence","index":0,"text":"Mock answer. You spent 2456.94 euros on Restaurants across 40 purchases in that period."}
+
+data: {"type":"grounding","grounding":{"ok":true,"checked":2,"unverified":[],"numbers":[{"value":2456.94,"status":"receipt","factId":"spending:total"},{"value":40,"status":"receipt","factId":"spending:count"}],"corrections":[]},"facts":[{"id":"spending:total","label":"Spent on Restaurants, 2026-06-01 to 2026-09-30","value":2456.94,"unit":"EUR","source":"bank-data","basis":"sum of 40 transactions","evidence":{"from":"2026-06-01","to":"2026-09-30","category":"Restaurants"}},{"id":"spending:per-day","label":"Restaurants, average per day","value":20.14,"unit":"EUR","source":"calculation","basis":"total divided by 122 days","evidence":{"from":"2026-06-01","to":"2026-09-30","category":"Restaurants"}},{"id":"spending:per-month","label":"Restaurants, average per month","value":612.56,"unit":"EUR/month","source":"calculation","basis":"total divided by 122 days, times an average month","evidence":{"from":"2026-06-01","to":"2026-09-30","category":"Restaurants"}},{"id":"spending:usual","label":"Restaurants, 12-month average","value":387.04,"unit":"EUR/month","source":"bank-data","basis":"average of the last 12 months"},{"id":"spending:count","label":"Transactions on Restaurants, 2026-06-01 to 2026-09-30","value":40,"unit":"count","source":"bank-data","basis":"number of matching transactions","evidence":{"from":"2026-06-01","to":"2026-09-30","category":"Restaurants"}},{"id":"spending:group:2026-06","label":"Restaurants, 2026-06","value":774.07,"unit":"EUR","source":"bank-data","basis":"sum of 10 transactions","evidence":{"from":"2026-06-01","to":"2026-06-30","category":"Restaurants"}},{"id":"spending:group:2026-07","label":"Restaurants, 2026-07","value":855.53,"unit":"EUR","source":"bank-data","basis":"sum of 10 transactions","evidence":{"from":"2026-07-01","to":"2026-07-31","category":"Restaurants"}},{"id":"spending:group:2026-08","label":"Restaurants, 2026-08","value":693.47,"unit":"EUR","source":"bank-data","basis":"sum of 10 transactions","evidence":{"from":"2026-08-01","to":"2026-08-31","category":"Restaurants"}},{"id":"spending:group:2026-09","label":"Restaurants, 2026-09","value":133.87,"unit":"EUR","source":"bank-data","basis":"sum of 10 transactions","evidence":{"from":"2026-09-01","to":"2026-09-30","category":"Restaurants"}},{"id":"spending:largest:1","label":"Largest 1: Bar on 2026-06-19","value":188.02,"unit":"EUR","source":"bank-data","basis":"a single transaction","evidence":{"from":"2026-06-01","to":"2026-09-30","category":"Restaurants"}},{"id":"spending:largest:2","label":"Largest 2: Restaurant on 2026-08-21","value":140.91,"unit":"EUR","source":"bank-data","basis":"a single transaction","evidence":{"from":"2026-06-01","to":"2026-09-30","category":"Restaurants"}},{"id":"spending:largest:3","label":"Largest 3: Fast food on 2026-07-11","value":120.56,"unit":"EUR","source":"bank-data","basis":"a single transaction","evidence":{"from":"2026-06-01","to":"2026-09-30","category":"Restaurants"}}]}
+
+data: {"type":"done","text":"Mock answer. You spent 2456.94 euros on Restaurants across 40 purchases in that period.","citations":[],"timings":{"sttMs":null,"firstTokenMs":281,"firstSentenceMs":621,"totalMs":622,"modelSteps":[{"model":"mock","provider":"mock","usedBackup":false,"firstTokenMs":250,"totalMs":250},{"model":"mock","provider":"mock","usedBackup":false,"firstTokenMs":26,"totalMs":366}]}}
+

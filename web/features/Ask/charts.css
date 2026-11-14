@@ -1,0 +1,210 @@
+/* The agent's charts (ChartCard.tsx, ChartBodies.tsx). Solid white card, brand greens, amber for a flagged mark. */
+
+.sisu-chart {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 3);
+}
+
+.sisu-chart-rows {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 2);
+  width: 100%;
+}
+
+.sisu-chart-row {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+}
+
+.sisu-chart-swatch {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.sisu-chart-swatch-line {
+  flex: none;
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.sisu-chart-share {
+  flex: none;
+  min-width: 36px;
+  text-align: right;
+}
+
+.sisu-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--sisu-space-grid) * 2) calc(var(--sisu-space-grid) * 3);
+}
+
+.sisu-chart-legend-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Ring. */
+.sisu-chart-donut {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sisu-space-card);
+}
+
+.sisu-chart-ring {
+  position: relative;
+  width: 160px;
+  height: 160px;
+}
+
+.sisu-chart-ring svg {
+  display: block;
+}
+
+.sisu-chart-ring-center {
+  position: absolute;
+  inset: 34px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Bars. */
+.sisu-chart-groups {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 3.5);
+}
+
+.sisu-chart-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sisu-chart-group-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px calc(var(--sisu-space-grid) * 2);
+}
+
+.sisu-chart-group-top a {
+  text-decoration: none;
+}
+
+.sisu-chart-bar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sisu-chart-bar-track {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+}
+
+.sisu-chart-bar-area {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sisu-chart-bar {
+  height: 12px;
+  min-width: 2px;
+  border-radius: 6px;
+}
+
+.sisu-chart-bar-value {
+  flex: none;
+}
+
+/* Monthly columns. */
+.sisu-chart-columns-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sisu-space-grid);
+}
+
+.sisu-chart-columns {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 120px;
+}
+
+.sisu-chart-column {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+}
+
+.sisu-chart-column-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 4px 4px 0 0;
+}
+
+.sisu-chart-column-mark {
+  position: absolute;
+  left: -1px;
+  right: -1px;
+  height: 2px;
+  margin-bottom: -1px;
+  border-radius: 1px;
+  background: var(--sisu-green-300);
+}
+
+.sisu-chart-axis {
+  height: auto;
+  align-items: flex-start;
+}
+
+.sisu-chart-axis-label {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: visible;
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* Lines over the years. */
+.sisu-chart-lines {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 2);
+}
+
+.sisu-chart-lines-svg {
+  display: block;
+  width: 100%;
+  height: 140px;
+}
+
+.sisu-chart-axis-years {
+  display: flex;
+  justify-content: space-between;
+}
+
+.sisu-chart-end {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}

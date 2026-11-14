@@ -1,0 +1,137 @@
+/* Shared building blocks (SisuStyle.tsx, Notice.tsx). */
+
+.sisu-card-surface {
+  background: var(--sisu-color-card);
+  border: 1px solid var(--sisu-color-hairline);
+  border-radius: var(--sisu-radius-card);
+}
+
+.sisu-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: calc(var(--sisu-space-grid) * 3);
+  width: 100%;
+  padding: var(--sisu-space-margin);
+  text-align: left;
+}
+
+.sisu-section-title {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sisu-space-grid);
+  width: 100%;
+}
+
+.sisu-section-title-text {
+  margin: 0;
+  font: var(--sisu-type-h2);
+  color: var(--sisu-color-text);
+}
+
+.sisu-section-title-detail {
+  margin: 0;
+  font: var(--sisu-type-body);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-eyebrow {
+  font: var(--sisu-type-label);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-hug {
+  overflow: hidden;
+  flex: none;
+}
+
+.sisu-hug > * {
+  flex: none;
+}
+
+/* A pressable white card: a 4 px neutral edge under the face; the face moves down onto it when pressed. */
+.sisu-pressable-card {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0 0 var(--sisu-space-press-edge) 0;
+  text-align: left;
+}
+
+.sisu-pressable-card::before {
+  content: "";
+  position: absolute;
+  inset: var(--sisu-space-press-edge) 0 0 0;
+  border-radius: var(--sisu-radius-card);
+  background: var(--sisu-color-press-edge);
+}
+
+.sisu-pressable-card-face {
+  position: relative;
+  display: block;
+  background: var(--sisu-color-card);
+  border: 1px solid var(--sisu-color-hairline);
+  border-radius: var(--sisu-radius-card);
+  transition: transform var(--sisu-motion-state-duration) var(--sisu-motion-state-easing);
+}
+
+.sisu-pressable-card:active:not(:disabled) .sisu-pressable-card-face {
+  transform: translateY(var(--sisu-space-press-edge));
+  transition-duration: 80ms;
+}
+
+/* The transient notice. */
+.sisu-notice-slot:empty {
+  display: none;
+}
+
+.sisu-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(var(--sisu-space-grid) * 2);
+  padding: calc(var(--sisu-space-grid) * 2) calc(var(--sisu-space-grid) * 3);
+  border-radius: var(--sisu-radius-button);
+  background: var(--sisu-info-background);
+  color: var(--sisu-info-text);
+  font: var(--sisu-type-label);
+  cursor: pointer;
+  transition: opacity 300ms ease, transform 300ms ease;
+}
+
+.sisu-notice-icon {
+  flex: none;
+  margin-top: 1px;
+}
+
+.sisu-notice-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sisu-notice-leaving {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.sisu-notice-leaving.sisu-enter-fade {
+  transform: none;
+}
+
+/* SisuMotion.entrance: rising into place, or a plain fade with Reduce Motion. */
+@keyframes sisu-rise-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes sisu-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.sisu-enter-rise {
+  animation: sisu-rise-in var(--sisu-motion-state-duration) var(--sisu-motion-state-easing) both;
+}
+
+.sisu-enter-fade {
+  animation: sisu-fade-in 200ms ease both;
+}

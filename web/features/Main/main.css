@@ -1,0 +1,42 @@
+/* MainScreen (MainScreen.tsx) and its celebration overlay. */
+
+.sisu-main {
+  position: absolute;
+  inset: 0;
+  background: var(--sisu-color-background);
+}
+
+/* While the keyboard is up the bar steps aside, and the screens give its room back. */
+.sisu-main[data-keyboard="true"] {
+  --sisu-tabbar-room: 0px;
+}
+
+.sisu-main-tabs {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* Over the tab bar (z-index 40), under sheets (z-index 100). Ignores the safe area, like .ignoresSafeArea(). */
+.sisu-celebration {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  animation-name: sisu-celebration-in;
+  animation-timing-function: var(--sisu-motion-ease-in-out);
+  animation-fill-mode: both;
+}
+
+.sisu-celebration[data-leaving="true"] {
+  animation-name: sisu-celebration-out;
+  pointer-events: none;
+}
+
+.sisu-celebration-tap {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+}
+
+@keyframes sisu-celebration-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sisu-celebration-out { from { opacity: 1; } to { opacity: 0; } }

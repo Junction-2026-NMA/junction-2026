@@ -1,0 +1,322 @@
+/* The Jars screen (JarsScreen.tsx and its parts). Port of ios/Sisu/Features/Jars/JarsScreen.swift. */
+
+/* Header: "Jars" in H1, 20 px sides, 8 px above and below. */
+.sisu-jars-header {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+  padding: calc(var(--sisu-space-grid) * 2) var(--sisu-space-margin);
+}
+
+.sisu-jars-title {
+  margin: 0;
+  font: var(--sisu-type-h1);
+  color: var(--sisu-color-text);
+}
+
+/* The scroll content: 32 px under the last row (on top of the tab bar's room). */
+.sisu-jars-stack {
+  padding-bottom: var(--sisu-space-section);
+}
+
+/* The loading state, centred in the room above the tab bar. */
+.sisu-jars-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sisu-space-card);
+  width: 100%;
+  height: calc(100% - var(--sisu-tabbar-room));
+  min-height: 160px;
+}
+
+.sisu-jars-loading-text {
+  margin: 0;
+  font: var(--sisu-type-body);
+  color: var(--sisu-color-text-muted);
+}
+
+/* A small iOS-like activity indicator in deep green. */
+.sisu-jars-spinner {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 3px solid var(--sisu-green-100);
+  border-top-color: var(--sisu-green-700);
+  animation: sisu-jars-spin 0.9s linear infinite;
+}
+
+@keyframes sisu-jars-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Shelf */
+.sisu-jars-shelf {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sisu-space-card);
+  /* section - card: the shelf sits 32 px above the futures title. */
+  padding-bottom: calc(var(--sisu-space-section) - var(--sisu-space-card));
+}
+
+.sisu-jars-tiles {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: stretch;
+  gap: var(--sisu-space-card);
+}
+
+.sisu-jars-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: var(--sisu-space-grid);
+  min-width: 0;
+  padding: var(--sisu-space-card);
+}
+
+.sisu-jars-tile-jar {
+  display: flex;
+  justify-content: center;
+  height: 150px;
+  margin-bottom: calc(var(--sisu-space-grid) * 3);
+}
+
+.sisu-jars-figure {
+  margin: 0;
+  font: var(--sisu-type-h2);
+  color: var(--sisu-color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sisu-jars-detail {
+  margin: 0;
+  font: var(--sisu-type-label);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-jars-berries {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--sisu-space-card);
+}
+
+.sisu-jars-berries-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sisu-space-grid);
+  min-width: 0;
+}
+
+.sisu-jars-berries-caption {
+  margin: 0;
+  font: var(--sisu-type-h3);
+  color: var(--sisu-color-text);
+}
+
+/* Futures */
+.sisu-jars-futures {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sisu-space-card);
+}
+
+.sisu-jars-reveal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sisu-space-card);
+}
+
+.sisu-jars-question {
+  margin: 0;
+  font: var(--sisu-type-h3);
+  color: var(--sisu-color-text);
+}
+
+.sisu-jars-explanation {
+  margin: 0;
+  font: var(--sisu-type-body);
+  color: var(--sisu-color-text);
+}
+
+/* `.transition(.opacity)` under SisuMotion.state. */
+.sisu-jars-fade-in {
+  animation: sisu-fade-in var(--sisu-motion-state-duration) var(--sisu-motion-state-easing) both;
+}
+
+.sisu-jars-freed {
+  margin: 0;
+  font: var(--sisu-type-label);
+  color: var(--sisu-green-700);
+}
+
+.sisu-jars-failed {
+  margin: 0;
+  font: var(--sisu-type-body);
+  color: var(--sisu-color-text);
+}
+
+.sisu-jars-pending {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 220px;
+}
+
+.sisu-jars-branch {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.sisu-jars-branch-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.sisu-jars-branch-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: var(--sisu-type-label);
+  color: var(--sisu-color-text);
+}
+
+.sisu-jars-branch-figures {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.sisu-jars-branch-total {
+  font: var(--sisu-type-button);
+  color: var(--sisu-color-text);
+}
+
+.sisu-jars-branch-range {
+  font: var(--sisu-type-caption);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-jars-assumptions {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 2);
+  font: var(--sisu-type-caption);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-jars-assumptions p {
+  margin: 0;
+}
+
+/* The futures chart (an SVG, 220 px high). */
+.sisu-jars-chart {
+  position: relative;
+  width: 100%;
+  height: 220px;
+}
+
+.sisu-jars-chart svg {
+  display: block;
+  overflow: visible;
+}
+
+.sisu-jars-chart-label {
+  font: var(--sisu-type-caption);
+  fill: var(--sisu-color-text-muted);
+}
+
+/* Slider rows */
+.sisu-jars-slider-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sisu-space-grid);
+}
+
+.sisu-jars-slider-head {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sisu-jars-slider-title {
+  font: var(--sisu-type-label);
+  color: var(--sisu-color-text);
+}
+
+.sisu-jars-slider-value {
+  flex: none;
+  font: var(--sisu-type-button);
+  color: var(--sisu-color-text);
+}
+
+/* SisuSlider: a 14 px pale-mint track, a deep green fill, a white knob with a deep green ring and a 4 px edge. */
+.sisu-slider {
+  position: relative;
+  height: calc(var(--sisu-space-touch-target) - 8px);
+  touch-action: pan-y;
+  cursor: pointer;
+  outline: none;
+}
+
+.sisu-slider:focus-visible {
+  border-radius: var(--sisu-radius-pill);
+  box-shadow: 0 0 0 2px var(--sisu-color-outline);
+}
+
+.sisu-slider-track,
+.sisu-slider-fill {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 14px;
+  margin-top: -7px;
+  border-radius: 7px;
+}
+
+.sisu-slider-track {
+  right: 0;
+  background: var(--sisu-green-100);
+}
+
+.sisu-slider-fill {
+  background: var(--sisu-green-700);
+}
+
+.sisu-slider-knob {
+  position: absolute;
+  top: 50%;
+  width: 30px;
+  height: 30px;
+  margin-top: -15px;
+}
+
+.sisu-slider-knob::before,
+.sisu-slider-knob::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+
+.sisu-slider-knob::before {
+  background: var(--sisu-green-900);
+  transform: translateY(calc(var(--sisu-space-press-edge) / 2));
+}
+
+.sisu-slider-knob::after {
+  background: var(--sisu-white);
+  border: 4px solid var(--sisu-green-700);
+}

@@ -1,0 +1,192 @@
+/* The coach screen (AskScreen.tsx, CoachConversation.tsx, AskParts.tsx, Composer.tsx, PlaceholderScreen.tsx).
+   Light only. Spacing and type from web/theme/tokens.css. */
+
+/* The whole column: header, notice, answers, voice notice, ask box. It keeps to what is visible: above the
+   floating tab bar, or on the keyboard while it is up (--sisu-ask-kb / --sisu-ask-vv-top from the visual
+   viewport; MainScreen gives the bar's room back then). */
+.sisu-ask {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--sisu-color-background);
+  padding-top: var(--sisu-ask-vv-top, 0px);
+  padding-bottom: max(var(--sisu-tabbar-room), var(--sisu-ask-kb, 0px));
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+.sisu-ask[data-keyboard="true"] {
+  padding-bottom: var(--sisu-ask-kb, 0px);
+}
+
+.sisu-ask-header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 3);
+  padding: calc(env(safe-area-inset-top, 0px) + var(--sisu-space-grid) * 2) var(--sisu-space-margin) calc(var(--sisu-space-grid) * 2);
+  background: var(--sisu-color-background);
+}
+
+.sisu-ask[data-keyboard="true"] .sisu-ask-header {
+  padding-top: calc(var(--sisu-space-grid) * 2);
+}
+
+.sisu-ask-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font: var(--sisu-type-h1);
+  color: var(--sisu-color-text);
+}
+
+.sisu-ask-notice {
+  flex: none;
+  padding: 0 var(--sisu-space-margin) calc(var(--sisu-space-grid) * 2);
+}
+
+.sisu-ask-notice:has(.sisu-notice-slot:empty) {
+  padding: 0;
+}
+
+.sisu-ask-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sisu-ask-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--sisu-space-card);
+  padding: var(--sisu-space-card) var(--sisu-space-margin);
+}
+
+.sisu-ask-bottom {
+  flex: none;
+  height: 1px;
+}
+
+.sisu-ask-voice-notice {
+  flex: none;
+  margin: 0;
+  padding: 0 var(--sisu-space-margin);
+  font: var(--sisu-type-label);
+  color: var(--sisu-color-text-muted);
+}
+
+/* The ask box. */
+.sisu-ask-composer {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+  padding: calc(var(--sisu-space-grid) * 2) var(--sisu-space-margin);
+  background: var(--sisu-color-background);
+}
+
+.sisu-ask-field {
+  flex: 1 1 auto;
+  min-width: 0;
+  box-sizing: border-box;
+  min-height: var(--sisu-space-touch-target);
+  margin: 0;
+  padding: calc(var(--sisu-space-grid) * 3) var(--sisu-space-card);
+  border: 0;
+  border-radius: var(--sisu-radius-button);
+  background: var(--sisu-color-card);
+  color: var(--sisu-color-text);
+  font: var(--sisu-type-body); /* 16 px: iOS does not zoom into the field */
+  resize: none;
+  overflow-y: hidden;
+  outline: none;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.sisu-ask-field::placeholder {
+  color: var(--sisu-color-text-muted);
+  opacity: 1;
+}
+
+.sisu-ask-field:focus-visible {
+  box-shadow: 0 0 0 2px var(--sisu-color-outline);
+}
+
+.sisu-ask-send {
+  flex: none;
+  width: 88px;
+}
+
+.sisu-ask-voice {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* The empty state. */
+.sisu-ask-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--sisu-space-card);
+}
+
+.sisu-ask-empty-eyebrow {
+  padding-top: calc(var(--sisu-space-grid) * 2);
+}
+
+/* The user's bubble: right-aligned, deep green, at least 64 px from the leading edge. */
+.sisu-ask-user {
+  display: flex;
+  justify-content: flex-end;
+  padding-left: calc(var(--sisu-space-section) * 2);
+}
+
+.sisu-ask-user-bubble {
+  margin: 0;
+  padding: calc(var(--sisu-space-grid) * 3) var(--sisu-space-card);
+  border-radius: var(--sisu-radius-card);
+  background: var(--sisu-color-primary);
+  color: var(--sisu-color-on-primary);
+  font: var(--sisu-type-body);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Placeholder (no profile yet). */
+.sisu-ask-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sisu-space-card);
+  padding: calc(env(safe-area-inset-top, 0px) + var(--sisu-space-card)) var(--sisu-space-margin) var(--sisu-tabbar-room);
+  background: var(--sisu-color-background);
+}
+
+.sisu-ask-placeholder-spacer {
+  flex: 1 1 0;
+}
+
+.sisu-ask-placeholder-liito {
+  display: flex;
+  justify-content: center;
+}
+
+.sisu-ask-placeholder-line {
+  margin: 0;
+  font: var(--sisu-type-body-large);
+  color: var(--sisu-color-text);
+  text-align: center;
+}

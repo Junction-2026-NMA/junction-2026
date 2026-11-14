@@ -1,0 +1,53 @@
+/* RootView (RootView.tsx): the route layers and their transitions. */
+
+/* SisuApp's box: the whole of .sisu-root (which is fixed to the viewport by web/gate/shell.css). */
+.sisu-app {
+  position: absolute;
+  inset: 0;
+}
+
+.sisu-rootview {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--sisu-color-background);
+}
+
+.sisu-route {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.sisu-route[data-route="onboarding"] { z-index: 0; }
+.sisu-route[data-route="main"] { z-index: 1; }
+.sisu-route[data-phase="leaving"] { pointer-events: none; }
+
+/* .transition(.opacity) with SisuMotion.state. */
+.sisu-route[data-route="onboarding"][data-phase="entering"],
+.sisu-route[data-route="chooser"][data-phase="entering"] {
+  animation: sisu-route-fade-in var(--sisu-motion-state-duration) var(--sisu-motion-state-easing) both;
+}
+
+.sisu-route[data-route="chooser"][data-phase="leaving"] {
+  animation: sisu-route-fade-out var(--sisu-motion-state-duration) var(--sisu-motion-state-easing) both;
+}
+
+/* The onboarding leaves a little slower than Today arrives on top of it: .opacity.animation(.easeOut(duration: 0.45)). */
+.sisu-route[data-route="onboarding"][data-phase="leaving"] {
+  animation: sisu-route-fade-out 450ms var(--sisu-motion-ease-out) both;
+}
+
+/* .opacity.combined(with: .scale(scale: 0.98)). */
+.sisu-route[data-route="main"][data-phase="entering"] {
+  animation: sisu-route-grow-in var(--sisu-motion-state-duration) var(--sisu-motion-state-easing) both;
+}
+
+.sisu-route[data-route="main"][data-phase="leaving"] {
+  animation: sisu-route-shrink-out var(--sisu-motion-state-duration) var(--sisu-motion-state-easing) both;
+}
+
+@keyframes sisu-route-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sisu-route-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes sisu-route-grow-in { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+@keyframes sisu-route-shrink-out { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.98); } }

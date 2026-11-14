@@ -1,0 +1,353 @@
+// The typed client of every endpoint in the frontend contract, on top of a `SisuTransport`. Port of
+// SisuCore/CoachClient.swift. The streams are async generators: `for await (const event of client.ask(...))`.
+// Stop the loop (break) or abort the signal you pass to end the turn; the connection closes with it.
+import {
+  type DataSourceKind,
+  type FixtureSource,
+  type SisuAPI,
+  type SisuRequest,
+  Endpoints,
+  FixtureAPI,
+  SisuError,
+  decodeAnswer,
+  decodeList,
+  decodeOverview,
+  decodeTransactionList,
+  errorMessage,
+} from "./API";
+import { type DemoCustomer, type EvidenceFilter, type Overview, type ScenarioInput, JSONRead, ScenarioResponse } from "./Models";
+import {
+  type ActionList,
+  type AgentAction,
+  type AgentRequest,
+  type AuditLog,
+  type BillPhotoResult,
+  type BillType,
+  type CashFlow,
+  type ChatTurn,
+  type ConceptId,
+  type CustomerMemory,
+  type DemoResetResult,
+  type HealthReport,
+  type InvestigateRequest,
+  type MemorySaveRequest,
+  type MortgageApplication,
+  type Pattern,
+  type PrepareActionRequest,
+  type ResearchResult,
+  type SpeechAudio,
+  type SpeechRequest,
+  type TeachingCard,
+  type Transcript,
+  type VoiceOptions,
+  type WarmResponse,
+  type Affordability,
+  MemoryKind,
+  SisuEvent,
+} from "./CoachModels";
+import { CoachEndpoints, type FormBytes } from "./CoachEndpoints";
+import { ApproveAllResult, PlanEvent, type Visual, VisualList } from "./PlanModels";
+import { SSEParser } from "./ServerSentEvents";
+import { FallbackTransport, FetchTransport, ReplayTransport, type SisuTransport, TransportResponse } from "./Transport";
+
+const object = <T>(keys: string[] = []) => (json: unknown): T => JSONRead.object(json, keys) as unknown as T;
+const field = <T>(key: string) => (json: unknown): T => JSONRead.array(JSONRead.object(json)[key]) as unknown as T;
+
+/** Calls the team backend (or the bundled recordings) and decodes the answers. Errors, for every call:
+ * - a non-2xx answer throws `SisuError.server(status, message)`, `message` being the body's `error` sentence.
+ *   Keep the status: 409 means "offers not looked up yet" or "already decided", 410 expired, 429 too many.
+ * - a body that does not decode throws `SisuError.invalidResponse`.
+ * - a failure to reach the server throws `SisuError.offline`. */
+export class CoachClient implements SisuAPI {
+  static readonly fallbackSentence = "The server could not be reached. Showing sample data recorded on 14 Nov 2026.";
+  /** The placeholder address of the sample client. Nothing is ever sent to it. */
+  static readonly sampleBaseURL = "https://sample.invalid";
+
+  constructor(readonly baseURL: string, readonly transport: SisuTransport) {}
+
+  /** A client of the real server. On the web the default base is "" (this site's own `/api/...`). */
+  static live(baseURL = "", fetchImpl?: typeof fetch): CoachClient {
+    return new CoachClient(baseURL, new FetchTransport(fetchImpl));
+  }
+
+  /** A client of the recordings bundled with the app: no server, everything is sample data.
+   * @param eventDelay seconds between two replayed stream messages (0 in tests). */
+  static sample(eventDelay = 0.02, fixtures: FixtureSource = FixtureAPI.defaultSource): CoachClient {
+    return new CoachClient(CoachClient.sampleBaseURL, new ReplayTransport(eventDelay, fixtures));
+  }
+
+  /** A client of the real server that switches to the bundled sample, for good, the first time the server cannot
+   * be reached. Sessions built on it publish `fallbackNotice` at that moment. */
+  static liveWithSampleFallback(baseURL = "", options: { fetchImpl?: typeof fetch; eventDelay?: number; now?: () => Date; fixtures?: FixtureSource } = {}): CoachClient {
+    const sample = new ReplayTransport(options.eventDelay ?? 0.02, options.fixtures ?? FixtureAPI.defaultSource);
+    return new CoachClient(baseURL, new FallbackTransport(new FetchTransport(options.fetchImpl), sample, options.now));
+  }
+
+  /** The sentence to show once when this client has fallen back to the sample; null while it is live. */
+  get fallbackNotice(): string | null {
+    return this.transport instanceof FallbackTransport && this.transport.fallenBackAt !== null ? CoachClient.fallbackSentence : null;
+  }
+
+  /** When this client fell back to the sample, for the freshness line in Settings. Null while it is live. */
+  get fallenBackAt(): Date | null {
+    return this.transport instanceof FallbackTransport ? this.transport.fallenBackAt : null;
+  }
+
+  /** `live` for a real server, `bundledSample` for the recordings ("Sample data"). */
+  get kind(): DataSourceKind { return this.transport.kind; }
+
+  // MARK: Plumbing
+
+  async response(request: SisuRequest, signal?: AbortSignal | null): Promise<TransportResponse> {
+    const response = await this.transport.send(request, signal);
+    if (response.status < 200 || response.status >= 300) throw SisuError.server(response.status, errorMessage(response.body));
+    return response;
+  }
+
+  async call<T>(request: SisuRequest, decode: (json: unknown) => T, signal?: AbortSignal | null): Promise<T> {
+    const response = await this.transport.send(request, signal);
+    return decodeAnswer(response.status, response.body, decode);
+  }
+
+  /** Opens an agent stream and gives its events as they arrive. An HTTP error or a dropped connection ends the
+   * stream by throwing (`SisuError.server` or `.offline`). */
+  events(request: SisuRequest, signal?: AbortSignal | null): AsyncGenerator<SisuEvent> {
+    return this.messages(request, (data) => SisuEvent.decode(data), signal);
+  }
+
+  /** Opens the money plan's stream and gives its events as they arrive. Errors as for `events`. */
+  planEvents(request: SisuRequest, signal?: AbortSignal | null): AsyncGenerator<PlanEvent> {
+    return this.messages(request, (data) => PlanEvent.decode(data), signal);
+  }
+
+  async *messages<Event>(request: SisuRequest, decode: (data: string) => Event | null, signal?: AbortSignal | null): AsyncGenerator<Event> {
+    const local = new AbortController();
+    const onAbort = () => local.abort();
+    if (signal?.aborted) local.abort();
+    signal?.addEventListener("abort", onAbort);
+    try {
+      const stream = await this.transport.open(request, local.signal);
+      if (stream.status < 200 || stream.status >= 300) {
+        const parts: Uint8Array[] = [];
+        for await (const chunk of stream.chunks) parts.push(chunk);
+        const body = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
+        parts.reduce((at, p) => { body.set(p, at); return at + p.length; }, 0);
+        throw SisuError.server(stream.status, errorMessage(body));
+      }
+      const parser = new SSEParser();
+      for await (const chunk of stream.chunks) {
+        for (const message of parser.feed(chunk)) {
+          const event = decode(message.data);
+          if (event !== null) yield event;
+        }
+      }
+      for (const message of parser.finish()) {
+        const event = decode(message.data);
+        if (event !== null) yield event;
+      }
+    } finally {
+      signal?.removeEventListener("abort", onAbort);
+      local.abort();
+    }
+  }
+
+  // MARK: Server
+
+  /** `GET /api/agent/warm`: opens the server's connections and says whether it is in mock mode. */
+  warm() { return this.call(CoachEndpoints.warm(this.baseURL), object<WarmResponse>(["provider", "mock", "model"])); }
+
+  /** `GET /api/health` */
+  health() { return this.call(CoachEndpoints.health(this.baseURL), object<HealthReport>(["ok", "mock", "model"])); }
+
+  /** `POST /api/demo/reset`: clears actions, memory and the audit log of the three demo customers. */
+  resetDemo(token?: string | null) { return this.call(CoachEndpoints.demoReset(this.baseURL, token), object<DemoResetResult>(["ok"])); }
+
+  // MARK: Research
+
+  /** `POST /api/research`. With `wait: false` it returns at once (often `running`) while offers load. */
+  research(customerId: string, billType: BillType, wait = true, yearlyKwh: number | null = null): Promise<ResearchResult> {
+    const body = { customerId, billType, wait: wait ? null : false, yearlyKwh };
+    return this.call(CoachEndpoints.research(this.baseURL, body), object<ResearchResult>(["key", "billType", "offers"]));
+  }
+
+  /** `GET /api/research`: what has been found so far. Throws `server(404, …)` before any research. */
+  researchSnapshot(customerId: string, billType: BillType) {
+    return this.call(CoachEndpoints.researchSnapshot(this.baseURL, customerId, billType), object<ResearchResult>(["key", "billType", "offers"]));
+  }
+
+  // MARK: Memory
+
+  private static memoryDecode = object<CustomerMemory>(["customerId", "consent", "items"]);
+
+  /** `GET /api/memory` */
+  memory(customerId: string) { return this.call(CoachEndpoints.memory(this.baseURL, customerId), CoachClient.memoryDecode); }
+
+  /** `POST /api/memory`: saves one item and returns the whole memory. */
+  saveMemory(body: MemorySaveRequest) { return this.call(CoachEndpoints.saveMemory(this.baseURL, body), CoachClient.memoryDecode); }
+
+  /** Saves the name the user confirmed for a bill. With a bill type the server also starts offer research. */
+  confirmBill(customerId: string, billId: string, name: string, billType: BillType | null = null) {
+    return this.saveMemory({ customerId, kind: MemoryKind.billName, key: billId, value: name, billType });
+  }
+
+  /** Saves the yearly electricity use the user stated or confirmed from a bill. */
+  rememberKwh(customerId: string, yearlyKwh: number) {
+    return this.saveMemory({ customerId, kind: MemoryKind.yearlyKwh, value: CoachEndpoints.number(yearlyKwh) });
+  }
+
+  /** `POST /api/memory` with `consent`. `false` switches remembering off and erases what was stored. */
+  setMemoryConsent(customerId: string, consent: boolean) {
+    return this.call(CoachEndpoints.memoryConsent(this.baseURL, { customerId, consent }), CoachClient.memoryDecode);
+  }
+
+  /** `DELETE /api/memory`: forgets one item, or everything when `itemId` is null. */
+  forgetMemory(customerId: string, itemId: string | null = null) {
+    return this.call(CoachEndpoints.forgetMemory(this.baseURL, customerId, itemId), CoachClient.memoryDecode);
+  }
+
+  // MARK: Actions
+
+  private static actionDecode = (json: unknown): AgentAction => JSONRead.object(JSONRead.object(json).action, ["id", "kind", "status"]) as unknown as AgentAction;
+
+  /** `POST /api/actions/prepare`. Throws `server(409, …)` when offers were not looked up yet or none is cheaper. */
+  prepareAction(body: PrepareActionRequest) { return this.call(CoachEndpoints.prepareAction(this.baseURL, body), CoachClient.actionDecode); }
+
+  /** `POST /api/actions/:id/approve` with `confirm: true`. The answer has `impact` filled in. */
+  approveAction(customerId: string, actionId: string) {
+    return this.call(CoachEndpoints.approveAction(this.baseURL, customerId, actionId), CoachClient.actionDecode);
+  }
+
+  /** `POST /api/actions/:id/decline`. Errors as for `approveAction`. */
+  declineAction(customerId: string, actionId: string) {
+    return this.call(CoachEndpoints.declineAction(this.baseURL, customerId, actionId), CoachClient.actionDecode);
+  }
+
+  /** `GET /api/actions`: every action of the customer, newest first, with the audit trail. */
+  actions(customerId: string) {
+    return this.call(CoachEndpoints.actions(this.baseURL, customerId), object<ActionList>(["customerId", "actions", "audit", "auditChainValid"]));
+  }
+
+  /** `GET /api/audit` */
+  audit(customerId: string) { return this.call(CoachEndpoints.audit(this.baseURL, customerId), object<AuditLog>(["events", "chainValid"])); }
+
+  // MARK: Coach (no model, instant)
+
+  /** `GET /api/coach/patterns`: what stands out, ranked by yearly euros. */
+  patterns(customerId: string) { return this.call(CoachEndpoints.patterns(this.baseURL, customerId), field<Pattern[]>("patterns")); }
+
+  /** `GET /api/coach/cash-flow` */
+  cashFlow(customerId: string) { return this.call(CoachEndpoints.cashFlow(this.baseURL, customerId), object<CashFlow>(["customerId", "cycles", "steps"])); }
+
+  /** `GET /api/coach/affordability` */
+  affordability(customerId: string, amountEur: number) {
+    return this.call(CoachEndpoints.affordability(this.baseURL, customerId, amountEur), object<Affordability>(["amountEur", "verdict", "steps"]));
+  }
+
+  /** `GET /api/coach/teaching`: one card for a concept, or all seven when `concept` is null. */
+  teachingCards(customerId: string, concept: ConceptId | null = null) {
+    return this.call(CoachEndpoints.teaching(this.baseURL, customerId, concept), field<TeachingCard[]>("cards"));
+  }
+
+  /** `GET /api/coach/mortgage`. Null when the customer has no application on record (the server's 404). */
+  async mortgage(customerId: string): Promise<MortgageApplication | null> {
+    try {
+      return await this.call(CoachEndpoints.mortgage(this.baseURL, customerId), object<MortgageApplication>(["customerId", "decision"]));
+    } catch (error) {
+      if (error instanceof SisuError && error.info.kind === "server" && error.info.status === 404 && error.info.message !== ReplayTransport.notInSample) return null;
+      throw error;
+    }
+  }
+
+  // MARK: Agent
+
+  /** `POST /api/agent/query` as a stream of events. */
+  ask(body: AgentRequest, signal?: AbortSignal | null) { return this.events(CoachEndpoints.agentQuery(this.baseURL, body), signal); }
+
+  /** `POST /api/agent/investigate` as a stream of events. */
+  investigate(body: InvestigateRequest, signal?: AbortSignal | null) { return this.events(CoachEndpoints.agentInvestigate(this.baseURL, body), signal); }
+
+  /** `POST /api/agent/bill-photo`: the figures printed on a photographed bill. Nothing is saved: show `toConfirm`,
+   * and when the user agrees call `rememberKwh` with `reading.yearlyKwh`. */
+  readBillPhoto(customerId: string, image: FormBytes, fileName = "bill.jpg", mimeType = "image/jpeg") {
+    return this.call(CoachEndpoints.billPhoto(this.baseURL, customerId, image, fileName, mimeType), object<BillPhotoResult>(["customerId", "reading", "toConfirm"]));
+  }
+
+  // MARK: The money plan and charts
+
+  /** `POST /api/agent/plan` as a stream of events, one per real step. `fresh: false` reuses a recent search. */
+  plan(customerId: string, fresh: boolean | null = null, language: string | null = null, signal?: AbortSignal | null) {
+    return this.planEvents(CoachEndpoints.agentPlan(this.baseURL, { customerId, fresh, language }), signal);
+  }
+
+  /** `POST /api/actions/approve-all`: one tap approves everything the plan set up (one to six actions). The 409
+   * when none could be approved still comes back here, with the reasons in `failed`. */
+  async approveAll(customerId: string, actionIds: string[]): Promise<ApproveAllResult> {
+    const response = await this.transport.send(CoachEndpoints.approveAll(this.baseURL, customerId, actionIds));
+    const result = JSONRead.attempt(() => ApproveAllResult.decode(JSONRead.parse(response.body)));
+    if (result) return result;
+    if (response.status < 200 || response.status >= 300) throw SisuError.server(response.status, errorMessage(response.body));
+    throw SisuError.invalidResponse();
+  }
+
+  /** `GET /api/agent/visuals`: every chart for a customer at once, with no model call. */
+  async visuals(customerId: string): Promise<Visual[]> {
+    return (await this.call(CoachEndpoints.visuals(this.baseURL, customerId), VisualList.decode)).visuals;
+  }
+
+  // MARK: Voice
+
+  /** `GET /api/voice/tts`: the languages for a picker. */
+  voiceOptions() { return this.call(CoachEndpoints.voiceOptions(this.baseURL), object<VoiceOptions>(["languages"])); }
+
+  /** `POST /api/voice/stt`: the words of a recording. */
+  transcribe(audio: FormBytes, fileName: string, mimeType: string, language = "auto") {
+    return this.call(CoachEndpoints.speechToText(this.baseURL, audio, fileName, mimeType, language), object<Transcript>(["text"]));
+  }
+
+  /** `POST /api/voice/tts`: the audio of one sentence. Play by the answer's `contentType`. */
+  async speech(body: SpeechRequest, signal?: AbortSignal | null): Promise<SpeechAudio> {
+    const response = await this.response(CoachEndpoints.textToSpeech(this.baseURL, body), signal);
+    return { data: response.body, contentType: TransportResponse.contentType(response) ?? "application/octet-stream" };
+  }
+
+  /** `POST /api/voice/turn` as a stream of events. It starts with `transcript` (what was heard). */
+  voiceTurn(customerId: string, audio: FormBytes, fileName: string, mimeType: string, history: ChatTurn[] = [],
+    focusBill: BillType | null = null, language = "auto", signal?: AbortSignal | null) {
+    return this.events(CoachEndpoints.voiceTurn(this.baseURL, customerId, audio, fileName, mimeType, history, focusBill, language), signal);
+  }
+
+  // MARK: SisuAPI (the four data routes through the same transport)
+
+  demoCustomers(): Promise<DemoCustomer[]> {
+    return this.call(CoachClient.timed(Endpoints.demoCustomers(this.baseURL)), decodeList<DemoCustomer>);
+  }
+
+  overview(customerId: string): Promise<Overview> {
+    return this.mapUnknown(customerId, () => this.call(CoachClient.timed(Endpoints.overview(this.baseURL, customerId)), decodeOverview));
+  }
+
+  transactions(customerId: string, filter: EvidenceFilter | null) {
+    return this.mapUnknown(customerId, () =>
+      this.call(CoachClient.timed(Endpoints.transactions(this.baseURL, customerId, filter)), decodeTransactionList));
+  }
+
+  scenario(customerId: string, input: ScenarioInput) {
+    return this.call(CoachClient.timed(Endpoints.scenario(this.baseURL, customerId, input)), ScenarioResponse.decode);
+  }
+
+  private static timed(request: SisuRequest): SisuRequest {
+    return { ...request, timeoutInterval: CoachEndpoints.quickTimeout };
+  }
+
+  /** In sample mode a customer outside the recordings is `unknownCustomer`, as with `FixtureAPI`. */
+  private async mapUnknown<T>(customerId: string, work: () => Promise<T>): Promise<T> {
+    try {
+      return await work();
+    } catch (error) {
+      if (error instanceof SisuError && error.info.kind === "server" && error.info.status === 404 && error.info.message === ReplayTransport.notInSample) {
+        throw SisuError.unknownCustomer(customerId);
+      }
+      throw error;
+    }
+  }
+}

@@ -1,0 +1,245 @@
+/* Device gate: the desktop QR page and the phone install steps. Calm Sisu look (ios/BRAND.md, 14 Nov).
+   Buttons use ".sisu-gate .x" so they beat the ".sisu-root button" reset in web/theme/tokens.css. */
+
+.sisu-gate {
+  --gate-bg: #f6f8f7;
+  --gate-card: #ffffff;
+  --gate-hairline: #e3e8e5;
+  --gate-text: #18211c;
+  --gate-muted: #5e6662;
+  --gate-primary: #007841;
+  --gate-primary-edge: #004628;
+  --gate-accent: #00aa46;
+  --gate-display: var(--sisu-font-bricolage, "Bricolage Grotesque"), ui-rounded, system-ui, -apple-system, sans-serif;
+
+  box-sizing: border-box;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--gate-bg);
+  color: var(--gate-text);
+  font-family: var(--sisu-font-figtree, "Figtree"), system-ui, -apple-system, "Segoe UI", sans-serif;
+  padding: calc(env(safe-area-inset-top) + 32px) calc(env(safe-area-inset-right) + 20px)
+    calc(env(safe-area-inset-bottom) + 32px) calc(env(safe-area-inset-left) + 20px);
+}
+
+.sisu-gate *,
+.sisu-gate *::before,
+.sisu-gate *::after {
+  box-sizing: border-box;
+}
+
+/* Desktop QR page */
+
+.sisu-gate-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  max-width: 420px;
+  text-align: center;
+}
+
+.sisu-gate-qr-message {
+  margin: 0;
+  font-family: var(--gate-display);
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.sisu-gate-qr-code {
+  width: 264px;
+  height: 264px;
+  padding: 16px;
+  border-radius: 24px;
+  background: var(--gate-card);
+  border: 1px solid var(--gate-hairline);
+  box-shadow: inset 0 -4px 0 0 rgba(0, 120, 65, 0.12);
+}
+
+.sisu-gate-qr-code svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.sisu-gate-qr-error {
+  margin: 0;
+  font-size: 14px;
+  color: var(--gate-muted);
+}
+
+/* Phone install steps */
+
+.sisu-gate-install {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.sisu-gate-head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.sisu-gate-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 15px;
+  border: 1px solid var(--gate-hairline);
+}
+
+.sisu-gate-title {
+  margin: 0;
+  font-family: var(--gate-display);
+  font-weight: 800;
+  font-size: 32px;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+}
+
+.sisu-gate-lead {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--gate-muted);
+}
+
+.sisu-gate-card {
+  background: var(--gate-card);
+  border: 1px solid var(--gate-hairline);
+  border-radius: 24px;
+  padding: 8px 20px;
+}
+
+.sisu-gate-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: sisu-step;
+}
+
+.sisu-gate-step {
+  counter-increment: sisu-step;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 0;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.sisu-gate-step + .sisu-gate-step {
+  border-top: 1px solid var(--gate-hairline);
+}
+
+.sisu-gate-step::before {
+  content: counter(sisu-step);
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--gate-primary);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.sisu-gate-step strong {
+  font-weight: 600;
+}
+
+.sisu-gate-glyph {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  margin: 0 2px;
+  vertical-align: -5px;
+  color: var(--gate-primary);
+}
+
+.sisu-gate-note {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--gate-muted);
+}
+
+.sisu-gate .sisu-gate-button {
+  appearance: none;
+  width: 100%;
+  min-height: 56px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--gate-primary);
+  color: #ffffff;
+  font: inherit;
+  font-size: 17px;
+  font-weight: 700;
+  box-shadow: inset 0 -4px 0 0 var(--gate-primary-edge);
+  cursor: pointer;
+  transition: transform 80ms ease-out;
+}
+
+.sisu-gate .sisu-gate-button:active {
+  transform: translateY(2px);
+  box-shadow: inset 0 -2px 0 0 var(--gate-primary-edge);
+}
+
+.sisu-gate .sisu-gate-secondary {
+  appearance: none;
+  min-height: 48px;
+  padding: 0 18px;
+  border: 1px solid var(--gate-hairline);
+  border-radius: 18px;
+  background: var(--gate-card);
+  color: var(--gate-primary);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sisu-gate-link-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sisu-gate .sisu-gate-continue {
+  appearance: none;
+  align-self: center;
+  min-height: 48px;
+  padding: 0 12px;
+  border: 0;
+  background: none;
+  color: var(--gate-muted);
+  font: inherit;
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  opacity: 0.8;
+  cursor: pointer;
+}
+
+.sisu-gate :focus-visible {
+  outline: 3px solid var(--gate-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sisu-gate .sisu-gate-button {
+    transition: none;
+  }
+}

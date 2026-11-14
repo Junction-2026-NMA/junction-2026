@@ -1,0 +1,45 @@
+/* PressableCard (PressableCardStyle in PickerScreen.swift): white face, 24 px corners, green-300 edge 4 px under it. */
+
+.sisu-press-card {
+  position: relative;
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0 0 var(--sisu-space-press-edge) 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sisu-press-card::before {
+  content: "";
+  position: absolute;
+  inset: var(--sisu-space-press-edge) 0 0 0;
+  border-radius: var(--sisu-radius-card);
+  background: var(--sisu-green-300);
+}
+
+.sisu-press-card-face {
+  position: relative;
+  display: block;
+  border-radius: var(--sisu-radius-card);
+  background: var(--sisu-color-card);
+  transition: transform var(--sisu-motion-state-duration) var(--sisu-motion-state-easing);
+}
+
+.sisu-press-card[data-pressed="true"] .sisu-press-card-face {
+  transform: translateY(var(--sisu-space-press-edge));
+}
+
+.sisu-press-card:focus-visible {
+  outline: none;
+}
+
+.sisu-press-card:focus-visible .sisu-press-card-face {
+  outline: 2px solid var(--sisu-color-primary);
+  outline-offset: 2px;
+}

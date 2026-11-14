@@ -1,0 +1,262 @@
+# Sisu web port: shared conventions
+
+## Status and how to check it (integration, 2026-11-14)
+
+The whole iOS app is ported: gate, onboarding, picker, Today (with the maths, transactions and settings sheets), Ask (coach run, live research, quiz, simulated approval with the celebration), Jars (futures with sliders), Path (lessons) and the voice lab, all drawing the same `public/rive/sisu_ui.riv`. Nothing is a placeholder.
+
+Checks, all passing at integration:
+
+- `npx tsc --noEmit --incremental false -p .` (zero errors; if stale `.next/types` or `.next/dev/types` from an old route complain, delete those two generated folders).
+- `npx eslint web app/app` (0 errors; 3 warnings for unused parameters kept to mirror Swift signatures).
+- `npx tsx web/core/__checks__/core-a.check.ts` and `core-b.check.ts` (12 and 478 checks).
+- `npm run build`.
+
+Smoke test: `npx next start -p 3417`, then open in a phone-sized browser (402 x 874, mobile, touch) `/app` (desktop UA: QR page), `/app?device=phone` (install steps), `/app?device=phone&standalone=1&onboarding=done&customer=CUST04974&tab=today|ask|jars|path`, `...&onboarding=reset`, `...&sheet=maths|transactions|settings`, `...&tab=ask&coachInvestigate=1&coachDecide=approve&sample=1&screenshots=1` (celebration) and `/app/lab`. Note: Chrome's `--headless=new --window-size=402,...` lays out at a minimum width of 500 px, so its screenshots look cut off on the right; emulate the device through DevTools (`Emulation.setDeviceMetricsOverride` with `mobile: true`) instead. With the live backend unreachable (`baseURL=http://127.0.0.1:9`) the app falls back to the bundled sample and says so once on Today.
+
+Conventions added at integration:
+
+- **No CSS class shared between files.** Every CSS file is global, so a class name may be defined in one file only. Prefix with the feature (`sisu-cashflow-*` in Today, `sisu-chart-*` in Ask, `sisu-sheet-text` for sheet text vs `sisu-sheet-body` for the BottomSheet body). Check with: `for f in $(find web app/app -name '*.css'); do grep -oE '^\.[a-zA-Z0-9_-]+' $f | sort -u | sed "s|$| $f|"; done | sort | awk '{c[$1]++} END {for (k in c) if (c[k]>1) print k}'` (only `.sisu-root` may repeat).
+- **Namespaces in web/core** mirror Swift's caseless enums; files that use them start with `/* eslint-disable @typescript-eslint/no-namespace -- ... */`.
+- **BottomSheet medium detent:** at rest on medium, the part of the sheet below the screen edge is added as bottom padding to the body, so long content can still be scrolled to its end without dragging the sheet up.
+
+## Gate + PWA (web/gate, app/app/layout.tsx, app/app/page.tsx)
+
+`/app` decides what a visitor sees before the app mounts:
+
+| Visitor | View |
+|---|---|
+| A computer (or a tablet) | `DesktopQr`: only "Scan this QR code with your phone to use the demo." and a QR code of `window.location.origin + "/app"` (drawn client-side with `qrcode` as SVG). |
+| A phone in a normal browser tab | `InstallSteps`: add Sisu to the home screen, with steps for iOS Safari, other iOS browsers (Share > Add to Home Screen from iOS 16.4, else open in Safari), apps' built-in browsers (open in Safari/Chrome, copy link), Android Chrome/Edge/Samsung/Firefox (one-tap "Install Sisu" via `beforeinstallprompt` when offered, else the menu steps). A subtle "Continue in the browser" link lets people in anyway; that choice is kept in `sessionStorage` (`sisu.gate.continueInBrowser`) for the tab. |
+| Launched from the home screen | The app (`web/app/SisuApp.tsx`, default export, loaded by `web/gate/AppLoader.tsx` with `next/dynamic` `ssr: false`). |
+
+**Detection.** `app/app/page.tsx` (server) makes the first guess from the user-agent header (`userAgent` from `next/server`): a mobile UA is a phone, everything else (tablets included) a computer; `?source=homescreen` (the manifest `start_url`) is taken as a home-screen launch. `DeviceGate` renders that guess, then confirms on mount (`web/gate/clientDetect.ts`): phone = touch + coarse pointer + (mobile UA or an iPadOS-style Mac UA with touch) + short screen side <= 740 CSS px; standalone = `display-mode: standalone|fullscreen` or `navigator.standalone`. A guessed home-screen launch shows the plain launch background until the browser confirms, so the app never mounts in a tab that should show the steps. The decision itself is the pure `decideView()` in `web/gate/detect.ts`.
+
+**Test overrides** (nothing is stored): `?device=phone` or `?device=desktop` forces the device kind; `?standalone=1` forces the in-app path (it wins over everything). Precedence: `standalone=1` > `device=desktop` > real home-screen launch > detected kind > "continue in browser".
+
+**Shell.** `app/app/layout.tsx` wraps every `/app` page (the lab too) in `<div class="sisu-root {sisuFontVariables}">`, imports `web/theme/tokens.css` then `web/gate/shell.css`. `.sisu-root` is `position: fixed; inset: 0; height: 100dvh` and the document itself never scrolls or bounces (`html:has(.sisu-root)` gets `overflow: hidden; overscroll-behavior: none`). So: **the app must scroll inside its own containers** (give each scroller `overflow-y: auto; overscroll-behavior: contain`). `.sisu-root` scrolls only as a fallback for pages taller than the screen (the lab). The shell does **not** pad for safe areas: the app applies `env(safe-area-inset-*)` where it needs them (`viewport-fit=cover`; with `statusBarStyle: "default"` iOS keeps the status bar opaque, so the top inset is 0 when launched from the home screen). Double-tap zoom is off (`touch-action: manipulation` on everything, zero specificity, so a Rive canvas can still set `touch-action: none`), plus `maximumScale: 1`.
+
+**PWA.** `public/app.webmanifest` (id `/app`, start_url `/app?source=homescreen`, scope `/app`, standalone, portrait, `#F6F8F7`), icons in `public/app-icons/` made with `sips` from the iOS `AppIcon-1024.png` (`icon-180.png` apple-touch, `icon-192.png`, `icon-512.png`, `maskable-512.png` = icon at 400 px padded to 512 with the icon's own green `#02A649`, so the face stays inside the maskable safe zone). No service worker on purpose (updates during the demo stay instant). Chrome on Android installs without one.
+
+## web/core (part B): presentation, Rive contract, AppLogic
+
+Ports of `Presentation.swift`, `ChartPresentation.swift`, `CoachPresentation.swift`, `RiveContract.swift` and every file of `AppLogic/` (same base names: `web/core/AppLogic/DailyProgress.ts`, ...). Pure TypeScript, no React. Check: `npx tsx web/core/__checks__/core-b.check.ts` (ports the SisuCore tests' intent against the bundled fixtures; must print `0 failed`).
+
+**Shape of the port.**
+- A Swift `enum` of static functions (`Money`, `Dates`, `CoachText`, `TodayPresenter`, `RiveBindings`...) is a TS `namespace` with the same name and the same function names: `Money.format(64, "en")`, `TodayPresenter.flaggedBill(overview)`. Argument labels are dropped; arguments keep the Swift order, defaults stay at the end.
+- A raw-value enum is a string union plus a namespace of the same name holding `allCases` and its methods: `DailyAction.reward("checkIn")`, `BasketKind.label("fixed", "fi")`, `BasketKind.of(basketId)` (Swift `basketId.kind`).
+- Nested Swift types are namespace members: `RiveBindings.LiitoMood`, `RiveBindings.ChoiceState`, `HeroViewState.Tone`, `LessonNode.State`, `ChartState.Body`, `CoachRewards.Moment`. Flat aliases also exist (`LiitoMood`, `VoiceState`, ... from `RiveContract.ts`).
+- Swift structs with `mutating` methods are **immutable** here: an interface plus functions that return the next value. `DailyProgress.complete(p, "checkIn", day)` returns `{ progress, earned }`; same for `LessonProgress.complete` and `CoachRewards.award` (`{ rewards, earned }`); `OnboardingFlow.advance(flow)`, `TeachingQuiz.choose(quiz, i)` return the new state. Computed properties are functions taking the value (`OnboardingFlow.canSkip(flow)`, `TeachingQuiz.isCorrect(quiz)`). `VoiceClipQueue` is the one small mutable class (a player owns it).
+- Stored state keeps Swift's Codable JSON shape (a `Set` is an array), so `JSON.stringify` it into storage and read it back with `DailyProgress.decode`, `LessonProgress.decode`, `OnboardingFlow.decode`, `CoachRewards.decode` (each returns `null` for anything invalid).
+- Swift `nil` outputs are `null` (`string | null`); optional inputs accept `null` or `undefined`.
+- Time zones are IANA strings; every `timeZone:` parameter defaults to `Dates.currentTimeZone()` (Swift `.current`). Days: `DayStamp.from(new Date())`.
+- Money and dates are formatted by hand exactly like Swift (not `Intl`), so the strings match iOS character for character: `€1,234`, `1 234 €` with U+00A0, a real minus U+2212, halves away from zero (`roundAway`).
+
+**Where to find things.**
+- `Presentation.ts`: `SisuLanguage`, `Money`, `Dates`, `BasketKind`, `BasketShares`, `BasketMath`, `HeroViewState`, `XrayPresenter`, plus helpers `roundAway`, `rawOf`, `jsonEqual`.
+- `RiveContract.ts`: reads `rive/contract.json` (JSON import). `RiveComponent` is the artboard name union (`"TabBar"`, also `RiveComponent.tabBar`), with `allCases`, `designSize`, `sizing` (`fixed | flexibleWidth | contain | fill`), `outTriggers`, `inTriggers`, `properties`, `viewModelName` (`TabBarVM`), `stateMachine` (`Main`). `RiveFile.url("sisu_ui")` is `/rive/sisu_ui.riv`. `RiveValue` is `{ kind: "string" | "number" | "bool" | "enumCase", value }` (constructors `RiveValue.string(...)`); a value set is `RiveValueMap` (`Record<string, RiveValue>`). `RiveBindings.*` builds the complete set for each artboard (clamped numbers, every non-trigger `in` property).
+- `CoachPresentation.ts`: `CoachText`, `OfferPresenter`, `CardLine`, `StagePresenter`, `ActionPresenter` (also the `warning`/`confirmation`/`destination` that Swift adds in ChartPresentation.swift), `GroundingPresenter`, `ToolPresenter`, `TeachingQuiz`, `FuturesPresenter` (`series` takes a `ScenarioResponse` or an `ActionImpact`; also `scenarioSeries`/`impactSeries`), `CoachCardPresenter`.
+- `ChartPresentation.ts`: `ChartColorRole`, `ChartState` (body is a `kind` union: `donut | bars | columns | lines | none`), `ChartPresenter.chart(visual)`, `StepPresenter`, `PlanPresenter`.
+- `AppLogic/`: `AppPresenters` (`NumberText`, `TodayPresenter`, `JarsPresenter`, `FuturesQuiz`), `CoachAppLogic` (`CoachRewards`, `CoachBillMatch.billType(billOrText)`, `CoachMood`, `CoachProviderName`), `DailyProgress` (`DailyAction`, `DayStamp`, `DailyProgress`), `LessonPath` (`LessonProgress`, `LessonNode`, `LessonPathPresenter`), `Onboarding` (`OnboardingStep`, `OnboardingLaunch.fromArgument`, `OnboardingFlow`), `OnboardingCopy` (`OnboardingCopy`, `OnboardingProfiles`, `OnboardingReading`, `FirstInsightPresenter`), `SampleEvidence`, `VoiceLogic` (`VoicePressRule`, `VoiceButtonPresenter`, `VoiceText`, `VoiceClipQueue`, `VoiceAudioFormat` with `Uint8Array` audio).
+
+## web/core (part A): models, API, transport, streams, coach and plan sessions
+
+Port of `ios/SisuCore/Sources/SisuCore/{Models,API,Transport,ServerSentEvents,Activity,CoachModels,CoachEndpoints,CoachClient,CoachSession,PlanModels,PlanSession}.swift`, one `.ts` per Swift file, same names. Pure TypeScript, no React. Import with `@/web/core/<File>`.
+
+**Conventions used in these files (follow them when you read or extend them).**
+- A Swift struct is an `interface` whose fields are the JSON keys. Swift optionals are `field?: T | null` (the server sends `null`). Its methods, computed properties and initialisers live in a **companion `const` with the same name**: `CoachMessage.make(id, role, fields)`, `CoachMessage.apply(message, event)`, `SisuActivity.make(state, label?, detail?)`, `SisuActivity.idle`, `SisuActivity.mood(a)`, `PlanView.applying(view, change)`, `PlanView.waitingActions(view)`, `PlanTotals.spendingChangeYearlyEur(t)`, `PlanItem.needsSpendingChange(i)`, `CustomerMemory.confirmedBillName(m, billId)`, `TurnTimings.usedBackup(t)`, `WarmResponse.server(w)`, `ImpactBranch.branchId(b)`. Request bodies whose Swift `init` has defaults have a `make`: `AgentRequest.make` (mode `text`), `InvestigateRequest.make` (mode `text`), `SpeechRequest.make` (format `mp3`; without it the server defaults to `pcm`), `ApproveAllRequest.make` (confirm `true`).
+- A Swift `enum: String` is a string union whose values are the raw values, plus a companion with the case names and `allCases`: `SisuActivityState.readingAccount === "reading_account"`, `SisuActivityState.pose(s)`, `SisuActivityState.defaultLabel(s)`, `LiitoPose.mood(p)`, `BasketId.fromRaw(text)`.
+- Swift "open enums" (`BillType`, `ActionKind`, `ActionStatus`, `MemoryKind`, `StageKind`, `ConceptId`, `ResearchStatus`, `AffordabilityVerdict`) are `"known" | (string & {})` types with named constants: `BillType.electricity`, `ActionStatus.awaitingApproval`, `StageKind.investigationOrder`, `ConceptId.all`.
+- A Swift enum with associated values is a discriminated union on **`kind` = the Swift case name**, its associated labels as fields (unlabelled ones take the wire key): `SisuEvent` (`start`, `transcript`, `speculation`, `toolStart`, `toolEnd {trace}`, `filler {text}`, `research {result}`, `delta {text}`, `sentence {index,text}`, `stage {stage}`, `action {action}`, `teaching {card}`, `memory {item}`, `grounding {grounding,facts}`, `visual {visual}`, `replace {text}`, `done {text,citations,timings}`, `error {message}`, `unknown {type}`); `PlanEvent` (`planStart`, `scan {scan}`, `finding {finding}`, `searchStart`, `searchPages`, `pageRead {page}`, `offers {offers}`, `checkStart`, `checkDone {check}`, `calc {steps,totals}`, `action`, `projection`, `summary {text,by}`, `planDone {plan}`, `error`, `unknown {type}`); `StageData` (the wire shape, plus `{kind:"unknown", rawKind}`); `Visual.content: VisualContent` (`budgetDonut`, `peerBars`, `monthBars`, `waterfall`, `futuresLines`, `offerBars`, `unknown`; `visual.kind` stays the wire string such as `budget_donut`). `SisuEvent.type(e)` / `PlanEvent.type(e)` give the wire `type`. `JSONValue` (tool args) is plain JSON.
+- Swift namespaces (`enum Endpoints`, `CoachEndpoints`, `ScenarioEngine`, `Activity`, `CoachErrors`, `CoachSamples`) are classes with static members: `Activity.nextActivity(current, event)`, `Activity.nextPlanActivity(current, event)`, `Activity.stateForTool(name)`, `CoachErrors.sentence(error)`, `ScenarioEngine.run(overview, input)`.
+- `SisuError` is a throwable class; switch on `error.info.kind` (`server {status,message}`, `offline`, `invalidResponse`, `unknownCustomer {customerId}`, `invalidState`, `notImplemented`). `SisuError.status(e)` gives a server status or null. Swift's `CancellationError` is `CancellationError`; `isCancellation(e)` also accepts an `AbortError`. Show errors with `CoachErrors.sentence(error)` (cancellation gives `""`).
+- Byte payloads are `Uint8Array`; recordings and photos sent up are `Blob | Uint8Array` (`FormBytes`). `SpeechAudio` is `{ data: Uint8Array, contentType }` (play by `contentType`: the mock server answers `audio/wav`).
+- `URLRequest` is `SisuRequest { url, method, headers, body (JSON text or FormData), timeoutInterval (seconds) }`, built by `Endpoints.*` and `CoachEndpoints.*` (pure; JSON bodies have sorted keys and drop null members, like Swift's `JSONEncoder`).
+
+**The data sources.**
+```ts
+import { CoachClient } from "@/web/core/CoachClient";
+import { FixtureAPI, LiveAPI } from "@/web/core/API";
+const live = CoachClient.live();                       // same origin: relative /api/... URLs (base "")
+const sample = CoachClient.sample();                   // the recordings in public/sisu-fixtures, no server ("Sample data")
+const both = CoachClient.liveWithSampleFallback();     // live, switches for good to the sample on the first offline error
+await live.overview("CUST04974");                      // CoachClient also implements SisuAPI (demoCustomers, overview, transactions, scenario)
+new LiveAPI(""); new FixtureAPI();                     // the plain SisuAPI implementations of API.swift
+```
+`client.kind` is `"live"` or `"bundledSample"`; `client.fallbackNotice` / `fallenBackAt` say when a fallback happened (`CoachClient.fallbackSentence`). Every `CoachClient` call of Swift is here with the same name and argument order (optional Swift labels became optional trailing parameters), e.g. `research(customerId, billType, wait = true, yearlyKwh = null)`, `teachingCards(customerId, concept = null)`, `mortgage(customerId)` (null on 404), `approveAll(customerId, ids)` (a 409 still returns its `failed`), `speech(SpeechRequest.make({ text }))`, `transcribe(blob, fileName, mimeType, language)`, `readBillPhoto(customerId, blob)`.
+
+Sample files are fetched at runtime from `/sisu-fixtures/<path>` (copied from `ios/SisuCore/Sources/SisuCore/Fixtures`, never bundled into JS) through a `FixtureSource = (path) => Promise<Uint8Array | null>`; `FixtureAPI.setDefaultSource(src)` swaps it (the checks read the files from disk). `ReplayTransport.fixture("coach/warm.json")` reads one file. `ReplayTransport` keeps the session's approvals and memory in memory, like iOS.
+
+**Streams.** The agent and plan endpoints are POSTs, so they are read with `fetch` + `ReadableStream` (not `EventSource`) and parsed by `SSEParser` / `SisuEventStreamParser` (any chunking, CR/LF/CRLF, comments, multi-line data). Streams are **async generators**:
+```ts
+const controller = new AbortController();
+for await (const event of client.ask(AgentRequest.make({ customerId, text, history }), controller.signal)) {
+  if (event.kind === "delta") …
+}
+// break out of the loop or controller.abort() to close the connection; an HTTP error or a drop throws SisuError
+```
+`client.investigate(InvestigateRequest.make({ customerId }), signal)`, `client.voiceTurn(customerId, blob, fileName, mimeType, history, focusBill, language, signal)` and `client.plan(customerId, fresh, language, signal)` work the same. Timeouts are Swift's (5 s quick, 15 s research, 30 s voice, 90 s streams) and, as with `URLRequest`, count the longest wait between two pieces of data.
+
+**Sessions (the screens' state).** `CoachSession` (one per customer: conversation, actions, memory, activity) and `PlanSession` (the money plan "director") are stores for React's `useSyncExternalStore(session.subscribe, session.getSnapshot)`. The snapshot is immutable and replaced on every change: `CoachSessionState { messages, server, actions, memory, isThinking, isRecording, isSpeaking, heardLanguage, notice, fallbackNotice, working, moment }` and `PlanSessionState { view, fallbackNotice }`. Derived values are getters on the session: `status`, `activity` (drive the mascot with `SisuActivity.mood(session.activity)`), `approvedMonthlySaving`, `dataLabel` (`live` / `mock` / `sample`), `isSample`; `plan.view`, `plan.dataLabel`.
+```ts
+const session = new CoachSession(customerId, client, { speech, language: "auto", focusBill: null }); // or CoachSession.sample(id)
+await session.open();                     // warm + refresh
+session.ask("Can I afford €200?");        // returns the turn's promise (null for blank text); the reply fills in live
+session.investigate(); session.sendVoice(blob, "speech.webm", "audio/webm");
+await session.approve(actionId); await session.decline(actionId);   // null on failure, sentence in snapshot.notice
+session.cancel(); session.reset(); session.setRecording(true); session.setSpeaking(false);
+const plan = new PlanSession(customerId, client); plan.start(); await plan.approveAll(); plan.decline();
+```
+`SpeechOutput` is `{ speak(text, order), stop() }` (implemented in web/voice); with one set, `speakReplies` defaults to true and every `filler` and `sentence` is passed to it in order. `CoachSamples.events(turn, id)`, `reply`, `research`, `action`, `teachingCards` give recorded payloads (async on the web).
+
+**Checks.** `npx tsx web/core/__checks__/core-a.check.ts` (from the repo root): SSE parsing in every chunk size, all recorded streams decode with no unknown events, investigations fill the seven stages, the offline `ScenarioEngine` reproduces the recorded server scenarios to 0.01, request building, the mock-backend question routing, the sample client, a whole coach session and a whole plan with approve-all, and the live client over a mocked `fetch` (chunked stream, HTTP error, offline, fallback).
+
+**Server vs Swift spec (the server is the truth; nothing here breaks on them).** `PlanItem.needs` can also be `check-plan`, and `MoneyPlan` / the `calc` event carry `checkPlanYearlyEur`; Swift ignores it, so `PlanTotals.spendingChangeYearlyEur` (total − effortless) includes the check-plan part, exactly as on iOS. `ActionList.approvedMonthlySavingEur`, `TeachingCard.revealVisual` and `scan.baskets` are sent but not modelled (iOS ignores them too; they are still on the raw objects). lib/types.ts names the investigate focus `focus`, but the route reads `text`, which is what is sent.
+
+## Theme (web/theme)
+
+Port of `ios/Sisu/Theme/SisuTheme.swift` (+ the motion of `Shared/SisuStyle.swift`). Style with these and nothing else. Light only. 1 pt = 1 CSS px.
+
+- `tokens.css`: every token as a CSS custom property on `.sisu-root` and `.sisu-layer` (portalled layers), plus the base styles (near-white background, text colour, font smoothing, no tap highlight, `overscroll-behavior: none`, no text selection except inputs and `[data-selectable]`). Imported once by `app/app/layout.tsx`.
+  - Colours: `--sisu-green-900` … `--sisu-green-25`, `--sisu-white`, `--sisu-neutral-900/600/400/200`, `--sisu-amber-background/mark/text`, `--sisu-info-background/text`, `--sisu-error-background/text`; roles `--sisu-color-background`, `-card`, `-hairline`, `-press-edge`, `-input-fill`, `-outline`, `-text`, `-text-muted`, `-primary`, `-on-primary`, `-tab-selected`, `-tab-idle`, `-selection-tint`, `-selection-fill`, `-bar-solid`, `-basket-fixed/curveballs/leaks/jars`.
+  - Type: `font: var(--sisu-type-hero | display | h1 | h2 | h3 | body-large | body | label | caption | button)` (weight, size, line height, family), or the classes `.sisu-font-h2` etc. Families: `--sisu-font-display` (Bricolage), `--sisu-font-text` (Figtree).
+  - Spacing `--sisu-space-grid` (4), `-margin` (20), `-card` (16), `-section` (32), `-tab-bar-clearance` (16), `-touch-target` (48), `-press-edge` (4). Radii `--sisu-radius-button` (18), `-card` (24), `-sheet` (32), `-hero` (32), `-pill`.
+  - Tab bar: `--sisu-tabbar-height` (64), `-inset` (5), `-side-margin` (20), `-lift` (-10), `-icon` (20), `-label`, `-label-selected`, `-bottom` (where the bar's bottom edge sits: safe area + lift, never under 12px), `-room` (what a screen reserves under its last row).
+  - Motion: `--sisu-motion-state-duration/easing` (SisuMotion.state, spring 0.35/0.72 sampled as `linear()`), `--sisu-motion-tab-duration/easing` (pill spring 0.4/0.74). Under `prefers-reduced-motion` the state spring becomes 0 ms and the pill an ease-in-out 0.2 s.
+- `theme.ts`: `SisuTheme.Color.green900`, `SisuTheme.Spacing.margin`, `SisuTheme.Radius.card`, `SisuTheme.TabBar.height`, `SisuTheme.Font.h2` (a `var(--sisu-type-h2)` string) for TS (charts, inline styles); `springEasing(response, damping)` and `SisuSprings.state/tab` (`{ durationMs, easing }`).
+- `motion.ts`: `useReducedMotion()`, `useReducedTransparency()` (live hooks, false on the server), `prefersReducedMotion()` (one-off read).
+- `fonts.ts`: `next/font/local` for the five files in `web/theme/fonts` (OFL texts beside them); `sisuFontVariables` goes on the root next to `sisu-root` (the layout does it).
+
+```tsx
+<h2 style={{ font: "var(--sisu-type-h2)", color: "var(--sisu-color-text)" }}>Where your money goes</h2>
+// SwiftUI: Text(...).font(SisuTheme.Font.h2).foregroundStyle(SisuTheme.Color.text)
+```
+
+## Rive (web/rive)
+
+Port of `ios/Sisu/Rive`. The web loads the very same `sisu_ui.riv` (copied to `public/rive/sisu_ui.riv`; re-copy it whenever `ios/Sisu/Resources/Rive/sisu_ui.riv` changes) with `@rive-app/react-canvas` and binds each artboard's view model by name, as `rive/contract.json` says.
+
+- `RiveLibrary.tsx`: `<RiveProvider>` loads the file once (`useRiveFile`) and shares it. Put it once near the app root (the lab has its own). A failed load is remembered and every component of the file draws its placeholder. Without a provider components draw placeholders (and warn once in development).
+- `RiveComponent.tsx`: the only component screens need. Same rules as `RiveComponentView`:
+
+```tsx
+import { RiveComponent } from "@/web/rive/RiveComponent";
+import { RiveBindings } from "@/web/core/RiveContract";
+
+<RiveComponent component="HeroNumber" values={RiveBindings.heroNumber(hero)} />
+
+<RiveComponent component="Button" values={RiveBindings.button("Continue")}
+  onTrigger={(name) => { /* name === "pressed" */ }} />
+
+<RiveComponent component="Jar" values={RiveBindings.jar(0.4, "Buffer")}
+  triggers={[`celebrate#${celebrations}`]} style={{ height: 200 }} />
+
+<RiveComponent component="Liito" values={RiveBindings.liito("idle")} sizing="contain" style={{ width: 96, height: 96 }} />
+```
+
+  - `values`: the artboard's `in` properties by name (`RiveValue` from web/core: `{ kind: "string" | "number" | "bool" | "enumCase", value }`; plain strings/numbers/booleans work too, a plain string goes to a string or enum property of that name). Written when the artboard loads (before its first frame) and whenever one changes; only changed properties are rewritten, compared by content, so building the object on every render is fine. Set them all (`RiveBindings` / `web/shared/RiveValues` build complete sets). A name or type the artboard does not have is skipped with a `[Rive]` debug line.
+  - `triggers`: requests to fire `in` triggers, `"name"` or `"name#stamp"` (`RiveTriggerRequest.ts`). The first array fires nothing; afterwards every new entry fires once; requests made while loading wait for the artboard.
+  - `onTrigger(name)`: each `out` trigger the artboard fires (`pressed`, `tap0`…, `toggled`, `done`, `pressDown`/`pressUp`). `listening={["name"]}` adds triggers the contract does not list. Firing a trigger you also listen to calls `onTrigger` too.
+  - Size from the contract (`sizing.ts`): `fixed` = design size in px; `flexibleWidth` = 100% wide at the design height (the artboard re-lays out to the width, 1 unit = 1 px); `contain` = design size, never wider than its parent, aspect ratio kept (give it a width and height to scale it); `fill` = 100% x 100% of the parent. `sizing="contain"` replaces the component's own (like `.sizing(.contain)`); `className`/`style` come last, so they are the `.frame(...)`. Canvases render at the device pixel ratio (capped at 3).
+  - Placeholder: a pale-mint rounded block with the component name when the file or artboard cannot load; with exactly one contract `out` trigger and an `onTrigger`, tapping it fires that trigger.
+  - Accessibility: `ariaLabel`, `ariaValue`, `isButton`, `onActivate` (see `riveAccessible` in shared). `testId` sets `data-testid`; every component also carries `data-rive="<Artboard>"` and `data-rive-phase="loading|ready|unavailable"`.
+  - Performance: one shared file, the offscreen renderer, rendering paused while a canvas is off screen (IntersectionObserver), instances and trigger listeners cleaned up on unmount. Touch drags that start on a canvas still scroll the page (`touchScroll`, default true; false for `VoiceButton`, whose press-and-hold must own the touch).
+- `contract.ts`: `riveContract("Button")` (design size, sizing, in/out triggers, properties, purpose), `allRiveContracts`, `riveEnums`, `RiveComponents.button` etc. Read from `rive/contract.json`; the types are web/core's.
+- `RiveComponentModel.ts`: the non-React model (values, written cache, trigger queue, listeners), like the Swift one.
+- `/app/lab` (`app/app/lab`): every artboard with its contract defaults, buttons for `in` triggers, enum pickers and a log of `out` triggers; then the shared pieces (button, icon button, pressable card, notice, sheet, glass tab bar). No gate.
+
+## Shared (web/shared)
+
+Port of `ios/Sisu/Shared`. Import from the file, no barrel.
+
+| Swift | Web |
+|---|---|
+| `SisuCard { … }`, `.sisuCardSurface()` | `<SisuCard padding?>…</SisuCard>`, `sisuCardSurface(radius?)` → `{ className, style }` (`SisuStyle.tsx`) |
+| `SectionTitle(title:detail:)`, `Eyebrow(text:)` | `<SectionTitle title detail? />` (an `h2`), `<Eyebrow text />` |
+| `.riveAccessible(label, isButton:, value:, action:)` | `{...riveAccessible(label, { isButton, value, action })}` spread into `RiveComponent` |
+| `SisuMotion.state(reduceMotion:)`, `.entrance` | `SisuMotion.state(reduce)` → transition timing or null; `SisuMotion.entrance(reduce)` → class `sisu-enter-rise` / `sisu-enter-fade` |
+| `SampleDataTag`, `SisuButton`, `LiitoView`, `SisuIconButton` | same names; `SisuButton({ label, style?, enabled?, loading?, action })`, `SisuIconButton({ icon, style?, label, action })`, `LiitoView({ mood, label })` |
+| `RiveHug`, `.hugging(width:)` | `RiveHug.sampleTag`, `RiveHug.statPill(value, kind?)`, `<Hug width>…</Hug>` |
+| `SisuPressableCardStyle` | `<SisuPressableCard onPress ariaLabel?>…</SisuPressableCard>` (a button; face moves down onto a 4 px edge) |
+| `TransientNotice(id:text:seconds:)`, `NoticeLedger` | `<TransientNotice id text seconds? />` (`Notice.tsx`; each id once per page load, polite live region, tap hides) |
+| `DataFreshness.shared` | `DataFreshness.overviewLoaded(overview)`, `useDataFreshness()` (`DataFreshness.ts`) |
+| `RiveValues.button(…)` etc. | `RiveValues.*` (`RiveValues.ts`, same names, over web/core's `RiveBindings`) |
+| `GlassTabBar(selection:)` | `<GlassTabBar selection onSelect tabs? hidden? solid? />` (`GlassTabBar.tsx`) |
+| `.sheet(item:)` + detents + drag indicator | `<BottomSheet open onClose header? detents? grabber? background? scroll? onClosed?>` (`BottomSheet.tsx`) |
+| ScrollView under the tab bar's `safeAreaBar` | `<Screen header? tabBar? safeTop? scrollRef?>` + `<ScreenStack>` (`Screen.tsx`) |
+| keyboardWillShow/Hide | `useKeyboardShown()` (`keyboard.ts`) |
+
+```tsx
+<Screen header={<TodayHeader />} scrollRef={scroller}>
+  <ScreenStack>
+    <SectionTitle title="Where your money goes" detail="Last 3 months" />
+    <SisuCard><Eyebrow text="Safe to spend" /></SisuCard>
+    <SisuButton label="Continue" action={next} />
+  </ScreenStack>
+</Screen>
+<GlassTabBar selection={model.tab} onSelect={(tab) => model.setTab(tab)} />
+<BottomSheet open={sheet === "maths"} onClose={() => setSheet(null)} detents={["medium", "large"]}
+  header={<SheetTitleRow />}>…</BottomSheet>
+```
+
+- **GlassTabBar** is `position: fixed` at the bottom (z-index 40), 20 px from the sides, its bottom edge at `--sisu-tabbar-bottom`. Glass = translucent near-white + `backdrop-filter: blur(22px) saturate(1.8)` + hairline + soft shadow; the pill is green-tinted glass under the selected tab and springs between tabs (`--sisu-motion-tab-*`). Solid near-white capsule with a hairline and a `selectionFill` pill under `prefers-reduced-transparency`, without `backdrop-filter` support, or with `solid`. Labels Figtree 12 (SemiBold, Bold when selected), icons drawn as SVG (sun, bubble, jar, flag; outline idle, filled selected). `role="tablist"`/`tab`, `aria-selected`, `data-testid="tab.today"` etc. `tabs` defaults to `"today" | "ask" | "jars" | "path"`; pass your own (numbers work) in the same order. It hides (slides down and fades; fades only with reduced motion) while the on-screen keyboard is up, unless `hidden` is given. A selection haptic uses `navigator.vibrate` where it exists (not on iOS).
+- **Screen** reserves `--sisu-tabbar-room` under the last row (bar bottom + 64 + 8) and pads the top for the status bar. The document never scrolls (gate shell), so each screen scrolls inside `.sisu-screen-scroll`. `tabBar={false}` for onboarding, the picker and sheets.
+- **BottomSheet** portals into `.sisu-root` (z-index 100, above the bar), slides up over a dimmed backdrop, `role="dialog"`. Large detent: top 10 px under the safe area; medium: half the viewport, and with both it opens at medium. Drag the grabber/header (or the content once scrolled to the top) down to close or between detents (velocity-aware), tap the backdrop, or press Escape. The parent owns `open`; after `onClose` it sets `open` false and the slide-out plays before unmount (`onClosed` ≈ onDisappear). `header` stays fixed above the scrolling content.
+
+## App model (web/app, web/voice, web/features/Main)
+
+Port of `ios/Sisu/App` (AppModel, LaunchOptions, RootView, SisuApp), `ios/Sisu/Coach` (CoachStore, CoachLaunch), `ios/Sisu/Voice` and `Features/Main/MainScreen.swift`. Every store is a small observable (`subscribe` / `getSnapshot`, immutable snapshot replaced on each change) read with `useSyncExternalStore`; the stores themselves are plain TS (no React).
+
+**Wiring.** `web/app/SisuApp.tsx` (default export, loaded by the gate) makes one `AppModel`, calls `model.start()` once, installs the audio unlock, and renders `RiveProvider > AppProvider > RootView`. The `.sisu-root` element (tokens + font variables) is `app/app/layout.tsx`'s. `RootView` shows `OnboardingView` while `onboardingActive`, `PickerScreen` while no customer, else `MainScreen`, with iOS's transitions (onboarding leaves with a 0.45 s ease-out fade under the arriving screen; chooser fades; main fades in from scale 0.98 on top; instant with Reduce Motion). `MainScreen` mounts only the current tab (as the Swift `switch`), keeps the `GlassTabBar` outside it (hidden while the keyboard is up, and `--sisu-tabbar-room` drops to 0 then), keeps `<TransactionsSheet request={model.evidence} onClose>` mounted (open while `request` is non-null), and shows the Rive `Celebration` overlay for `celebration` (fires `fire#1` after 150 ms; dismissed on `done`, a tap or after 4 s; fades 0.25 s; z-index 60, over the bar, under sheets).
+
+**Screens are default exports with no props** and read everything through these hooks (`web/app/AppProvider.tsx`):
+
+| Hook | Returns | Swift |
+|---|---|---|
+| `useAppModel()` | the `AppModel` (call methods on it) | `@Environment(AppModel.self) var model` |
+| `useApp()` | the whole `AppState` snapshot (re-renders on every model change) | reading `model.x` |
+| `useAppSelector(s => s.x, isEqual?)` | one value; re-renders only when it changes (`Object.is`; pass an `isEqual` when the selector builds a new object) | same, finer |
+| `useCoachStore()` | the `CoachStore` (`model.coach`) | `model.coach` |
+| `useCoach()` | `CoachStoreState` snapshot | observing `model.coach` |
+| `useCoachSession()` | the current `CoachSession` or null | `model.coach.session` |
+| `useCoachSessionState(session?)` | that session's `CoachSessionState` (messages, actions, memory, isThinking…) or null | `@ObservedObject var session` |
+| `useCoachDataTag()` | "Mock data" / "Sample data" / null, following the session | `model.coach.dataTag` |
+| `useVoiceController()` / `useVoice(controller?)` / `useVoiceState()` | the `VoiceController`, its `VoiceControllerState`, the Rive `VoiceState` | `store.voice`, `store.voiceState` |
+
+Read derived getters of a session (`session.status`, `session.activity`, `session.dataLabel`, `session.approvedMonthlySaving`) after `useCoachSessionState(session)` so the component re-renders with them.
+
+**`AppState` (snapshot fields; all `readonly`).** Stored: `baseURLString` ("" = this site), `sampleOnly`, `apiKind` (`live`|`bundledSample`), `backendAnswered` (`true` / `false` / `null` = not asked), `customers`, `customersState`, `customer`, `overview`, `overviewState`, `tab`, `onboarding` (`OnboardingFlow`), `evidence` (`EvidenceRequest | null`), `todaySheet` (`"maths" | "settings" | null`), `progress` (`DailyProgress`), `confirmedBillNames` (by `"customerId/billId"`), `approvedMonthlySaving`, `investigationRequests`, `berryDrops` (Rive `drop#${berryDrops}` on Jars), `celebration` (`{ headline, detail } | null`), `coachRewards`. Derived: `isLive`, `berries`, `berriesText`, `flaggedBill`, `firstInsightPending`, `onboardingActive`, `todayProgress` (0…1), `doneToday` (`DailyAction[]`), `today` (`DayStamp`). For streak/berry pills use `DailyProgress.streakText(state.progress)` (Swift `model.progress.streakText`).
+
+`LoadState` is `{ kind: "idle" | "loading" | "loaded" } | { kind: "failed", message }` (Swift `.failed(String)`): `state.customersState.kind === "loaded"`. `AppTab` is `"today" | "ask" | "jars" | "path"` (`AppTab.allCases`, `AppTab.index(tab)` = Swift rawValue, `AppTab.fromArgument`). `EvidenceRequest` is `{ id, title, filter }` (`EvidenceRequest.make(title, filter)`). All in `web/app/AppTypes.ts`.
+
+**`AppModel` methods** (`web/app/AppModel.ts`), same names as Swift:
+
+| Web | Swift | Notes |
+|---|---|---|
+| `start()` | `start()` | customers (live, falling back to the sample), then the stored/launch customer unless onboarding is on screen. Runs once. |
+| `loadCustomers()`, `loadOverview()`, `configureCoach()`, `retry()`, `applySettings()` | same | `applySettings` = `retry` after a settings change. |
+| `choose(customer)` | `choose(_:)` | saves it, completes `checkIn`, loads the overview, configures the coach. |
+| `switchCustomer()` | `switchCustomer()` | back to the chooser, tab Today, coach cleared. |
+| `transactions(filter)` → `Promise<TransactionList>` | `transactions(_:)` | in sample mode reads the basket file and narrows it (`SampleEvidence`). |
+| `scenario(input)` → `Promise<ScenarioResponse>` | `scenario(_:)` | |
+| `isDone(action)`, `todayProgress` (getter), `complete(action)` | same | `complete` sets `celebration` when the last action of the day lands. |
+| `confirmedName(bill)` → `string \| null` | `confirmedName(for:)` | |
+| `billConfirmed(bill, name)` | `billConfirmed(bill:name:)` | stores the trimmed name (empty → the guess), completes `confirmBill`, saves it on the server and starts offer research. |
+| `startInvestigation()` | `startInvestigation()` | tab Ask, `investigationRequests += 1`, `coach.investigate()`, completes `investigate`. |
+| `coachMoment(moment, id)` | `coachMoment(_:id:)` | `"quizAnswered"` (+5) / `"actionDecided"` (+10), once per id. |
+| `resetDemo()` | `resetDemo()` | `POST /api/demo/reset` (a 401/403 when `SISU_RESET_TOKEN` is set is ignored), clears progress, names, rewards, saving, sheet and customer, restarts onboarding. |
+| `onboardingContinue()`, `onboardingBack()`, `onboardingSkip()`, `chooseInOnboarding(customer)`, `onboardingReadingFailed()`, `finishOnboarding()`, `dismissFirstInsight()` | same | |
+| `setTab(tab)`, `setEvidence(req \| null)`, `showEvidence(title, filter)`, `setTodaySheet(sheet \| null)`, `setCelebration(c)`, `clearCelebration()`, `setApprovedMonthlySaving(n)` | assignments `model.tab = …`, `model.celebration = …` etc. | |
+| `setBaseURLString(url)`, `setSampleOnly(bool)` | `baseURLString` / `sampleOnly` `didSet` | stored; call `applySettings()` after. |
+| `isLive`, `flaggedBill`, `dataSource` (getters), `launch`, `coach`, `refreshDay()` | `isLive`, `flaggedBill`, `api`, `launch`, `coach` | |
+
+Storage: `model.launch.defaults` (`SisuDefaults` in `web/app/Defaults.ts`: `string/bool/json/has`, `setString/setBool/setJSON/remove`; localStorage with try/catch, in memory with `screenshots=1`). Keys as iOS: `sisu.baseURL`, `sisu.sample`, `sisu.customer`, `sisu.progress`, `sisu.billNames`, `sisu.coachRewards`, `sisu.onboardingFlow`. Path's lesson progress should use the same `defaults`.
+
+**Live vs sample.** `start()` asks `GET /api/customers/demo` on `baseURLString` (relative, same origin) unless `sampleOnly`; any failure → `backendAnswered = false` and the bundled sample (`FixtureAPI`, `/sisu-fixtures`). An overview failure while live also falls back. The coach session is live with a one-time fallback (`CoachClient.liveWithSampleFallback`), announced once by `sessionState.fallbackNotice` (Ask says it in place, then `session.dismissFallbackNotice()`); Today says its own once with `TransientNotice` when `backendAnswered === false && !sampleOnly`. `coach.fellBackToSample`, `coach.fallenBackAt` feed Settings.
+
+**`CoachStore`** (`web/app/CoachStore.ts`). Snapshot `{ session, voice, fellBackToSample, quizChoices, deciding, decisionNotices, cheering }`. Methods: `quiz(card)` → `TeachingQuiz` with the pick applied; `choose(index, card)` → false if already answered (then call `model.coachMoment("quizAnswered", card.id)`); `isDeciding(id)`; `decide(actionId, approve)` → `Promise<AgentAction | null>` (failure sentence in `decisionNotices[id]`; an executed approval sets `cheering`); `setCheering(false)` when a new turn starts thinking; `ask(text)`, `investigate()` (typed turns, silent unless the voice controller speaks typed replies); `voiceDown()`, `voiceUp()`, `voiceState`; `configure(customerId, baseURL | null, unreachable)`, `clear()`, `resetDemo()`; `dataTag`, `fallenBackAt` getters. `approvedMonthlySaving` on the app follows the session's actions.
+
+**Voice** (`web/voice`). `VoiceController` (state `{ state, notice, clipsPlayed, isMuted, speakTypedReplies, isRecording }`): `pressDown()`, `pressUp()`, `handle(trigger)` (the VoiceButton's `pressDown`/`pressUp`), `toggleFromAccessibility()`, `accessibilityLabel`, `setMuted(b)`, `setSpeakTypedReplies(b)`, `setNotice(null)`, `beginTypedTurn()`. Give the Rive `VoiceButton` `touchScroll={false}`. `VoiceRecorder` records with MediaRecorder (`audio/webm;codecs=opus`, else `audio/mp4` on iOS Safari, else ogg), 60 s limit, interrupted when the page is hidden or the track ends; the microphone opens per press. `SpeechPlayer` fetches each sentence from `POST /api/voice/tts` (mp3) and plays them in order through one Web Audio context; `AudioUnlock.ts` unlocks it on any tap (mobile autoplay rule). `VoiceLabScreen` (default export) is the lab; PathScreen shows it when `VoiceLaunch.current().voiceLab`.
+
+**Launch options (URL query, the iOS names minus `-sisu.`).** `LaunchOptions.current()` (`web/app/LaunchOptions.ts`): `sample`, `baseURL`, `customer`, `tab`, `onboarding=reset|done`, `screenshots=1` (throwaway in-memory storage), `scroll`, `sheet`, `answer`, `motionScale`, `motionDelay` → `model.launch.*` (`sampleOnly`, `baseURL`, `customerId`, `tab`, `onboarding`, `screenshots`, `scroll`, `sheet`, `answer`, `motionScale`, `motionDelay`, `defaults`). `CoachLaunch.current()` (`web/app/CoachLaunch.ts`): `coachAsk`, `coachInvestigate=1`, `coachQuiz`, `coachDecide`, `coachScroll`. `VoiceLaunch.current()` (`web/voice/VoiceLaunch.ts`): `voicelab`, `voicefixture`, `voiceauto`, `voicehold`, `lesson`, `lessonAnswer`, `lessonsDone`. Example: `/app?standalone=1&screenshots=1&customer=CUST04974&tab=jars&scroll=futures`.
+
+**Screens** (all ported, no placeholders left; each a default export, no props): `web/features/Onboarding/OnboardingView.tsx` (first run; also exports `FirstInsightCallout`, `ProfileStep`, `DemoDisclosure`), `Picker/PickerScreen.tsx`, `Today/TodayScreen.tsx` (with `MathsSheet` and `SettingsSheet` from `web/features/Sheets`), `Ask/AskScreen.tsx`, `Jars/JarsScreen.tsx`, `Path/PathScreen.tsx` (voice lab with `voicelab=1`). `web/features/Sheets/TransactionsSheet.tsx` exports `TransactionsSheet({ request: EvidenceRequest | null, onClose })`, kept mounted by MainScreen. Today's `LoadingState` / `ErrorState` live in `web/features/Today/States.tsx`.

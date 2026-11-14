@@ -1,0 +1,40 @@
+/* The full-screen shell for everything under /app (imported by app/app/layout.tsx after web/theme/tokens.css).
+   Rules on html/body only apply while a .sisu-root is on the page, so the rest of the site is untouched. */
+
+html:has(.sisu-root),
+html:has(.sisu-root) body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none; /* no rubber-band bounce of the whole document */
+  background: #f6f8f7;
+  color: #18211c;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+.sisu-root {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto; /* pages taller than the screen (the lab) scroll here; the app uses its own scrollers */
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+  background: #f6f8f7;
+  /* Colours, fonts, text-size-adjust and tap highlight come from web/theme/tokens.css (imported first). */
+}
+
+/* No double-tap zoom anywhere in the app. Zero specificity so components can still set touch-action: none. */
+:where(.sisu-root, .sisu-root *) {
+  touch-action: manipulation;
+}
+
+/* Shown while the app bundle loads (and briefly while the gate confirms the device on the client). */
+.sisu-launch {
+  width: 100%;
+  height: 100%;
+  background: #f6f8f7;
+}

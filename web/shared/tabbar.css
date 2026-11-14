@@ -1,0 +1,133 @@
+/* The floating glass tab bar (GlassTabBar.tsx). Metrics from SisuTheme.TabBar in tokens.css. */
+
+.sisu-tabbar {
+  position: fixed;
+  left: max(var(--sisu-tabbar-side-margin), env(safe-area-inset-left, 0px));
+  right: max(var(--sisu-tabbar-side-margin), env(safe-area-inset-right, 0px));
+  bottom: var(--sisu-tabbar-bottom);
+  height: var(--sisu-tabbar-height);
+  z-index: 40;
+  transition:
+    transform var(--sisu-motion-keyboard-duration) var(--sisu-motion-ease-out),
+    opacity var(--sisu-motion-keyboard-duration) var(--sisu-motion-ease-out);
+}
+
+.sisu-tabbar[data-hidden="true"] {
+  transform: translateY(calc(100% + var(--sisu-tabbar-bottom)));
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sisu-tabbar[data-hidden="true"][data-motion="reduced"] {
+  transform: none;
+}
+
+.sisu-tabbar-surface {
+  position: relative;
+  height: 100%;
+  padding: var(--sisu-tabbar-inset);
+  border-radius: var(--sisu-radius-pill);
+}
+
+/* Glass: a translucent capsule that blurs what scrolls under it. */
+.sisu-tabbar[data-surface="glass"] .sisu-tabbar-surface {
+  background: rgba(252, 253, 252, 0.62);
+  -webkit-backdrop-filter: blur(22px) saturate(1.8);
+  backdrop-filter: blur(22px) saturate(1.8);
+  border: 0.5px solid rgba(227, 232, 229, 0.8);
+  box-shadow:
+    0 6px 16px rgba(24, 33, 28, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.25);
+}
+
+/* The pill: green-tinted glass (selectionTint at a low opacity) with a bright rim. */
+.sisu-tabbar-track {
+  position: absolute;
+  inset: var(--sisu-tabbar-inset);
+  pointer-events: none;
+}
+
+.sisu-tabbar-pill {
+  width: 25%;
+  height: 100%;
+  border-radius: var(--sisu-radius-pill);
+  transition: transform var(--sisu-motion-tab-duration) var(--sisu-motion-tab-easing);
+  will-change: transform;
+}
+
+.sisu-tabbar[data-surface="glass"] .sisu-tabbar-pill {
+  background: rgba(0, 170, 70, 0.17);
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.7),
+    inset 0 1px 1px rgba(255, 255, 255, 0.55),
+    0 1px 4px rgba(0, 70, 40, 0.08);
+}
+
+/* Solid: reduced transparency, the `solid` prop, or no backdrop-filter. */
+.sisu-tabbar[data-surface="solid"] .sisu-tabbar-surface {
+  background: var(--sisu-color-bar-solid);
+  border: 1px solid var(--sisu-color-hairline);
+}
+
+.sisu-tabbar[data-surface="solid"] .sisu-tabbar-pill {
+  background: var(--sisu-color-selection-fill);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .sisu-tabbar[data-surface="glass"] .sisu-tabbar-surface {
+    background: var(--sisu-color-bar-solid);
+    border: 1px solid var(--sisu-color-hairline);
+    box-shadow: none;
+  }
+  .sisu-tabbar[data-surface="glass"] .sisu-tabbar-pill {
+    background: var(--sisu-color-selection-fill);
+    box-shadow: none;
+  }
+}
+
+/* The labels sit on top of the pill, outside its glass, so the glass never blurs them. */
+.sisu-tabbar-items {
+  position: relative;
+  display: flex;
+  height: 100%;
+}
+
+.sisu-tabbar-item {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-radius: var(--sisu-radius-pill);
+  color: var(--sisu-color-tab-idle);
+  transition: color var(--sisu-motion-tab-duration) ease;
+}
+
+.sisu-tabbar-item[data-selected="true"] {
+  color: var(--sisu-color-tab-selected);
+}
+
+.sisu-tabbar-item:active .sisu-tab-icon {
+  transform: scale(0.92);
+}
+
+.sisu-tab-icon {
+  display: block;
+  flex: none;
+  transition: transform 120ms ease;
+}
+
+.sisu-tabbar-label {
+  font: var(--sisu-tabbar-label);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.sisu-tabbar-item[data-selected="true"] .sisu-tabbar-label {
+  font: var(--sisu-tabbar-label-selected);
+}

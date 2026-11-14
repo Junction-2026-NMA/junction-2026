@@ -1,0 +1,226 @@
+/* ProfileStep.tsx: the profile choice (first run and "Switch customer"). */
+
+.sisu-profile-screen .sisu-screen-scroll {
+  scrollbar-width: none;
+}
+
+.sisu-profile-screen .sisu-screen-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.sisu-profile-stack {
+  padding-bottom: var(--sisu-space-section);
+}
+
+.sisu-profile-heading {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 2);
+  padding-top: var(--sisu-space-card);
+}
+
+.sisu-profile-heading[data-mode="chooser"] {
+  padding-top: var(--sisu-space-section);
+}
+
+.sisu-profile-title {
+  margin: 0;
+  font: var(--sisu-type-h1);
+  color: var(--sisu-color-text);
+}
+
+.sisu-profile-body {
+  margin: 0;
+  font: var(--sisu-type-body-large);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-profile-failed {
+  margin: 0;
+  font: var(--sisu-type-body);
+  color: var(--sisu-color-text);
+}
+
+/* ProgressView().tint(primary), 120 px tall. */
+.sisu-profile-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 120px;
+}
+
+.sisu-profile-spinner {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2.5px solid var(--sisu-green-100);
+  border-top-color: var(--sisu-color-primary);
+  animation: sisu-profile-spin 0.9s linear infinite;
+}
+
+@keyframes sisu-profile-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sisu-profile-spinner { animation-duration: 2.4s; }
+}
+
+/* DemoDisclosure */
+.sisu-disclosure {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(var(--sisu-space-grid) * 3);
+  padding: var(--sisu-space-card);
+  border-radius: var(--sisu-radius-card);
+  background: var(--sisu-info-background);
+  color: var(--sisu-info-text);
+}
+
+.sisu-disclosure-icon {
+  flex: none;
+  display: flex;
+  height: 25px;
+  align-items: center;
+}
+
+.sisu-disclosure-text {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--sisu-space-grid);
+}
+
+.sisu-disclosure-title {
+  margin: 0;
+  font: var(--sisu-type-button);
+}
+
+.sisu-disclosure-body {
+  margin: 0;
+  font: var(--sisu-type-label);
+}
+
+/* ProfileCard */
+.sisu-profile-card-wrap {
+  position: relative;
+  transition: opacity var(--sisu-motion-state-duration) var(--sisu-motion-state-easing);
+}
+
+.sisu-profile-card-wrap[data-dimmed="true"] {
+  opacity: 0.5;
+}
+
+.sisu-profile-card-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sisu-space-card);
+  min-height: 112px;
+  padding: var(--sisu-space-margin);
+  border-radius: var(--sisu-radius-card);
+}
+
+/* The selected outline (strokeBorder 2, inside the face). */
+.sisu-profile-card-row::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid transparent;
+  border-radius: inherit;
+  pointer-events: none;
+  transition: border-color var(--sisu-motion-state-duration) var(--sisu-motion-state-easing);
+}
+
+.sisu-profile-card-row[data-selected="true"]::after {
+  border-color: var(--sisu-color-primary);
+}
+
+.sisu-profile-avatar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  font: var(--sisu-type-h2);
+  color: var(--sisu-green-900);
+  background: var(--sisu-green-100);
+  transition:
+    color var(--sisu-motion-state-duration) var(--sisu-motion-state-easing),
+    background-color var(--sisu-motion-state-duration) var(--sisu-motion-state-easing);
+}
+
+.sisu-profile-card-row[data-selected="true"] .sisu-profile-avatar {
+  color: var(--sisu-color-on-primary);
+  background: var(--sisu-color-primary);
+}
+
+.sisu-profile-lines {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sisu-space-grid);
+}
+
+.sisu-profile-name {
+  font: var(--sisu-type-h2);
+  color: var(--sisu-color-text);
+}
+
+.sisu-profile-subtitle {
+  font: var(--sisu-type-body);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-profile-pitch {
+  font: var(--sisu-type-label);
+  color: var(--sisu-color-primary);
+}
+
+.sisu-profile-check {
+  position: relative;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--sisu-neutral-200);
+  transition: border-color var(--sisu-motion-state-duration) var(--sisu-motion-state-easing);
+}
+
+.sisu-profile-card-row[data-selected="true"] .sisu-profile-check {
+  border-color: var(--sisu-color-primary);
+}
+
+/* Circle().fill(primary) + the check, coming in with .scale.combined(with: .opacity). */
+.sisu-profile-check-mark {
+  position: absolute;
+  inset: -2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--sisu-color-primary);
+  color: var(--sisu-color-on-primary);
+  animation: sisu-profile-fill-in var(--sisu-motion-state-duration) var(--sisu-motion-state-easing) both;
+}
+
+.sisu-profile-check-glyph {
+  display: flex;
+  animation: sisu-profile-check-in var(--sisu-motion-state-duration) var(--sisu-motion-state-easing) both;
+}
+
+@keyframes sisu-profile-fill-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes sisu-profile-check-in {
+  from { opacity: 0; transform: scale(0); }
+  to { opacity: 1; transform: scale(1); }
+}

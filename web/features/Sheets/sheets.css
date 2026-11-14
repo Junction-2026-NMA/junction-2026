@@ -1,0 +1,181 @@
+/* The sheets (web/features/Sheets). Port of ios/Sisu/Features/Sheets/Sheets.swift. Tokens: web/theme/tokens.css. */
+
+/* ---- SheetFrame: title and close button ---- */
+.sisu-sheet-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sisu-space-card);
+  /* 24 from the sheet's top edge; BottomSheet's grabber row already takes 10 of it. */
+  padding: calc(var(--sisu-space-margin) + var(--sisu-space-grid) - 10px) var(--sisu-space-margin) var(--sisu-space-card);
+}
+
+.sisu-sheet-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font: var(--sisu-type-h2);
+  color: var(--sisu-color-text);
+}
+
+.sisu-sheet-title-row > .sisu-rive { flex: none; }
+
+/* The scrolling column of a sheet: 20 px sides, 16 between rows, 32 under the last. */
+.sisu-sheet-content {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--sisu-space-card);
+  padding: 0 var(--sisu-space-margin) var(--sisu-space-section);
+}
+
+/* ---- Text ---- */
+.sisu-sheet-h2 { flex: none; font: var(--sisu-type-h2); color: var(--sisu-color-text); }
+.sisu-sheet-h3 { margin: 0; font: var(--sisu-type-h3); color: var(--sisu-color-text); }
+.sisu-sheet-text { font: var(--sisu-type-body); color: var(--sisu-color-text); }
+.sisu-sheet-button-text { font: var(--sisu-type-button); color: var(--sisu-color-text); }
+.sisu-sheet-label { margin: 0; font: var(--sisu-type-label); color: var(--sisu-color-text); }
+.sisu-sheet-label-muted { font: var(--sisu-type-label); color: var(--sisu-color-text-muted); }
+.sisu-sheet-caption { margin: 0; font: var(--sisu-type-caption); color: var(--sisu-color-text-muted); }
+
+.sisu-sheet-divider {
+  width: 100%;
+  height: 1px;
+  margin: 0;
+  border: 0;
+  background: var(--sisu-neutral-200);
+}
+
+.sisu-sheet-divider-strong { background: var(--sisu-green-900); }
+
+/* ---- Maths ---- */
+.sisu-maths-item {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 3);
+}
+
+.sisu-maths-line {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sisu-space-card);
+}
+
+.sisu-maths-text {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--sisu-space-grid);
+}
+
+.sisu-maths-line > :last-child { flex: none; white-space: nowrap; }
+
+/* ---- Transactions ---- */
+.sisu-tx {
+  display: flex;
+  flex-direction: column;
+}
+
+/* The total stays above the list (outside the ScrollView on iOS). */
+.sisu-tx-summary {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 2);
+  padding: 0 var(--sisu-space-margin) calc(var(--sisu-space-grid) * 3);
+  background: var(--sisu-color-background);
+}
+
+.sisu-tx-list {
+  margin: 0 var(--sisu-space-margin) var(--sisu-space-section);
+  padding: 0 var(--sisu-space-margin);
+  list-style: none;
+}
+
+.sisu-tx-item { display: block; }
+
+.sisu-tx-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--sisu-space-grid) * 2);
+  padding: calc(var(--sisu-space-grid) * 3) 0;
+}
+
+.sisu-tx-row-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sisu-tx-row > :last-child { flex: none; white-space: nowrap; }
+
+.sisu-tx-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sisu-space-card);
+}
+
+.sisu-tx-loading { padding-top: var(--sisu-space-section); }
+
+.sisu-tx-retry {
+  align-self: stretch;
+  padding: 0 var(--sisu-space-margin);
+}
+
+.sisu-tx-message {
+  width: 100%;
+  margin: 0;
+  padding-top: var(--sisu-space-card);
+  font: var(--sisu-type-body);
+  color: var(--sisu-color-text-muted);
+  text-align: center;
+}
+
+/* ---- Settings ---- */
+.sisu-sheet-form { margin: 0; }
+
+.sisu-sheet-input {
+  display: block;
+  width: 100%;
+  height: var(--sisu-space-touch-target);
+  padding: 0 calc(var(--sisu-space-grid) * 4);
+  border: 1px solid var(--sisu-neutral-400);
+  border-radius: var(--sisu-radius-button);
+  background: var(--sisu-green-25);
+  color: var(--sisu-color-text);
+  font: var(--sisu-type-body);
+  font-size: max(16px, 1em);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.sisu-sheet-input::placeholder { color: var(--sisu-color-text-muted); opacity: 0.7; }
+.sisu-sheet-input:focus-visible { border-color: var(--sisu-green-700); }
+
+.sisu-settings-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sisu-space-card);
+}
+
+.sisu-settings-toggle-row > .sisu-rive { flex: none; }
+
+/* ---- Data and sources ---- */
+.sisu-sources-item {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 3);
+}
+
+.sisu-sources-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sisu-space-grid);
+}

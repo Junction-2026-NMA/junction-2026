@@ -1,0 +1,137 @@
+/* FirstInsightCallout.tsx: Liito's first insight at the top of Today. */
+
+.sisu-first-insight-slot {
+  position: relative;
+  width: 100%;
+  flex: none;
+}
+
+/* The dismissal (SisuMotion.state): fade, shrink to 96 % from the top, and close the space (including the
+   stack's 16 px gap under it). */
+.sisu-first-insight-slot[data-leaving="true"] {
+  height: var(--sisu-first-insight-height, auto);
+  pointer-events: none;
+  animation: sisu-first-insight-close var(--sisu-motion-state-duration) var(--sisu-motion-state-easing) both;
+}
+
+.sisu-first-insight-slot[data-leaving="true"] .sisu-first-insight-box {
+  animation: sisu-first-insight-leave var(--sisu-motion-state-duration) var(--sisu-motion-state-easing) both;
+  transform-origin: top center;
+}
+
+@keyframes sisu-first-insight-close {
+  to { height: 0; margin-bottom: calc(var(--sisu-space-card) * -1); }
+}
+
+@keyframes sisu-first-insight-leave {
+  to { opacity: 0; transform: scale(0.96); }
+}
+
+.sisu-first-insight-box {
+  position: relative;
+}
+
+/* The spotlight: a soft green ring 6 px around the card. */
+.sisu-first-insight-ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: calc(var(--sisu-radius-card) + 6px);
+  background: var(--sisu-green-100);
+  pointer-events: none;
+}
+
+.sisu-first-insight-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 2);
+  padding: calc(var(--sisu-space-grid) * 2) var(--sisu-space-margin) var(--sisu-space-grid);
+  border-radius: var(--sisu-radius-card);
+  background: var(--sisu-color-card);
+  box-shadow: inset 0 0 0 2px var(--sisu-color-primary);
+}
+
+.sisu-first-insight-top {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+}
+
+.sisu-first-insight-liito {
+  flex: none;
+  margin-left: calc(var(--sisu-space-grid) * -1);
+}
+
+.sisu-first-insight-eyebrow {
+  font: var(--sisu-type-label);
+  color: var(--sisu-color-primary);
+}
+
+.sisu-first-insight-fill {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.sisu-first-insight-close {
+  margin-right: calc(var(--sisu-space-grid) * -2);
+}
+
+.sisu-first-insight-headline {
+  margin: 0;
+  font: var(--sisu-type-h3);
+  color: var(--sisu-color-text);
+}
+
+.sisu-first-insight-detail {
+  margin: 0;
+  font: var(--sisu-type-body);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-first-insight-divider {
+  height: 1px;
+  margin-top: var(--sisu-space-grid);
+  background: var(--sisu-neutral-200);
+}
+
+.sisu-first-insight-link {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+  width: 100%;
+  min-height: var(--sisu-space-touch-target);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sisu-first-insight-link:active {
+  opacity: 0.6;
+}
+
+/* lineLimit(1): the source shrinks first; Spacer(minLength: 8) keeps it 8 px from the link. */
+.sisu-first-insight-source {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-right: calc(var(--sisu-space-grid) * 2);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font: var(--sisu-type-label);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-first-insight-see {
+  flex: none;
+  font: var(--sisu-type-button);
+  color: var(--sisu-color-primary);
+}
+
+.sisu-first-insight-chevron {
+  flex: none;
+  display: flex;
+  color: var(--sisu-color-primary);
+}
