@@ -22,7 +22,7 @@ export type AgentConfig = {
   model: ModelEndpoint;
   fallbackModel: ModelEndpoint | null; // takes over if the main model errors or stalls
   thinking: boolean;
-  exa: { apiKey: string; searchType: string };
+  exa: { apiKey: string; searchType: string; deepType: string };
   contextDev: { apiKey: string };
   eleven: { apiKey: string; ttsModel: string; sttModel: string; sttLanguage: string; voiceId: string };
 };
@@ -57,7 +57,7 @@ export function getConfig(): AgentConfig {
     model: endpointFor(provider),
     fallbackModel: hasBackup ? endpointFor(backup) : null,
     thinking: env("NEMOTRON_THINKING", "off") === "on",
-    exa: { apiKey: env("EXA_API_KEY"), searchType: env("EXA_SEARCH_TYPE", "lite") },
+    exa: { apiKey: env("EXA_API_KEY"), searchType: env("EXA_SEARCH_TYPE", "lite"), deepType: env("EXA_DEEP_TYPE", "deep-lite") },
     contextDev: { apiKey: env("CONTEXT_DEV_API_KEY") },
     eleven: {
       apiKey: env("ELEVENLABS_API_KEY"),

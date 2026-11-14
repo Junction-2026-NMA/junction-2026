@@ -16,7 +16,8 @@ import { buildOverview } from "@/lib/finance/overview";
 import { findPatterns } from "@/lib/finance/patterns";
 import { LIMITS, cleanInput, runScenario } from "@/lib/finance/scenario";
 import { getMemory } from "@/lib/memory";
-import type { AgentAction, BillType, CalcStep, CashFlow, Fact, MoneyPlan, Pattern, PlanEvent, PlanItem, PlanProjection, PlanSearch, ResearchResult } from "@/lib/types";
+import type { AgentAction, BillType, CalcStep, CashFlow, Fact, MoneyPlan, Pattern, PlanCheck, PlanEvent, PlanItem, PlanProjection, PlanSearch, ResearchResult } from "@/lib/types";
+import { checkFacts, checksFor, runCheck } from "./checks";
 import { getConfig } from "./config";
 import { checkGrounding } from "./grounding";
 import { findLanguage } from "./languages";
@@ -37,8 +38,8 @@ const POLL_MS = 60;
 const ROWS_SHOWN = 48;
 const PROJECTION_YEARS = 5;
 const SUMMARY_MAX_TOKENS = 140;
-// Context.dev allows 10 page reads a minute on our key, so one plan stays under that: 3 + 2 + 2.
-const PAGES_PER_BILL: Record<BillType, number> = { electricity: 3, internet: 2, mobile: 2 };
+// Three pages a bill. Context.dev allows our key 10 page reads a minute; when it is at its limit Exa reads the page.
+const PAGES_PER_BILL: Record<BillType, number> = { electricity: 3, internet: 3, mobile: 3 };
 const BILL_NOUN: Record<BillType, string> = { electricity: "electricity", internet: "home internet", mobile: "mobile plan" };
 
 const hostOf = (url: string): string => new URL(url).hostname.replace(/^www\./, "");
@@ -70,7 +71,7 @@ function* progress(billType: BillType, now: RawResearch, seen: { found: boolean;
   for (const citation of now.citations) {
     if (seen.read.has(citation.url)) continue;
     seen.read.add(citation.url);
-    yield { type: "page_read", billType, url: citation.url, host: hostOf(citation.url), ok: true, offers: now.offers.filter((offer) => offer.sourceUrl === citation.url).length, reader: "context.dev", ageMs: citation.cacheAgeMs, tookMs };
+    yield { type: "page_read", billType, url: citation.url, host: hostOf(citation.url), ok: true, offers: now.offers.filter((offer) => offer.sourceUrl === citation.url).length, reader: citation.readBy ?? "context.dev", ageMs: citation.cacheAgeMs, tookMs };
   }
   if (now.status === "done" || now.status === "failed") {
     for (const page of now.found ?? []) {
@@ -222,6 +223,19 @@ export async function* runPlan(customerId: string, options: PlanOptions = {}, si
     const query = search.run?.peek().query ?? (await waitForUsable(search.key, 1, signal))?.query ?? `${BILL_NOUN[search.billType]} offers`;
     yield { type: "search_start", billType: search.billType, query, engine: "exa" };
   }
+  // At the same time, Exa researches the rules and prices this customer's figures make worth checking.
+  const checks: PlanCheck[] = [];
+  const finishedChecks: PlanCheck[] = [];
+  const specs = checksFor(overview, patterns, customer.area);
+  for (const spec of specs) yield { type: "check_start", id: spec.id, title: spec.title, query: spec.query, engine: "exa" };
+  const checking = Promise.all(specs.map((spec) => runCheck(spec, signal).then((check) => void finishedChecks.push(check))));
+  function* reportChecks(): Generator<PlanEvent> {
+    for (const check of finishedChecks.splice(0)) {
+      checks.push(check);
+      yield { type: "check_done", check };
+    }
+  }
+
   const pending = new Set(watched);
   for (const search of watched) {
     const finished = search.run ? search.run.finished : waitForUsable(search.key, RESEARCH_LIMIT_MS, signal);
@@ -232,8 +246,11 @@ export async function* runPlan(customerId: string, options: PlanOptions = {}, si
   }
   while (pending.size && Date.now() - searchStartedAt < RESEARCH_LIMIT_MS && !signal?.aborted) {
     for (const search of watched) if (search.run) yield* progress(search.billType, search.run.peek(), search.seen, searchStartedAt);
+    yield* reportChecks();
     await sleep(POLL_MS);
   }
+  await Promise.race([checking, sleep(Math.max(0, RESEARCH_LIMIT_MS - (Date.now() - searchStartedAt)))]);
+  yield* reportChecks();
   for (const search of watched) {
     const last = search.raw ?? search.run?.peek() ?? null;
     if (last) yield* progress(search.billType, last, search.seen, searchStartedAt);
@@ -286,6 +303,7 @@ export async function* runPlan(customerId: string, options: PlanOptions = {}, si
     fact("plan:effortless", "Needs nothing from you, per year", effortlessYearlyEur, "EUR/year", "the contract switches", { source: "calculation" }),
     fact("plan:effort", "Needs spending to come down, per year", round2(totalYearlyEur - effortlessYearlyEur), "EUR/year", "the spending habits", { source: "calculation" }),
     fact("plan:actions", "Things set up", actions.length, "count", "actions waiting for approval", { source: "calculation" }),
+    ...checkFacts(checks),
   );
   yield { type: "calc", steps, totalYearlyEur, effortlessYearlyEur };
   for (const action of actions) yield { type: "action", action };
@@ -307,6 +325,7 @@ export async function* runPlan(customerId: string, options: PlanOptions = {}, si
     scanned: { transactions: rows.length, months: overview.windowMonths },
     items,
     notices: notices.map((notice) => ({ title: notice.title, detail: notice.detail })),
+    checks,
     actions,
     totalYearlyEur,
     effortlessYearlyEur,

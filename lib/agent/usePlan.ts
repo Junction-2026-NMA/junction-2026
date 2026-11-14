@@ -5,11 +5,12 @@
 // in a burst, so a small "director" plays them one after another with a short pause each, fast enough to feel
 // quick and slow enough to follow. It never invents a step: everything shown came from the server.
 import { useCallback, useEffect, useReducer, useRef } from "react";
-import type { AgentAction, BillType, CalcStep, MoneyPlan, Offer, PlanEvent, PlanProjection, SisuActivity } from "@/lib/types";
+import type { AgentAction, BillType, CalcStep, MoneyPlan, Offer, PlanCheck, PlanEvent, PlanProjection, SisuActivity } from "@/lib/types";
 import { IDLE, activity, nextPlanActivity } from "./activity";
 
 export type Act = "idle" | "scan" | "web" | "sums";
-export type PageState = { url: string; host: string; title: string; state: "reading" | "read" | "failed"; offers: number; ageMs: number | null };
+export type PageState = { url: string; host: string; title: string; state: "reading" | "read" | "failed"; offers: number; ageMs: number | null; reader: "context.dev" | "exa" | null };
+export type CheckLane = { id: string; title: string; query: string; check: PlanCheck | null };
 export type Lane = {
   billType: BillType;
   query: string;
@@ -28,6 +29,7 @@ export type PlanView = {
   scan: Scan | null;
   findings: Finding[];
   lanes: Lane[];
+  checks: CheckLane[]; // rules and prices outside the account that Exa is researching
   calc: { steps: CalcStep[]; totalYearlyEur: number; effortlessYearlyEur: number } | null;
   actions: AgentAction[];
   projection: PlanProjection | null;
@@ -39,7 +41,7 @@ export type PlanView = {
   activity: SisuActivity; // what Sisu is doing right now: drive the mascot from this
 };
 
-const EMPTY: PlanView = { phase: "idle", act: "idle", customerName: null, model: null, mock: false, scan: null, findings: [], lanes: [], calc: null, actions: [], projection: null, summary: null, plan: null, error: null, approval: "none", approvalError: null, activity: IDLE };
+const EMPTY: PlanView = { phase: "idle", act: "idle", customerName: null, model: null, mock: false, scan: null, findings: [], lanes: [], checks: [], calc: null, actions: [], projection: null, summary: null, plan: null, error: null, approval: "none", approvalError: null, activity: IDLE };
 
 type Change = PlanEvent | { type: "reset" } | { type: "approving" } | { type: "approved"; actions: AgentAction[]; error: string | null } | { type: "declined" };
 
@@ -67,17 +69,21 @@ function step(view: PlanView, event: Change): PlanView {
     case "search_start":
       return { ...view, act: "web", lanes: [...view.lanes, { billType: event.billType, query: event.query, pages: [], result: null }] };
     case "search_pages":
-      return { ...view, lanes: withLane(view.lanes, event.billType, (lane) => ({ ...lane, pages: event.pages.map((page) => ({ ...page, state: "reading", offers: 0, ageMs: null })) })) };
+      return { ...view, lanes: withLane(view.lanes, event.billType, (lane) => ({ ...lane, pages: event.pages.map((page) => ({ ...page, state: "reading", offers: 0, ageMs: null, reader: null })) })) };
     case "page_read":
       return {
         ...view,
         lanes: withLane(view.lanes, event.billType, (lane) => ({
           ...lane,
-          pages: lane.pages.map((page) => (page.url === event.url ? { ...page, state: event.ok ? "read" : "failed", offers: event.offers, ageMs: event.ageMs } : page)),
+          pages: lane.pages.map((page) => (page.url === event.url ? { ...page, state: event.ok ? "read" : "failed", offers: event.offers, ageMs: event.ageMs, reader: event.reader } : page)),
         })),
       };
     case "offers":
       return { ...view, lanes: withLane(view.lanes, event.billType, (lane) => ({ ...lane, result: { best: event.best, yearlySavingEur: event.yearlySavingEur, note: event.note, offersFound: event.offersFound } })) };
+    case "check_start":
+      return { ...view, act: "web", checks: [...view.checks, { id: event.id, title: event.title, query: event.query, check: null }] };
+    case "check_done":
+      return { ...view, checks: view.checks.map((lane) => (lane.id === event.check.id ? { ...lane, check: event.check } : lane)) };
     case "calc":
       return { ...view, act: "sums", calc: event };
     case "action":
@@ -100,7 +106,7 @@ function step(view: PlanView, event: Change): PlanView {
 }
 
 // How long each step stays on screen before the next one plays, in milliseconds.
-const DWELL: Record<PlanEvent["type"], number> = { plan_start: 0, scan: 1500, finding: 320, search_start: 260, search_pages: 320, page_read: 240, offers: 420, calc: 2700, action: 0, projection: 0, summary: 0, plan_done: 0, error: 0 };
+const DWELL: Record<PlanEvent["type"], number> = { plan_start: 0, scan: 1500, finding: 320, search_start: 260, check_start: 260, check_done: 420, search_pages: 320, page_read: 240, offers: 420, calc: 2700, action: 0, projection: 0, summary: 0, plan_done: 0, error: 0 };
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export function usePlan() {

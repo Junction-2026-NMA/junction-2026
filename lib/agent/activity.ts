@@ -95,9 +95,13 @@ export function nextPlanActivity(current: SisuActivity, event: PlanEvent): SisuA
       return event.role === "bill" ? current : activity("found_something", event.title);
     case "search_start":
       return activity("searching_web", "Searching the web with Exa", event.query);
+    case "check_start":
+      return activity("searching_web", "Researching what is worth checking", event.title);
+    case "check_done":
+      return event.check.finding ? activity("found_something", event.check.title) : current;
     case "search_pages":
     case "page_read":
-      return activity("reading_pages", "Reading the pages with Context.dev", event.type === "page_read" ? event.host : null);
+      return activity("reading_pages", event.type === "page_read" && event.reader === "exa" ? "Reading the pages with Exa" : "Reading the pages with Context.dev", event.type === "page_read" ? event.host : null);
     case "offers":
       return event.best && !event.note ? activity("found_something", `Best ${event.billType} offer: ${event.best.provider}`) : current;
     case "calc":

@@ -7,7 +7,7 @@ import { listActions } from "@/lib/actions";
 import { getMemory } from "@/lib/memory";
 import type { AgentRequest, CashFlow, Citation, Fact, NumberCorrection, SisuEvent, Stage, ToolTrace, TurnTimings } from "@/lib/types";
 import { getConfig } from "./config";
-import { investigationFiller, offerFiller } from "./fillers";
+import { investigationFiller, offerFiller, researchFiller } from "./fillers";
 import { APP_NOTE, BROKEN_TOOL_CALL, BROKEN_TRIP, type Trip, asksForAdvice, asksForChart, asksToMoveMoney, checkSentence, isMetaTalk, withoutMetaTalk } from "./guards";
 import { type Sources, checkGrounding, correctNames, correctNumbers, numbersIn, overviewFacts, spelledToDigits } from "./grounding";
 import { type ChatMessage, type ToolCall, streamChat } from "./model";
@@ -253,6 +253,12 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
         called.add(call.function.name);
         guard.toolsCalled += 1;
         yield { type: "tool_start", id: call.id, name: call.function.name, args, label: activityLabel(call) };
+        // Deeper research takes a few seconds: say so, so a voice conversation never goes quiet.
+        if (call.function.name === "web_search" && args.deep === true && !fillerSent && !stepText.trim()) {
+          fillerSent = true;
+          const line = researchFiller(request.language);
+          if (line) yield { type: "filler", text: line };
+        }
         const billType = call.function.name === "search_offers" ? billTypeOf(args) : null;
         if (!billType) continue;
         const { key } = ensureResearch(billType, customer.area);

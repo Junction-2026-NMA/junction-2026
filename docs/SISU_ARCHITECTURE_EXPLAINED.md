@@ -147,6 +147,18 @@ Measured live: 5.7 to 7.6 s from tap to plan with fresh searches, 0.6 s when the
 
 What is honest about it: the part that "needs spending to come down" is not a saving until the customer spends less, and every screen says so. For internet and mobile Sisu cannot see the customer's current speed or data, so the cheapest plan may be a smaller one; the item says that too.
 
+### Exa's three jobs (added 14 November)
+
+Exa started as one fast search per bill. It now does three things, all through its API from our server:
+
+1. **Finds the pages** for every bill and every outside fact (search, about 0.3 s).
+2. **Reads a page when Context.dev cannot** (`lib/agent/research/reader.ts`). Context.dev reads first; it allows our key ten page reads a minute and some pages defeat it. Exa then reads the page with the same question and the same shape (about 4 s), the result goes through the same cleaning, and the page is marked with who read it.
+3. **Researches an open question across several sources** (`exaResearch`, about 2.5 s):
+   - In the money plan, code picks up to two questions the customer's own figures make relevant, such as the Kela housing allowance income limit for a low-income renter, typical rent in their city, or savings rates when cash sits idle. The screen shows what the sources say beside the customer's own figure. Sisu does not decide that they qualify for anything.
+   - In conversation, `web_search` with `deep: true` answers questions like "who can get housing allowance?" or "what changes for renters next year?".
+
+Queries carry the city and the topic only. The figures in a research write-up are checked against the excerpts taken from the pages; the screen says whether they were confirmed.
+
 ## Financial data processing
 
 **Files:** `lib/finance/`. Pure functions on the customer's rows. Each takes under a millisecond (measured: overview 0.36 ms, cash flow 0.25 ms, patterns 0.13 ms, scenario 0.04 ms).

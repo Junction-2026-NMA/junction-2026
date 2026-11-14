@@ -89,6 +89,8 @@ No investment advice is given: the prompt forbids it, and two live checks ("whic
 
 ## Exa
 
+**Update, 14 November: Exa now has three jobs.** (1) It finds the pages for every bill and outside fact. (2) It reads an offer page itself, into the same typed shape, when the first reader is at its limit (`lib/agent/research/reader.ts`). (3) It researches open questions across several sources: in the money plan it checks rules and prices the customer's own figures make relevant (for a low-income renter it found the 2026 Kela housing allowance income limit, with sources, in about two seconds), and in conversation `web_search` with `deep: true` answers questions such as "what changes for renters next year?". See it on `/plan` (the blue "research" lanes and the "Worth checking" section) and by asking the chat "Could I get housing allowance from Kela?".
+
 **The challenge:** a personal agent that finds what matters across the web, gets the task as close to done as it can, and leaves the final approval to the user. Judged on information that could not come from training data, usefulness to a specific group, clarity of sources, originality, and working on live queries including the judges' own.
 
 | What is asked | Where Sisu does it | How to check |

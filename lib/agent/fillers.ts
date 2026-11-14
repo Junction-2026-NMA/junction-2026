@@ -3,7 +3,7 @@
 // Sisu says nothing rather than break into English mid-conversation; the screen still shows what is happening.
 import type { BillType } from "@/lib/types";
 
-type Lines = { offers: Record<BillType, (city: string) => string>; investigating: (name: string) => string };
+type Lines = { offers: Record<BillType, (city: string) => string>; investigating: (name: string) => string; researching: string };
 
 const LINES: Record<string, Lines> = {
   en: {
@@ -13,6 +13,7 @@ const LINES: Record<string, Lines> = {
       internet: (city) => `Let me check today's broadband deals in ${city}.`,
     },
     investigating: (name) => `Give me a moment, ${name}. I'm going through your last twelve months.`,
+    researching: "Let me look into that properly. I'm reading a few sources.",
   },
   fi: {
     offers: {
@@ -21,6 +22,7 @@ const LINES: Record<string, Lines> = {
       internet: () => "Hetki, tarkistan tämän päivän laajakaistatarjoukset.",
     },
     investigating: (name) => `Hetki vain, ${name}. Käyn läpi viimeiset kaksitoista kuukauttasi.`,
+    researching: "Hetki, selvitän tämän kunnolla. Luen muutaman lähteen.",
   },
   sv: {
     offers: {
@@ -29,6 +31,7 @@ const LINES: Record<string, Lines> = {
       internet: (city) => `Jag kollar dagens bredbandserbjudanden i ${city}.`,
     },
     investigating: (name) => `Ett ögonblick, ${name}. Jag går igenom dina senaste tolv månader.`,
+    researching: "Ett ögonblick, jag tar reda på det ordentligt. Jag läser några källor.",
   },
   de: {
     offers: {
@@ -37,6 +40,7 @@ const LINES: Record<string, Lines> = {
       internet: (city) => `Ich prüfe die heutigen Internettarife in ${city}.`,
     },
     investigating: (name) => `Einen Moment, ${name}. Ich gehe deine letzten zwölf Monate durch.`,
+    researching: "Einen Moment, ich schaue mir das genau an. Ich lese ein paar Quellen.",
   },
 };
 
@@ -49,4 +53,8 @@ export function offerFiller(billType: BillType, city: string, language?: string)
 
 export function investigationFiller(name: string, language?: string): string | null {
   return LINES[language ?? "en"]?.investigating(name) ?? null;
+}
+
+export function researchFiller(language?: string): string | null {
+  return LINES[language ?? "en"]?.researching ?? null;
 }

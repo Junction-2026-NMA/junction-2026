@@ -176,6 +176,7 @@ export type Citation = {
   url: string;
   retrievedAt: string; // ISO time we fetched it
   cacheAgeMs: number | null; // how old the provider's cached copy was, if it said
+  readBy?: "context.dev" | "exa"; // which service read the page, when it was read for offers
 };
 
 export type Offer = {
@@ -552,6 +553,10 @@ export type PlanItem = {
 
 export type PlanSearch = { billType: BillType; query: string; pagesRead: number; pagesFound: number; offersFound: number; tookMs: number; retrievedAt: string | null; live: boolean; mock: boolean };
 
+// Something outside the account that the customer's own figures make worth checking, researched by Exa.
+// `figuresConfirmed` is true when every number in the finding also appears in the excerpts taken from the pages.
+export type PlanCheck = { id: string; title: string; query: string; ok: boolean; finding: string | null; figuresConfirmed: boolean; sources: Citation[]; yours: { label: string; value: number; unit: FactUnit } | null; tookMs: number; mock: boolean };
+
 export type PlanProjection = { years: number; freedPerMonthEur: number; nothingEur: number; keptEur: number; investedEur: number; investedLowEur: number; investedHighEur: number; gainKeptEur: number; assumptions: string[] };
 
 export type MoneyPlan = {
@@ -561,6 +566,7 @@ export type MoneyPlan = {
   scanned: { transactions: number; months: number };
   items: PlanItem[];
   notices: { title: string; detail: string }[]; // worth knowing, with no honest euro figure
+  checks: PlanCheck[]; // rules and prices outside the account, researched live, with sources
   actions: AgentAction[]; // set up and waiting for approval
   totalYearlyEur: number;
   effortlessYearlyEur: number; // the part that needs nothing from the customer
@@ -578,8 +584,10 @@ export type PlanEvent =
   | { type: "finding"; id: string; role: "habit" | "bill" | "notice"; title: string; detail: string; yearlyEur: number | null }
   | { type: "search_start"; billType: BillType; query: string; engine: "exa" }
   | { type: "search_pages"; billType: BillType; pages: { url: string; host: string; title: string }[]; tookMs: number }
-  | { type: "page_read"; billType: BillType; url: string; host: string; ok: boolean; offers: number; reader: "context.dev"; ageMs: number | null; tookMs: number } // ageMs: how old the copy of the page was, when it was not read this second
+  | { type: "page_read"; billType: BillType; url: string; host: string; ok: boolean; offers: number; reader: "context.dev" | "exa"; ageMs: number | null; tookMs: number } // ageMs: how old the copy of the page was, when it was not read this second
   | { type: "offers"; billType: BillType; ok: boolean; best: Offer | null; yearlySavingEur: number | null; currentMonthlyEur: number | null; offersFound: number; live: boolean; note: string | null }
+  | { type: "check_start"; id: string; title: string; query: string; engine: "exa" }
+  | { type: "check_done"; check: PlanCheck }
   | { type: "calc"; steps: CalcStep[]; totalYearlyEur: number; effortlessYearlyEur: number }
   | { type: "action"; action: AgentAction }
   | { type: "projection"; projection: PlanProjection }

@@ -1,9 +1,10 @@
 // The money plan: one request that scans, researches, adds up and sets up actions. Mock mode: no network, no keys.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { AINO, ALL, freshState } from "./helpers";
+import { AINO, ALL, SANNA, freshState } from "./helpers";
 import { POST as approveAll } from "@/app/api/actions/approve-all/route";
 import { listActions } from "@/lib/actions";
+import { checksFor } from "@/lib/agent/checks";
 import { pickHabits, runPlan } from "@/lib/agent/plan";
 import { checkGrounding } from "@/lib/agent/grounding";
 import { buildCashFlow } from "@/lib/finance/cashflow";
@@ -66,6 +67,34 @@ describe("money plan", () => {
     const overview = buildOverview(AINO)!;
     const real = pickHabits(findPatterns(overview, buildCashFlow(overview)));
     assert.equal(new Set(real.map((p) => p.evidence.category)).size, real.length);
+  });
+
+  it("picks what is worth checking from the customer's own figures, and sends no personal figure to the web", () => {
+    const specsFor = (customerId: string) => {
+      const overview = buildOverview(customerId)!;
+      return checksFor(overview, findPatterns(overview, buildCashFlow(overview)), "Helsinki");
+    };
+    assert.deepEqual(specsFor(AINO).map((spec) => spec.id), ["housing-allowance", "housing-cost"]);
+    assert.deepEqual(specsFor(SANNA).map((spec) => spec.id), ["savings-rate", "housing-cost"]);
+    for (const customerId of ALL) {
+      for (const spec of specsFor(customerId)) {
+        assert.ok(!/CUST|€|\beur/i.test(spec.query), spec.query);
+        assert.deepEqual((spec.query.match(/\d+/g) ?? []).filter((n) => !/^20\d\d$/.test(n)), [], `only a year may appear in "${spec.query}"`);
+        assert.ok(spec.yours && spec.yours.value > 0);
+      }
+    }
+  });
+
+  it("reports each check as it starts and finishes, and says when it is example data", async () => {
+    freshState();
+    const { events, plan: result } = await plan(AINO);
+    const started = events.filter((event) => event.type === "check_start");
+    const done = events.filter((event): event is Extract<PlanEvent, { type: "check_done" }> => event.type === "check_done");
+    assert.equal(started.length, 2);
+    assert.equal(done.length, 2);
+    assert.ok(done.every((event) => event.check.mock && event.check.sources.length === 1 && !event.check.figuresConfirmed));
+    assert.equal(result.checks.length, 2);
+    assert.ok(events.findIndex((event) => event.type === "check_done") < events.findIndex((event) => event.type === "calc"));
   });
 
   it("approve-all needs confirm: true, approves each action on its own, and logs each", async () => {

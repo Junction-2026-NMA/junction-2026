@@ -68,6 +68,13 @@ describe("guards: what counts as describing instead of doing", () => {
   });
 
   // Regression: 14 Nov, on screen. The sum used 4.5 euros per cubic metre, the answer said "4.5 cents per litre".
+  it("reads a thousands comma as thousands and a decimal comma as a decimal, and says how to write a sum", () => {
+    assert.equal(evaluate("13,140 / 1000 * 4,5"), 59.13);
+    assert.equal(evaluate("1,000,000 / 4"), 250000);
+    assert.equal(evaluate("€ 12,5 * 2"), 25);
+    assert.throws(() => evaluate("3 min * 8 litres"), /Put units and names in `figures`/);
+  });
+
   it("calculate carries each figure's unit and source through to the model and the screen", () => {
     const outcome = calculate({ expression: "3 * 12 * 365 / 1000 * 4.5", what: "yearly saving", unit: "EUR/year", figures: "3 minutes less (customer); 12 litres a minute (typical shower); 365 showers a year (assumed); 1000 litres in a cubic metre; 4.5 euros per cubic metre (from hsy.fi)" }, {} as never, "c1");
     const content = JSON.parse(outcome.content);
