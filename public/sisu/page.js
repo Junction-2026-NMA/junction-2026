@@ -94,7 +94,20 @@
     });
   }
 
+  /* data-count-delay holds a count back, so counters side by side can take turns. The text
+     stays final while it waits. */
   function startCount(el) {
+    const delay = Number(el.getAttribute('data-count-delay')) || 0;
+    if (delay > 0) {
+      window.setTimeout(function () {
+        runCount(el);
+      }, delay);
+      return;
+    }
+    runCount(el);
+  }
+
+  function runCount(el) {
     const finalText = el.textContent;
     const parts = /^(\D*)(\d[\d,]*)((?:\.\d+)?\D*)$/.exec(finalText);
     const target = parts === null ? 0 : Number(parts[2].replace(/,/g, ''));
