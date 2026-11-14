@@ -93,7 +93,7 @@ export interface SisuAPI {
 /** The web stand-in for `URLRequest`. `timeoutInterval` is in seconds, as in Swift. */
 export interface SisuRequest {
   url: string;
-  method: "GET" | "POST" | "DELETE";
+  method: "GET" | "POST" | "PATCH" | "DELETE";
   headers: Record<string, string>;
   /** JSON text, or a multipart form (fetch sets the multipart Content-Type itself). */
   body?: string | FormData | null;

@@ -48,6 +48,8 @@ export class CoachStore extends Store<CoachStoreState> {
 
   private key: string | null = null;
   private watcher: (() => void) | null = null;
+  /** The answer language for every session (AppPrefs.language): `auto` or a code such as `fi`. */
+  private language = "auto";
 
   constructor() {
     super({ session: null, voice: null, conversation: null, fellBackToSample: false, quizChoices: {}, deciding: [], decisionNotices: {}, cheering: false });
@@ -135,6 +137,13 @@ export class CoachStore extends Store<CoachStoreState> {
 
   // MARK: Session
 
+  /** The language Sisu answers in (and hears, for voice), for this session and the next ones. The conversation stays. */
+  setLanguage(language: string): void {
+    this.language = language;
+    const session = this.state.session;
+    if (session) session.language = language;
+  }
+
   /**
    * Makes (or keeps) the session for this customer and source. `baseURL` null means the bundled sample.
    * @param unreachable the app already found the backend unreachable and fell back to the sample.
@@ -190,6 +199,7 @@ export class CoachStore extends Store<CoachStoreState> {
     this.state.session?.cancel();
     this.state.voice?.dispose();
     this.watcher?.();
+    next.language = this.language;
     const fixture = VoiceLaunch.current().voiceFixture;
     const voice = new VoiceController(next, fixture ? fixtureRecording() : null);
     const conversation = new ConversationController(next, voice.player, fixture ? fixtureRecording() : null);

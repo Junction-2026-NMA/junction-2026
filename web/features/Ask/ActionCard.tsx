@@ -11,10 +11,19 @@ import { SisuButton, SisuCard, riveAccessible } from "@/web/shared/SisuStyle";
 import { decideAction } from "./answerActions";
 import { Assumptions, Footnote, Note, SourceLink } from "./CardParts";
 import { ImpactChart } from "./ImpactChart";
+import { isWatchKind } from "@/web/core/WatchModels";
+import { WatchActionCard, showsWatchCard } from "@/web/features/Projects/WatchActionCard";
 
 const language = "en";
 
+/** A watch (property_watch, price_watch) gets the Projects card once it handles the action (`showsWatchCard`);
+ *  every other action, and a watch it does not handle yet, gets the simulated-action card. */
 export function ActionCard({ action }: { action: AgentAction }) {
+  if (isWatchKind(action.kind) && showsWatchCard(action)) return <WatchActionCard action={action} />;
+  return <SimulatedActionCard action={action} />;
+}
+
+function SimulatedActionCard({ action }: { action: AgentAction }) {
   const model = useAppModel();
   const store = useCoachStore();
   const coach = useCoach();

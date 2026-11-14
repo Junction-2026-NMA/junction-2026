@@ -11,6 +11,7 @@ import { DailyProgress, DayStamp, type DailyAction } from "@/web/core/AppLogic/D
 import { OnboardingFlow } from "@/web/core/AppLogic/Onboarding";
 import { SampleEvidence } from "@/web/core/AppLogic/SampleEvidence";
 import { Dates } from "@/web/core/Presentation";
+import { AppPrefs } from "./AppPrefs";
 import { type AppState, type AppStored, Keys, billKey, derive, stringDictionary } from "./AppState";
 import { type AppTab, type Celebration, EvidenceRequest, LoadState, type TodaySheet } from "./AppTypes";
 import { TalkLaunch } from "@/web/features/Talk/TalkLaunch";
@@ -34,8 +35,8 @@ export class AppModel extends Store<AppState> {
   constructor(launch: LaunchOptions = LaunchOptions.current(), now: () => Date = () => new Date(), timeZone: string = Dates.currentTimeZone()) {
     const defaults = launch.defaults;
     if (launch.onboarding === "reset") {
-      // As on a clean install: no progress, names, rewards, chosen customer or finished first run.
-      [Keys.progress, Keys.billNames, Keys.coachRewards, Keys.customer, Keys.onboarding].forEach((key) => defaults.remove(key));
+      // As on a clean install: no progress, names, rewards, chosen customer, preferences or finished first run.
+      [Keys.progress, Keys.billNames, Keys.coachRewards, Keys.customer, Keys.onboarding, Keys.prefs].forEach((key) => defaults.remove(key));
     }
     const storedFlow = OnboardingFlow.decode(defaults.json(Keys.onboarding));
     const stored: AppStored = {
@@ -48,8 +49,10 @@ export class AppModel extends Store<AppState> {
       customer: null,
       overview: null,
       overviewState: LoadState.idle,
-      tab: launch.tab ?? "talk",
+      tab: launch.tab ?? "sisu",
       conversationShown: TalkLaunch.current().opensConversation,
+      historyOpen: false,
+      openProjectId: null,
       onboarding: OnboardingFlow.atLaunch(storedFlow, launch.onboarding, LaunchOptions.skipsOnboardingByDefault(launch)),
       evidence: null,
       todaySheet: null,
@@ -60,12 +63,14 @@ export class AppModel extends Store<AppState> {
       berryDrops: 0,
       celebration: null,
       coachRewards: CoachRewards.decode(defaults.json(Keys.coachRewards)) ?? CoachRewards.make(),
+      prefs: AppPrefs.decode(defaults.json(Keys.prefs)),
     };
     super(derive(stored, DayStamp.from(now(), timeZone)));
     this.stored = stored;
     this.launch = launch;
     this.now = now;
     this.timeZone = timeZone;
+    this.coach.setLanguage(stored.prefs.language);
     this.coach.onApprovedSaving = (saving) => {
       if (this.state.approvedMonthlySaving !== saving) this.set({ approvedMonthlySaving: saving });
     };
@@ -103,6 +108,16 @@ export class AppModel extends Store<AppState> {
     this.set({ sampleOnly: value });
   }
 
+  /** Changes some preferences (each value checked; an invalid one is ignored) and stores them. A new language
+   *  applies to the coach session at once; the conversation and projects stay. */
+  setPrefs(change: Partial<AppPrefs>): void {
+    const prefs = AppPrefs.merge(this.state.prefs, change);
+    if (AppPrefs.equals(prefs, this.state.prefs)) return;
+    this.defaults.setJSON(Keys.prefs, prefs);
+    if (prefs.language !== this.state.prefs.language) this.coach.setLanguage(prefs.language);
+    this.set({ prefs });
+  }
+
   // MARK: Navigation
 
   setTab(tab: AppTab): void { if (tab !== this.state.tab) this.set({ tab }); }
@@ -110,6 +125,19 @@ export class AppModel extends Store<AppState> {
   setConversationShown(conversationShown: boolean): void {
     if (conversationShown !== this.state.conversationShown) this.set({ conversationShown });
   }
+  /** The chat history drawer on the Sisu tab. */
+  setHistoryOpen(historyOpen: boolean): void { if (historyOpen !== this.state.historyOpen) this.set({ historyOpen }); }
+  /** Shows a project (a watch id) on the Sisu tab; null closes it. */
+  setOpenProjectId(openProjectId: string | null): void { if (openProjectId !== this.state.openProjectId) this.set({ openProjectId }); }
+
+  /** Asks Sisu from anywhere (a suggestion on Today, "Ask Sisu" in a lesson, a project): the Sisu tab with nothing
+   *  over the conversation (no sheet, drawer or project), then the question through the coach (`coach.ask`, typed
+   *  turn). A blank question only opens the tab. */
+  askSisu(question: string): void {
+    this.set({ tab: "sisu", conversationShown: false, historyOpen: false, openProjectId: null });
+    if (question.trim() !== "") this.coach.ask(question);
+  }
+
   /** Swift `model.evidence = …` (null closes the sheet). */
   setEvidence(evidence: EvidenceRequest | null): void { this.set({ evidence }); }
   /** `model.evidence = EvidenceRequest(title:filter:)`. */
@@ -231,7 +259,9 @@ export class AppModel extends Store<AppState> {
   switchCustomer(): void {
     this.coach.clear();
     this.defaults.remove(Keys.customer);
-    this.set({ customer: null, overview: null, overviewState: LoadState.idle, conversationShown: false, tab: "talk" });
+    this.set({
+      customer: null, overview: null, overviewState: LoadState.idle, conversationShown: false, historyOpen: false, openProjectId: null, tab: "sisu",
+    });
   }
 
   // MARK: Progress
@@ -277,11 +307,11 @@ export class AppModel extends Store<AppState> {
     }
   }
 
-  /** "Look into my finances" on Today, or the third daily action: Talk with the written conversation open, where the
+  /** "Look into my finances" on Today, or the third daily action: Sisu with the written conversation open, where the
    *  investigation's stage cards are. A hands-free conversation in progress ends first. */
   startInvestigation(): void {
     this.coach.conversation?.end();
-    this.set({ tab: "talk", conversationShown: true, investigationRequests: this.state.investigationRequests + 1 });
+    this.set({ tab: "sisu", conversationShown: true, investigationRequests: this.state.investigationRequests + 1 });
     this.coach.investigate();
     this.complete("investigate");
   }
@@ -328,10 +358,10 @@ export class AppModel extends Store<AppState> {
     this.switchCustomer();
   }
 
-  /** The overview is read and the user goes on: Talk, the main page, where Liito says the first insight. Today still
+  /** The overview is read and the user goes on: Sisu, the main page, where Liito says the first insight. Today still
    *  highlights it until it is tapped away. */
   finishOnboarding(): void {
-    this.set({ tab: "talk" });
+    this.set({ tab: "sisu" });
     this.saveOnboarding(OnboardingFlow.finish(this.state.onboarding));
   }
 

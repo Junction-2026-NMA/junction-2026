@@ -2,7 +2,7 @@
 // The React side of AppModel: the provider (SwiftUI `.environment(model)`) and the hooks screens use.
 // Every store here is subscribe/getSnapshot with immutable snapshots, read through useSyncExternalStore.
 //
-//   const model = useAppModel();               // the AppModel: call its methods (model.setTab("talk"))
+//   const model = useAppModel();               // the AppModel: call its methods (model.setTab("sisu"))
 //   const app = useApp();                      // the whole AppState snapshot (re-renders on every change)
 //   const tab = useAppSelector((s) => s.tab);  // one value (re-renders only when it changes)
 //   const coach = useCoach();                  // CoachStoreState: session, voice, quizChoices, deciding…

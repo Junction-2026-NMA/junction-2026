@@ -1,5 +1,5 @@
 "use client";
-// The floating tab bar: one translucent capsule for Today, Talk and Path, with a softly green-tinted pill
+// The floating tab bar: one translucent capsule for Today, Sisu and Path, with a softly green-tinted pill
 // under the selected tab that springs to the new tab. Port of ios/Sisu/Shared/GlassTabBar.swift.
 // "Liquid glass" is a backdrop-filter capsule; a solid near-white capsule with a hairline when
 // prefers-reduced-transparency is on (or the browser has no backdrop-filter, or `solid` is set); with
@@ -11,14 +11,14 @@ import { TabIcon } from "./TabIcons";
 import "./tabbar.css";
 
 /** The three tabs in order, like AppTab.allCases. */
-export const defaultTabs = ["today", "talk", "path"] as const;
+export const defaultTabs = ["today", "sisu", "path"] as const;
 
-export const GlassTabBarTitles = ["Today", "Talk", "Path"] as const;
+export const GlassTabBarTitles = ["Today", "Sisu", "Path"] as const;
 
 export interface GlassTabBarProps<Tab extends string | number> {
   selection: Tab;
   onSelect: (tab: Tab) => void;
-  /** The tabs in order (Today, Talk, Path). Defaults to "today" | "talk" | "path". */
+  /** The tabs in order (Today, Sisu, Path). Defaults to "today" | "sisu" | "path". */
   tabs?: readonly Tab[];
   /** Hides the bar (it steps aside). Undefined: hidden while the on-screen keyboard is up. */
   hidden?: boolean;

@@ -8,6 +8,7 @@
 // kind (`Stage`, `StageData`, `SisuEvent`) have a `decode` in their companion object.
 import { type CalcStep, type EvidenceFilter, type BranchId, BranchId as BranchIds, JSONRead, type JSONObject } from "./Models";
 import { Visual } from "./PlanModels";
+import type { WatchPlan } from "./WatchModels";
 
 // MARK: - Open enums
 
@@ -24,9 +25,13 @@ export const BillType = {
 export type ResearchStatus = "running" | "partial" | "done" | "failed" | (string & {});
 export const ResearchStatus = { running: "running", partial: "partial", done: "done", failed: "failed" } as const;
 
-/** `switch_contract`, `standing_transfer` or `one_off_transfer`. */
-export type ActionKind = "switch_contract" | "standing_transfer" | "one_off_transfer" | (string & {});
-export const ActionKind = { switchContract: "switch_contract", standingTransfer: "standing_transfer", oneOffTransfer: "one_off_transfer" } as const;
+/** `switch_contract`, `standing_transfer`, `one_off_transfer`, `property_watch` or `price_watch`. */
+export type ActionKind = "switch_contract" | "standing_transfer" | "one_off_transfer" | "property_watch" | "price_watch" | (string & {});
+export const ActionKind = {
+  switchContract: "switch_contract", standingTransfer: "standing_transfer", oneOffTransfer: "one_off_transfer",
+  /** A watch (web/core/WatchModels.ts): approving it really starts Context.dev monitors, so it is not simulated. */
+  propertyWatch: "property_watch", priceWatch: "price_watch",
+} as const;
 
 /** `awaiting_approval`, `executed_simulated`, `declined` or `expired`. */
 export type ActionStatus = "awaiting_approval" | "executed_simulated" | "declined" | "expired" | (string & {});
@@ -350,6 +355,12 @@ export interface AgentAction {
   warning?: string | null;
   /** Filled in when approved: `Done (simulation). Reference SIM-1A2B3C4D.` */
   confirmation?: string | null;
+  /** `property_watch` and `price_watch`: what would be watched once approved. Raw from the server: read it with
+   *  `WatchPlan.decode` (web/core/WatchModels.ts). */
+  watch?: WatchPlan | null;
+  /** Filled in when approved on a backend with the demo bank (lib/types.ts `ActionExecution`). Not modelled yet:
+   *  read it defensively. */
+  execution?: unknown;
 }
 
 /** One entry of the tamper-evident audit log. */

@@ -7,6 +7,7 @@ import { TodayPresenter } from "@/web/core/AppLogic/AppPresenters";
 import { CoachRewards } from "@/web/core/AppLogic/CoachAppLogic";
 import { DailyProgress, DayStamp, type DailyAction } from "@/web/core/AppLogic/DailyProgress";
 import { OnboardingFlow } from "@/web/core/AppLogic/Onboarding";
+import type { AppPrefs } from "./AppPrefs";
 import type { AppTab, Celebration, EvidenceRequest, LoadState, TodaySheet } from "./AppTypes";
 
 /** What AppModel stores. */
@@ -31,6 +32,10 @@ export interface AppStored {
   /** The written conversation (the Ask screen) as a sheet over Talk: the cards, approvals, quizzes and typing.
    *  While it is up, the hands-free conversation holds its microphone. */
   readonly conversationShown: boolean;
+  /** The chat history drawer on the Sisu tab (previous conversations, saved projects, New chat). */
+  readonly historyOpen: boolean;
+  /** The project (a watch id) shown on the Sisu tab, or null. */
+  readonly openProjectId: string | null;
   /** The first-run flow. Complete after the first visit; "Start the demo over" restarts it. */
   readonly onboarding: OnboardingFlow;
   /** The transactions sheet MainScreen shows, or null. */
@@ -51,6 +56,9 @@ export interface AppStored {
   readonly celebration: Celebration | null;
   /** Berries earned in the coach (quiz answered, action decided). */
   readonly coachRewards: CoachRewards;
+  // Preferences (stored)
+  /** Language, voice, spoken replies and the protected buffer (`Keys.prefs`). */
+  readonly prefs: AppPrefs;
 }
 
 /** The snapshot: the stored values plus the derived ones. */
@@ -101,6 +109,8 @@ export const Keys = {
   coachRewards: "sisu.coachRewards",
   /** Not "sisu.onboarding": on iOS that name is the launch argument, which would shadow the stored value. */
   onboarding: "sisu.onboardingFlow",
+  /** AppPrefs as JSON (web only). */
+  prefs: "sisu.prefs",
 } as const;
 
 export const billKey = (customerId: string, billId: string): string => `${customerId}/${billId}`;

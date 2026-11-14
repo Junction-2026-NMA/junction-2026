@@ -48,6 +48,7 @@ import {
 import { CoachEndpoints, type FormBytes } from "./CoachEndpoints";
 import { ApproveAllResult, PlanEvent, type Visual, VisualList } from "./PlanModels";
 import { SSEParser } from "./ServerSentEvents";
+import { SimulatedDrop, WatchChange, WatchCheck, WatchList, WatchReadResult, type WatchRequirements } from "./WatchModels";
 import { FallbackTransport, FetchTransport, ReplayTransport, type SisuTransport, TransportResponse } from "./Transport";
 
 const object = <T>(keys: string[] = []) => (json: unknown): T => JSONRead.object(json, keys) as unknown as T;
@@ -302,6 +303,66 @@ export class CoachClient implements SisuAPI {
   /** `GET /api/agent/visuals`: every chart for a customer at once, with no model call. */
   async visuals(customerId: string): Promise<Visual[]> {
     return (await this.call(CoachEndpoints.visuals(this.baseURL, customerId), VisualList.decode)).visuals;
+  }
+
+  // MARK: Watches (Projects)
+  // Live only. The bundled sample has no watches: `watchList` answers an empty list and the rest throw
+  // `SisuError.notImplemented`. Routes the hosted backend does not have yet (pause, resume, update, read) throw
+  // `SisuError.server(404, …)` like any other error, so a screen can hide the control or say it is not available.
+
+  /** `GET /api/watch`: every watch of the customer and its findings, newest first. */
+  watchList(customerId: string): Promise<WatchList> {
+    if (this.kind === "bundledSample") return Promise.resolve(WatchList.empty(customerId));
+    return this.call(CoachEndpoints.watchList(this.baseURL, customerId), WatchList.decode);
+  }
+
+  /** `POST /api/watch/check`: turns Context.dev's changes into findings. `runNow` also asks Context.dev to run the
+   *  monitors now (their result shows up on a later check). */
+  watchCheck(customerId: string, runNow = false): Promise<WatchCheck> {
+    return this.watchCall("Checking watches", CoachEndpoints.watchCheck(this.baseURL, customerId, runNow), WatchCheck.decode);
+  }
+
+  /** `POST /api/watch/:id/stop`: stops the watch and deletes its monitors. 404 when there is no such watch. */
+  watchStop(id: string, customerId: string): Promise<WatchChange> {
+    return this.watchCall("Stopping a watch", CoachEndpoints.watchStop(this.baseURL, id, customerId), WatchChange.decode);
+  }
+
+  /** `POST /api/watch/:id/pause`. Not on the hosted backend yet: 404. */
+  watchPause(id: string, customerId: string): Promise<WatchChange> {
+    return this.watchCall("Pausing a watch", CoachEndpoints.watchPause(this.baseURL, id, customerId), WatchChange.decode);
+  }
+
+  /** `POST /api/watch/:id/resume`. Not on the hosted backend yet: 404. */
+  watchResume(id: string, customerId: string): Promise<WatchChange> {
+    return this.watchCall("Resuming a watch", CoachEndpoints.watchResume(this.baseURL, id, customerId), WatchChange.decode);
+  }
+
+  /** `PATCH /api/watch/:id` with the edited requirements. Not on the hosted backend yet: 404. */
+  watchUpdate(id: string, customerId: string, requirements: WatchRequirements): Promise<WatchChange> {
+    return this.watchCall("Changing a watch", CoachEndpoints.watchUpdate(this.baseURL, id, customerId, requirements), WatchChange.decode);
+  }
+
+  /** `POST /api/watch/:id/read`: the watch's findings are seen. Not on the hosted backend yet: 404. */
+  watchMarkRead(id: string, customerId: string): Promise<WatchReadResult> {
+    return this.watchCall("Marking findings read", CoachEndpoints.watchMarkRead(this.baseURL, id, customerId), WatchReadResult.decode);
+  }
+
+  /** `POST /api/watch/:id/simulate-drop`: a made-up price drop for the demo, labelled simulated. 404 or 409 with the
+   *  server's sentence when there is no watch or nothing to drop. */
+  simulateDrop(id: string, customerId: string): Promise<SimulatedDrop> {
+    return this.watchCall("Simulating a price drop", CoachEndpoints.simulateDrop(this.baseURL, id, customerId), SimulatedDrop.decode);
+  }
+
+  /** A watch call: refused on the sample (also when the client fell back to it during the call). */
+  private async watchCall<T>(what: string, request: SisuRequest, decode: (json: unknown) => T): Promise<T> {
+    if (this.kind === "bundledSample") throw SisuError.notImplemented(`${what} needs the live server`);
+    try {
+      return await this.call(request, decode);
+    } catch (error) {
+      const notInSample = error instanceof SisuError && error.info.kind === "server" && error.info.status === 404 && error.info.message === ReplayTransport.notInSample;
+      if (notInSample) throw SisuError.notImplemented(`${what} needs the live server`);
+      throw error;
+    }
   }
 
   // MARK: Voice

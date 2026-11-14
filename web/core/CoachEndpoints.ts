@@ -15,6 +15,7 @@ import type {
   SpeechRequest,
 } from "./CoachModels";
 import { ApproveAllRequest, type PlanRequest } from "./PlanModels";
+import type { WatchRequirements } from "./WatchModels";
 
 /** Bytes a form can carry: a recording or photo from the browser (`Blob`) or raw bytes. */
 export type FormBytes = Blob | Uint8Array;
@@ -175,6 +176,58 @@ export class CoachEndpoints {
   /** `POST {base}/api/actions/approve-all` with `{ customerId, actionIds, confirm: true }`. */
   static approveAll(baseURL: string, customerId: string, actionIds: string[]) {
     return CoachEndpoints.post(baseURL, "/api/actions/approve-all", ApproveAllRequest.make(customerId, actionIds));
+  }
+
+  // MARK: Watches (Projects)
+  // On the hosted backend today: list, check, stop and simulate-drop. Pause, resume, update and read are not there
+  // yet: they answer 404, which the client passes on as `SisuError.server(404, …)`.
+
+  /** Seconds a check may take: it can re-read pages fresh at Context.dev (the route allows 60). */
+  static readonly watchCheckTimeout = 60;
+
+  private static watchPath(id: string, action = ""): string {
+    return `/api/watch/${Endpoints.escape(id)}${action === "" ? "" : `/${action}`}`;
+  }
+
+  /** `GET {base}/api/watch?customerId=`: the watches and the findings (reads only, calls nothing outside). */
+  static watchList(baseURL: string, customerId: string) { return CoachEndpoints.get(baseURL, "/api/watch", [["customerId", customerId]]); }
+
+  /** `POST {base}/api/watch/check` with `{ customerId, runNow? }` (`runNow` sent only when true). */
+  static watchCheck(baseURL: string, customerId: string, runNow = false) {
+    return CoachEndpoints.post(baseURL, "/api/watch/check", { customerId, runNow: runNow ? true : null }, CoachEndpoints.watchCheckTimeout);
+  }
+
+  /** `POST {base}/api/watch/{id}/stop` with `{ customerId }`. Idempotent. */
+  static watchStop(baseURL: string, id: string, customerId: string) {
+    return CoachEndpoints.post(baseURL, CoachEndpoints.watchPath(id, "stop"), { customerId }, CoachEndpoints.researchTimeout);
+  }
+
+  /** `POST {base}/api/watch/{id}/pause` with `{ customerId }`. Not on the hosted backend yet (404). */
+  static watchPause(baseURL: string, id: string, customerId: string) {
+    return CoachEndpoints.post(baseURL, CoachEndpoints.watchPath(id, "pause"), { customerId }, CoachEndpoints.researchTimeout);
+  }
+
+  /** `POST {base}/api/watch/{id}/resume` with `{ customerId }`. Not on the hosted backend yet (404). */
+  static watchResume(baseURL: string, id: string, customerId: string) {
+    return CoachEndpoints.post(baseURL, CoachEndpoints.watchPath(id, "resume"), { customerId }, CoachEndpoints.researchTimeout);
+  }
+
+  /** `PATCH {base}/api/watch/{id}` with `{ customerId, requirements }` (the whole set: null members are left out,
+   *  as in every body here). Not on the hosted backend yet (404). */
+  static watchUpdate(baseURL: string, id: string, customerId: string, requirements: WatchRequirements): SisuRequest {
+    const request = CoachEndpoints.post(baseURL, CoachEndpoints.watchPath(id), { customerId, requirements }, CoachEndpoints.researchTimeout);
+    return { ...request, method: "PATCH" };
+  }
+
+  /** `POST {base}/api/watch/{id}/read` with `{ customerId }`: the watch's findings are seen. Not on the hosted
+   *  backend yet (404). */
+  static watchMarkRead(baseURL: string, id: string, customerId: string) {
+    return CoachEndpoints.post(baseURL, CoachEndpoints.watchPath(id, "read"), { customerId });
+  }
+
+  /** `POST {base}/api/watch/{id}/simulate-drop` with `{ customerId }`: a made-up price drop, labelled simulated. */
+  static simulateDrop(baseURL: string, id: string, customerId: string) {
+    return CoachEndpoints.post(baseURL, CoachEndpoints.watchPath(id, "simulate-drop"), { customerId }, CoachEndpoints.researchTimeout);
   }
 
   // MARK: Voice

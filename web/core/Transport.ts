@@ -283,6 +283,8 @@ export class ReplayTransport implements SisuTransport {
         return this.approveAll(customer, ids, body.confirm === true);
       }
       case "GET /api/agent/visuals": return this.json(`coach/visuals-${customer}.json`);
+      // The sample has no watches (Projects need the live server); every other watch route is `missing`.
+      case "GET /api/watch": return S.encode({ customerId: customer, watches: [], notifications: [] });
       case "POST /api/agent/query": {
         const kind = S.recordedTurn(asString(body.text) ?? "", asString(body.focusBill));
         if (!kind || !(await this.fixture(`coach/stream-${kind}-${customer}.sse`))) return S.missing;

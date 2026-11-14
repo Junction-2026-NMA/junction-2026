@@ -1,6 +1,6 @@
 "use client";
-// The main screen: Today, Talk and Path under the floating glass tab bar (web/shared/GlassTabBar.tsx). Talk is the
-// main page; the written conversation (the Ask screen) is a sheet over it. Port of
+// The main screen: Today, Sisu and Path under the floating glass tab bar (web/shared/GlassTabBar.tsx). Sisu (the
+// Talk screen, web/features/Talk) is the main page; the written conversation (the Ask screen) is a sheet over it. Port of
 // ios/Sisu/Features/Main/MainScreen.swift.
 // - The current tab is shown in one stacked container; the tab bar sits outside it, so it keeps its state (and
 //   its springing pill) while the screens under it change. As on iOS only the current tab is mounted.
@@ -25,7 +25,7 @@ import "./main.css";
 function TabContent({ tab }: { tab: AppTab }) {
   switch (tab) {
     case "today": return <TodayScreen />;
-    case "talk": return <TalkScreen />;
+    case "sisu": return <TalkScreen />;
     case "path": return <PathScreen />;
   }
 }
