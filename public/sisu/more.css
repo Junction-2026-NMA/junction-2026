@@ -1,0 +1,91 @@
+/* Two extras of the bank header that scripts switch on.
+   1. The logo's text fallback (page.js): the name in place of an image that cannot load.
+   2. The "Katso lisää" menu (nav.js): from 1024px the navigation links that do not fit on
+      one row sit in a small list under a pill, as on the bank's own site.
+   Without the scripts the browser shows the alt text and the navigation wraps. */
+.js .site-header > .is-logo-missing img {
+  display: none;
+}
+
+.js .site-header > .is-logo-missing::before {
+  content: "S-Pankki";
+  display: flex;
+  align-items: center;
+  width: 107px;
+  height: 46px;
+  color: var(--green-900);
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+@media not all and (min-width: 390px) {
+  .js .site-header > .is-logo-missing::before {
+    width: 86px;
+    font-size: 1.125rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .nav-more {
+    position: relative;
+  }
+
+  .more-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 48px;
+    min-height: 48px;
+    padding: 0 20px 0 24px;
+    border: 2px solid var(--green-900);
+    border-radius: var(--radius-full);
+    background: var(--white);
+    color: var(--green-900);
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.25;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .more-button .line-icon {
+    transition: transform var(--duration-fast) var(--ease-out);
+  }
+
+  .more-button[aria-expanded="true"] .line-icon {
+    transform: rotate(180deg);
+  }
+
+  /* A small flat panel under the pill, like the customer-group list. */
+  .more-list {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 5;
+    display: grid;
+    gap: 8px;
+    width: max-content;
+    max-width: calc(100vw - 48px);
+    padding: 8px;
+    border: 2px solid var(--green-900);
+    border-radius: var(--radius-lg);
+    background: var(--white);
+  }
+
+  .nav-more:not(.is-open) .more-list {
+    display: none;
+  }
+
+  /* While nav.js measures, and once the links fit, the row never wraps. */
+  .nav-list.is-fitted {
+    flex-wrap: nowrap;
+  }
+
+  .nav-list.is-fitted > li {
+    flex: none;
+  }
+}

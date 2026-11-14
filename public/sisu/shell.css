@@ -1,0 +1,247 @@
+/* The bank shell around the Sisu content: skip link, concept notice, breadcrumb and footer.
+   Written from scratch after the screenshots in context/landing. The header is in header.css. */
+.skip-link {
+  position: absolute;
+  top: 0;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  width: fit-content;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: var(--radius-full);
+  background: var(--white);
+  color: var(--green-900);
+  font-weight: 700;
+  transform: translateY(-250%);
+}
+
+/* On focus the skip link takes its own row above the notice. */
+.skip-link:focus {
+  position: static;
+  margin: 8px 16px;
+  transform: none;
+}
+
+.concept-note {
+  padding: 10px 16px;
+  background: var(--green-900);
+  color: var(--white);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  text-wrap: balance;
+}
+
+/* Breadcrumb: one back link to the parent step on a phone, the full path from 1024px. */
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 4px 0;
+  color: var(--text-muted);
+  font-size: 1rem;
+}
+
+.crumb {
+  display: none;
+}
+
+.crumb-parent {
+  display: flex;
+}
+
+.crumb a,
+.crumb [aria-current] {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 48px;
+  min-height: 48px;
+  text-decoration: none;
+}
+
+.crumb a:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.crumb [aria-current] {
+  color: var(--green-900);
+  font-weight: 600;
+}
+
+/* Footer */
+.site-footer {
+  background: var(--shell-pale);
+  color: var(--green-900);
+  font-size: 1rem;
+}
+
+.footer-columns {
+  display: grid;
+  padding: 24px 0 16px;
+}
+
+.footer-block {
+  padding: 24px 0;
+}
+
+.footer-block + .footer-block {
+  border-top: 2px solid var(--shell-grey);
+}
+
+.site-footer h2 {
+  margin-bottom: 20px;
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.site-footer h3 {
+  margin: 28px 0 4px;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.support-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 56px;
+  padding: 0 24px;
+  border-radius: var(--radius-full);
+  background: var(--green-200);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.footer-service p a,
+.shortcut-list a,
+.legal-list a {
+  display: inline-flex;
+  align-items: center;
+  min-width: 48px;
+  min-height: 48px;
+  text-decoration: none;
+}
+
+.footer-service p a {
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.shortcut-list {
+  display: grid;
+  gap: 8px;
+}
+
+.shortcut-list a {
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.shortcut-list a:hover,
+.legal-list a:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.footer-company p {
+  line-height: 1.75;
+}
+
+.footer-note {
+  margin-top: 24px;
+  padding: 12px 16px;
+  border: 2px solid var(--green-900);
+  border-radius: var(--radius-lg);
+  font-weight: 600;
+}
+
+.footer-bottom {
+  border-top: 2px solid var(--shell-grey);
+  background: var(--white);
+}
+
+.footer-legal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px 40px;
+  padding: 16px 0 32px;
+}
+
+.copyright {
+  order: -1;
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+}
+
+.legal-list {
+  display: flex;
+  flex: 1 1 280px;
+  flex-wrap: wrap;
+  gap: 8px 32px;
+}
+
+@media (min-width: 600px) {
+  .footer-columns {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 40px;
+  }
+
+  .footer-block + .footer-shortcuts {
+    border-top: 0;
+  }
+
+  .footer-company {
+    grid-column: 1 / -1;
+  }
+
+  .support-pill {
+    display: inline-flex;
+    min-width: min(100%, 264px);
+  }
+}
+
+@media (min-width: 1024px) {
+  .crumbs {
+    padding: 8px 0 0;
+    font-size: 0.9375rem;
+  }
+
+  .crumb {
+    display: flex;
+    align-items: center;
+  }
+
+  .crumb + .crumb::before {
+    content: "/";
+    margin: 0 12px;
+  }
+
+  .crumb-arrow {
+    display: none;
+  }
+
+  .footer-columns {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 56px 0 40px;
+  }
+
+  .footer-block + .footer-company {
+    grid-column: auto;
+    border-top: 0;
+  }
+}

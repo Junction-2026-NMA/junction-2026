@@ -1,0 +1,276 @@
+/* Sisu landing page: rules shared by the bank shell and the Sisu content.
+   Colours, radii, fonts and motion values are tokens from tokens.css.
+   The two shell greys are read from the screenshots in context/landing. */
+:root {
+  --shell-pale: #F5F8F7;
+  --shell-grey: #EFF0F1;
+  --page-max: 1200px;
+  --gutter: 16px;
+  --reveal-time: 450ms;
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-text);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+  overflow-wrap: break-word;
+}
+
+h1,
+h2,
+h3,
+p,
+ul,
+ol,
+figure {
+  margin: 0;
+}
+
+ul,
+ol {
+  padding: 0;
+  list-style: none;
+}
+
+img,
+svg {
+  flex: none;
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+summary {
+  font-family: var(--font-text);
+}
+
+:focus-visible {
+  outline: 3px solid var(--green-900);
+  outline-offset: 3px;
+}
+
+/* Page width: one centred column with a side gutter. Backgrounds run the full width. */
+.crumbs,
+.hero-copy,
+.hero-figure,
+.fact-list,
+.section-head,
+.basket-grid,
+.panel-stack,
+.stat-grid,
+.week-grid,
+.faq-list,
+.closing-block,
+.footer-columns,
+.footer-legal {
+  width: min(100% - 2 * var(--gutter), var(--page-max));
+  margin-right: auto;
+  margin-left: auto;
+}
+
+main > section {
+  padding: 32px 0;
+}
+
+.section-head {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.section-head h2,
+.closing-block h2 {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5.2vw, 3rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.section-head p {
+  max-width: 36rem;
+  margin: 12px auto 0;
+  font-size: 1.125rem;
+}
+
+/* Outline icons of the shell and filled icons of the Sisu content. */
+.line-icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.flame {
+  fill: var(--streak);
+}
+
+/* The demo button: .btn-primary is the kit's own button from tokens.css; these rules make it fit a link. */
+.demo-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: min(100%, 240px);
+  margin-bottom: var(--edge);
+  text-align: center;
+  text-decoration: none;
+}
+
+/* On the dark closing block: mint face, S green edge, dark green label. */
+.demo-button-dark {
+  background: var(--ondark-face);
+  color: var(--ondark-label);
+  box-shadow: 0 var(--edge) 0 var(--ondark-edge);
+}
+
+.source-link {
+  display: inline-flex;
+  align-items: center;
+  min-width: 48px;
+  min-height: 48px;
+  color: var(--text-link);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.example-note {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.keep {
+  white-space: nowrap;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.meter {
+  display: block;
+  height: 14px;
+  border-radius: var(--radius-full);
+  background: var(--progress-track);
+}
+
+.meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--progress-fill);
+}
+
+.meter-buffer .meter-fill {
+  width: 24%;
+}
+
+.meter-daily .meter-fill {
+  width: 66%;
+}
+
+/* A copy for screen readers while a number counts (page.js adds and removes it). */
+.vh {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Fade and rise, once, when a block enters the view. Nothing is hidden on load: page.js puts
+   a block in waiting only after the first scroll, and only while it is still below the view.
+   So a page that is captured, printed or read without scrolling is complete. */
+@media (prefers-reduced-motion: no-preference) {
+  .js .reveal.is-waiting {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  .js .reveal.is-in {
+    transition: opacity var(--reveal-time) var(--ease-out), transform var(--reveal-time) var(--ease-out);
+  }
+
+  /* Progress bars fill once, with a slight overshoot, when their block is revealed. */
+  .js .reveal.is-waiting .meter-fill,
+  .js .reveal.is-waiting .period-fill {
+    transform: scaleX(0);
+  }
+
+  .js .reveal.is-in .meter-fill,
+  .js .reveal.is-in .period-fill {
+    transform-origin: left center;
+    transition: transform var(--duration-fill) var(--ease-spring) 200ms;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  .js .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .panel {
+    position: static !important;
+  }
+}
+
+@media (min-width: 600px) {
+  :root {
+    --gutter: 24px;
+  }
+
+  main > section {
+    padding: 40px 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --gutter: 32px;
+  }
+
+  main > section {
+    padding: 56px 0;
+  }
+
+  .section-head {
+    margin-bottom: 40px;
+  }
+}

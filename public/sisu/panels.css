@@ -1,0 +1,130 @@
+/* Section 4: three large panels. Each has its text and one mock-up on a white inner card.
+   From 1024px they are two columns; on tall wide screens they also stack while scrolling. */
+.panel-stack {
+  display: grid;
+  gap: 24px;
+}
+
+.panel {
+  --stick-top: 24px;
+  --panel-face: var(--green-100);
+  --panel-ink: var(--green-900);
+  --tick-face: var(--green-700);
+  --tick-mark: var(--white);
+  display: grid;
+  gap: 24px;
+  padding: 28px 20px 20px;
+  border-radius: var(--radius-xl);
+  background: var(--panel-face);
+  color: var(--panel-ink);
+}
+
+.panel-chat {
+  --stick-top: 40px;
+  --panel-face: var(--green-300);
+  --tick-face: var(--green-900);
+}
+
+.panel-daily {
+  --stick-top: 56px;
+  --panel-face: var(--green-900);
+  --panel-ink: var(--white);
+  --tick-face: var(--green-200);
+  --tick-mark: var(--green-900);
+}
+
+.panel-copy h3 {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3.4vw, 2.5rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.panel-copy p {
+  margin-top: 12px;
+  font-size: 1.125rem;
+  line-height: 1.4;
+}
+
+/* Three points, each with a tick drawn in CSS: a round face and a check mark. */
+.tick-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.tick-list li {
+  position: relative;
+  padding-left: 36px;
+  font-weight: 600;
+}
+
+.tick-list li::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  background: var(--tick-face);
+}
+
+.tick-list li::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: 9px;
+  width: 7px;
+  height: 11px;
+  border: solid var(--tick-mark);
+  border-width: 0 3px 3px 0;
+  transform: rotate(45deg);
+}
+
+.panel-visual {
+  display: grid;
+  gap: 10px;
+  justify-self: center;
+  width: min(100%, 480px);
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  background: var(--white);
+  color: var(--green-900);
+}
+
+.mock {
+  display: grid;
+  gap: 8px;
+}
+
+@media (min-width: 1024px) {
+  .panel {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: "visual copy";
+    align-items: center;
+    gap: 48px;
+    padding: 32px 48px 32px 32px;
+  }
+
+  .panel-copy {
+    grid-area: copy;
+  }
+
+  .panel-visual {
+    grid-area: visual;
+    width: min(100%, 420px);
+  }
+}
+
+/* Stacking: each panel sticks a little lower than the one before, so the next slides over it.
+   Only on wide and tall viewports with motion allowed; everywhere else the panels just follow. */
+@media (min-width: 1024px) and (min-height: 760px) and (prefers-reduced-motion: no-preference) {
+  .panel {
+    position: sticky;
+    top: var(--stick-top);
+    min-height: 600px;
+    max-height: calc(100vh - 96px);
+  }
+}

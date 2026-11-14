@@ -1,0 +1,234 @@
+/* Section 6: two tall cards, the weekly receipt and the jar shelf.
+   The flat jam jar drawn here is also used by the daily checklist in section 4. */
+.week-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.tall-card {
+  display: flex;
+  flex-direction: column;
+  padding: 28px 20px 20px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.tall-card h3 {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.tall-lead {
+  margin-top: 8px;
+  font-size: 1.125rem;
+  line-height: 1.4;
+}
+
+.tall-receipt {
+  background: var(--hero-bg);
+  color: var(--hero-text);
+}
+
+.tall-receipt .tall-lead,
+.tall-receipt .example-note {
+  color: var(--green-300);
+}
+
+.receipt-figure,
+.shelf-figure {
+  display: grid;
+  gap: 16px;
+  margin-top: auto;
+  padding-top: 28px;
+}
+
+/* The receipt: a white slip, slightly tilted, with a zigzag bottom edge cut by clip-path. */
+.receipt {
+  display: grid;
+  gap: 6px;
+  width: min(100% - 16px, 340px);
+  margin: 0 auto 8px;
+  padding: 20px 20px 34px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: var(--white);
+  color: var(--green-900);
+  font-variant-numeric: tabular-nums;
+  transform: rotate(-2deg);
+  clip-path: polygon(
+    0 0, 100% 0, 100% calc(100% - 12px),
+    95% 100%, 90% calc(100% - 12px), 85% 100%, 80% calc(100% - 12px),
+    75% 100%, 70% calc(100% - 12px), 65% 100%, 60% calc(100% - 12px),
+    55% 100%, 50% calc(100% - 12px), 45% 100%, 40% calc(100% - 12px),
+    35% 100%, 30% calc(100% - 12px), 25% 100%, 20% calc(100% - 12px),
+    15% 100%, 10% calc(100% - 12px), 5% 100%, 0 calc(100% - 12px)
+  );
+}
+
+.receipt-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.receipt-dates {
+  padding-bottom: 10px;
+  border-bottom: 2px dashed var(--green-300);
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.receipt-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.receipt-rule {
+  padding-top: 8px;
+  border-top: 2px dashed var(--green-300);
+}
+
+.receipt-streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.receipt-liito {
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 2px dashed var(--green-300);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+/* The shelf: three slots that shrink with the card, standing on one dark green line. */
+.shelf {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.shelf-slot {
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  text-align: center;
+}
+
+.slot-stand {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 0 6px;
+  border-bottom: 4px solid var(--green-900);
+}
+
+.slot-name {
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.slot-sum {
+  display: grid;
+  line-height: 1.35;
+}
+
+.slot-goal {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+/* Flat jam jar: a lid, a dark green glass outline, a white inside and an S green fill. */
+.jar {
+  display: block;
+  width: min(100%, 84px);
+}
+
+.jar-lid {
+  display: block;
+  width: 70%;
+  height: 12px;
+  margin: 0 auto;
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+  background: var(--green-900);
+}
+
+.jar-glass {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 5 / 6;
+  border: 4px solid var(--green-900);
+  border-radius: var(--radius-sm) var(--radius-sm) var(--radius-md) var(--radius-md);
+  background: var(--white);
+}
+
+.jar-fill {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 24%;
+  background: var(--green-500);
+  transform-origin: bottom;
+}
+
+.jar-trip .jar-fill {
+  height: 65%;
+}
+
+.jar-empty {
+  display: block;
+  width: min(100%, 84px);
+  padding-top: 12px;
+}
+
+.jar-empty::before {
+  content: "";
+  display: block;
+  aspect-ratio: 5 / 6;
+  border: 3px dashed var(--green-300);
+  border-radius: var(--radius-sm) var(--radius-sm) var(--radius-md) var(--radius-md);
+}
+
+/* The jars fill once when their block is revealed. */
+@media (prefers-reduced-motion: no-preference) {
+  .js .is-in .jar-fill {
+    animation: jar-rise var(--duration-fill) var(--ease-out) 1 backwards;
+    animation-delay: 200ms;
+  }
+}
+
+@keyframes jar-rise {
+  0% {
+    transform: scaleY(0);
+  }
+
+  100% {
+    transform: scaleY(1);
+  }
+}
+
+@media (min-width: 600px) {
+  .tall-card {
+    padding: 32px 32px 28px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .week-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 24px;
+  }
+
+  .tall-card {
+    min-height: 560px;
+  }
+}

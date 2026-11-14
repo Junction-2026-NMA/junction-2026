@@ -46,7 +46,7 @@ Where the Sisu page differs on purpose:
 
 - Headlines inside `<main>` are sentence case in Bricolage Grotesque. The bank's capital-letter headlines and its fonts (S Bonus Display, S Bonus UX) are proprietary and are not used.
 - The footer in the screenshots also has social icons, a contact-details card and the reference rate. They are left out. The request lists the footer items to include.
-- The live site moves navigation items that do not fit into a "Katso lisää" menu. That menu is out of scope, so all eight items are in the page. One way to handle a narrow row is to let it wrap.
+- The live site moves navigation items that do not fit into a "Katso lisää" menu. The page does the same with a script (`public/sisu/nav.js`): all eight links are in the HTML, and from 1024 px the ones that do not fit on one row move under a "Katso lisää" pill. Without scripts the row wraps.
 - The cookie banner was dismissed before capture. The chat bubble at the bottom right is not part of the page.
 
 ## The reference landing page (patterns only)

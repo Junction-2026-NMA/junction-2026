@@ -1,0 +1,169 @@
+/* Mock-ups of panels 2 and 3 in section 4: the chat with Liito and the daily checklist.
+   Pictures built from HTML and CSS. Nothing in them can be focused or clicked. */
+/* Panel 2: a short chat. The user's bubble is deep green, Liito's replies are white on pale green. */
+.mock-chat {
+  gap: 6px;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+}
+
+.chat-name {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.chat-name-user {
+  justify-self: end;
+}
+
+.bubble {
+  max-width: 88%;
+  padding: 10px 14px;
+  border-radius: var(--radius-lg);
+  line-height: 1.35;
+}
+
+.bubble-user {
+  justify-self: end;
+  border-bottom-right-radius: var(--radius-xs);
+  background: var(--green-700);
+  color: var(--white);
+}
+
+.bubble-liito {
+  justify-self: start;
+  border-bottom-left-radius: var(--radius-xs);
+  background: var(--white);
+  color: var(--green-900);
+}
+
+.data-card {
+  margin-top: 8px;
+  padding: 10px 14px;
+  border: 2px solid var(--green-300);
+  border-radius: var(--radius-sm);
+}
+
+.data-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.data-number {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.data-source {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.chat-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.chat-step {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: var(--radius-full);
+  background: var(--green-100);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* Panel 3: the daily checklist with the streak flame and a jar filling. */
+.daily-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.daily-day {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.daily-done {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.task {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 14px;
+  border: 2px solid var(--green-300);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+}
+
+.task-done {
+  border-color: var(--green-100);
+  background: var(--green-100);
+}
+
+.task-done .task-name {
+  text-decoration: line-through;
+}
+
+.task-check {
+  position: relative;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--green-300);
+  border-radius: var(--radius-full);
+}
+
+.task-done .task-check {
+  border-color: var(--green-700);
+  background: var(--green-700);
+}
+
+.task-done .task-check::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 6px;
+  width: 7px;
+  height: 11px;
+  border: solid var(--white);
+  border-width: 0 3px 3px 0;
+  transform: rotate(45deg);
+}
+
+.daily-jar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 4px 8px 0;
+}
+
+.daily-jar .jar {
+  width: 48px;
+}
+
+.daily-jar-text {
+  display: grid;
+}
+
+.daily-jar-name {
+  font-weight: 700;
+}
