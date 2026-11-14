@@ -1,9 +1,28 @@
-/* Sisu landing page: the "Katso lisää" menu of the bank header.
-   From 1024px the navigation links that do not fit on one row move, in order, into a small
-   list under a "Katso lisää" pill, as on the bank's own site. Below 1024px every link is a
-   row of the phone menu. Without this script the links simply wrap onto further rows. */
+/* Sisu landing page: two small parts of the bank shell.
+   1. The footer logo comes from the bank's site, like the header's. If it cannot load, the
+      footer shows the name as text in its place (shell.css), as page.js does for the header.
+   2. The "Katso lisää" menu of the bank header. From 1024px the navigation links that do not
+      fit on one row move, in order, into a small list under a "Katso lisää" pill, as on the
+      bank's own site. Below 1024px every link is a row of the phone menu. Without this script
+      the links simply wrap onto further rows.
+   Nothing here moves. */
 (function () {
   'use strict';
+
+  const footerLogo = document.querySelector('.footer-logo');
+  const footerImage = footerLogo === null ? null : footerLogo.querySelector('img');
+
+  function showFooterName() {
+    footerLogo.classList.add('is-logo-missing');
+  }
+
+  if (footerImage !== null) {
+    if (footerImage.complete && footerImage.naturalWidth === 0) {
+      showFooterName();
+    } else {
+      footerImage.addEventListener('error', showFooterName);
+    }
+  }
 
   const header = document.querySelector('.site-header');
   const list = header === null ? null : header.querySelector('.nav-list');
