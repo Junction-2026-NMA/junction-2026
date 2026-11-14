@@ -4,7 +4,8 @@
 // with the newer state instead of overwriting it, and the caller replays its changes on top (lib/store/state.ts).
 import type { SisuState } from "./state";
 
-export type RemoteStore = { url: string; key: string };
+// `token` is the server's own password for the two functions (SISU_STORE_TOKEN). The key alone is public by design.
+export type RemoteStore = { url: string; key: string; token?: string };
 export type Loaded = { state: SisuState | null; version: number };
 export type Saved = { ok: true; version: number } | { ok: false; state: SisuState; version: number };
 
@@ -14,7 +15,7 @@ async function rpc<T>(store: RemoteStore, name: string, body: Record<string, unk
   const response = await fetch(`${store.url.replace(/\/+$/, "")}/rest/v1/rpc/${name}`, {
     method: "POST",
     signal: AbortSignal.timeout(TIMEOUT_MS),
-    headers: { apikey: store.key, Authorization: `Bearer ${store.key}`, "Content-Type": "application/json" },
+    headers: { apikey: store.key, Authorization: `Bearer ${store.key}`, "Content-Type": "application/json", ...(store.token ? { "X-Sisu-Store-Token": store.token } : {}) },
     body: JSON.stringify(body),
   });
   if (!response.ok) {

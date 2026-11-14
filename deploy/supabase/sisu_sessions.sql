@@ -2,9 +2,9 @@
 -- Run this once in a Supabase project (SQL editor, or `supabase db query -f deploy/supabase/sisu_sessions.sql`).
 -- It can be run again safely.
 --
+-- A frontend never talks to this database. It talks to the Sisu server, and only the server comes here.
 -- The table is closed: row level security is on and there is no policy, so the public key cannot read or write
--- it directly. The server reaches it only through the two functions below. A session id is long and random and
--- is the only thing that opens a session's row, so one visitor can never reach another visitor's state.
+-- it. The server reaches it through two functions, which ask for the server's own store token.
 
 create table if not exists public.sisu_sessions (
   id text primary key check (id ~ '^[A-Za-z0-9_-]{6,64}$'),
@@ -17,17 +17,52 @@ create table if not exists public.sisu_sessions (
 alter table public.sisu_sessions enable row level security;
 revoke all on public.sisu_sessions from anon, authenticated;
 
--- The state and version of one session, or null for a visitor who has none yet.
-create or replace function public.sisu_load(p_session text)
-returns jsonb
+-- The server's password for the two functions below. The publishable key is public by design (it may end up in
+-- a web page), so the key alone must not be enough to call them. Only a hash of the password is kept here.
+-- While this table is empty the functions are open; set the password once and they are closed to everyone else:
+--
+--   insert into public.sisu_store_guard (token_hash)
+--   values (encode(sha256(convert_to('<the value of SISU_STORE_TOKEN>', 'UTF8')), 'hex'))
+--   on conflict (id) do update set token_hash = excluded.token_hash;
+create table if not exists public.sisu_store_guard (
+  id boolean primary key default true check (id),
+  token_hash text not null
+);
+alter table public.sisu_store_guard enable row level security;
+revoke all on public.sisu_store_guard from anon, authenticated;
+
+-- The token arrives in the X-Sisu-Store-Token request header (lib/store/supabase.ts sends it).
+create or replace function public.sisu_store_allowed()
+returns boolean
 language sql
 stable
 security definer
 set search_path = ''
 as $$
-  select jsonb_build_object('state', s.state, 'version', s.version)
-  from public.sisu_sessions s
-  where s.id = p_session;
+  select not exists (select 1 from public.sisu_store_guard)
+      or exists (select 1 from public.sisu_store_guard g
+                 where g.token_hash = encode(sha256(convert_to(coalesce(nullif(current_setting('request.headers', true), '')::json ->> 'x-sisu-store-token', ''), 'UTF8')), 'hex'));
+$$;
+revoke all on function public.sisu_store_allowed() from public, anon, authenticated;
+
+-- The state and version of one session, or null for a visitor who has none yet.
+create or replace function public.sisu_load(p_session text)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if not public.sisu_store_allowed() then
+    raise exception 'sisu: this call needs the server''s store token' using errcode = '42501';
+  end if;
+  return (
+    select jsonb_build_object('state', s.state, 'version', s.version)
+    from public.sisu_sessions s
+    where s.id = p_session
+  );
+end;
 $$;
 
 -- Stores a session's state if it is still at the version the caller read (0 for a new session).
@@ -43,6 +78,9 @@ declare
   v_version integer;
   v_state jsonb;
 begin
+  if not public.sisu_store_allowed() then
+    raise exception 'sisu: this call needs the server''s store token' using errcode = '42501';
+  end if;
   if p_session is null or p_session !~ '^[A-Za-z0-9_-]{6,64}$' then
     raise exception 'sisu_save: not a session id';
   end if;
@@ -75,8 +113,7 @@ begin
 end;
 $$;
 
--- Only the server's keys may call the functions. `anon` is the public (publishable) key; remove it from the
--- grants below if the server uses the secret key (SUPABASE_SECRET_KEY) instead.
+-- The functions can be called with the publishable key, but only together with the store token (above).
 revoke all on function public.sisu_load(text) from public, authenticated;
 revoke all on function public.sisu_save(text, jsonb, integer) from public, authenticated;
 grant execute on function public.sisu_load(text) to anon, service_role;

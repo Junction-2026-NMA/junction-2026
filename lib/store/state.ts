@@ -61,7 +61,8 @@ export function storeConfig(): StoreConfig {
   const url = env("SUPABASE_URL") || env("NEXT_PUBLIC_SUPABASE_URL");
   const key = KEY_NAMES.map(env).find(Boolean) ?? "";
   const wanted = env("SISU_STORE").toLowerCase();
-  const remote = url && key && wanted !== "file" ? { url, key } : null;
+  const token = env("SISU_STORE_TOKEN");
+  const remote = url && key && wanted !== "file" ? { url, key, ...(token ? { token } : {}) } : null;
   if (wanted === "supabase" && !remote) warnOnce("SISU_STORE=supabase needs SUPABASE_URL and SUPABASE_SECRET_KEY (or SUPABASE_PUBLISHABLE_KEY); using the file store instead");
   const sessions = env("SISU_SESSIONS").toLowerCase();
   return { kind: remote ? "supabase" : "file", remote, perVisitor: sessions === "visitor" || (sessions !== "shared" && !!remote) };

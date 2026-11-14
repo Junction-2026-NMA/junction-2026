@@ -454,6 +454,10 @@ The money plan no longer counts "purchases under €10" as money found. It appea
 Nothing existing changed shape, and a laptop at the booth behaves exactly as before. This section is about a
 hosted site that many people open at once, for example from a QR code.
 
+**Before anything else: a frontend never connects to Supabase.** Supabase is where the server keeps its state. A
+frontend needs no Supabase address, key, token or library; it calls this server's API (`/api/...`) and nothing else.
+The table there is closed on purpose, so a direct query only returns a permission error.
+
 **a. Every visitor has their own state**
 
 On a hosted site two phones never see each other's approvals, memory or audit log. The server recognises a

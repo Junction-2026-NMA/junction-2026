@@ -17,7 +17,7 @@ import { SHARED, currentSession, inSession, isSessionId, newSessionId } from "@/
 import { type SisuState, forgetStoredState, openSession, readState, settleSession, storeConfig, storeInfo } from "@/lib/store/state";
 import type { ActionList, AgentAction, HealthReport } from "@/lib/types";
 
-const STORE_ENV = ["SISU_STORE", "SISU_SESSIONS", "SUPABASE_URL", "SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SISU_RESET_TOKEN"];
+const STORE_ENV = ["SISU_STORE", "SISU_STORE_TOKEN", "SISU_SESSIONS", "SUPABASE_URL", "SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SISU_RESET_TOKEN"];
 const saved = { ...process.env };
 function restoreEnv(): void {
   for (const key of [...STORE_ENV, "NODE_ENV"]) {
@@ -196,6 +196,7 @@ function fakeSupabase() {
     calls.push(name);
     if (down) throw new TypeError("fetch failed");
     assert.equal(new Headers(init?.headers).get("apikey"), "test-key");
+    if (process.env.SISU_STORE_TOKEN && new Headers(init?.headers).get("x-sisu-store-token") !== process.env.SISU_STORE_TOKEN) return Response.json({ code: "42501", message: "sisu: this call needs the server's store token" }, { status: 403 });
     const body = JSON.parse(String(init?.body)) as { p_session: string; p_state?: SisuState; p_expected?: number };
     const row = rows.get(body.p_session);
     if (name === "sisu_load") return Response.json(row ? structuredClone(row) : null);
@@ -298,6 +299,17 @@ describe("hosting: state in Supabase", () => {
     supabase.setDown(false);
     await settleSession(anna);
     assert.equal(supabase.rows.get(anna)?.state.actions[0].id, action.id);
+    assert.equal(inSession(anna, () => storeInfo().persistent), true);
+  });
+
+  it("the server's store token goes with every call, so the public key alone is not enough", async () => {
+    process.env.SISU_STORE_TOKEN = "only-the-server-knows";
+    assert.equal(storeConfig().remote?.token, "only-the-server-knows");
+    const anna = newSessionId();
+    await openSession(anna);
+    inSession(anna, () => addTransfer());
+    await settleSession(anna);
+    assert.equal(supabase.rows.get(anna)?.state.actions.length, 1, "stored, because the token was sent");
     assert.equal(inSession(anna, () => storeInfo().persistent), true);
   });
 
