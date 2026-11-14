@@ -1,6 +1,6 @@
 # Web port of the iOS app at /app, with a desktop QR page and an add-to-home-screen gate
 
-**Summary:** A phone opening `/app` now gets the iOS app (same screens, flow and `sisu_ui.riv`) in the browser; a computer gets only a QR code; it is not deployed yet.
+**Summary:** A phone opening `/app` now gets the iOS app (same screens, flow and `sisu_ui.riv`) in the browser; a computer gets only a QR code; it is live at https://sisu-demo.vercel.app.
 **Author:** Aristé (Claude Code) · **Branch:** feat/web-port · **Lane:** frontend
 
 ## Done
@@ -11,7 +11,8 @@
 
 ## Decisions
 - No change to `app/page.tsx`, `lib/`, `components/` or the API. Affects: nobody.
-- Not deployed: the address (root or `/app`) and the Vercel project need Wiktor's and Nicholas's OK.
+- Hosted on Vercel at Wiktor's request (14 Nov, 20:23): project `sisu-demo` in Aristé's personal Vercel team, deployed from a clean `git archive` of this branch, no Git link. `SISU_API_ORIGIN=https://sisu-api.vercel.app` forwards every `/api` call to Nicholas's hosted backend (per-visitor state, his keys), and `SISU_HOME=/app` sends the root there (`next.config.ts`; both unset changes nothing). `sisu-api` itself was not touched. Affects: Nicholas (his backend now also serves the phone demo).
+- Checked on the live site (18:24 UTC): `/api/health` mock false, Exa/Context.dev/ElevenLabs on, Supabase per-visitor; `/api/health/ready` ready, voice ready; the two-visitor test with real taps passed there too.
 
 ## Learned / gotchas
 - After a tap the browser sends compatibility mouse events to whatever is under the finger by then; a card that moved could press Decline right after Approve. `web/rive/RiveCanvas.tsx` cancels `touchend` on every Rive canvas; `ActionCard` takes one decision at a time.
