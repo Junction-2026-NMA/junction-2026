@@ -1,7 +1,8 @@
 // Launch arguments the app understands. Pass them in the scheme, or from the screenshot harness.
 //
 //   -sisu.sample 1            bundled sample data only, no network
-//   -sisu.baseURL <url>       the backend address (default http://localhost:3000)
+//   -sisu.baseURL <url>       the backend address (default https://sisu-api.vercel.app, the hosted backend;
+//                             http://localhost:3000 for `npm run dev` on this Mac)
 //   -sisu.customer <id>       skip the picker and open this customer (CUST04974, CUST04414, CUST02003)
 //   -sisu.tab today|ask|jars|path
 //   -sisu.onboarding reset|done   reset: the first-run flow from its first screen, as on a clean install

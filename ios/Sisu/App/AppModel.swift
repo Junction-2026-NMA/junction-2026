@@ -67,7 +67,8 @@ enum LoadState: Equatable {
 @MainActor
 @Observable
 final class AppModel {
-    static let defaultBaseURL = "http://localhost:3000"
+    /// The team's hosted backend. For a backend on this Mac: `-sisu.baseURL http://localhost:3000`, or Settings.
+    static let defaultBaseURL = "https://sisu-api.vercel.app"
 
     // MARK: Settings (UserDefaults)
 

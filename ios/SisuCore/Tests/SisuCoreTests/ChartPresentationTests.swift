@@ -132,6 +132,31 @@ final class ChartPresentationTests: XCTestCase {
         XCTAssertEqual(state.title, "Your electricity bill beside today's offers")
     }
 
+    /// The three-baskets chart, added on the server on 14 Nov (after the recordings were made).
+    func testBasketBarsAreDrawnAsOneGroupPerBasket() throws {
+        let json = #"""
+        {"id":"baskets-CUST04974","kind":"basket_bar","title":"Your three baskets","caption":"A month","summary":"S","source":"bank-data","facts":[],
+         "total":1796,"baskets":[
+          {"id":"mandatory","label":"Must pay, every month","description":"Rent and bills","monthly":757,"share":42,"top":[{"category":"Housing","monthly":665},{"category":"Utilities","monthly":65}]},
+          {"id":"occasional","label":"Must pay, now and then","description":"Insurance","monthly":316,"share":18,"top":[]},
+          {"id":"everyday","label":"Everyday choices","description":"Food and fun","monthly":723,"share":40,"top":[{"category":"Restaurants","monthly":500}]}]}
+        """#
+        let visual = try JSONDecoder().decode(Visual.self, from: Data(json.utf8))
+        guard case .basketBar(let total, let baskets) = visual.content else { return XCTFail("not a basket chart") }
+        XCTAssertEqual(total, 1796)
+        XCTAssertEqual(baskets.map(\.id), ["mandatory", "occasional", "everyday"])
+        XCTAssertEqual(try JSONDecoder().decode(Visual.self, from: JSONEncoder().encode(visual)), visual)
+
+        let state = ChartPresenter.chart(for: visual)
+        guard case .bars(let groups) = state.body else { return XCTFail("not drawn as bars") }
+        XCTAssertEqual(groups.map(\.title), ["Must pay, every month", "Must pay, now and then", "Everyday choices"])
+        XCTAssertEqual(groups.map { $0.bars.count }, [3, 1, 2], "the basket's own bar, then its largest categories")
+        XCTAssertEqual(groups[0].bars[0].fraction, 1, accuracy: 0.0001, "the largest basket fills the width")
+        XCTAssertEqual(groups[2].bars[0].fraction, 723.0 / 757.0, accuracy: 0.0001)
+        XCTAssertEqual(groups[0].bars[1].fraction, 665.0 / 757.0, accuracy: 0.0001, "categories share the baskets' scale")
+        XCTAssertEqual(state.legend.count, 3)
+    }
+
     func testStepsList() {
         var message = CoachSamples.reply(turn: "investigate")
         XCTAssertEqual(StepPresenter.heading(pending: true), "What Sisu is doing")
