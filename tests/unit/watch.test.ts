@@ -168,6 +168,18 @@ describe("a property watch starts only with the user's approval", () => {
     assert.deepEqual(auditFor(AINO).events.map((event) => event.type), ["action_prepared"]);
   });
 
+  it("a budget below today's housing never reads as a negative 'more' or as '€0 short'", () => {
+    // Aino: housing about €662 a month, and an average month already about €12 short. The demo asks for "under 650".
+    assert.ok(currentHousing(buildOverview(AINO)!) > 655);
+    const demo = prepareWatch(AINO, 650).warning ?? "";
+    assert.match(demo, /^A rent of €650 is €12 a month less than housing costs you today, but an average month would leave nothing over\./);
+    const slightlyBelow = prepareWatch(AINO, 655).warning ?? "";
+    assert.match(slightlyBelow, /€7 a month less than housing costs you today, but an average month would still come out about €5 short/);
+    for (const text of [demo, slightlyBelow]) assert.doesNotMatch(text, /€-\d|about €0 short/);
+    const above = prepareWatch(AINO, 700).warning ?? "";
+    assert.match(above, /^A rent of €700 is €38 a month more than housing costs you today, and an average month would still come out about €50 short/);
+  });
+
   it("refuses to start from an action that was not approved, was declined, or belongs to someone else", async () => {
     const action = prepareWatch();
     assert.equal(await startWatch(AINO, action), null);
