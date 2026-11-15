@@ -209,19 +209,21 @@ export namespace Dates {
 
 // MARK: - Baskets
 
-/** The four things the basket bar shows: the three spending baskets and savings ("Jars"). */
-export type BasketKind = "fixed" | "curveballs" | "leaks" | "jars";
+/** The three spending baskets. (The fourth, savings "jars", went with the jar illustrations on 2026-11-15; the Rive
+ *  basket artboards still take a `jars` share, see BasketShares.) */
+export type BasketKind = "fixed" | "curveballs" | "leaks";
 export namespace BasketKind {
-  export const allCases: readonly BasketKind[] = ["fixed", "curveballs", "leaks", "jars"];
+  export const allCases: readonly BasketKind[] = ["fixed", "curveballs", "leaks"];
 
-  /** English: Fixed, Curveballs, Leaks, Jars. Finnish: Kiinteät, Yllärit, Vuodot, Purkit. */
+  /** English: Regular essentials, Occasional essentials, Everyday spending. Finnish: Säännölliset välttämättömät,
+   *  Satunnaiset välttämättömät, Arjen kulut. No label implies that everyday spending (groceries included) is waste. */
   export function label(kind: BasketKind, language: SisuLanguage): string {
-    const en = { fixed: "Fixed", curveballs: "Curveballs", leaks: "Leaks", jars: "Jars" } as const;
-    const fi = { fixed: "Kiinteät", curveballs: "Yllärit", leaks: "Vuodot", jars: "Purkit" } as const;
+    const en = { fixed: "Regular essentials", curveballs: "Occasional essentials", leaks: "Everyday spending" } as const;
+    const fi = { fixed: "Säännölliset välttämättömät", curveballs: "Satunnaiset välttämättömät", leaks: "Arjen kulut" } as const;
     return (language === "en" ? en : fi)[kind];
   }
 
-  /** Swift `BasketId.kind`: `regular` is Fixed, `irregular` is Curveballs, `everyday` is Leaks. */
+  /** Swift `BasketId.kind`: `regular` is regular essentials, `irregular` occasional essentials, `everyday` everyday spending. */
   export function of(id: BasketId): BasketKind {
     switch (rawOf(id)) {
       case "regular": return "fixed";

@@ -2,8 +2,10 @@
 // Port of SisuCore/AppLogic/AppPresenters.swift. What the app's screens say: every figure and every sentence with
 // a number in it is built here, so the views only lay text out. English copy (the app is English for now). Money
 // goes through `Money.format`, dates through `Dates.short`.
-import type { BasketId, BasketSummary, Branch, BranchId, Overview, RecurringBill, ScenarioResponse, Transaction, TransactionList } from "@/web/core/Models";
-import { BasketKind, BasketMath, Dates, Money, rawOf, roundAway } from "@/web/core/Presentation";
+import type { CashFlow } from "@/web/core/CoachModels";
+import type { BasketId, BasketSummary, EvidenceFilter, Overview, RecurringBill, Transaction, TransactionList } from "@/web/core/Models";
+import { BasketKind, Dates, Money, rawOf, roundAway } from "@/web/core/Presentation";
+import { WeeklyBudget } from "./WeeklyBudget";
 
 /** Swift `max(by:)`: the first element with the largest key, or null when empty. */
 function firstMax<T>(items: readonly T[], key: (item: T) => number): T | null {
@@ -37,13 +39,14 @@ export namespace NumberText {
   }
 }
 
-export interface MathsLine { readonly id: string; readonly label: string; readonly amount: string; readonly basis: string; readonly isResult: boolean }
 export interface BasketCategoryState { readonly id: string; readonly category: string; readonly monthly: string; readonly reason: string; readonly peer: string | null }
 export interface BasketCardState {
   readonly id: BasketId;
   readonly kind: BasketKind;
   readonly name: string;
   readonly subtitle: string;
+  /** What lands in this basket, in plain words (never "waste"). */
+  readonly about: string;
   readonly monthly: string;
   readonly share: string;
   readonly categories: BasketCategoryState[];
@@ -60,7 +63,6 @@ export interface BillCardState {
 }
 export interface TransactionRowState { readonly date: string; readonly category: string; readonly amount: string }
 
-const mathsLine = (label: string, amount: string, basis: string, isResult: boolean): MathsLine => ({ id: label, label, amount, basis, isResult });
 
 /** The figures and copy of the Today screen. */
 export namespace TodayPresenter {
@@ -68,13 +70,6 @@ export namespace TodayPresenter {
 
   /** `Hei Aino`. */
   export function greeting(name: string): string { return `Hei ${name}`; }
-
-  /** The hero's context line, short enough for one line of the Rive hero. */
-  export function heroContext(overview: Overview): string {
-    const gap = overview.safeToSpend.gapPerMonth;
-    const amount = money(Math.abs(Number.isFinite(gap) ? gap : 0));
-    return gap < 0 ? `About ${amount} a month above this` : `About ${amount} a month of room to save`;
-  }
 
   /** `Data up to 30 Sep 2026`. */
   export function dataDate(overview: Overview): string { return `Data up to ${Dates.short(overview.dataTimestamp, "en")}`; }
@@ -84,56 +79,42 @@ export namespace TodayPresenter {
     return firstMax(overview.recurringBills.filter((bill) => bill.category.toLowerCase() !== "housing"), (bill) => bill.monthlyAvg);
   }
 
-  /** The safe-to-spend maths, one line per step, then what is left and what is actually spent. */
-  export function mathsLines(overview: Overview): MathsLine[] {
-    const s = overview.safeToSpend;
-    return [
-      ...s.steps.map((step) => mathsLine(step.label, money(step.amount), step.basis, false)),
-      mathsLine("Left for everyday choices", money(s.perMonth), `about ${money(s.perWeek)} a week`, true),
-      mathsLine("What you actually spend on them", money(s.actualEverydayPerMonth), `average of the last ${overview.windowMonths} months`, false),
-    ];
-  }
-
-  /** The month labels the cash-flow chart writes under its bars: every other month, starting with the first. */
-  export function chartMonthTicks(overview: Overview): string[] {
-    return overview.months.filter((_, offset) => offset % 2 === 0).map((month) => NumberText.monthShort(month.month));
-  }
-
-  /** The top of the cash-flow chart's euro axis: the largest month plus a tenth. At least 100. */
-  export function chartTop(overview: Overview): number {
-    const values = overview.months.map((m) => Math.max(m.income, m.regular + m.irregular + m.everyday));
-    const largest = values.length ? Math.max(...values) : 0;
-    return Math.max(Number.isFinite(largest * 1.1) ? largest * 1.1 : 0, 100);
-  }
-
-  /** The legend under the basket bar: (`fixed`, `Fixed 42%`), …, then (`jars`, `Saved 0%`). */
-  export function basketLegendItems(overview: Overview): { kind: BasketKind; text: string }[] {
-    const baskets = overview.baskets.map((basket) => {
-      const kind = BasketKind.of(basket.id);
-      return { kind, text: `${BasketKind.label(kind, "en")} ${NumberText.percent(basket.share)}` };
-    });
-    return [...baskets, { kind: "jars", text: `Saved ${NumberText.percent(BasketMath.shares(overview).jars)}` }];
-  }
-
-  /** `Fixed 42% · Curveballs 18% · Leaks 40%`. */
-  export function basketLegend(overview: Overview): string {
-    return overview.baskets.map((basket) => `${BasketKind.label(BasketKind.of(basket.id), "en")} ${NumberText.percent(basket.share)}`).join(" · ");
-  }
-
-  /** One basket card. */
-  export function basket(basket: BasketSummary, _peerCount: number): BasketCardState {
+  /** One basket's sheet: the amount, its share of spending and the categories. Peer figures are other profiles in
+   *  the synthetic demo data of the same age band, and say so (they are not statistics about real people). */
+  export function basket(basket: BasketSummary, ageBand: string): BasketCardState {
     const kind = BasketKind.of(basket.id);
+    const band = ageBand.trim() === "" ? "" : ` aged ${ageBand.trim().replace("-", "–")}`;
     return {
-      id: basket.id, kind, name: BasketKind.label(kind, "en"), subtitle: basket.label,
+      id: basket.id, kind, name: BasketKind.label(kind, "en"), subtitle: basket.label, about: about(kind),
       monthly: `${money(basket.monthlyAvg)} a month`,
       share: `${NumberText.percent(basket.share)} of spending`,
       categories: basket.categories.map((category) => ({
         id: category.category, category: category.category,
         monthly: `${money(category.monthlyAvg)} a month`,
         reason: category.reason,
-        peer: category.peerMonthlyAvg != null ? `People your age: about ${money(category.peerMonthlyAvg)} a month` : null,
+        peer: category.peerMonthlyAvg != null ? `Profiles${band}: about ${money(category.peerMonthlyAvg)} a month` : null,
       })),
     };
+  }
+
+  /** What lands in a basket. Everyday spending holds essentials too (groceries), so it is never called a leak. */
+  export function about(kind: BasketKind): string {
+    switch (kind) {
+      case "fixed": return "Payments that come every month, such as rent, electricity and your phone.";
+      case "curveballs": return "Needed costs that come now and then, such as repairs, health and gifts.";
+      case "leaks": return "Day-to-day spending such as groceries, transport and free time. Some of it is essential, some is easier to adjust.";
+    }
+  }
+
+  /** The note above peer figures. */
+  export const peerNote = "Compared with other profiles in the synthetic demo data";
+
+  /** The three basket buttons: names only, no amounts until one is tapped. */
+  export function basketButtons(overview: Overview): { id: BasketId; kind: BasketKind; name: string }[] {
+    return overview.baskets.map((basket) => {
+      const kind = BasketKind.of(basket.id);
+      return { id: basket.id, kind, name: BasketKind.label(kind, "en") };
+    });
   }
 
   /** The flagged bill's card. */
@@ -171,129 +152,75 @@ export namespace TodayPresenter {
   }
 }
 
-/** The figures and copy of the Jars screen. */
-export namespace JarsPresenter {
-  const money = TodayPresenter.money;
-
-  /** The buffer target in months of must-pay costs. */
-  export const bufferTargetMonths = 3.0;
-
-  /** The buffer jar's fill: `runwayMonths` out of three months, 0...1. */
-  export function bufferFill(runwayMonths: number): number {
-    if (!Number.isFinite(runwayMonths)) return 0;
-    return Math.min(Math.max(runwayMonths / bufferTargetMonths, 0), 1);
-  }
-
-  /** The buffer jar's figure: `1.1 months`. */
-  export function bufferFigure(runwayMonths: number): string {
-    const raw = NumberText.oneDecimal(runwayMonths);
-    const text = raw.endsWith(".0") ? raw.slice(0, -2) : raw;
-    return text === "1" ? "1 month" : `${text} months`;
-  }
-
-  /** The line under the buffer figure. */
-  export const bufferDetail = "of must-pay costs covered by your balance. The goal is 3.";
-
-  /** The switches jar's figure: `€0 a month`. */
-  export function freedFigure(approvedMonthlySaving: number): string {
-    return `${money(Math.max(Number.isFinite(approvedMonthlySaving) ? approvedMonthlySaving : 0, 0))} a month`;
-  }
-
-  /** The line under the switches figure. */
-  export function freedDetail(approvedMonthlySaving: number): string {
-    return approvedMonthlySaving > 0 ? "freed by switches you approved." : "freed so far. Approve a switch in Ask and it lands here.";
-  }
-
-  export function bufferCaption(runwayMonths: number): string {
-    return `Your balance covers about ${NumberText.oneDecimal(runwayMonths)} months of must-pay costs. The goal is 3.`;
-  }
-
-  /** The approved monthly saving against the flagged bill's average. 0 when nothing is approved yet. */
-  export function freedFill(approvedMonthlySaving: number, billMonthly: number): number {
-    if (!(approvedMonthlySaving > 0) || !(billMonthly > 0) || !Number.isFinite(approvedMonthlySaving)) return 0;
-    return Math.min(approvedMonthlySaving / billMonthly, 1);
-  }
-
-  export function freedCaption(approvedMonthlySaving: number): string {
-    return approvedMonthlySaving > 0
-      ? `${money(approvedMonthlySaving)} a month freed by switches you approved.`
-      : "Nothing yet. Approve a switch in Ask and it lands here.";
-  }
-
-  /** `15 berries for effort`. */
-  export function berriesCaption(berries: number): string { return berries === 1 ? "1 berry for effort" : `${berries} berries for effort`; }
-
-  export function billSavingText(value: number): string { return `${money(value)} a month`; }
-  export function trimText(value: number): string { return `${roundAway(value) || 0}%`; }
-
-  /** The futures chart's x-axis label for a month index: `Now`, `1 year`, `2 years`. */
-  export function axisLabel(month: number): string { return month <= 0 ? "Now" : yearsText(Math.trunc(month / 12)); }
-
-  const allMonths = (branches: Branch[]) => branches.flatMap((branch) => branch.points.map((point) => point.month));
-
-  /** The month indexes the futures chart labels: one per year up to six years, then one every two years. */
-  export function futuresTicks(branches: Branch[]): number[] {
-    const months = allMonths(branches);
-    const last = months.length ? Math.max(...months) : 0;
-    const step = last > 72 ? 24 : 12;
-    return Array.from({ length: Math.floor(Math.max(last, 0) / step) + 1 }, (_, index) => index * step);
-  }
-
-  /** The last month of the futures chart (at least 12). */
-  export function futuresLastMonth(branches: Branch[]): number {
-    const months = allMonths(branches);
-    return Math.max(months.length ? Math.max(...months) : 0, 12);
-  }
-
-  /** The highest point of any future (its high band included) plus a tenth. At least 100. */
-  export function futuresTop(branches: Branch[]): number {
-    const highs = branches.flatMap((branch) => branch.points.map((point) => Math.max(point.total, point.totalHigh)));
-    const highest = highs.length ? Math.max(...highs) : 0;
-    return Math.max(Number.isFinite(highest) ? highest * 1.1 : 0, 100);
-  }
-
-  /** A euro axis label: `€2,500`. */
-  export function axisMoney(value: number): string { return money(value); }
-  export function yearsText(value: number): string { return value === 1 ? "1 year" : `${value} years`; }
-  export function endTotal(branch: Branch): string { return money(branch.endTotal); }
-  export function endRange(branch: Branch): string { return `${money(branch.endLow)} to ${money(branch.endHigh)}`; }
-  export function freedPerMonth(response: ScenarioResponse): string { return `${money(response.freedPerMonth)} a month freed`; }
+/** Today's one primary insight or action: the most material thing, with one tap into Sisu. */
+export interface TodayFocusState {
+  readonly id: string;
+  /** `warning` only for a projected shortfall or a dip into the buffer before payday. */
+  readonly tone: "warning" | "info";
+  readonly eyebrow: string;
+  readonly title: string;
+  readonly detail: string;
+  /** The question asked in Sisu (model.askSisu) and the button's words. */
+  readonly question: string;
+  readonly askLabel: string;
+  /** The transactions behind it, when there are some to show. */
+  readonly evidence: { readonly title: string; readonly filter: EvidenceFilter } | null;
 }
 
-/**
- * The predict-before-reveal question on the Jars screen. The answer is the branch with the most runway after one year.
- */
-export namespace FuturesQuiz {
-  export const question = "If your income stopped a year from now, which future keeps you afloat longest?";
+export namespace TodayFocus {
+  const money = TodayPresenter.money;
+  export const paydayQuestion = "I keep running short before payday. What can I spend this week without missing my bills?";
+  /** At least this many months below zero in the window make "running short" the insight. */
+  export const shortMonthsThreshold = 3;
 
-  /** The three choices in order, with their labels. */
-  export const choices: readonly { id: BranchId; label: string }[] = [
-    { id: "nothing" as BranchId, label: "Change nothing" },
-    { id: "save" as BranchId, label: "Make the change, keep the cash" },
-    { id: "invest" as BranchId, label: "Make the change, invest it" },
-  ];
-
-  /** The branch with the most runway after a year. Null without branches. */
-  export function answer(branches: Branch[]): BranchId | null {
-    return firstMax(branches, (branch) => branch.runwayMonthsAtYear1)?.id ?? null;
-  }
-
-  /** The ChoiceCard `state`: `idle` before a guess; then `correct` for the answer, `wrong` for a different guess. */
-  export function state(choice: BranchId, guess: BranchId | null | undefined, branches: Branch[]): string {
-    if (guess == null) return "idle";
-    const right = answer(branches);
-    if (right == null) return rawOf(choice) === rawOf(guess) ? "selected" : "idle";
-    if (rawOf(choice) === rawOf(right)) return "correct";
-    return rawOf(choice) === rawOf(guess) ? "wrong" : "idle";
-  }
-
-  /** The sentence after the guess. */
-  export function explanation(guess: BranchId, branches: Branch[]): string {
-    const answerId = answer(branches);
-    const best = answerId == null ? undefined : branches.find((branch) => rawOf(branch.id) === rawOf(answerId));
-    if (answerId == null || !best) return "Your futures are loading.";
-    const lead = rawOf(guess) === rawOf(answerId) ? "Right." : "Good guess, and here is the twist.";
-    return `${lead} Cash in the account pays the rent straight away, so “${best.label.toLowerCase()}” covers `
-      + `must-pay costs for about ${JarsPresenter.bufferFigure(best.runwayMonthsAtYear1)}.`;
+  /** In order: a projected shortfall, a dip into the buffer, months that ran below zero, the biggest bill to check,
+   *  then the first thing Sisu noticed. Null when there is nothing to say. */
+  export function primary(overview: Overview, budget: WeeklyBudget.Result | null, cashFlow: CashFlow | null,
+    confirmedBillName: string | null): TodayFocusState | null {
+    const ready = budget?.kind === "ready" ? budget : null;
+    const window = { from: overview.windowFrom, to: overview.windowTo };
+    if (ready && ready.projectedEur !== null && (ready.status === "shortfall" || ready.status === "belowBuffer")) {
+      const payday = Dates.short(ready.nextPayday, "en");
+      const short = ready.status === "shortfall";
+      return {
+        id: short ? "shortfall" : "below-buffer", tone: "warning", eyebrow: "Before payday",
+        title: short
+          ? `At your usual pace you would be about ${money(-ready.projectedEur)} short before payday`
+          : `At your usual pace about ${money(ready.projectedEur)} would be left before payday`,
+        detail: short
+          ? `${money(ready.billsEur)} of bills are due before ${payday}. Sisu can help you plan this week.`
+          : `That is under your ${money(ready.bufferEur)} buffer${ready.bufferIsDefault ? " (assumed)" : ""}. Bills of ${money(ready.billsEur)} are due before ${payday}.`,
+        question: paydayQuestion, askLabel: "Plan this week with Sisu", evidence: null,
+      };
+    }
+    const shortMonths = cashFlow?.negativeMonths ?? 0;
+    if (shortMonths >= shortMonthsThreshold) {
+      return {
+        id: "short-months", tone: "info", eyebrow: "Before payday",
+        title: `Your balance went below €0 in ${shortMonths} of the last ${overview.windowMonths} months`,
+        detail: "Running short before payday is not the same as having no savings: it is about when money leaves. Sisu can show when it happens.",
+        question: paydayQuestion, askLabel: "Ask Sisu about payday",
+        evidence: { title: "Payments while the balance was below €0", filter: { ...window, negativeBalance: true } },
+      };
+    }
+    const bill = TodayPresenter.flaggedBill(overview);
+    if (bill) {
+      const name = confirmedBillName ?? bill.guessLabel;
+      return {
+        id: `bill-${bill.id}`, tone: "info", eyebrow: "Biggest bill to check",
+        title: confirmedBillName ? `${name}: about ${money(bill.monthlyAvg)} a month` : `Looks like ${name}: about ${money(bill.monthlyAvg)} a month`,
+        detail: confirmedBillName ? "Bills like this are often cheaper for new customers." : "The name is Sisu's guess from the payments. Bills like this are often cheaper for new customers.",
+        question: `Find a cheaper ${name.toLowerCase()} plan that meets my needs.`, askLabel: "Compare offers with Sisu",
+        evidence: { title: `${bill.category} payments`, filter: { ...window, category: bill.category } },
+      };
+    }
+    // Peer comparisons are not a primary insight: they come from synthetic demo profiles, not real people.
+    const insight = overview.insights.find((item) => !item.id.includes("peer"));
+    if (!insight) return null;
+    return {
+      id: `insight-${insight.id}`, tone: "info", eyebrow: "Sisu noticed", title: insight.title, detail: insight.body,
+      question: `Tell me more: ${insight.title}`, askLabel: "Ask Sisu about it",
+      evidence: { title: insight.title, filter: insight.evidence },
+    };
   }
 }

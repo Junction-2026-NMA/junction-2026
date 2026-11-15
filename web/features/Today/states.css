@@ -11,7 +11,7 @@
   min-height: calc(100% - var(--sisu-tabbar-room));
 }
 
-.sisu-screen[data-tabbar="false"] .sisu-state { min-height: 100%; }
+.sisu-state:where(.sisu-screen[data-tabbar="false"] *) { min-height: 100%; }
 
 .sisu-state-padded {
   padding: 0 var(--sisu-space-margin);

@@ -1,0 +1,115 @@
+/* The money overview at the top of Today (MoneyOverview.tsx). */
+
+.sisu-overview-card { gap: calc(var(--sisu-space-grid) * 4); }
+
+.sisu-overview-eyebrow {
+  margin: 0;
+  font: var(--sisu-type-label);
+  color: var(--sisu-green-700);
+  letter-spacing: 0.01em;
+}
+
+.sisu-overview-figure {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: calc(var(--sisu-space-grid) * 2);
+  margin: var(--sisu-space-grid) 0 0;
+}
+
+.sisu-overview-amount {
+  font: var(--sisu-type-hero);
+  font-size: clamp(44px, 13vw, 60px);
+  color: var(--sisu-color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.sisu-overview-unit {
+  font: var(--sisu-type-body);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-overview-basis,
+.sisu-overview-missing {
+  margin: var(--sisu-space-grid) 0 0;
+  font: var(--sisu-type-label);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-overview-missing { font: var(--sisu-type-body); color: var(--sisu-color-text); }
+
+.sisu-overview-loading {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+  min-height: 56px;
+  font: var(--sisu-type-label);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-overview-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: calc(var(--sisu-space-grid) * 3);
+  padding-top: calc(var(--sisu-space-grid) * 3);
+  border-top: 1px solid var(--sisu-neutral-200);
+}
+
+.sisu-overview-fact { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+.sisu-overview-fact-label {
+  font: var(--sisu-type-caption);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-overview-fact-value {
+  font: var(--sisu-type-h3);
+  color: var(--sisu-color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.sisu-overview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--sisu-space-grid) * 2);
+}
+
+button.sisu-overview-link,
+button.sisu-overview-chip {
+  min-height: 40px;
+  border: 0;
+  font: var(--sisu-type-button);
+  font-size: 14px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 160ms ease-out, opacity 160ms ease-out;
+}
+
+button.sisu-overview-link {
+  padding: 0;
+  background: none;
+  color: var(--sisu-green-700);
+  text-align: left;
+}
+
+button.sisu-overview-chip {
+  min-height: 36px;
+  padding: 0 calc(var(--sisu-space-grid) * 3);
+  border-radius: var(--sisu-radius-pill);
+  background: var(--sisu-green-50);
+  color: var(--sisu-green-800, var(--sisu-green-700));
+}
+
+button.sisu-overview-link:active,
+button.sisu-overview-chip:active { opacity: 0.7; transform: scale(0.98); }
+
+button.sisu-overview-link:focus-visible,
+button.sisu-overview-chip:focus-visible { outline: 2px solid var(--sisu-green-500); outline-offset: 2px; border-radius: 12px; }
+
+.sisu-overview-date {
+  margin: 0;
+  font: var(--sisu-type-caption);
+  color: var(--sisu-color-text-muted);
+}

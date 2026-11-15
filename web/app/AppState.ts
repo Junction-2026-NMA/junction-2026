@@ -1,11 +1,10 @@
 // The snapshot of AppModel (web/app/AppModel.ts): every value of ios/Sisu/App/AppModel.swift a screen reads,
-// immutable, replaced on every change. Derived values (isLive, berries, flaggedBill, todayProgress…) are
+// immutable, replaced on every change. Derived values (isLive, flaggedBill…) are
 // computed into the snapshot, so `useApp()` and `useAppSelector()` see them like stored ones.
 import type { DataSourceKind } from "@/web/core/API";
 import type { DemoCustomer, Overview, RecurringBill } from "@/web/core/Models";
 import { TodayPresenter } from "@/web/core/AppLogic/AppPresenters";
-import { CoachRewards } from "@/web/core/AppLogic/CoachAppLogic";
-import { DailyProgress, DayStamp, type DailyAction } from "@/web/core/AppLogic/DailyProgress";
+import type { DailyProgress, DayStamp } from "@/web/core/AppLogic/DailyProgress";
 import { OnboardingFlow } from "@/web/core/AppLogic/Onboarding";
 import type { AppPrefs } from "./AppPrefs";
 import type { AppTab, Celebration, EvidenceRequest, LoadState, TodaySheet } from "./AppTypes";
@@ -42,7 +41,9 @@ export interface AppStored {
   readonly evidence: EvidenceRequest | null;
   /** The sheet Today shows, or null. */
   readonly todaySheet: TodaySheet | null;
-  // Progress and hooks
+  // Hooks
+  /** @deprecated The old daily-actions progress (streak and berries), read from storage and never advanced since the
+   *  rewards were removed (2026-11-15). Only Path's header still reads it until its pills go. */
   readonly progress: DailyProgress;
   /** Confirmed bill names by "customerId/billId". */
   readonly confirmedBillNames: Readonly<Record<string, string>>;
@@ -50,12 +51,8 @@ export interface AppStored {
   readonly approvedMonthlySaving: number;
   /** Bumped by `startInvestigation()`. */
   readonly investigationRequests: number;
-  /** Bumped whenever berries are earned, so a Rive trigger can celebrate (`drop#${berryDrops}`). */
-  readonly berryDrops: number;
-  /** Set when the last of today's actions is done; MainScreen shows the Rive celebration and clears it. */
+  /** Set when a simulated action is approved; MainScreen shows the Rive celebration and clears it. */
   readonly celebration: Celebration | null;
-  /** Berries earned in the coach (quiz answered, action decided). */
-  readonly coachRewards: CoachRewards;
   // Preferences (stored)
   /** Language, voice, spoken replies and the protected buffer (`Keys.prefs`). */
   readonly prefs: AppPrefs;
@@ -65,36 +62,23 @@ export interface AppStored {
 export interface AppState extends AppStored {
   /** `api.kind == .live`. Anything not live must show the "Sample data" tag. */
   readonly isLive: boolean;
-  /** Every berry: today's actions plus the coach's. */
-  readonly berries: number;
-  /** `"\(berries)"`, what the berries pill shows. */
-  readonly berriesText: string;
   /** The bill Today flags (TodayPresenter.flaggedBill), null without an overview. */
   readonly flaggedBill: RecurringBill | null;
   /** `onboarding.firstInsightPending`: Today shows FirstInsightCallout until `dismissFirstInsight()`. */
   readonly firstInsightPending: boolean;
   /** `onboarding.isActive`. */
   readonly onboardingActive: boolean;
-  /** The share of today's actions done, 0…1 (`todayProgress`). */
-  readonly todayProgress: number;
-  /** The actions done today (`isDone(_:)` for each). */
-  readonly doneToday: readonly DailyAction[];
   /** The day the derived values were computed for. */
   readonly today: DayStamp;
 }
 
 export function derive(stored: AppStored, today: DayStamp): AppState {
-  const berries = stored.progress.berries + stored.coachRewards.berries;
   return {
     ...stored,
     isLive: stored.apiKind === "live",
-    berries,
-    berriesText: `${berries}`,
     flaggedBill: stored.overview ? TodayPresenter.flaggedBill(stored.overview) : null,
     firstInsightPending: stored.onboarding.firstInsightPending,
     onboardingActive: OnboardingFlow.isActive(stored.onboarding),
-    todayProgress: DailyProgress.progress(stored.progress, today),
-    doneToday: DailyProgress.done(stored.progress, today),
     today,
   };
 }
@@ -104,6 +88,7 @@ export const Keys = {
   baseURL: "sisu.baseURL",
   sample: "sisu.sample",
   customer: "sisu.customer",
+  /** The old daily-actions progress and coach rewards (no longer written; cleared on reset). */
   progress: "sisu.progress",
   billNames: "sisu.billNames",
   coachRewards: "sisu.coachRewards",

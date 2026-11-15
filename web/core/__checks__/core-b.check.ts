@@ -4,7 +4,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import contract from "@/rive/contract.json";
-import type { Branch, DemoCustomer, Overview, ScenarioResponse, Transaction, TransactionList } from "@/web/core/Models";
+import type { DemoCustomer, Overview, Transaction, TransactionList } from "@/web/core/Models";
 import type { AgentAction, TeachingCard } from "@/web/core/CoachModels";
 import { Visual } from "@/web/core/PlanModels";
 import { BasketMath, Dates, Money, SisuLanguage, XrayPresenter } from "@/web/core/Presentation";
@@ -16,7 +16,7 @@ import { DailyAction, DailyProgress, DayStamp } from "@/web/core/AppLogic/DailyP
 import { LessonPathPresenter, LessonProgress, LessonNode } from "@/web/core/AppLogic/LessonPath";
 import { OnboardingFlow, OnboardingLaunch, OnboardingStep } from "@/web/core/AppLogic/Onboarding";
 import { FirstInsightPresenter, OnboardingCopy, OnboardingProfiles, OnboardingReading } from "@/web/core/AppLogic/OnboardingCopy";
-import { FuturesQuiz, JarsPresenter, NumberText, TodayPresenter } from "@/web/core/AppLogic/AppPresenters";
+import { NumberText, TodayPresenter } from "@/web/core/AppLogic/AppPresenters";
 import { CoachBillMatch, CoachMood, CoachProviderName, CoachRewards } from "@/web/core/AppLogic/CoachAppLogic";
 import { SampleEvidence } from "@/web/core/AppLogic/SampleEvidence";
 import { VoiceAudioFormat, VoiceButtonPresenter, VoiceClipQueue, VoicePressRule } from "@/web/core/AppLogic/VoiceLogic";
@@ -154,7 +154,7 @@ group("RiveContract vs rive/contract.json and the Swift table", () => {
 group("RiveBindings build complete value sets", () => {
   const S = RiveValue.string, N = RiveValue.number, B = RiveValue.bool, E = RiveValue.enumCase;
   eq(RiveBindings.button("Continue"), { label: S("Continue"), style: E("primary"), enabled: B(true), loading: B(false) }, "button");
-  eq(RiveBindings.basketChip("curveballs", "fi"), { basket: E("curveballs"), label: S("Yllärit") }, "basketChip fi");
+  eq(RiveBindings.basketChip("curveballs", "fi"), { basket: E("curveballs"), label: S("Satunnaiset välttämättömät") }, "basketChip fi");
   eq(RiveBindings.basketBar({ fixed: 0.5, curveballs: 1.5, leaks: -0.2, jars: NaN }), { fixed: N(0.5), curveballs: N(1), leaks: N(0), jars: N(0) }, "basketBar clamps");
   eq(RiveBindings.progressBar(1.5), { progress: N(1), tone: E("green") }, "progress clamps");
   eq(RiveBindings.progressBar(0.4, true), { progress: N(0.4), tone: E("streak") }, "progress streak");
@@ -340,7 +340,7 @@ group("Onboarding copy and first insight", () => {
 
 // MARK: - Presenters (AppLogicPresentersTests, AppLogicSampleEvidenceTests, AppLogicCoachTests, voice)
 
-group("Today and Jars presenters", () => {
+group("Today presenters", () => {
   const o = overview("CUST04974");
   const bill = TodayPresenter.flaggedBill(o);
   eq(bill?.guessLabel, "Electricity", "flagged bill");
@@ -348,35 +348,13 @@ group("Today and Jars presenters", () => {
     eq(TodayPresenter.bill(bill, null).headline, "Looks like Electricity", "guess headline");
     eq([TodayPresenter.bill(bill, "Helen electricity").headline, TodayPresenter.bill(bill, "Helen electricity").isConfirmed], ["Helen electricity", true], "confirmed");
   }
-  const lines = TodayPresenter.mathsLines(o);
-  eq([lines.length, lines[lines.length - 2].isResult], [o.safeToSpend.steps.length + 2, true], "maths lines");
-  const card = TodayPresenter.basket(o.baskets[0], o.peerCount);
-  eq([card.kind, card.share, card.categories[0]?.peer != null], ["fixed", "42% of spending", true], "basket card");
-  const context = TodayPresenter.heroContext(o);
-  ok(context.endsWith("a month above this") && context.length <= 34, `hero context ${context}`);
-  eq([JarsPresenter.axisLabel(0), JarsPresenter.axisLabel(24)], ["Now", "2 years"], "axis labels");
-  eq(TodayPresenter.basketLegend(o), "Fixed 42% · Curveballs 18% · Leaks 40%", "legend");
-  eq(TodayPresenter.basketLegendItems(o).map((i) => i.text), ["Fixed 42%", "Curveballs 18%", "Leaks 40%", "Saved 0%"], "legend items");
-  eq([JarsPresenter.bufferFigure(1.14), JarsPresenter.bufferFigure(1.02), JarsPresenter.freedFigure(0)], ["1.1 months", "1 month", "€0 a month"], "jar figures");
-  eq(TodayPresenter.chartMonthTicks(o).length, Math.floor((o.months.length + 1) / 2), "month ticks");
-  const top = TodayPresenter.chartTop(o);
-  ok(o.months.every((m) => m.income < top && m.regular + m.irregular + m.everyday < top), "chart top");
-  const scenario = fixture<ScenarioResponse>("scenario-CUST04974-default.json");
-  eq(JarsPresenter.futuresTicks(scenario.branches), [0, 12, 24, 36, 48, 60], "futures ticks");
-  eq([JarsPresenter.futuresLastMonth(scenario.branches), JarsPresenter.futuresTicks([])], [60, [0]], "futures axis");
-  ok(JarsPresenter.futuresTop(scenario.branches) > Math.max(...scenario.branches.map((b) => b.endHigh)), "futures top");
-  const ten = scenario.branches.map((b) => ({ ...b, points: [...b.points, { ...b.points[0], month: 120 }] }));
-  eq(JarsPresenter.futuresTicks(ten), [0, 24, 48, 72, 96, 120], "ten-year ticks");
+  const card = TodayPresenter.basket(o.baskets[0], o.ageBand);
+  eq([card.kind, card.name, card.share, card.categories[0]?.peer != null], ["fixed", "Regular essentials", "42% of spending", true], "basket card");
+  ok(card.categories.every((c) => c.peer === null || c.peer.startsWith("Profiles aged")), "peer figures name the synthetic profiles");
+  eq(TodayPresenter.basketButtons(o).map((b) => b.name), ["Regular essentials", "Occasional essentials", "Everyday spending"], "basket buttons, names only");
+  ok(!/leak|waste/i.test(TodayPresenter.about("leaks")) && /groceries/i.test(TodayPresenter.about("leaks")), "everyday spending is not called waste");
   eq([NumberText.percent(0.424), NumberText.percent(NaN), NumberText.oneDecimal(1.14), NumberText.oneDecimal(25.11), NumberText.oneDecimal(-0.26), NumberText.monthShort("2025-10"), NumberText.monthShort("bad")],
     ["42%", "0%", "1.1", "25.1", `${minus}0.3`, "Oct", "bad"], "number text");
-  near(JarsPresenter.bufferFill(1.5), 0.5, "buffer fill");
-  eq([JarsPresenter.bufferFill(25), JarsPresenter.bufferFill(-2), JarsPresenter.bufferFill(Infinity), JarsPresenter.freedFill(0, 40)], [1, 0, 0, 0], "fills");
-  const branch = (id: Branch["id"], label: string, runway: number): Branch => ({ id, label, points: [], endTotal: 1, endLow: 1, endHigh: 1, runwayMonthsAtYear1: runway });
-  const branches = [branch("nothing", "Change nothing", 1), branch("save", "Make the change, keep the cash", 3), branch("invest", "Make the change, invest it", 2)];
-  eq(FuturesQuiz.answer(branches), "save", "quiz answer");
-  eq([FuturesQuiz.state("save", null, branches), FuturesQuiz.state("save", "invest", branches), FuturesQuiz.state("invest", "invest", branches), FuturesQuiz.state("nothing", "invest", branches)],
-    ["idle", "correct", "wrong", "idle"], "quiz states");
-  ok(FuturesQuiz.explanation("save", branches).startsWith("Right."), "quiz explanation");
 });
 
 group("Sample evidence", () => {
