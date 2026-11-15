@@ -96,6 +96,14 @@ export interface Offer {
   comparable: boolean;
   estimatedMonthlyCostEur?: number | null;
   estimatedYearlySavingEur?: number | null;
+  /** Optional, from a backend that applies the user's requirements (contract length, fixed or spot, fees). False:
+   *  this offer does not meet them, so it can never be shown as the best offer. `matchesRequirements` is an alias. */
+  meetsRequirements?: boolean | null;
+  matchesRequirements?: boolean | null;
+  /** Optional: why it does not meet them, in words (`Contract is 24 months; you asked for 12 or less`). */
+  misses?: string[] | null;
+  /** Optional: false when a fee the cost depends on was not stated, so the saving is incomplete. */
+  feesKnown?: boolean | null;
 }
 
 /** Offer research for one bill type in one city. `mock` true means example data: label it. */
@@ -121,6 +129,11 @@ export interface ResearchResult {
   citations: Citation[];
   assumptions: string[];
   errors: string[];
+  /** Optional, from a backend that applies the user's requirements: what was asked for (for example
+   *  `{ maxContractMonths: 12 }`), how many offers meet it, and true when none does. */
+  requirements?: Record<string, unknown> | null;
+  matchingCount?: number | null;
+  noMatch?: boolean | null;
 }
 
 // MARK: - A turn

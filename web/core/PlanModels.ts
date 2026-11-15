@@ -36,6 +36,8 @@ export interface Visual {
   source: string;
   facts: Fact[];
   content: VisualContent;
+  /** Optional: true when the chart compares with the synthetic demo dataset (peer charts), never real statistics. */
+  synthetic?: boolean;
 }
 
 function decodeContent(kind: string, o: JSONObject): VisualContent {
@@ -68,6 +70,7 @@ export const Visual = {
       source: JSONRead.optStr(o, "source") ?? "",
       facts: JSONRead.attempt(() => JSONRead.optObjects<Fact>(o, "facts")) ?? [],
       content: JSONRead.attempt(() => decodeContent(kind, o)) ?? { kind: "unknown" },
+      ...(JSONRead.attempt(() => JSONRead.optBool(o, "synthetic")) === true ? { synthetic: true } : {}),
     };
   },
 } as const;

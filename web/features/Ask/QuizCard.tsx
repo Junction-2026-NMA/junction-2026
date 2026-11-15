@@ -1,8 +1,8 @@
 "use client";
-// The teaching question: guess first (Rive ChoiceCards), then the reveal. Port of QuizCard in AskCards.swift.
+// The teaching question: guess first (Rive ChoiceCards), then the reveal. Port of QuizCard in AskCards.swift
+// (no reward counter since the 15 Nov rework).
 import { useState } from "react";
 import { useAppModel, useCoach, useCoachStore } from "@/web/app/AppProvider";
-import { CoachRewards } from "@/web/core/AppLogic/CoachAppLogic";
 import type { TeachingCard } from "@/web/core/CoachModels";
 import { TeachingQuiz } from "@/web/core/CoachPresentation";
 import { RiveComponent } from "@/web/rive/RiveComponent";
@@ -31,9 +31,6 @@ export function QuizCard({ card }: { card: TeachingCard }) {
     <SisuCard>
       <div className="sisu-ask-quiz-top">
         <Eyebrow text="Guess first" />
-        {!revealed ? (
-          <span className="sisu-ask-caption sisu-ask-muted">{CoachRewards.rewardText("quizAnswered") + " berries"}</span>
-        ) : null}
       </div>
       <h3 className="sisu-ask-h3">{card.question}</h3>
       {TeachingQuiz.choices(quiz).map((values, index) => (

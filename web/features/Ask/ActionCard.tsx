@@ -1,15 +1,19 @@
 "use client";
-// The approval card of a simulated action: the "Simulated, no real switch" tag, what it does, the sources, what a
-// real switch takes, Approve / Decline, and the futures once approved. Port of ActionCard in AskCards.swift.
+// The approval card of a prepared action: a clear "Simulated" tag (a switch or a transfer here never happens for
+// real), what it does, the warning, what it frees, what a real switch takes (closed at first), Approve / Decline,
+// and the futures once approved. Its assumptions and sources are in the answer's Details, said once there.
+// Port of ActionCard in AskCards.swift, reworked on 15 Nov.
 import { useRef } from "react";
 import { useAppModel, useCoach, useCoachStore } from "@/web/app/AppProvider";
 import type { AgentAction } from "@/web/core/CoachModels";
-import { ActionPresenter, CoachText, FuturesPresenter } from "@/web/core/CoachPresentation";
+import { ActionPresenter, FuturesPresenter } from "@/web/core/CoachPresentation";
+import { rawOf } from "@/web/core/Presentation";
 import { RiveBindings } from "@/web/core/RiveContract";
 import { RiveComponent } from "@/web/rive/RiveComponent";
 import { SisuButton, SisuCard, riveAccessible } from "@/web/shared/SisuStyle";
 import { decideAction } from "./answerActions";
-import { Assumptions, Footnote, Note, SourceLink } from "./CardParts";
+import { Footnote, Note } from "./CardParts";
+import { Disclosure } from "./Disclosure";
 import { ImpactChart } from "./ImpactChart";
 import { isWatchKind } from "@/web/core/WatchModels";
 import { WatchActionCard, showsWatchCard } from "@/web/features/Projects/WatchActionCard";
@@ -17,17 +21,27 @@ import { WatchActionCard, showsWatchCard } from "@/web/features/Projects/WatchAc
 const language = "en";
 
 /** A watch (property_watch, price_watch) gets the Projects card once it handles the action (`showsWatchCard`);
- *  every other action, and a watch it does not handle yet, gets the simulated-action card. */
-export function ActionCard({ action }: { action: AgentAction }) {
+ *  every other action, and a watch it does not handle yet, gets the approval card. `mismatch`: the offer does not
+ *  meet the requirements the user gave, so the card says so. */
+export function ActionCard({ action, mismatch = false }: { action: AgentAction; mismatch?: boolean }) {
   if (isWatchKind(action.kind) && showsWatchCard(action)) return <WatchActionCard action={action} />;
-  return <SimulatedActionCard action={action} />;
+  return <SimulatedActionCard action={action} mismatch={mismatch} />;
 }
 
-function SimulatedActionCard({ action }: { action: AgentAction }) {
+/** `Simulated · no real switch`, `Simulated · no money moves`, or (an action the server says is real, such as a
+ *  watch the Projects card does not draw yet) `Needs your approval`. */
+function tagText(action: AgentAction): { text: string; tone: "amber" | "neutral" } {
+  if (action.simulated === false) return { text: "Needs your approval", tone: "neutral" };
+  const kind = rawOf(action.kind);
+  return { text: kind === "standing_transfer" || kind === "one_off_transfer" ? "Simulated · no money moves" : "Simulated · no real switch", tone: "amber" };
+}
+
+function SimulatedActionCard({ action, mismatch }: { action: AgentAction; mismatch: boolean }) {
   const model = useAppModel();
   const store = useCoachStore();
   const coach = useCoach();
   const card = ActionPresenter.card(action, language);
+  const tag = tagText(action);
   const busy = coach.deciding.includes(action.id);
   const notice = coach.decisionNotices[action.id];
   // One decision per card at a time: a second press (a stray tap on the other button while the first one is on
@@ -41,35 +55,18 @@ function SimulatedActionCard({ action }: { action: AgentAction }) {
 
   return (
     <SisuCard>
-      <RiveComponent component="Tag" values={RiveBindings.tag(card.simulatedTag, "amber")} {...riveAccessible(card.simulatedTag)} />
-      <h2 className="sisu-ask-h2">{card.title}</h2>
+      <RiveComponent component="Tag" values={RiveBindings.tag(tag.text, tag.tone)} {...riveAccessible(tag.text)} />
+      <h2 className="sisu-ask-h3">{card.title}</h2>
       <p className="sisu-ask-body">{card.summary}</p>
+      {mismatch ? <Note text="This offer does not meet the requirements you gave. Ask Sisu to keep looking before you approve anything." /> : null}
       {/* The server asks for the warning to be shown prominently, never hidden. */}
       {card.warning ? <Note text={card.warning} /> : null}
       <div className="sisu-ask-baseline">
         <span className="sisu-ask-h3">{card.monthly}</span>
-        <span className="sisu-ask-body sisu-ask-muted">freed</span>
+        <span className="sisu-ask-body sisu-ask-muted">{card.destination ? card.destination.toLowerCase() : "freed"}</span>
       </div>
-      <Assumptions items={card.assumptions} />
-      {action.sources.length > 0 ? (
-        <div className="sisu-ask-sources">
-          <span className="sisu-ask-label">Sources</span>
-          {action.sources.map((source) => (
-            <div key={source.url} className="sisu-ask-source-block">
-              <SourceLink title={source.title} url={source.url} />
-              <Footnote text={CoachText.fetched(source.retrievedAt, language)} />
-            </div>
-          ))}
-        </div>
-      ) : null}
       {card.checklist.length > 0 ? (
-        <>
-          {/* The Rive row holds one short line, so it names the list; the steps themselves are text that wraps. */}
-          <div className="sisu-ask-no-hit">
-            <RiveComponent component="ActionRow"
-              values={RiveBindings.actionRow("What a real switch takes", `${card.checklist.length} steps`, false)}
-              {...riveAccessible(`What a real switch takes, ${card.checklist.length} steps`)} />
-          </div>
+        <Disclosure label={`What a real switch takes (${card.checklist.length} steps)`} testId="checklist">
           <ol className="sisu-ask-checklist">
             {card.checklist.map((step, index) => (
               <li key={index} className="sisu-ask-checklist-step">
@@ -78,7 +75,7 @@ function SimulatedActionCard({ action }: { action: AgentAction }) {
               </li>
             ))}
           </ol>
-        </>
+        </Disclosure>
       ) : null}
       <p className="sisu-ask-button-text" role="status">{card.statusSentence}</p>
       {card.confirmation ? <p className="sisu-ask-body">{card.confirmation}</p> : null}

@@ -1,4 +1,4 @@
-// Approve / decline with berries and the celebration. Port of AnswerActions in AskCards.swift.
+// Approve / decline, then the celebration of an approved simulation. Port of AnswerActions in AskCards.swift.
 import type { AppModel } from "@/web/app/AppModel";
 import type { Celebration } from "@/web/app/AppTypes";
 import type { CoachStore } from "@/web/app/CoachStore";

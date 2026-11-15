@@ -100,6 +100,10 @@ export interface ChartState {
   footnote: string | null;
   /** Where the numbers come from: `Your bank data`. */
   source: string;
+  /** What the lengths measure: `Average a month`, `Estimated cost a month`. Null when the chart says it itself. */
+  unit: string | null;
+  /** The value at the top of a columns chart: `Scale up to €2,100`. */
+  scale: string | null;
 }
 
 export namespace ChartState {
@@ -136,6 +140,7 @@ export namespace ChartPresenter {
     const base: ChartState = {
       id: visual.id, kind: visual.kind, title: visual.title ?? "", caption: visual.caption ?? "", summary: visual.summary ?? "", legend: [],
       body: { kind: "none" }, resultLabel: null, resultValue: null, footnote: null, source: CoachText.sourceLabel(visual.source ?? "", language),
+      unit: null, scale: null,
     };
     const content = visual.content;
     switch (content.kind) {
@@ -169,7 +174,7 @@ export namespace ChartPresenter {
             bar({ id: "peers", label: legend[1].label, valueText: euro(row.peers, language), fraction: fraction(row.peers, maximum), color: "quiet" }),
           ] };
         });
-        return { ...base, legend, body: { kind: "bars", groups } };
+        return { ...base, legend, body: { kind: "bars", groups }, unit: pick(language, "Average a month", "Keskimäärin kuukaudessa") };
       }
       case "monthBars": {
         const months = content.months;
@@ -189,7 +194,8 @@ export namespace ChartPresenter {
         });
         const footnote = columns.some((column) => column.flagged)
           ? pick(language, "Marked months cost more than they brought in.", "Merkityt kuukaudet maksoivat enemmän kuin toivat.") : null;
-        return { ...base, legend, body: { kind: "columns", columns }, footnote };
+        return { ...base, legend, body: { kind: "columns", columns }, footnote, unit: pick(language, "Per month", "Kuukaudessa"),
+          scale: maximum > 1 ? pick(language, `Scale up to ${euro(maximum, language)}`, `Asteikko ${euro(maximum, language)} asti`) : null };
       }
       case "waterfall": {
         const shown = content.steps.filter((step) => Number.isFinite(step.amount) && roundAway(step.amount) !== 0);
@@ -219,7 +225,8 @@ export namespace ChartPresenter {
         });
         const whole = Number.isFinite(lastYear) ? roundAway(Math.min(lastYear, 100)) : 0;
         const axisLabels = Array.from({ length: Math.max(whole, 0) + 1 }, (_, year) => String(year));
-        return { ...base, body: { kind: "lines", lines, axisLabels }, legend: lines.map((line) => ({ label: line.label, color: line.color, isLine: true })) };
+        return { ...base, body: { kind: "lines", lines, axisLabels }, legend: lines.map((line) => ({ label: line.label, color: line.color, isLine: true })),
+          unit: pick(language, "Total in euros, by year", "Yhteensä euroina, vuosittain") };
       }
       case "offerBars": {
         const current = content.currentMonthlyEur;
@@ -238,7 +245,7 @@ export namespace ChartPresenter {
           })),
         ];
         const footnote = content.mock ? pick(language, "Example data, not a live search.", "Esimerkkidataa, ei oikea haku.") : null;
-        return { ...base, body: { kind: "bars", groups }, footnote };
+        return { ...base, body: { kind: "bars", groups }, footnote, unit: pick(language, "Estimated cost a month", "Arvioitu hinta kuukaudessa") };
       }
       case "unknown":
         return base;
