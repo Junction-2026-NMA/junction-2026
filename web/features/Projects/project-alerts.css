@@ -1,0 +1,13 @@
+/* The in-app alert banner (ProjectAlertBanner). Every class is sisu-palert-*. */
+.sisu-palert {
+  position: absolute; z-index: 40; left: var(--sisu-space-margin); right: var(--sisu-space-margin);
+  top: calc(env(safe-area-inset-top, 0px) + 8px);
+}
+button.sisu-palert-button {
+  appearance: none; width: 100%; min-height: 48px; display: flex; align-items: center; gap: 8px; padding: 8px 14px;
+  border: 1px solid var(--sisu-color-hairline); border-radius: 16px; background: var(--sisu-color-card); color: var(--sisu-color-text);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12); text-align: left; cursor: pointer;
+}
+.sisu-palert-text { flex: 1; font: var(--sisu-type-label); }
+.sisu-palert-tag { font: var(--sisu-type-caption); padding: 2px 8px; border-radius: var(--sisu-radius-pill); background: var(--sisu-amber-background); color: var(--sisu-amber-text); white-space: nowrap; }
+.sisu-palert-open { font: var(--sisu-type-label); color: var(--sisu-green-700); }

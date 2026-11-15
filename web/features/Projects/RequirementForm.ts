@@ -5,7 +5,7 @@
 import { Money } from "@/web/core/Presentation";
 import type { PropertyWatch, WatchRequirements } from "@/web/core/WatchModels";
 
-export type FieldKind = "euros" | "rooms" | "minutes" | "date" | "places" | "place" | "goal";
+export type FieldKind = "euros" | "rooms" | "minutes" | "date" | "places" | "place" | "goal" | "area";
 
 export interface RequirementField {
   key: string;
@@ -43,12 +43,14 @@ export function requirementFields(watch: Pick<PropertyWatch, "budgetEur" | "minR
   if (!rent) return [budget, goal];
   return [
     budget,
+    field("minAreaM2", "Floor area at least (m²)", "area", req.minAreaM2, "10 to 300 m². A listing that does not state its size needs verification."),
     field("minRooms", "Rooms at least", "rooms", watch.minRooms, "1 to 6. Leave empty for any."),
     field("moveBy", "Move in by", "date", req.moveBy),
     field("districts", "Districts", "places", req.districts, "Separate names with commas. Leave empty for anywhere in the city."),
     field("maxDepositEur", "Deposit at most (€)", "euros", req.maxDepositEur),
     field("movingCostEur", "Moving costs, your estimate (€)", "euros", req.movingCostEur),
     field("bufferToKeepEur", "Keep in the account after moving (€)", "euros", req.bufferToKeepEur),
+    field("monthlySavingsEur", "Keep saving each month (€)", "euros", req.monthlySavingsEur, "A limit in the affordability check. Sisu never moves money."),
     field("savingsGoalEur", "Savings goal (€)", "euros", req.savingsGoalEur),
     field("maxCommuteMinutes", "Commute at most (minutes)", "minutes", req.maxCommuteMinutes, "Sisu cannot measure commutes: it lists this for you to check."),
     field("commuteTo", "Commute to", "place", req.commuteTo, "A public place, like a campus or a district."),
@@ -80,6 +82,10 @@ export function fieldError(field: RequirementField, text: string, rent: boolean)
     case "rooms": {
       const rooms = readNumber(value);
       return rooms !== null && Number.isInteger(rooms) && rooms >= 1 && rooms <= 6 ? null : "Enter a whole number from 1 to 6.";
+    }
+    case "area": {
+      const area = readNumber(value);
+      return area !== null && area >= 10 && area <= 300 ? null : "Enter 10 to 300 square metres.";
     }
     case "minutes": {
       const minutes = readNumber(value);
@@ -118,7 +124,7 @@ export function requirementPatch(fields: readonly RequirementField[], draft: Rea
     const text = current(field, draft).trim();
     if (field.kind === "places") return [field.key, places(text)];
     if (text === "") return [field.key, null];
-    if (field.kind === "euros" || field.kind === "rooms" || field.kind === "minutes") return [field.key, readNumber(text)];
+    if (field.kind === "euros" || field.kind === "rooms" || field.kind === "minutes" || field.kind === "area") return [field.key, readNumber(text)];
     return [field.key, text];
   }));
 }

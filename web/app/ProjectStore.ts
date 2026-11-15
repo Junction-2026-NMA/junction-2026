@@ -16,6 +16,9 @@ import type { CoachClient } from "@/web/core/CoachClient";
 import { CoachErrors, Store } from "@/web/core/CoachSession";
 import type { PropertyWatch, WatchNotification, WatchRequirements } from "@/web/core/WatchModels";
 import type { CurrentMatch } from "@/web/core/WatchProject";
+import { ProjectCalls, type ProjectCreateBody } from "@/web/core/ProjectCreate";
+import { type PushStatus, enablePush, pushStatusNow } from "@/web/core/Push";
+import { type EvaluatedListing, ProjectAlert, type ProjectEvidence, SchedulerInfo } from "@/web/core/WatchExtras";
 import type { SisuDefaults } from "./Defaults";
 import { ALL_SUPPORT, MAX_SEEN, NO_SUPPORT, type ProjectBusy, type ProjectFeature, ProjectFeatureText, hasProjectRoutes, isActiveWatch,
   missingRoute, readSeen, schedulerRuns, writeSeen } from "./ProjectRules";
@@ -52,6 +55,19 @@ export interface ProjectsState {
   readonly fresh: Readonly<Record<string, readonly string[]>>;
   /** Per open watch: the listings that fit its requirements now, as last read (`GET /api/watch/:id`). */
   readonly matches: Readonly<Record<string, readonly CurrentMatch[]>>;
+  // v3 (the updated backend; all empty on today's hosted one):
+  /** What the server can run. Null on the old backend, which is then never sent a v3 call. */
+  readonly schedulerInfo: SchedulerInfo | null;
+  /** The phone notifications the server sent (or would have): the in-app fallback shows the unread ones. */
+  readonly alerts: readonly ProjectAlert[];
+  /** Alert ids seen on this device (banner tapped or project opened). */
+  readonly seenAlerts: readonly string[];
+  /** Per open watch: every listing with its verdict, and "How Sisu found this". */
+  readonly evaluated: Readonly<Record<string, readonly EvaluatedListing[]>>;
+  readonly evidence: Readonly<Record<string, ProjectEvidence | null>>;
+  /** The finding to scroll to and highlight (a tapped notification, the banner or a deep link). */
+  readonly focus: { readonly watchId: string; readonly findingId: string | null } | null;
+  readonly push: PushStatus;
 }
 
 const POLL_MS = 60_000;
@@ -84,7 +100,7 @@ export class ProjectStore extends Store<ProjectsState> {
     super({
       customerId, watches: [], notifications: [], loaded: false, loading: false, checking: false, lastCheckAt: null, error: null,
       listFailed: false, checkProblems: [], support: NO_SUPPORT, scheduler: false, busy: {}, notices: {}, seen: readSeen(defaults, customerId), fresh: {},
-      matches: {},
+      matches: {}, schedulerInfo: null, alerts: [], seenAlerts: [], evaluated: {}, evidence: {}, focus: null, push: pushStatusNow(),
     });
   }
 
@@ -154,7 +170,9 @@ export class ProjectStore extends Store<ProjectsState> {
       const list = await this.client.watchList(this.state.customerId);
       const routes = this.isLive && !this.routesKnown;
       this.routesKnown ||= this.isLive;
+      const info = SchedulerInfo.decode(list.schedulerInfo);
       this.update({
+        schedulerInfo: info, alerts: ProjectAlert.many(list.alerts),
         watches: list.watches, notifications: list.notifications, loaded: true, loading: false, error: null, listFailed: false,
         ...(list.scheduler === "cron" ? { scheduler: true } : {}),
         ...(routes ? { support: hasProjectRoutes(list) ? ALL_SUPPORT : NO_SUPPORT } : {}),
@@ -211,6 +229,10 @@ export class ProjectStore extends Store<ProjectsState> {
       const watch = project.watch;
       this.update({
         matches: { ...this.state.matches, [id]: project.currentMatches },
+        evaluated: { ...this.state.evaluated, [id]: project.evaluated },
+        evidence: { ...this.state.evidence, [id]: project.evidence },
+        ...(project.alerts.length ? { alerts: mergeAlerts(this.state.alerts, project.alerts) } : {}),
+        ...(project.schedulerInfo ? { schedulerInfo: project.schedulerInfo } : {}),
         ...(watch && watch.id === id ? { watches: this.state.watches.map((w) => (w.id === id ? watch : w)) } : {}),
       });
     } catch (error) {
@@ -259,18 +281,76 @@ export class ProjectStore extends Store<ProjectsState> {
   async markRead(watchId: string, opening = false): Promise<void> {
     const ids = this.findings(watchId).filter((n) => ProjectStore.isUnread(this.state, n)).map((n) => n.id);
     const marked = opening ? ids : [...(this.state.fresh[watchId] ?? []), ...ids];
+    const alertIds = this.state.alerts.filter((a) => a.watchId === watchId).map((a) => a.id);
+    if (alertIds.some((id) => !this.state.seenAlerts.includes(id))) this.update({ seenAlerts: [...new Set([...this.state.seenAlerts, ...alertIds])] });
+    const unreadAlerts = this.state.alerts.some((a) => a.watchId === watchId && !a.readAt);
     if (ids.length > 0 || opening) {
       const seen = [...this.state.seen, ...ids.filter((id) => !this.state.seen.includes(id))].slice(-MAX_SEEN);
       this.update({ seen, fresh: { ...this.state.fresh, [watchId]: marked } });
       if (ids.length > 0) writeSeen(this.defaults, this.state.customerId, seen);
     }
-    if (!this.state.support.read || ids.length === 0) return;
+    if (!this.state.support.read || (ids.length === 0 && !unreadAlerts)) return;
     try {
       await this.client.watchMarkRead(watchId, this.state.customerId);
     } catch (error) {
       if (missingRoute(error)) this.update({ support: { ...this.state.support, read: false } });
     }
   }
+
+  // MARK: v3 journey (only with the updated backend: `schedulerInfo` was in the list)
+
+  /** True once GET /api/watch showed the updated backend: create, push and the delayed simulation exist there. */
+  get updated(): boolean { return this.isLive && this.state.schedulerInfo !== null; }
+
+  /** Starts a project from the approved summary. Answers the new watch id, or a sentence when it failed. */
+  async create(body: ProjectCreateBody): Promise<{ id: string } | { error: string }> {
+    if (!this.updated) return { error: "Starting a project this way needs the updated Sisu server." };
+    try {
+      const project = await ProjectCalls.create(this.client, body);
+      const watch = project.watch;
+      if (!watch) return { error: "The server did not return the new project. Open the chat history to find it." };
+      this.update({ watches: [...this.state.watches.filter((w) => w.id !== watch.id), watch], evaluated: { ...this.state.evaluated, [watch.id]: project.evaluated } });
+      void this.load();
+      return { id: watch.id };
+    } catch (error) {
+      return { error: CoachErrors.sentence(error) || CoachErrors.generic };
+    }
+  }
+
+  /** A labelled simulated listing change, processed on the server in `delaySeconds` (lock the phone meanwhile). */
+  async simulateChange(id: string, delaySeconds = 20): Promise<string | null> {
+    if (!this.updated) return "The delayed simulation needs the updated Sisu server.";
+    try {
+      await ProjectCalls.simulateChange(this.client, id, this.state.customerId, delaySeconds);
+      return null;
+    } catch (error) {
+      return CoachErrors.sentence(error) || CoachErrors.generic;
+    }
+  }
+
+  /** From a tap only. */
+  async enablePush(): Promise<PushStatus> {
+    const push = this.updated && this.state.schedulerInfo?.push ? await enablePush(this.client, this.state.customerId) : "unavailable";
+    this.update({ push });
+    return push;
+  }
+
+  async testPush(): Promise<string | null> {
+    try {
+      await ProjectCalls.pushTest(this.client, this.state.customerId);
+      return null;
+    } catch (error) {
+      return CoachErrors.sentence(error) || CoachErrors.generic;
+    }
+  }
+
+  /** Opens a finding: the project view scrolls to it and highlights it; its alerts count as seen. */
+  focusFinding(watchId: string, findingId: string | null): void {
+    const seen = this.state.alerts.filter((a) => a.watchId === watchId && (!findingId || a.findingIds.includes(findingId) || a.findingIds.length === 0)).map((a) => a.id);
+    this.update({ focus: { watchId, findingId }, seenAlerts: [...new Set([...this.state.seenAlerts, ...seen])] });
+  }
+
+  clearFocus(): void { if (this.state.focus) this.update({ focus: null }); }
 
   /** Where a control's failure sentence is kept in `notices`: an edit's under its own key (shown next to Save),
    *  every other one under the watch id (shown with the controls). */
@@ -308,4 +388,10 @@ export class ProjectStore extends Store<ProjectsState> {
     const rest = Object.fromEntries(Object.entries(this.state.busy).filter(([key]) => key !== id));
     this.update({ busy: busy === null ? rest : { ...rest, [id]: busy } });
   }
+}
+
+/** The newest copy of each alert (a project's detail can be fresher than the list). */
+function mergeAlerts(list: readonly ProjectAlert[], fresh: readonly ProjectAlert[]): ProjectAlert[] {
+  const ids = new Set(fresh.map((a) => a.id));
+  return [...fresh, ...list.filter((a) => !ids.has(a.id))];
 }

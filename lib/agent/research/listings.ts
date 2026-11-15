@@ -168,11 +168,21 @@ const MOCK_DISTRICTS: Record<string, [string, string, string]> = {
 function mockSearch(city: string): ListingSearch {
   const pageUrl = `https://example.com/vuokra-asunnot/${city.toLowerCase()}`;
   const districts = MOCK_DISTRICTS[city.trim().toLowerCase()] ?? [null, null, null];
-  const listings = [
+  // v3: a mix for the requirement checks: one that meets 900 a month and 40 m², one with no size stated (needs
+  // verification), ones over the rent or under the size, and one the page places in a neighbouring city.
+  const neighbour = city.trim().toLowerCase() === "vantaa" ? "Espoo" : "Vantaa";
+  const rows: Pick<Listing, "title" | "priceEur" | "rooms" | "areaM2" | "district" | "depositEur" | "utilitiesPerMonthEur">[] = [
     { title: "Esimerkkikatu 4 A", priceEur: 1_040, rooms: 1, areaM2: 31, district: districts[0] },
     { title: "Mallitie 12 B", priceEur: 1_180, rooms: 2, areaM2: 44, district: districts[1] },
     { title: "Testikuja 7", priceEur: 965, rooms: 1, areaM2: 27, district: districts[2] },
-  ].map((listing, index) => ({ ...listing, city, availableFrom: null, url: `${pageUrl}/${index + 1}`, pageUrl }));
+    { title: "Kokeilutie 3 C", priceEur: 870, rooms: 2, areaM2: 48, district: districts[0], depositEur: 1_740, utilitiesPerMonthEur: 25 },
+    { title: "Näytekatu 9 B", priceEur: 820, rooms: 2, areaM2: null, district: districts[1] },
+    { title: "Pienikuja 2", priceEur: 690, rooms: 1, areaM2: 29, district: districts[2] },
+  ];
+  const listings: Listing[] = [
+    ...rows.map((listing, index) => ({ ...listing, city, availableFrom: null, url: `${pageUrl}/${index + 1}`, pageUrl })),
+    { title: "Rajatie 5 B", priceEur: 790, rooms: 2, areaM2: 46, district: null, city: neighbour, availableFrom: null, url: `${pageUrl}/7`, pageUrl },
+  ];
   return { city, topic: null, query: listingQuery(city), pages: [{ url: pageUrl, title: "example.com", listings, dropped: 0, cacheAgeMs: null, tookMs: 0, mock: true }], found: [{ url: pageUrl, title: "Example listings" }], errors: [], retrievedAt: new Date().toISOString(), tookMs: 0, mock: true };
 }
 

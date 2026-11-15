@@ -29,6 +29,24 @@ export function wantsProjection(args: Record<string, unknown>, question: string)
 
 export type CategoryCut = { category: string; monthly: number };
 
+// Everyday words for a spending category, so "20% less eating out" cuts Restaurants whatever the model passed.
+const CATEGORY_ALIASES: [RegExp, string][] = [
+  [/eat(ing)? out|dining( out)?|restaurants?|takeaways?|take-away|food delivery|wolt|foodora|caf[eé]s?|ravintol|ulkona syöminen|syödä ulkona|restaurang|äta ute/i, "Restaurants"],
+  [/grocer|food shopping|supermarket|ruokaostok|kauppa|livsmedel/i, "Groceries"],
+  [/transport|bus|train|commut|liikenne|matka/i, "Transportation"],
+  [/entertain|streaming|going out|viihde|nöje/i, "Entertainment"],
+];
+
+// The category in the customer's data that a name refers to: an exact name first, then an everyday word for it.
+export function categoryNamed<T extends { category: string }>(categories: T[], name: unknown): T | undefined {
+  if (typeof name !== "string" || !name.trim()) return undefined;
+  const wanted = name.trim().toLowerCase();
+  const exact = categories.find((entry) => entry.category.toLowerCase() === wanted);
+  if (exact) return exact;
+  const alias = CATEGORY_ALIASES.find(([pattern]) => pattern.test(wanted))?.[1];
+  return alias ? categories.find((entry) => entry.category === alias) : undefined;
+}
+
 // The receipts for a category cut, shared with the projection so both answers source the same figures.
 export function categoryCutFacts(overview: Overview, cut: CategoryCut, cutPct: number, freesPerMonthEur: number): Fact[] {
   return [

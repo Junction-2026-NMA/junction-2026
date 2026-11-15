@@ -13,7 +13,8 @@
 // - The transcript keeps the reading position (TalkTranscript.tsx). The dock is pinned at the bottom and voice first:
 //   a large microphone in the middle and a small keyboard button beside it (VoiceLauncher.tsx). The keyboard button
 //   opens the text field with Send and the microphone (Ask/Composer.tsx); leaving it empty goes back. While voice is
-//   on the dock shows the live state with a stop control (VoiceStrip.tsx).
+//   on, the header shows the live state and Stop/End in place of the small Liito, and the dock keeps the microphone
+//   in the middle (mute) with the keyboard button beside it (VoiceStrip.tsx).
 // The hands-free logic is web/voice/ConversationController.ts and web/core (ConversationFlow, VoiceBar, LiitoTask).
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { flushSync } from "react-dom";
@@ -38,10 +39,10 @@ import { ProjectScreen } from "@/web/features/Projects/ProjectScreen";
 import { useProjectsUnread } from "@/web/features/Projects/useProjects";
 import { SettingsSheet } from "@/web/features/Sheets/SettingsSheet";
 import { SisuEmptyState } from "./SisuEmptyState";
-import { LiitoBadge, SisuLogoButton, StatusLine } from "./TalkParts";
+import { LiitoBadge, SisuLogoButton } from "./TalkParts";
 import { TalkLaunch } from "./TalkLaunch";
 import { TalkTranscript, type TranscriptHandle } from "./TalkTranscript";
-import { VoiceStrip } from "./VoiceStrip";
+import { VoiceDock, VoiceStatus, VoiceStopButton } from "./VoiceStrip";
 import "@/web/features/Ask/ask.css";
 import "./talk.css";
 
@@ -224,9 +225,11 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
         <SisuLogoButton buttonRef={logo} open={historyOpen} unread={unread} onPress={() => model.setHistoryOpen(true)} />
         <div className="sisu-talk-titles">
           <h1 className="sisu-talk-title" data-testid="talk.title">Sisu</h1>
-          {flow.isOn ? <StatusLine flow={flow} live statusLine={screen.statusLine} detail={null} compact /> : null}
+          {flow.isOn ? <VoiceStatus bar={bar} flow={flow} talk={talk} /> : null}
         </div>
-        {chatting ? <div className="sisu-talk-header-liito">{liitoBadge("small")}</div> : null}
+        {flow.isOn ? (
+          <VoiceStopButton bar={bar} onStop={() => (bar.stop === "interrupt" ? talk.interrupt() : talk.end())} />
+        ) : chatting ? <div className="sisu-talk-header-liito">{liitoBadge("small")}</div> : null}
       </header>
       <FallbackNotice session={session} notice={state?.fallbackNotice ?? null} fellBackToSample={coach.fellBackToSample} />
       {chatting && state ? (
@@ -241,7 +244,7 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
       <div className="sisu-talk-dock" data-clips={voice?.clipsPlayed ?? 0} data-testid={`talk.clips.${voice?.clipsPlayed ?? 0}`}>
         {notice ? <p className="sisu-talk-notice" role="status" data-testid="talk.notice">{notice}</p> : null}
         {flow.isOn ? (
-          <VoiceStrip bar={bar} talk={talk} onType={typeInstead} onStop={() => (bar.stop === "interrupt" ? talk.interrupt() : talk.end())} />
+          <VoiceDock flow={flow} talk={talk} micLabel={screen.micLabel} onType={typeInstead} />
         ) : showComposer ? (
           <Composer draft={draft} setDraft={setDraft} thinking={isThinking} onSend={send} onStop={() => session.cancel()}
             onVoice={startVoice} inputRef={input} onFocusChange={(focused) => { if (!focused) leaveTypingIfEmpty(); }} />

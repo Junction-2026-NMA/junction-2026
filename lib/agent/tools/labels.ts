@@ -19,6 +19,8 @@ export function activityLabel(call: ToolCall): string {
     case "check_affordability":
       return `Checking whether ${euros(args.amountEur)} fits before your next payday`;
     case "run_scenario":
+      // A cut of one category is worked out per month from the average, with no projection (category-cut.ts).
+      if (typeof args.category === "string" && typeof args.categoryCutPct === "number" && typeof args.years !== "number") return `Working out what a ${args.categoryCutPct}% cut in ${args.category} frees from your 12-month average`;
       return `Projecting ${typeof args.years === "number" ? args.years : "the next"} years ahead from your real averages`;
     case "get_mortgage":
       return "Opening your mortgage application";

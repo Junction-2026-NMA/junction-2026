@@ -1,7 +1,8 @@
 import { TOO_MANY, allowRequest } from "@/lib/agent/http";
 import { withVisitor } from "@/lib/agent/visitor";
 import { DEMO_CUSTOMERS } from "@/lib/finance/data";
-import { listWatches, simulatePriceDrop } from "@/lib/watch";
+import { listWatches } from "@/lib/watch";
+import { simulateAndAlert } from "@/lib/watch/simulate";
 
 export const runtime = "nodejs";
 
@@ -25,8 +26,8 @@ export const GET = withVisitor(async function GET(request: Request) {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   if (!running.length) return page("No watch is running in this browser", "Start one in the app first (ask Sisu to watch a price and tap Approve), in this same browser.", 404);
   for (const watch of running) {
-    const result = simulatePriceDrop(watch.customerId, watch.id);
-    if (result.ok) return page("Simulated price drop sent", `${escape(result.notification.title)}. ${escape(result.notification.summary)}`);
+    const result = await simulateAndAlert(watch.customerId, watch.id);
+    if (result.ok) return page("Simulated price drop sent (simulated for demo)", `${escape(result.notification.title)}. ${escape(result.notification.summary)}`);
   }
-  return page("Nothing to drop", "Nothing being watched is over the limit, so there is no price to drop.", 409);
+  return page("Nothing to drop", "No watched listing would meet every requirement of the project after a price drop.", 409);
 });

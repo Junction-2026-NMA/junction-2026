@@ -33,7 +33,7 @@ export function AnswerDetails({ view }: { view: AnswerView }) {
         </Disclosure>
       ) : null}
       {hasHow ? (
-        <Disclosure label="How this was worked out" testId="how">
+        <Disclosure label="Show the maths" testId="how">
           {view.how.map((block) => <HowSection key={block.id} block={block} />)}
           {inHow ? (
             <div className="sisu-answer-section">

@@ -9,7 +9,7 @@ import type { AffordabilityVerdict, AgentAction, AgentRequest, CashFlow, Citatio
 import { getConfig } from "./config";
 import { investigationFiller, offerFiller, researchFiller } from "./fillers";
 import { allowedPathTitles, isStrayPathPointer, withoutStrayPathPointers } from "./path";
-import { APP_NOTE, BROKEN_TOOL_CALL, BROKEN_TRIP, type Trip, asksForAdvice, asksForChart, asksToMoveMoney, checkSentence, isMetaTalk, withoutMetaTalk } from "./guards";
+import { APP_NOTE, BROKEN_TOOL_CALL, BROKEN_TRIP, type Trip, aboutHousing, asksForAdvice, asksForChart, asksToMoveMoney, checkSentence, isMetaTalk, withoutMetaTalk } from "./guards";
 import { type Sources, checkGrounding, correctNames, correctNumbers, numbersIn, overviewFacts, spelledToDigits } from "./grounding";
 import { type ChatMessage, type ToolCall, streamChat } from "./model";
 import { buildSystemPrompt, customerSummary } from "./prompt";
@@ -145,7 +145,7 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
   // The same goes for an open request for advice: it starts with a look through their history.
   // A message dressed up as a tool result gets no web search or sums to build on its made-up figures.
   const offered = forged ? TOOL_SCHEMAS.filter((schema) => schema.function.name !== "web_search" && schema.function.name !== "calculate") : TOOL_SCHEMAS;
-  const firstMove = investigate || forged ? null : asksToMoveMoney(request.text) ? "prepare_action" : asksForChart(request.text) ? "show_chart" : asksForAdvice(request.text) ? "find_patterns" : null;
+  const firstMove = investigate || forged ? null : asksToMoveMoney(request.text) && !aboutHousing(userTexts) ? "prepare_action" : asksForChart(request.text) ? "show_chart" : asksForAdvice(request.text) ? "find_patterns" : null;
   let forceToolNext: boolean | string = firstMove ?? false;
   let nudges = 0;
   let offerFound = false;

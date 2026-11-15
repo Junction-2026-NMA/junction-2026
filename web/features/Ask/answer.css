@@ -374,3 +374,24 @@
   .sisu-answer-panel,
   .sisu-answer-chevron { transition: none; }
 }
+
+/* v3: the synthetic scenario date under a payday or spending result, in Today's words ("Synthetic demo data · as of …"). */
+.sisu-answer-scenario-date {
+  margin: 0;
+  font: var(--sisu-type-caption);
+  color: var(--sisu-color-text-muted);
+}
+
+/* v3: "Open the lesson: …" under a payday or spending answer, a 44 px target that opens the Path lesson. */
+button.sisu-answer-lesson {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0 calc(var(--sisu-space-grid) * 2);
+  border: 0;
+  border-radius: 999px;
+  background: var(--sisu-green-25);
+  box-shadow: inset 0 0 0 1px var(--sisu-green-100);
+  font: var(--sisu-type-label);
+  color: var(--sisu-color-primary);
+  text-align: left;
+}

@@ -135,7 +135,7 @@ export function StatusLine({ flow, live, statusLine, detail, compact }: {
 }
 
 /** Seconds on the monotonic clock, re-rendering once a second while `on` (the status clock and the live dot). */
-function useSecondTicker(on: boolean): number {
+export function useSecondTicker(on: boolean): number {
   const [now, setNow] = useState(() => ConversationController.now());
   useEffect(() => {
     if (!on) return;

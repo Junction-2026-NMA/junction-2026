@@ -205,6 +205,7 @@ export function resetCustomers(customerIds: string[], now: Date = new Date()): {
       memory: Object.fromEntries(Object.entries(current.memory).filter(([id]) => !customerIds.includes(id))),
       watches: (current.watches ?? []).filter((watch) => !customerIds.includes(watch.customerId)),
       notifications: (current.notifications ?? []).filter((note) => !customerIds.includes(note.customerId)),
+      alerts: (current.alerts ?? []).filter((alert) => !customerIds.includes(alert.customerId)), // v3; the device's push subscription stays, so notifications keep working after a reset
       audit: [], // a new chain starts here; the reset itself is its first entry
     };
     return withAudit(cleared, { customerId: "ALL-DEMO", type: "demo_reset", actor: "system", detail: `Demo reset: ${actions} actions and ${memoryItems} remembered items cleared for ${customerIds.length} customers.` }, now);

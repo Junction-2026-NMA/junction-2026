@@ -23,7 +23,7 @@ import { POST as approveRoute } from "@/app/api/actions/[id]/approve/route";
 import { POST as simulateRoute } from "@/app/api/watch/[id]/simulate-drop/route";
 
 const PAGE = "https://www.vuokraovi.com/vuokra-asunnot/helsinki";
-const flat = (overrides: Partial<Listing> = {}): Listing => ({ title: "Sallinkatu 2", priceEur: 919, rooms: 1, areaM2: 37, district: "Taka-Töölö", availableFrom: null, url: "https://www.vuokraovi.com/kohde/hp8899", pageUrl: PAGE, ...overrides });
+const flat = (overrides: Partial<Listing> = {}): Listing => ({ title: "Sallinkatu 2", priceEur: 919, rooms: 1, areaM2: 37, district: "Taka-Töölö", city: "Helsinki", availableFrom: null, url: "https://www.vuokraovi.com/kohde/hp8899", pageUrl: PAGE, ...overrides }); // v3: a full match needs the city stated
 const OTHER = flat({ title: "Kustinpolku 9", priceEur: 1_239, rooms: 3, areaM2: 59.5, district: "Postipuisto", url: "https://www.vuokraovi.com/kohde/hq3786" });
 const searchOf = (listings: Listing[]): ListingSearch => ({ city: "Helsinki", topic: null, query: listingQuery("Helsinki"), pages: [{ url: PAGE, title: "Vuokraovi", listings, dropped: 0, cacheAgeMs: 0, tookMs: 1, mock: false }], found: [{ url: PAGE, title: "Vuokraovi" }], errors: [], retrievedAt: "2026-11-14T10:00:00.000Z", tookMs: 1, mock: false });
 
@@ -325,7 +325,8 @@ describe("a property watch with Context.dev monitors", () => {
     assert.ok(!/ignore previous/i.test(JSON.stringify(note)), "the change's own words are never passed on");
     assert.deepEqual(listNotifications(AINO).map((stored) => stored.id), [note.id]);
     assert.equal(listWatches(AINO)[0].pages[0].listings[0].priceEur, 880);
-    assert.deepEqual(auditFor(AINO).events.slice(-2).map((event) => event.type), ["watch_checked", "watch_notified"]);
+    // v3: the finding's line, then the phone notification's (stored for the app even with push off).
+    assert.deepEqual(auditFor(AINO).events.slice(-3).map((event) => event.type), ["watch_checked", "watch_notified", "watch_notified"]);
     assert.ok(auditFor(AINO).chainValid);
     // Checking again with nothing new does not repeat the notification.
     assert.equal((await checkWatches(AINO, { now: later(30) })).notifications.length, 0);
@@ -431,9 +432,12 @@ describe("the agent offers a watch instead of stopping", () => {
     assert.ok(ofType(events, "tool_end").some((event) => event.trace.name === "search_flats" && !event.trace.ok));
   });
 
-  it("flats that fit are shown, and a watch is set up only if asked for", async () => {
+  // v3 (15 Nov): the search always prepares the Project so the app can offer "Make this a project" under the
+  // results; it still runs only after the customer starts it.
+  it("flats that fit are shown with a Project to start, and nothing runs until it is started", async () => {
     const shown = await ask("Find me a flat in Helsinki under 1000 euros a month", { city: "Helsinki", budgetEur: 1000 });
-    assert.equal(ofType(shown, "action").length, 0);
+    assert.equal(ofType(shown, "action")[0]?.action.status, "awaiting_approval");
+    assert.equal(listWatches(AINO).length, 0);
     const watched = await ask("Keep watching for flats under 1000 euros in Helsinki", { city: "Helsinki", budgetEur: 1000, watch: true });
     assert.equal(ofType(watched, "action")[0]?.action.kind, "property_watch");
   });

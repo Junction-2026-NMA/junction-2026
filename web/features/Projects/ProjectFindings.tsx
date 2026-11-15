@@ -5,7 +5,7 @@
 // - "Findings", newest first: what was found, why it matters (the server's figures), the total effect of a home when
 //   known, where and when it was found, and the same next steps. Simulated findings say so.
 // The enquiry is for the user to send themselves; nothing contacts a landlord. A stopped project promises nothing new.
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Listing, PropertyWatch, WatchNotification } from "@/web/core/WatchModels";
 import { type CurrentMatch, sameListing } from "@/web/core/WatchProject";
 import { SisuCard } from "@/web/shared/SisuStyle";
@@ -21,10 +21,14 @@ export interface ProjectFindingsProps {
   rent: boolean;
   fresh: ReadonlySet<string>;
   stopped: boolean;
+  /** v3: the finding a tapped notification, the banner or a deep link opened (scrolled to and highlighted). */
+  focusId?: string | null;
+  /** v3: the updated server sends `evaluated`, shown by ListingResults instead of "Fits now". */
+  hideFitsNow?: boolean;
 }
 
-export function ProjectFindings({ findings, matches, watch, rent, fresh, stopped }: ProjectFindingsProps) {
-  const fitting = matches.filter((match) => !findings.some((finding) => sameListing(finding.listing, match.listing)));
+export function ProjectFindings({ findings, matches, watch, rent, fresh, stopped, focusId = null, hideFitsNow = false }: ProjectFindingsProps) {
+  const fitting = hideFitsNow ? [] : matches.filter((match) => !findings.some((finding) => sameListing(finding.listing, match.listing)));
   return (
     <>
       {fitting.length > 0 ? (
@@ -37,9 +41,9 @@ export function ProjectFindings({ findings, matches, watch, rent, fresh, stopped
       {findings.length > 0 ? (
         <SisuCard className="sisu-project-findings" testId="project.findings">
           <h2 className="sisu-project-h2">Findings</h2>
-          {findings.map((finding) => <Finding key={finding.id} finding={finding} rent={rent} isNew={fresh.has(finding.id)} />)}
+          {findings.map((finding) => <Finding key={finding.id} finding={finding} rent={rent} isNew={fresh.has(finding.id)} focused={finding.id === focusId} />)}
         </SisuCard>
-      ) : fitting.length === 0 ? (
+      ) : fitting.length === 0 && !hideFitsNow ? (
         <SisuCard testId="project.findings">
           <h2 className="sisu-project-h2">Findings</h2>
           {stopped ? <p className="sisu-project-body">No findings while this project ran.</p> : (
@@ -76,7 +80,11 @@ function MatchItem({ match, watch, rent }: { match: CurrentMatch; watch: Propert
   );
 }
 
-function Finding({ finding, rent, isNew }: { finding: WatchNotification; rent: boolean; isNew: boolean }) {
+function Finding({ finding, rent, isNew, focused }: { finding: WatchNotification; rent: boolean; isNew: boolean; focused: boolean }) {
+  const node = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (focused) node.current?.scrollIntoView({ block: "center", behavior: "auto" });
+  }, [focused]);
   const simulated = FindingText.isSimulated(finding);
   const pageUrl = safeLink(finding.listing?.pageUrl);
   const why = FindingText.why(finding, rent);
@@ -84,11 +92,13 @@ function Finding({ finding, rent, isNew }: { finding: WatchNotification; rent: b
   const line = FindingText.listingLine(finding.listing, rent);
 
   return (
-    <article className="sisu-project-finding sisu-project-enter" data-new={isNew ? "true" : "false"}>
+    <article ref={node} className="sisu-project-finding sisu-project-enter" data-new={isNew ? "true" : "false"} data-focus={focused ? "true" : undefined}
+      id={`finding-${finding.id}`} data-testid={focused ? "project.focusedFinding" : undefined}>
       <div className="sisu-project-chips">
         {isNew ? <Chip tone="new">New</Chip> : null}
-        {simulated ? <Chip tone="simulated">Simulated for the demo</Chip> : null}
-        <Chip tone="plain">{finding.kind === "price_drop" ? "Price dropped" : "New listing"}</Chip>
+        {simulated ? <Chip tone="simulated">Simulated for demo</Chip> : null}
+        {finding.verdict === "needs_verification" ? <Chip tone="attention">Needs verification</Chip> : finding.verdict === "match" ? <Chip tone="active">Match</Chip> : null}
+        <Chip tone="plain">{finding.kind === "price_drop" ? "Price dropped" : finding.kind === "initial_match" ? "Found on the first search" : "New listing"}</Chip>
       </div>
       <h3 className="sisu-project-h3">{FindingText.title(finding)}</h3>
       {line ? <p className="sisu-project-body">{line}</p> : null}
@@ -132,7 +142,7 @@ function NextSteps({ listing, rent, id }: { listing: Listing; rent: boolean; id:
   );
 }
 
-function HousingEffectView({ view }: { view: HousingView }) {
+export function HousingEffectView({ view }: { view: HousingView }) {
   return (
     <>
       <p className="sisu-project-subhead">Total cost of moving</p>

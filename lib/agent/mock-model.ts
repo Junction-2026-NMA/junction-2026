@@ -3,6 +3,7 @@
 // (stages, offers, teaching, approval, receipts) against the real endpoints. Its answers start with "Mock answer."
 import type { ChatMessage, ModelChunk, StreamOptions, ToolCall } from "./model";
 import { speculate } from "./speculate";
+import { biggestEveryday, followUpCut, housingStep, isHousingTalk, summaryOf } from "./mock-intents";
 
 const WORD_DELAY_MS = 25;
 const THINK_MS = 250;
@@ -39,8 +40,8 @@ const firstNumber = (text: string): number | null => {
   return match ? Number(match[1]) : null;
 };
 
-const CATEGORY_WORDS: Record<string, string> = { restaurant: "Restaurants", "eating out": "Restaurants", "dining out": "Restaurants", grocer: "Groceries", transport: "Transportation", entertain: "Entertainment", health: "Health", travel: "Travel" };
-const CATEGORY = /(restaurant|eating out|dining out|grocer|transport|entertain|health|travel)/;
+const CATEGORY_WORDS: Record<string, string> = { restaurant: "Restaurants", "eating out": "Restaurants", "dining out": "Restaurants", takeaway: "Restaurants", ravintol: "Restaurants", grocer: "Groceries", transport: "Transportation", entertain: "Entertainment", health: "Health", travel: "Travel" };
+const CATEGORY_ANY = /(restaurant|eating out|dining out|takeaway|ravintol|grocer|transport|entertain|health|travel)/;
 
 // Questions answered in words with no tool: a move or a rent with no figure yet needs its requirements first.
 // One clarifying question, as the real model is told to ask, and no proposal.
@@ -76,7 +77,7 @@ function firstTool(question: string): [string, Json] | null {
   // "Spend 20% less at restaurants": the cut is worked out from the category's 12-month average, by run_scenario.
   // The years go along only when the question names them ("in 3 years"); otherwise it is a per-month answer.
   const cut = /(\d{1,3})\s?(%|percent)\s+(less|fewer|lower)|(cut|cutting|reduce|reducing|lower|lowering)\b.*?\bby\s+(\d{1,3})\s?(%|percent)/.exec(q);
-  const cutCategory = CATEGORY.exec(q)?.[1];
+  const cutCategory = CATEGORY_ANY.exec(q)?.[1];
   const years = /\b(\d{1,2})\s*years?\b/.exec(q)?.[1];
   if (cut && cutCategory) return ["run_scenario", { category: CATEGORY_WORDS[cutCategory], categoryCutPct: Number(cut[1] ?? cut[5]), ...(years ? { years: Number(years) } : {}) }];
   // Explaining the idea of a weekly budget is a lesson; asking what it is for them is the cash flow.
@@ -93,7 +94,7 @@ function firstTool(question: string): [string, Json] | null {
 const INVESTIGATION = ["find_patterns", "search_offers", "run_scenario", "explain_concept", "prepare_action"];
 
 // Words an answer from what the tools returned. Every number comes straight from a tool result.
-function wordAnswer(results: { name: string; body: Json }[], question = ""): string {
+function wordAnswer(results: { name: string; body: Json }[], question = "", summary: Json | null = null): string {
   const of = (name: string) => results.find((r) => r.name === name)?.body;
   const offers = of("search_offers");
   const best = offers?.best as Json | undefined;
@@ -103,7 +104,21 @@ function wordAnswer(results: { name: string; body: Json }[], question = ""): str
   if (best) parts.push(`${String(best.provider)} looks cheapest at about ${best.estimatedMonthlyCostEur} euros a month, saving about ${best.estimatedYearlySavingEur} euros a year against your bill of ${offers?.currentBillMonthlyEur} euros a month. These are example offers, not live prices.`);
   else if (offers && typeof offers.note === "string" && offers.note.includes("No matching options found")) parts.push(`No matching options found for ${String(offers.requirements)}. Want me to widen it, or look further?`);
   else if (offers) parts.push("No example offer is cheaper than your current bill.");
-  const flats = of("search_flats") ?? of("search_prices");
+  const homes = of("search_flats");
+  if (homes && typeof homes.project === "string") {
+    const matches = Number(homes.matchCount ?? 0);
+    const verify = Number(homes.needsVerificationCount ?? 0);
+    const first = (homes.matches as Json[] | undefined)?.[0];
+    const costs = first?.monthlyCosts as Json | undefined;
+    const upfront = first?.upfrontCosts as Json | undefined;
+    const lead = matches && first ? `${matches} of the example flats match all your requirements; the cheapest is ${String(first.address)} in ${String(first.district ?? homes.city)}, ${String(first.areaM2)} m² at ${String(costs?.rentEur)} euros a month (deposit ${typeof upfront?.depositEur === "number" ? `${upfront.depositEur} euros` : "unknown"}).` : "No matches yet among the example flats.";
+    const rest = verify ? ` ${verify} more need verification: the page does not state a detail you asked for.` : "";
+    const savingsOnly = Number(homes.withinRentLimitButNotAffordableWhileSavingCount ?? 0);
+    const keep = (homes.confirmedRequirements as Json | undefined)?.monthlySavingsEur;
+    const savingsLine = savingsOnly && typeof keep === "number" ? ` ${savingsOnly} ${savingsOnly === 1 ? "is" : "are"} within your rent limit, but not affordable while keeping ${keep} euros a month for savings.` : "";
+    parts.push(homes.project.startsWith("PREPARED") ? `${lead}${savingsLine}${rest} Would you like me to make this a project and keep checking?` : `${lead}${savingsLine}${rest} ${homes.project}`);
+  }
+  const flats = homes ? undefined : of("search_prices");
   if (flats && typeof flats.watch === "string") {
     const fitting = Array.isArray(flats.withinBudget ?? flats.withinPrice) ? ((flats.withinBudget ?? flats.withinPrice) as unknown[]).length : 0;
     const homes = "budgetPerMonthEur" in flats;
@@ -127,6 +142,13 @@ function wordAnswer(results: { name: string; body: Json }[], question = ""): str
   // "Why does my balance go below zero?" hears how often it did before the budget that helps avoid it.
   if (cash && /below zero|negative/i.test(question) && Number(cash.monthsBelowZeroInLast12) > 0) parts.push(`Your balance went below zero in ${cash.monthsBelowZeroInLast12} of the last 12 months.`);
   // A weekly figure far above the usual week is not a budget: the bills are covered, and this much is left after them.
+  // "Why do I keep running out before payday?": what the bank data shows, then one change.
+  if (cash && /\bwhy\b|what can i change|cut back|run(ning)? (out|short)/i.test(question)) {
+    const share = cash.shareOfEverydaySpendingInWeekAfterPaydayPct;
+    const top = biggestEveryday(summary);
+    if (typeof share === "number") parts.push(`About ${share}% of your everyday spending happens in the week after payday, so less is left for the weeks before it.`);
+    if (top) parts.push(`${top.category} is your biggest everyday cost at about ${top.monthlyEur} euros a month on average: spending less there is the one change that helps most.`);
+  }
   if (cash && weekly?.billsBeforePaydayCovered === true) parts.push(`Your bills before payday on ${String(cash.nextPaydayExpected)} are covered: about ${weekly.leftForSpendingEur} euros is left after them and a protected buffer of ${weekly.protectedBufferEur} euros.`);
   else if (cash && weekly) parts.push(`Your estimated weekly budget until payday on ${String(cash.nextPaydayExpected)} is about ${weekly.perWeekEur} euros, after your bills and a protected buffer of ${weekly.protectedBufferEur} euros.`);
   else if (cash) parts.push(`Your next payday is expected on ${String(cash.nextPaydayExpected)}, and your balance just before it should be about ${cash.expectedBalanceJustBeforePaydayEur} euros.`);
@@ -167,6 +189,14 @@ export async function* scriptedMockModel(options: StreamOptions): AsyncGenerator
     if (next === "explain_concept") return yield* callTool(next, { concept: "switching-bills" });
     if (next === "prepare_action" && best) return yield* callTool(next, { kind: "switch_contract", billType: "electricity" });
   } else if (canCallTools && !called.length) {
+    // v3: the housing conversation and a follow-up cut read the customer's earlier messages too.
+    const earlier = messages.slice(0, Math.max(userIndex, 0)).flatMap((m) => (m.role === "user" && typeof m.content === "string" ? [m.content] : []));
+    const home = housingStep(question, earlier, summaryOf(system), /You are talking with .+?, who lives in ([^.]+)\./.exec(system)?.[1] ?? null);
+    if (home && "speak" in home) return yield* speak(home.speak);
+    if (home) return yield* callTool(home.tool[0], home.tool[1]);
+    const cutAgain = followUpCut(question, earlier);
+    if (cutAgain) return yield* callTool(cutAgain[0], cutAgain[1]);
+    if (isHousingTalk(earlier) && /sav/i.test(question)) return yield* speak("Mock answer. Noted: I will treat that as a requirement on the rent, not a transfer. What is the most rent you would pay a month?");
     const clarify = clarifyingQuestion(question);
     if (clarify) return yield* speak(clarify);
     const tool = firstTool(question);
@@ -175,7 +205,7 @@ export async function* scriptedMockModel(options: StreamOptions): AsyncGenerator
     return yield* callTool("prepare_action", { kind: "switch_contract", billType: "electricity" });
   }
 
-  if (results.length) return yield* speak(wordAnswer(results, question));
+  if (results.length) return yield* speak(wordAnswer(results, question, summaryOf(system)));
   const perWeek = /"estimatedWeeklyBudgetUntilPayday":\{"perWeekEur":\s*([\d.]+)/.exec(system)?.[1];
   const left = /"billsBeforePaydayCovered":true,"leftAfterBillsAndBufferEur":\s*([\d.]+)/.exec(system)?.[1];
   const outlook = left ? `Your bills before payday are covered: about ${left} euros is left after them and the buffer.` : perWeek ? `Your estimated weekly budget until payday is about ${perWeek} euros.` : null;

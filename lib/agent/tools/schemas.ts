@@ -71,16 +71,18 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
   ),
   tool(
     "search_flats",
-    "Live search for flats to rent in a city within a monthly budget the customer said. If nothing fits, or they said yes to more checking, it prepares a Project for them to approve.",
+    "Live search for flats to rent in a city (Exa finds listing pages, Context.dev reads them) against the requirements the customer said: maximum rent, minimum floor area, savings to keep. Code checks each listing: match, needs verification, or an alternative that fails a requirement. It always prepares a Project the customer can start with Make this a project.",
     {
       city: { type: "string", description: "the city they named; leave out for where they live" },
       budgetEur: { type: "number", description: "the monthly rent they said" },
       minRooms: { type: "number", description: "only if they asked for a number of rooms" },
+      minAreaM2: { type: "number", description: "the smallest floor area in square metres they said (e.g. 'at least 40 m²')" },
+      monthlySavingsEur: { type: "number", description: "money they want to keep saving every month, if they said it ('keep €100 a month for savings'). A constraint on the rent, never a transfer" },
       goal: { type: "string", description: "the decision in their words, e.g. 'move to Espoo to save for a deposit'" },
       requirements: {
         type: "object",
-        description: "only what they said: districts, moveBy (YYYY-MM-DD), maxCommuteMinutes, commuteTo (a place), maxDepositEur, movingCostEur, bufferToKeepEur, savingsGoalEur",
-        properties: { districts: { type: "array", items: { type: "string" } }, moveBy: { type: "string" }, maxCommuteMinutes: { type: "number" }, commuteTo: { type: "string" }, maxDepositEur: { type: "number" }, movingCostEur: { type: "number" }, bufferToKeepEur: { type: "number" }, savingsGoalEur: { type: "number" } },
+        description: "only what they said: minAreaM2, monthlySavingsEur, savingsGoalEur (a total they are saving towards), districts, moveBy (YYYY-MM-DD), maxCommuteMinutes, commuteTo (a place), maxDepositEur, movingCostEur, bufferToKeepEur",
+        properties: { minAreaM2: { type: "number" }, monthlySavingsEur: { type: "number" }, savingsGoalEur: { type: "number" }, districts: { type: "array", items: { type: "string" } }, moveBy: { type: "string" }, maxCommuteMinutes: { type: "number" }, commuteTo: { type: "string" }, maxDepositEur: { type: "number" }, movingCostEur: { type: "number" }, bufferToKeepEur: { type: "number" } },
       },
       watch: { type: "boolean", description: "true if they said yes to you keeping on checking even though some flats fit" },
     },

@@ -7,12 +7,16 @@ import { buildOverview } from "@/lib/finance/overview";
 import { RENT_BUDGET_LIMITS } from "@/lib/finance/rent";
 import { withAudit } from "@/lib/store/audit";
 import { readState, updateState } from "@/lib/store/state";
-import type { Listing, ProjectStatus, PropertyWatch, WatchNotification, WatchProject, WatchRequirements } from "@/lib/types";
+import type { EvaluatedListing, Listing, Overview, ProjectStatus, PropertyWatch, WatchNotification, WatchProject, WatchRequirements } from "@/lib/types";
+import { listAlerts } from "./alerts";
 import { fits, ruleFor, withCurrentRequirements } from "./detect";
+import { evaluateListings, requirementChecks, verdictOf } from "./evaluate";
+import { projectEvidence } from "./evidence";
 import { findWatch, lastSuccessOf, listNotifications, nextCheckOf, replaceWatch, watchSubject } from "./index";
 import { closeMonitors, openMonitors } from "./monitoring";
 import { mergeRequirements } from "./requirements";
-import { watchScheduler } from "./scheduler";
+import { watchEvaluationRule } from "./rule";
+import { nextScheduledCheck, schedulerInfo, watchScheduler } from "./scheduler";
 
 const ONE_OFF_LIMITS: [number, number] = [5, 100_000];
 const MAX_MATCHES = 5;
@@ -36,6 +40,7 @@ export const asProject = (watch: PropertyWatch): PropertyWatch => ({
   pausedAt: watch.pausedAt ?? null,
   stoppedAt: watch.stoppedAt ?? null,
   stoppedBecause: watch.stoppedBecause ?? null,
+  nextScheduledCheckAt: watch.status === "active" ? nextScheduledCheck(new Date()) : null,
 });
 
 const notesOf = (watch: PropertyWatch): WatchNotification[] => listNotifications(watch.customerId).filter((note) => note.watchId === watch.id).map((note) => ({ ...note, readAt: note.readAt ?? null }));
@@ -53,11 +58,51 @@ export function currentMatches(watch: PropertyWatch): WatchProject["currentMatch
     .map((listing: Listing) => ({ listing, housing: overview && watch.priceUnit === "EUR/month" ? housingEffect(overview, listing, watch.requirements ?? {}, `project:${watch.id}:${listingKey(listing)}`) : null }));
 }
 
+const isFlat = (watch: PropertyWatch): boolean => watch.priceUnit === "EUR/month" && watch.topic === null;
+const uniqueListings = (watch: PropertyWatch): Listing[] => {
+  const seen = new Set<string>();
+  return watch.pages.flatMap((page) => page.listings).filter((listing) => !seen.has(listingKey(listing)) && !!seen.add(listingKey(listing)));
+};
+
+// Every listing the watch has read, judged with the Project's one rule: matches, then needs verification, then the
+// alternatives that fail a requirement. Each with its housing effect (recurring apart from upfront).
+export function evaluatedOf(watch: PropertyWatch, overview: Overview | null, now: Date = new Date()): EvaluatedListing[] {
+  const requirements = watch.requirements ?? {};
+  return evaluateListings(uniqueListings(watch), watchEvaluationRule(watch, overview, now), (listing) => (overview ? housingEffect(overview, listing, requirements, `project:${watch.id}:${listingKey(listing)}`) : null));
+}
+
+// The findings as they stand with the requirements as they are now: a finding whose listing now fails a
+// requirement is not shown (it is never a match), and every other one carries its current verdict and checks.
+function shownFindings(watch: PropertyWatch, notes: WatchNotification[], overview: Overview | null, now: Date = new Date()): WatchNotification[] {
+  if (!isFlat(watch)) return notes;
+  const rule = watchEvaluationRule(watch, overview, now);
+  return notes.flatMap((note) => {
+    const checks = requirementChecks(note.listing, rule);
+    const verdict = verdictOf(checks);
+    return verdict === "fails" ? [] : [{ ...note, verdict, checks }];
+  });
+}
+
 export function getProject(customerId: string, watchId: string): WatchProject | null {
   const watch = findWatch(customerId, watchId);
   if (!watch) return null;
-  const notifications = notesOf(watch);
-  return { customerId, watch: asProject(watch), notifications, unread: notifications.filter((note) => !note.readAt).length, currentMatches: currentMatches(watch), scheduler: watchScheduler() };
+  const overview = buildOverview(customerId);
+  const evaluated = isFlat(watch) ? evaluatedOf(watch, overview) : undefined;
+  const notifications = shownFindings(watch, notesOf(watch), overview);
+  const matches = evaluated ? evaluated.filter((entry) => entry.verdict === "match").slice(0, MAX_MATCHES).map((entry) => ({ listing: entry.listing, housing: entry.housing })) : currentMatches(watch);
+  const action = readState().actions.find((candidate) => candidate.id === watch.actionId && candidate.customerId === customerId) ?? null;
+  return {
+    customerId,
+    watch: asProject(watch),
+    notifications,
+    unread: notifications.filter((note) => !note.readAt).length,
+    currentMatches: matches,
+    scheduler: watchScheduler(),
+    ...(evaluated ? { evaluated } : {}),
+    evidence: projectEvidence(watch, notifications, action),
+    alerts: listAlerts(customerId).filter((alert) => alert.watchId === watch.id),
+    schedulerInfo: schedulerInfo(),
+  };
 }
 
 // The visitor's app looked at its watches: keeps them from stopping for inactivity. Saved at most once an hour.
@@ -118,8 +163,10 @@ export function updateWatch(customerId: string, watchId: string, edit: Edit, now
   const changed = [edit.budgetEur !== undefined ? `limit €${next.budgetEur}` : null, edit.minRooms !== undefined ? `rooms ${next.minRooms ?? "any"}` : null, edit.goal !== undefined ? "goal" : null, ...Object.keys(edit.requirements ?? {})].filter(Boolean).join(", ");
   // The findings already made are worked out again with the new requirements, so a finding never says "moving
   // costs not given" next to the moving costs the customer just saved.
-  const overview = edit.requirements ? buildOverview(customerId) : null;
-  const refresh = (note: WatchNotification): WatchNotification => (overview && note.watchId === watch.id && note.customerId === customerId ? withCurrentRequirements(note, next, overview, now) : note);
+  const overview = buildOverview(customerId);
+  const rule = watchEvaluationRule(next, overview, now);
+  const judged = (note: WatchNotification): WatchNotification => (isFlat(next) ? { ...note, checks: requirementChecks(note.listing, rule), verdict: verdictOf(requirementChecks(note.listing, rule)) } : note);
+  const refresh = (note: WatchNotification): WatchNotification => (note.watchId === watch.id && note.customerId === customerId ? judged(overview && edit.requirements ? withCurrentRequirements(note, next, overview, now) : note) : note);
   updateState((state) => withAudit({ ...replaceWatch(state, next), notifications: (state.notifications ?? []).map(refresh) }, { customerId, type: "watch_updated", actor: "user", actionId: watch.actionId, detail: `Changed the requirements for ${watchSubject(watch)}: ${changed || "nothing"}.` }, now));
   return { ok: true, project: getProject(customerId, watchId)! };
 }
