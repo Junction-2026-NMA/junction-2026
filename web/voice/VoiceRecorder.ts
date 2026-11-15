@@ -61,6 +61,8 @@ interface Meter {
   readonly source: MediaStreamAudioSourceNode;
   readonly analyser: AnalyserNode;
   readonly samples: Float32Array<ArrayBuffer>;
+  /** A context made for this meter alone (closed with it); null when it is on the app's shared context. */
+  readonly own: AudioContext | null;
 }
 
 /** The quietest level `level()` reports, in dBFS (AVAudioRecorder's floor). */
@@ -73,6 +75,8 @@ export class VoiceRecorder {
   private chunks: Blob[] = [];
   private startedAt: number | null = null;
   private limitTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Since when (ms) every reading has been exact digital silence; null while sound reaches the meter. */
+  private silentSince: number | null = null;
   private readonly onHidden = () => {
     if (document.visibilityState === "hidden" && this.isRecording) this.onAutoStop?.(true);
   };
@@ -108,8 +112,9 @@ export class VoiceRecorder {
   /**
    * Starts recording on the opened microphone. Throws when it cannot. Call `prepare()` first.
    * @param metering also measure the level, for `level()` (the hands-free conversation needs it).
+   * @param freshMeter measure on a context of its own instead of the shared one (see `meterIsSilent`).
    */
-  start(metering = false): void {
+  start(metering = false, freshMeter = false): void {
     const stream = this.stream;
     if (!stream) throw new Error("microphone not open");
     const mimeType = supportedType();
@@ -128,7 +133,8 @@ export class VoiceRecorder {
     });
     recorder.start();
     this.recorder = recorder;
-    this.meter = metering ? VoiceRecorder.makeMeter(stream) : null;
+    this.meter = metering ? VoiceRecorder.makeMeter(stream, freshMeter) : null;
+    this.silentSince = null;
     this.startedAt = Date.now();
     this.limitTimer = setTimeout(() => {
       if (this.recorder === recorder) this.onAutoStop?.(false);
@@ -145,7 +151,18 @@ export class VoiceRecorder {
     let sum = 0;
     for (let index = 0; index < samples.length; index += 1) sum += samples[index] * samples[index];
     const rms = Math.sqrt(sum / Math.max(samples.length, 1));
+    if (rms > 0) this.silentSince = null;
+    else this.silentSince ??= Date.now();
     return rms > 0 ? Math.max(20 * Math.log10(rms), silenceLevel) : silenceLevel;
+  }
+
+  /**
+   * True when the meter has read nothing but exact zeros for `ms`. A live microphone always has some noise, so this
+   * means no audio reaches the meter: on iPhone, coming back to the Sisu tab reopened the microphone outside a tap
+   * and the shared context (or the new track) delivered silence, so Sisu showed "Listening" and never heard anyone.
+   */
+  meterIsSilent(ms: number): boolean {
+    return this.isRecording && this.silentSince !== null && Date.now() - this.silentSince >= ms;
   }
 
   /** Stops and returns what was recorded (null when nothing was). Always closes the microphone. */
@@ -207,8 +224,12 @@ export class VoiceRecorder {
   }
 
   /** A level meter on the shared AudioContext, or null where Web Audio is missing. Not connected to the speakers. */
-  private static makeMeter(stream: MediaStream): Meter | null {
-    const ctx = audioContext();
+  private static makeMeter(stream: MediaStream, fresh: boolean): Meter | null {
+    const shared = audioContext();
+    // A context of its own when asked, or when the shared one is not running (a context made while the page is
+    // capturing may start without a tap in Safari).
+    const own = fresh || (shared !== null && shared.state !== "running") ? VoiceRecorder.newContext() : null;
+    const ctx = own ?? shared;
     if (!ctx) return null;
     try {
       if (ctx.state !== "running") void ctx.resume().catch(() => undefined);
@@ -217,7 +238,19 @@ export class VoiceRecorder {
       analyser.fftSize = 1024;
       analyser.smoothingTimeConstant = 0;
       source.connect(analyser);
-      return { source, analyser, samples: new Float32Array(new ArrayBuffer(analyser.fftSize * 4)) };
+      return { source, analyser, samples: new Float32Array(new ArrayBuffer(analyser.fftSize * 4)), own };
+    } catch {
+      void own?.close().catch(() => undefined);
+      return null;
+    }
+  }
+
+  private static newContext(): AudioContext | null {
+    if (typeof window === "undefined") return null;
+    const Context = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Context) return null;
+    try {
+      return new Context();
     } catch {
       return null;
     }
@@ -231,5 +264,6 @@ export class VoiceRecorder {
     } catch {
       // Already disconnected.
     }
+    void meter.own?.close().catch(() => undefined);
   }
 }
