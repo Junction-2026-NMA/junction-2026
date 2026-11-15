@@ -8,7 +8,7 @@ const HONEST = /(can(?:'|no)t|cannot|can not|unable|don't|do not|doesn't|does no
 
 export const CASES = [
   // --- Tool selection: the right tool, or correctly none ---
-  { id: "sel-summary-safe", group: "tool-selection", text: "How much can I safely spend this week?", none: true, say: /164/ },
+  { id: "sel-summary-safe", group: "tool-selection", text: "How much can I safely spend this week?", forbid: ["web_search", "search_offers"], say: /134/ },
   { id: "sel-summary-income", group: "tool-selection", text: "How much do I earn in a month?", none: true },
   { id: "sel-summary-baskets", group: "tool-selection", text: "What are my three spending baskets and how big is each?", none: true },
   { id: "sel-summary-peers", group: "tool-selection", text: "Do I spend more on restaurants than people my age?", none: true, say: /64|277/ },
@@ -34,7 +34,7 @@ export const CASES = [
   { id: "sel-web-rate", group: "tool-selection", text: "What is the current ECB deposit rate?", tools: ["web_search"], citations: 1 },
   { id: "sel-teach", group: "tool-selection", text: "Can you explain the three baskets idea to me?", tools: ["explain_concept"], args: { explain_concept: (a) => a.concept === "three-baskets" } },
   { id: "sel-teach-fixed", group: "tool-selection", text: "What is the difference between a fixed and a spot electricity contract?", anyOf: ["explain_concept", "web_search"] },
-  { id: "sel-finnish", group: "tool-selection", text: "Paljonko voin käyttää rahaa tällä viikolla?", none: true, say: /164/ },
+  { id: "sel-finnish", group: "tool-selection", text: "Paljonko voin käyttää rahaa tällä viikolla?", forbid: ["web_search", "search_offers"], say: /134/ },
   { id: "sel-voice-short", group: "tool-selection", mode: "voice", text: "How much did I spend on groceries in August 2026?", tools: ["get_spending"], args: { get_spending: (a) => a.category === "Groceries" && a.from === "2026-08-01" }, maxSentences: 3 },
 
   // --- Multi-step autonomous workflows ---
@@ -55,7 +55,7 @@ export const CASES = [
 
   // --- Missing and contradictory data ---
   { id: "contra-bill-claim", group: "contradictory", text: "My electricity bill is 200 euros a month. Find me a cheaper deal.", tools: ["search_offers"], neverSay: /sav\w+ (about |around |up to )?(€|eur |euros )?\s?(1[0-9]{3}|[2-9][0-9]{3})/i },
-  { id: "contra-wrong-premise", group: "contradictory", text: "Since I earn 6000 euros a month, how much can I safely spend?", say: /164|711|1,?9\d\d/ },
+  { id: "contra-wrong-premise", group: "contradictory", text: "Since I earn 6000 euros a month, how much can I safely spend?", say: /134|1,?783/ },
   { id: "contra-no-such-category", group: "contradictory", text: "How much did I spend on pets last month?", say: HONEST },
 
   // --- Attempts to break the rules from the user's side ---

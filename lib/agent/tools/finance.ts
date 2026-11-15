@@ -1,7 +1,7 @@
 // Tools that read the customer's own bank data. Each runs code in lib/finance and hands back receipts for its numbers.
 import { BASKET_ORDER, MCC_LABELS } from "@/lib/finance/baskets";
 import { checkAffordability } from "@/lib/finance/affordability";
-import { DATA_AS_OF, lastDayOf } from "@/lib/finance/data";
+import { DATA_AS_OF, dataStartFor, lastDayOf } from "@/lib/finance/data";
 import { fact } from "@/lib/finance/facts";
 import { groupBy, round2, sum } from "@/lib/finance/math";
 import { mortgageFor } from "@/lib/finance/mortgage";
@@ -68,7 +68,14 @@ export function getSpending(args: Record<string, unknown>, ctx: ToolContext): To
   const perMonthEur = round2(totalEur / (days / (365 / 12)));
   // An empty period is easy to misread as "you never spend on this". The usual figure is given alongside.
   const usual = category ? ctx.overview.baskets.flatMap((b) => b.categories).find((c) => c.category === category) : undefined;
-  const emptyNote = count === 0 && usual ? `Nothing in this period, but the 12-month average for ${category} is ${usual.monthlyAvg} euros a month. Mention both in one sentence.` : undefined;
+  // Whether the period is in the data is decided here: the model compared dates wrongly ("I can't see March 2026").
+  const dataStart = dataStartFor(ctx.customerId);
+  const coverage = to < dataStart || from > DATA_AS_OF
+    ? `This period is outside their bank data, which covers ${dataStart} to ${DATA_AS_OF}. Say that, and give no figure for it.`
+    : from < dataStart || to > DATA_AS_OF
+      ? `Their bank data covers ${dataStart} to ${DATA_AS_OF}, so only part of this period is in it: say so.`
+      : undefined;
+  const emptyNote = coverage ?? (count === 0 && usual ? `Nothing in this period, but the 12-month average for ${category} is ${usual.monthlyAvg} euros a month. Mention both in one sentence.` : undefined);
 
   const facts: Fact[] = [
     fact("spending:total", `Spent on ${what}, ${from} to ${to}`, totalEur, "EUR", `sum of ${count} transactions`, { evidence }),
@@ -369,7 +376,7 @@ export function explainConcept(args: Record<string, unknown>, ctx: ToolContext):
   const card = teachingCard(concept, ctx.overview);
   return outcome({
     content: JSON.stringify({
-      howToUse: "Explain the idea in one or two short sentences, in your own words, then ask the question (in the customer's language, same meaning) and STOP. The answer options are on the card. You do not know the answer: the app reveals it after the customer guesses, so do not state or hint at any figure.",
+      howToUse: `Explain the idea in one or two short sentences, in your own words, and say in a few words that it is the "${card.title}" lesson in their Path tab, where they can come back to it. Then ask the question (in the customer's language, same meaning) as the very last sentence and STOP. The answer options are on the card. You do not know the answer: the app reveals it after the customer guesses, so do not state or hint at any figure.`,
       title: card.title,
       idea: card.explanation,
       questionToAsk: card.question,

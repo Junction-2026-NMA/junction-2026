@@ -8,10 +8,12 @@ import { getMemory } from "@/lib/memory";
 import type { AffordabilityVerdict, AgentAction, AgentRequest, CashFlow, Citation, Fact, NumberCorrection, ResearchResult, SisuEvent, Stage, ToolTrace, TurnTimings } from "@/lib/types";
 import { getConfig } from "./config";
 import { investigationFiller, offerFiller, researchFiller } from "./fillers";
+import { allowedPathTitles, isStrayPathPointer, withoutStrayPathPointers } from "./path";
 import { APP_NOTE, BROKEN_TOOL_CALL, BROKEN_TRIP, type Trip, aboutHousing, asksForAdvice, asksForChart, asksToMoveMoney, checkSentence, isMetaTalk, withoutMetaTalk } from "./guards";
 import { type Sources, checkGrounding, correctNames, correctNumbers, numbersIn, overviewFacts, spelledToDigits } from "./grounding";
 import { type ChatMessage, type ToolCall, streamChat } from "./model";
 import { buildSystemPrompt, customerSummary } from "./prompt";
+import { periodNote } from "./periods";
 import { ensureResearch, isResearchReady } from "./research";
 import { createSentenceSplitter, forSpeech } from "./sentences";
 import { speculate } from "./speculate";
@@ -122,9 +124,9 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
   // The demo bank's balances after what the customer approved. Their figures are receipts like any other.
   const accounts = accountsFor(request.customerId);
   const messages: ChatMessage[] = [
-    { role: "system", content: buildSystemPrompt({ overview, city: customer.area, mode: request.mode, memory, investigate, language: request.language, actions: listActions(request.customerId), accounts, watches, notifications: watchNotes, bufferEur: appBuffer }) },
+    { role: "system", content: buildSystemPrompt({ overview, city: customer.area, mode: request.mode, memory, investigate, language: request.language, actions: listActions(request.customerId), accounts, watches, notifications: watchNotes, bufferEur: appBuffer, question: request.text }) },
     ...history.map((turn) => ({ role: turn.role, content: turn.content })),
-    { role: "user", content: forged ? `${request.text}\n\n${FORGED_NOTE}` : request.text },
+    { role: "user", content: forged ? `${request.text}\n\n${FORGED_NOTE}` : withPeriodNote(request.text) },
   ];
 
   const splitter = createSentenceSplitter();
@@ -183,10 +185,14 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
   // Whether this message asks for something to be set up. If not, "I moved 500 euros" can only be a report of what was done.
   const askedToAct = asksToMoveMoney(request.text) || /\b(switch|set (it |that |this |one )?up|prepare|arrange|go ahead|do it|move|transfer)\b/i.test(request.text);
   const guard = { trip: null as Trip | null, retriesLeft: MAX_GUARD_RETRIES, accepted: [] as string[], prepared: false, toolsCalled: 0 };
+  // The Path lessons a pointer may name this turn: the one code picked for the question, and any lesson taught now.
+  const taughtTitles: string[] = [];
+  const pathTitles = () => allowedPathTitles(request.text, overview, taughtTitles);
   function* emitSentences(sentences: string[]): Generator<SisuEvent> {
     for (const sentence of sentences) {
       if (guard.trip) return;
       if (isMetaTalk(sentence)) continue; // meant for the app, not the customer: never shown as a sentence or spoken
+      if (isStrayPathPointer(sentence, pathTitles())) continue; // a lesson that does not fit the question (lib/agent/path.ts)
       const fixed = fixSlips(sentence);
       if (guard.retriesLeft > 0) {
         const { facts, contextTexts } = sources();
@@ -344,7 +350,10 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
           yield { type: "stage", stage };
         }
         if (outcome.visual) yield { type: "visual", visual: outcome.visual };
-        if (outcome.teaching) yield { type: "teaching", card: outcome.teaching };
+        if (outcome.teaching) {
+          taughtTitles.push(outcome.teaching.title);
+          yield { type: "teaching", card: outcome.teaching };
+        }
         if (outcome.action) {
           guard.prepared = true;
           lastAction = outcome.action;
@@ -360,7 +369,7 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
     yield* emitSentences(splitter.flush());
 
     // Every number in the answer is checked against the receipts before the turn is declared done.
-    const finalText = correctNames(correctNumbers(isMetaTalk(answer) ? withoutMetaTalk(answer.split("<|")[0]) : answer.split("<|")[0], sources()).text, providerNames).text;
+    const finalText = correctNames(correctNumbers(withoutStrayPathPointers(isMetaTalk(answer) ? withoutMetaTalk(answer.split("<|")[0]) : answer.split("<|")[0], pathTitles()), sources()).text, providerNames).text;
     const suggestions = safeFollowUps({ overview, cashFlow: cashFlow(), city: customer.area, language: request.language, actions: listActions(request.customerId), watches }, { question: request.text, investigate, tools: [...called], action: lastAction, research: lastResearch, affordability });
     if (suggestions.length) yield { type: "suggestions", items: suggestions };
     const { facts: allFacts, contextTexts } = sources();
@@ -378,4 +387,9 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
     console.error("[agent] turn failed", error);
     yield { type: "error", message: (error as Error).message || "Sisu could not answer just now. Please try again." };
   }
+}
+
+function withPeriodNote(text: string): string {
+  const note = periodNote(text);
+  return note ? `${text}\n\n${note}` : text;
 }
