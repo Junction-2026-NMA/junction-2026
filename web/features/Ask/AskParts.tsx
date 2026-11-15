@@ -49,24 +49,22 @@ function DismissOnLeave({ onLeave }: { onLeave: () => void }) {
 /** The user's message: a beUI MessageBubble (web/agents), right-aligned in Sisu green. A question asked out loud
  *  carries a small microphone mark (the same bubble otherwise: typed and spoken turns are one conversation); one
  *  still being heard shows beUI's typing dots, and the bubble grows smoothly to the words once they arrive. A long
- *  question (a spoken one can run on) is clamped to five lines with "Show more" (beUI MessageBubbleCollapsible). */
-/** Characters past which a question is clamped (about five lines of the bubble on a phone). */
-const LONG_QUESTION = 240;
-
+ *  question (a spoken one can run on) is clamped to five lines with "Show more" (beUI MessageBubbleCollapsible); the
+ *  control appears only when lines are hidden. */
 export function UserBubble({ text, pending, spoken = false, animateIn = false }: { text: string; pending: boolean; spoken?: boolean; animateIn?: boolean }) {
   const listening = text === "" && pending;
   return (
     <MessageBubble variant="solid" animateIn={animateIn} layoutKey={text} role="group" aria-label={`${spoken ? "You said" : "You asked"}: ${listening ? "Listening…" : text}`}
       data-spoken={spoken ? "true" : "false"} data-testid="ask.user">
-      {text.length > LONG_QUESTION ? (
+      {listening ? (
+        <span aria-hidden="true">
+          {spoken ? <SpokenMark /> : null}
+          <MessageTyping label="Listening…" />
+        </span>
+      ) : (
         <MessageBubbleCollapsible lines={5} contentHidden>
           {spoken ? <SpokenMark /> : null}{text}
         </MessageBubbleCollapsible>
-      ) : (
-        <span aria-hidden="true" data-selectable>
-          {spoken ? <SpokenMark /> : null}
-          {listening ? <MessageTyping label="Listening…" /> : text}
-        </span>
       )}
     </MessageBubble>
   );

@@ -450,6 +450,10 @@ button.sisu-agent-prompt-send[data-variant="stop"]:focus-visible {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* The fade only when lines are actually hidden. */
+.sisu-agent-collapsible[data-state="closed"][data-overflow="true"] .sisu-agent-collapsible-content {
   -webkit-mask-image: linear-gradient(to bottom, #000 68%, transparent 100%);
   mask-image: linear-gradient(to bottom, #000 68%, transparent 100%);
 }

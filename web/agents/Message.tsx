@@ -6,7 +6,7 @@
 // applies (web/theme/motion).
 import { ChevronDown } from "lucide-react";
 import { motion, type HTMLMotionProps } from "motion/react";
-import { createContext, useContext, useId, useState, type ComponentPropsWithRef, type ReactNode } from "react";
+import { createContext, useContext, useId, useLayoutEffect, useRef, useState, type ComponentPropsWithRef, type ReactNode } from "react";
 import { useReducedMotion } from "@/web/theme/motion";
 import { EASE_OUT, SPRING_BUBBLE, SPRING_LAYOUT, SPRING_POP_UP, SPRING_SWAP, cx } from "./motion";
 import "./agents.css";
@@ -89,27 +89,45 @@ export function MessageBubble({ variant = "soft", animateIn = false, layoutKey, 
   );
 }
 
-/** beUI MessageBubbleCollapsible: long content clamped to `lines` lines with a fade, and "Show more" / "Show less".
- *  `content` is what is clamped; it may be hidden from screen readers when the bubble is labelled as a whole. */
+/** beUI MessageBubbleCollapsible: content clamped to `lines` lines with a fade and "Show more" / "Show less". It
+ *  measures itself, so the control appears only when something is actually hidden (a short question shows as it is).
+ *  `contentHidden`: the content is hidden from screen readers when the bubble is labelled as a whole. */
 export function MessageBubbleCollapsible({ lines = 5, contentHidden = false, children }: { lines?: number; contentHidden?: boolean; children: ReactNode }) {
   const reduce = useReducedMotion();
   const notifyLayout = useContext(BubbleLayoutContext);
   const contentId = useId();
+  const content = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
+  const [overflowing, setOverflowing] = useState(false);
+
+  // While clamped, more lines than fit means there is something to show. Open, the control stays ("Show less").
+  useLayoutEffect(() => {
+    const element = content.current;
+    if (!element || open) return;
+    const measure = () => setOverflowing(element.scrollHeight > element.clientHeight + 1);
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [open, children]);
+
   return (
-    <div className="sisu-agent-collapsible" data-state={open ? "open" : "closed"}>
-      <div id={contentId} aria-hidden={contentHidden || undefined} className="sisu-agent-collapsible-content"
+    <div className="sisu-agent-collapsible" data-state={open ? "open" : "closed"} data-overflow={overflowing ? "true" : "false"}>
+      <div ref={content} id={contentId} aria-hidden={contentHidden || undefined} className="sisu-agent-collapsible-content"
         style={open ? undefined : { WebkitLineClamp: lines }} data-selectable>
         {children}
       </div>
-      <button type="button" className="sisu-agent-collapsible-toggle" aria-expanded={open} aria-controls={contentId}
-        onClick={() => { notifyLayout(); setOpen((was) => !was); }}>
-        <span>{open ? "Show less" : "Show more"}</span>
-        <motion.span aria-hidden="true" className="sisu-agent-collapsible-chevron" animate={{ rotate: open ? 180 : 0 }}
-          transition={reduce ? { duration: 0 } : SPRING_SWAP}>
-          <ChevronDown size={14} strokeWidth={2.2} />
-        </motion.span>
-      </button>
+      {overflowing ? (
+        <button type="button" className="sisu-agent-collapsible-toggle" aria-expanded={open} aria-controls={contentId}
+          onClick={() => { notifyLayout(); setOpen((was) => !was); }}>
+          <span>{open ? "Show less" : "Show more"}</span>
+          <motion.span aria-hidden="true" className="sisu-agent-collapsible-chevron" animate={{ rotate: open ? 180 : 0 }}
+            transition={reduce ? { duration: 0 } : SPRING_SWAP}>
+            <ChevronDown size={14} strokeWidth={2.2} />
+          </motion.span>
+        </button>
+      ) : null}
     </div>
   );
 }
