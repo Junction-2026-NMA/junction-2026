@@ -13,6 +13,7 @@ import type {
   PrepareActionRequest,
   ResearchRequest,
   SpeechRequest,
+  PaydayOverrides,
 } from "./CoachModels";
 import { ApproveAllRequest, type PlanRequest } from "./PlanModels";
 import type { WatchRequirements } from "./WatchModels";
@@ -137,7 +138,17 @@ export class CoachEndpoints {
   // MARK: Coach (no model, instant)
 
   static patterns(baseURL: string, customerId: string) { return CoachEndpoints.get(baseURL, "/api/coach/patterns", [["customerId", customerId]]); }
-  static cashFlow(baseURL: string, customerId: string) { return CoachEndpoints.get(baseURL, "/api/coach/cash-flow", [["customerId", customerId]]); }
+  /** v2 payday: `overrides` (the payday and bills the person confirmed) go as `paydayDate` and `extraBills` (JSON). */
+  static cashFlow(baseURL: string, customerId: string, overrides: PaydayOverrides | null = null) {
+    return CoachEndpoints.get(baseURL, "/api/coach/cash-flow", [["customerId", customerId], ...CoachEndpoints.paydayQuery(overrides)]);
+  }
+
+  static paydayQuery(overrides: PaydayOverrides | null): [string, string][] {
+    return [
+      ...(overrides?.paydayDate ? [["paydayDate", overrides.paydayDate] as [string, string]] : []),
+      ...(overrides?.extraBills?.length ? [["extraBills", JSON.stringify(overrides.extraBills)] as [string, string]] : []),
+    ];
+  }
 
   static affordability(baseURL: string, customerId: string, amountEur: number) {
     return CoachEndpoints.get(baseURL, "/api/coach/affordability", [["customerId", customerId], ["amountEur", CoachEndpoints.number(amountEur)]]);
@@ -280,12 +291,13 @@ export class CoachEndpoints {
    * `focusBill` (only when set), `language` and `bufferEur` (the person's protected buffer in euros, only when set).
    * Answers with the event stream. */
   static voiceTurn(baseURL: string, customerId: string, audio: FormBytes, fileName: string, mimeType: string,
-    history: ChatTurn[] = [], focusBill: BillType | null = null, language = "auto", bufferEur: number | null = null): SisuRequest {
+    history: ChatTurn[] = [], focusBill: BillType | null = null, language = "auto", bufferEur: number | null = null, payday: PaydayOverrides | null = null): SisuRequest {
     const form = new MultipartForm().file("audio", fileName, mimeType, audio).field("customerId", customerId)
       .field("history", Endpoints.encode(history));
     if (focusBill != null) form.field("focusBill", focusBill);
     form.field("language", language);
     if (bufferEur != null && Number.isFinite(bufferEur) && bufferEur >= 0) form.field("bufferEur", CoachEndpoints.number(bufferEur));
+    CoachEndpoints.paydayQuery(payday).forEach(([name, value]) => form.field(name, value));
     const request = CoachEndpoints.multipart(baseURL, "/api/voice/turn", form, CoachEndpoints.streamTimeout);
     return { ...request, headers: { ...request.headers, Accept: "text/event-stream" } };
   }

@@ -44,6 +44,7 @@ import {
   type Affordability,
   MemoryKind,
   SisuEvent,
+  type PaydayOverrides,
 } from "./CoachModels";
 import { CoachEndpoints, type FormBytes } from "./CoachEndpoints";
 import { ApproveAllResult, PlanEvent, type Visual, VisualList } from "./PlanModels";
@@ -250,7 +251,7 @@ export class CoachClient implements SisuAPI {
   patterns(customerId: string) { return this.call(CoachEndpoints.patterns(this.baseURL, customerId), field<Pattern[]>("patterns")); }
 
   /** `GET /api/coach/cash-flow` */
-  cashFlow(customerId: string) { return this.call(CoachEndpoints.cashFlow(this.baseURL, customerId), object<CashFlow>(["customerId", "cycles", "steps"])); }
+  cashFlow(customerId: string, overrides: PaydayOverrides | null = null) { return this.call(CoachEndpoints.cashFlow(this.baseURL, customerId, overrides), object<CashFlow>(["customerId", "cycles", "steps"])); }
 
   /** `GET /api/coach/affordability` */
   affordability(customerId: string, amountEur: number) {
@@ -393,8 +394,8 @@ export class CoachClient implements SisuAPI {
   /** `POST /api/voice/turn` as a stream of events. It starts with `transcript` (what was heard). `bufferEur` is the
    *  person's protected buffer (left out when null). */
   voiceTurn(customerId: string, audio: FormBytes, fileName: string, mimeType: string, history: ChatTurn[] = [],
-    focusBill: BillType | null = null, language = "auto", signal?: AbortSignal | null, bufferEur: number | null = null) {
-    return this.events(CoachEndpoints.voiceTurn(this.baseURL, customerId, audio, fileName, mimeType, history, focusBill, language, bufferEur), signal);
+    focusBill: BillType | null = null, language = "auto", signal?: AbortSignal | null, bufferEur: number | null = null, payday: PaydayOverrides | null = null) {
+    return this.events(CoachEndpoints.voiceTurn(this.baseURL, customerId, audio, fileName, mimeType, history, focusBill, language, bufferEur, payday), signal);
   }
 
   // MARK: SisuAPI (the four data routes through the same transport)

@@ -15,6 +15,9 @@ import { AppPrefs } from "./AppPrefs";
 import { type AppState, type AppStored, Keys, billKey, clearPersonalData, derive, stringDictionary } from "./AppState";
 import { type AppTab, type Celebration, EvidenceRequest, LoadState, type TodaySheet } from "./AppTypes";
 import { CoachStore } from "./CoachStore";
+import { paydayStore } from "./PaydayStore";
+import type { ConceptId } from "@/web/core/CoachModels";
+import { LessonAttempt } from "@/web/core/AppLogic/LessonFollowUps";
 import { LaunchOptions } from "./LaunchOptions";
 
 export class AppModel extends Store<AppState> {
@@ -70,6 +73,7 @@ export class AppModel extends Store<AppState> {
     this.now = now;
     this.timeZone = timeZone;
     this.coach.attachDefaults(defaults);
+    paydayStore.attach(defaults);
     this.coach.setLanguage(stored.prefs.language);
     this.coach.setBuffer(stored.prefs.bufferEur);
     this.coach.onApprovedSaving = (saving) => {
@@ -138,6 +142,16 @@ export class AppModel extends Store<AppState> {
     if (question.trim() === "") return;
     this.coach.conversation?.end();
     this.coach.ask(question);
+  }
+
+  /** v2 payday: opens a Path lesson straight from an answer ("Lesson: how your payday budget is worked out"), even
+   *  before its turn in the path. It is left as the lesson to resume, which the Path tab opens when it appears. */
+  openLesson(concept: ConceptId): void {
+    const customerId = this.state.customer?.customerId;
+    if (!customerId) return;
+    this.defaults.setJSON(`${Keys.lessonAttemptPrefix}${customerId}`, { ...LessonAttempt.make(concept), resume: true });
+    this.coach.conversation?.end();
+    this.set({ tab: "path", historyOpen: false, openProjectId: null });
   }
 
   /** Swift `model.evidence = …` (null closes the sheet). */

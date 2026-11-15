@@ -29,6 +29,7 @@ import {
   InvestigateRequest,
   SisuEvent,
   WarmResponse,
+  type PaydayOverrides,
 } from "./CoachModels";
 import type { FormBytes } from "./CoachEndpoints";
 import type { Visual } from "./PlanModels";
@@ -275,6 +276,9 @@ export class CoachSession extends Store<CoachSessionState> {
   /** The person's protected buffer in euros (AppPrefs.bufferEur), sent with every typed and spoken question so the
    *  answer keeps the same buffer as Today. Null when none was set (the field is left out). */
   bufferEur: number | null;
+  /** v2 payday: the payday and bills the person confirmed for this customer (web/app/PaydayStore.ts), read when a
+   *  question is sent, so the answer uses the same figures as Today. Null sends none. */
+  paydayFor: ((customerId: string) => PaydayOverrides | null) | null = null;
   speech: SpeechOutput | null;
 
   private history: ChatTurn[] = [];
@@ -454,14 +458,15 @@ export class CoachSession extends Store<CoachSessionState> {
     this.turnAbort = controller;
     const { customerId, client, history, focusBill } = this;
     const bufferEur = CoachSession.validBuffer(this.bufferEur);
+    const payday = this.paydayFor?.(customerId) ?? null;
 
     const userText = input.kind === "typed" ? input.text : input.kind === "investigate" ? CoachSession.investigateText : "";
     const stream =
       input.kind === "typed"
-        ? client.ask({ ...AgentRequest.make({ customerId, text: input.text, mode, history, focusBill, language: chosen }), ...(bufferEur === null ? {} : { bufferEur }) }, controller.signal)
+        ? client.ask({ ...AgentRequest.make({ customerId, text: input.text, mode, history, focusBill, language: chosen }), ...(bufferEur === null ? {} : { bufferEur }), ...(payday?.paydayDate ? { paydayDate: payday.paydayDate } : {}), ...(payday?.extraBills?.length ? { extraBills: payday.extraBills } : {}) }, controller.signal)
         : input.kind === "investigate"
           ? client.investigate(InvestigateRequest.make({ customerId, mode, text: input.focus, language: chosen }), controller.signal)
-          : client.voiceTurn(customerId, input.audio, input.fileName, input.mimeType, history, focusBill, input.language === "" ? "auto" : input.language, controller.signal, bufferEur);
+          : client.voiceTurn(customerId, input.audio, input.fileName, input.mimeType, history, focusBill, input.language === "" ? "auto" : input.language, controller.signal, bufferEur, payday);
 
     const userId = this.makeId();
     const replyId = this.makeId();

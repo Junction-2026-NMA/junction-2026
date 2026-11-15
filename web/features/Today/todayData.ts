@@ -7,6 +7,8 @@
 import { useEffect, useState } from "react";
 import { useAppModel, useAppSelector } from "@/web/app/AppProvider";
 import { CoachClient } from "@/web/core/CoachClient";
+import { PaydayBudget } from "@/web/core/AppLogic/PaydayBudget";
+import { usePaydayOverrides } from "@/web/app/PaydayStore";
 import type { CashFlow } from "@/web/core/CoachModels";
 import type { Transaction } from "@/web/core/Models";
 
@@ -40,17 +42,19 @@ function useRemote<T>(key: string | null, load: () => Promise<T>): Remote<T> {
   return state.key === key ? state.remote : { kind: "loading" };
 }
 
-/** The cash flow of the shown customer. */
+/** The cash flow of the shown customer, with the payday and bills they confirmed (v2 payday) worked in: by the
+ *  backend when it supports them, else by the same rule here (PaydayBudget.apply). */
 export function useCashFlow(): Remote<CashFlow> {
   const customerId = useAppSelector((s) => s.customer?.customerId ?? null);
   const live = useAppSelector((s) => s.isLive);
   const baseURL = useAppSelector((s) => s.baseURLString);
-  const key = customerId === null ? null : `${live ? `live:${baseURL}` : "sample"}|${customerId}`;
+  const overrides = usePaydayOverrides(customerId);
+  const key = customerId === null ? null : `${live ? `live:${baseURL}` : "sample"}|${customerId}|${JSON.stringify(overrides)}`;
   return useRemote(key, () => {
     const cached = cashFlows.get(key ?? "");
     if (cached) return cached;
     const client = live ? CoachClient.live(baseURL) : CoachClient.sample();
-    const request = client.cashFlow(customerId ?? "");
+    const request = client.cashFlow(customerId ?? "", overrides).then((flow) => PaydayBudget.apply(flow, overrides));
     // A failure is not kept, so the next visit to Today asks again.
     request.catch(() => cashFlows.delete(key ?? ""));
     cashFlows.set(key ?? "", request);

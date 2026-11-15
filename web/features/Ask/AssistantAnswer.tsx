@@ -17,6 +17,7 @@ import { useReducedMotion } from "@/web/theme/motion";
 import { ActionCard } from "./ActionCard";
 import { AnswerDetails } from "./AnswerDetails";
 import { MemoryLine } from "./CardParts";
+import { PaydayAnswerPanel } from "./PaydayAnswerPanel";
 import { ChartCard } from "./ChartCard";
 import { QuizCard } from "./QuizCard";
 import { ResultLine } from "./ResultLine";
@@ -57,6 +58,7 @@ export function AssistantAnswer({ message, actions, retry, isNew }: {
           </div>
         ) : null}
         {!message.pending ? <div data-anchor={anchor("details")}><AnswerDetails view={view} /></div> : null}
+        {!message.pending ? <PaydayAnswerPanel message={message} /> : null}
       </SisuCard>
       {stage != null && stage !== "done" ? (
         <div data-anchor={anchor("indicator")}>

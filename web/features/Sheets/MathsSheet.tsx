@@ -1,10 +1,14 @@
 "use client";
-// "How this is worked out": the estimated weekly budget step by step (balance, each bill due before payday, the
-// buffer, what is left, the weeks to payday), the usual pace and what it leaves just before payday, one realistic
-// adjustment and its effect, and the assumptions behind it. Every figure comes from WeeklyBudget; nothing here is
-// called "safe to spend".
+// "Show the maths": the estimated budget until payday step by step (balance, each bill due before payday, the
+// buffer, what is left, the weeks to payday), where payday can be changed and a bill added (v2 payday), the usual
+// pace and what it leaves just before payday, one practical cut-back, and the assumptions behind it. Every figure
+// comes from WeeklyBudget and the cash flow; nothing here is called "safe to spend".
 import { useState } from "react";
-import { useAppModel } from "@/web/app/AppProvider";
+import { useAppModel, useAppSelector } from "@/web/app/AppProvider";
+import { PaydayBudget } from "@/web/core/AppLogic/PaydayBudget";
+import type { CashFlow } from "@/web/core/CoachModels";
+import { Money } from "@/web/core/Presentation";
+import { PaydayEditor } from "@/web/features/Today/PaydayEditor";
 import { TodayFocus, TodayPresenter } from "@/web/core/AppLogic/AppPresenters";
 import { type BudgetLine, WeeklyBudget, WeeklyBudgetText } from "@/web/core/AppLogic/WeeklyBudget";
 import type { Overview } from "@/web/core/Models";
@@ -13,10 +17,12 @@ import { SheetFrame } from "./SheetFrame";
 import "./sheets.css";
 import "./maths.css";
 
-export function MathsSheet({ open, overview, budget, cashFlowAssumptions, onBuffer, onClose }: {
+export function MathsSheet({ open, overview, budget, cashFlow = null, cashFlowAssumptions, onBuffer, onClose }: {
   open: boolean;
   overview: Overview | null;
   budget: WeeklyBudget.Result | null;
+  /** The cash flow the budget came from (its basis and cut-back), null when not loaded. */
+  cashFlow?: CashFlow | null;
   /** The cash flow's own assumptions (the payday day, the averages). */
   cashFlowAssumptions: readonly string[];
   onBuffer: () => void;
@@ -29,35 +35,50 @@ export function MathsSheet({ open, overview, budget, cashFlowAssumptions, onBuff
   const current = ready ?? shown;
 
   return (
-    <SheetFrame open={open && current !== null} onClose={onClose} title="How this is worked out" testId="sheet.maths">
+    <SheetFrame open={open && current !== null} onClose={onClose} title={WeeklyBudgetText.mathsTitle} testId="sheet.maths">
       {current ? (
-        <MathsContent budget={current.budget} overview={current.overview} cashFlowAssumptions={cashFlowAssumptions}
+        <MathsContent budget={current.budget} overview={current.overview} cashFlow={cashFlow} cashFlowAssumptions={cashFlowAssumptions}
           onBuffer={onBuffer} onClose={onClose} />
       ) : null}
     </SheetFrame>
   );
 }
 
-function MathsContent({ budget, overview, cashFlowAssumptions, onBuffer, onClose }: {
+function MathsContent({ budget, overview, cashFlow, cashFlowAssumptions, onBuffer, onClose }: {
   budget: WeeklyBudget.Ready;
   overview: Overview;
+  cashFlow: CashFlow | null;
   cashFlowAssumptions: readonly string[];
   onBuffer: () => void;
   onClose: () => void;
 }) {
   const model = useAppModel();
+  const customerId = useAppSelector((s) => s.customer?.customerId ?? null);
   const pace = WeeklyBudgetText.pace(budget);
-  const adjustment = WeeklyBudgetText.adjustment(budget);
-  const assumptions = [...WeeklyBudgetText.assumptions, ...cashFlowAssumptions.slice(0, 1)];
+  const cut = cashFlow?.cutBack ?? null;
+  const adjustment = cut
+    ? `Spend ${cut.cutPct}% less at ${cut.category.toLowerCase()} → about ${Money.format(cut.freesPerMonthEur, "en", true)} a month freed. ${cut.baselineText ?? ""}`.trim()
+    : WeeklyBudgetText.adjustment(budget);
+  const assumptions = [...PaydayBudget.assumptions(cashFlow?.basis, budget.bufferIsDefault), ...WeeklyBudgetText.assumptions, ...cashFlowAssumptions.slice(0, 1)];
+  const headline = `${WeeklyBudgetText.budgetTitle}: ${Money.format(Math.max(budget.leftEur, 0), "en", true)} ${WeeklyBudgetText.period(budget, cashFlow?.basis)}.`;
   const ask = () => { onClose(); model.askSisu(TodayFocus.paydayQuestion); };
 
   return (
     <div className="sisu-sheet-content">
+      <p className="sisu-sheet-button-text" data-testid="maths.headline">{headline}</p>
       <p className="sisu-sheet-text">What is left after the bills Sisu knows about and your buffer, spread over the weeks until payday.</p>
       <Lines lines={WeeklyBudgetText.lines(budget, overview.dataTimestamp)} />
       <button type="button" className="sisu-maths-link" onClick={onBuffer}>
         {budget.bufferIsDefault ? "Set your buffer" : "Change your buffer"}
       </button>
+      {customerId ? (
+        <>
+          <h3 className="sisu-maths-heading">Change payday or add a bill</h3>
+          <SisuCard>
+            <PaydayEditor customerId={customerId} dataDate={overview.dataTimestamp} nextPayday={budget.nextPayday} testPrefix="maths" />
+          </SisuCard>
+        </>
+      ) : null}
       {pace.length > 0 ? (
         <>
           <h3 className="sisu-maths-heading">At your usual pace</h3>
@@ -66,7 +87,7 @@ function MathsContent({ budget, overview, cashFlowAssumptions, onBuffer, onClose
       ) : null}
       {adjustment ? (
         <>
-          <h3 className="sisu-maths-heading">One adjustment</h3>
+          <h3 className="sisu-maths-heading">{cut ? "One thing to cut back on" : "One adjustment"}</h3>
           <SisuCard>
             <p className="sisu-sheet-text" data-testid="maths.adjustment">{adjustment}</p>
             <button type="button" className="sisu-maths-link" onClick={ask}>Plan this week with Sisu</button>

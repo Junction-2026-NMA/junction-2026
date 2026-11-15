@@ -1,5 +1,5 @@
 "use client";
-// The details of one answer, closed at first: the offers compared, how it was worked out (what stood out, the
+// The details of one answer, closed at first: the offers compared, "Show the maths" (what stood out, the
 // transactions, each calculation's steps, the futures, the tool calls and timing), the assumptions (each once per
 // answer) and the sources (labelled, with when they were read and a link). Replaces the stage cards and the
 // "How Sisu worked this out" drawer of the iOS port, which repeated the same figures several times. When the answer
@@ -33,7 +33,7 @@ export function AnswerDetails({ view }: { view: AnswerView }) {
         </Disclosure>
       ) : null}
       {hasHow ? (
-        <Disclosure label="How this was worked out" testId="how">
+        <Disclosure label="Show the maths" testId="how">
           {view.how.map((block) => <HowSection key={block.id} block={block} />)}
           {inHow ? (
             <div className="sisu-answer-section">

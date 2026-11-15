@@ -264,7 +264,25 @@ export interface CashFlow {
   /** Newer backends only (lib/finance/budget.ts): the estimated weekly budget the coach's answers use. Read through
    *  `WeeklyBudget.inputs`, which takes its default buffer so Today and Sisu's answers agree; absent on today's hosted one. */
   weeklyBudget?: CashFlowWeeklyBudget | null;
+  /** v2 payday (newer backends): where payday and the bills come from, the headline label and the period in words. */
+  basis?: CashFlowBasis | null;
+  /** v2 payday: one practical cut-back, from the largest flexible everyday category. */
+  cutBack?: CashFlowCutBack | null;
 }
+
+/** v2 payday: a bill the person added that the history does not show. `dueDate` is YYYY-MM-DD. */
+export interface ExtraBill { label: string; amountEur: number; dueDate: string }
+/** v2 payday: what the person confirmed for the budget until payday (sent with the cash flow and every question). */
+export interface PaydayOverrides { paydayDate?: string; extraBills?: ExtraBill[] }
+export interface CashFlowBasis {
+  payday?: "history" | "confirmed" | string;
+  bills?: "history" | "history+added" | string;
+  label?: string;
+  /** "until payday on Thu 15 Oct, 15 days" */
+  periodText?: string;
+  addedBills?: (ExtraBill & { counted?: boolean })[];
+}
+export interface CashFlowCutBack { category: string; averagePerMonthEur: number; cutPct: number; freesPerMonthEur: number; freesPerYearEur: number; baselineText?: string }
 
 /** `CashFlow.weeklyBudget` (every field optional: decoded defensively, only the buffer is used). */
 export interface CashFlowWeeklyBudget {
@@ -682,6 +700,9 @@ export interface AgentRequest {
   focusBill?: BillType | null;
   /** ISO 639-1 code, or `auto`. Null lets the server answer in the language of the text. */
   language?: string | null;
+  /** v2 payday: the payday and bills the person confirmed in the app, so the chat and Today agree. */
+  paydayDate?: string;
+  extraBills?: ExtraBill[];
 }
 export const AgentRequest = {
   make: (r: Omit<AgentRequest, "mode"> & { mode?: string }): AgentRequest => ({ ...r, mode: r.mode ?? "text" }),

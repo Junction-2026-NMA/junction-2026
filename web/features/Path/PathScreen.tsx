@@ -65,7 +65,7 @@ function LessonPathScreen() {
       // Back from "Ask Sisu": the lesson opens again where it was left.
       if (cancelled || path.state.kind !== "loaded" || path.getSnapshot().openLesson) return;
       const resume = path.takeResume();
-      if (resume) path.open(resume);
+      if (resume) path.open(resume, true);
     };
     void run();
     return () => { cancelled = true; };
