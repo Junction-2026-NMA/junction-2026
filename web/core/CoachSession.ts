@@ -35,6 +35,7 @@ import type { Visual } from "./PlanModels";
 import { SisuEventStreamParser } from "./ServerSentEvents";
 import { ReplayTransport } from "./Transport";
 import { JSONRead } from "./Models";
+import { ConversationHistory } from "./ConversationHistory";
 
 /** Plays Sisu's voice. The app implements it (web/voice); this package has no audio code. */
 export interface SpeechOutput {
@@ -98,6 +99,8 @@ export interface CoachMessage {
   visuals: Visual[];
   /** What Sisu is doing, one line per tool call, in order ("What Sisu is doing" / "What Sisu did"). */
   steps: CoachStep[];
+  /** A question asked out loud in the hands-free conversation. Absent on typed questions and on answers. */
+  spoken?: boolean;
 }
 
 export const CoachMessage = {
@@ -407,6 +410,15 @@ export class CoachSession extends Store<CoachSessionState> {
     this.update({ messages: [] });
   }
 
+  /** Puts a stored conversation back (the chat history drawer): its messages, settled, and the model history rebuilt
+   *  from its questions and answers, so the next question, typed or spoken, keeps that context. */
+  restore(messages: readonly CoachMessage[]): void {
+    this.cancel();
+    const restored = CoachSession.settled(messages.map((m) => CoachMessage.make(m.id, m.role, m)));
+    this.history = ConversationHistory.chatTurns(restored);
+    this.update({ messages: restored });
+  }
+
   /** Call when the microphone opens and closes. Opening it interrupts Sisu. */
   setRecording(recording: boolean): void {
     if (recording) this.cancel();
@@ -440,7 +452,7 @@ export class CoachSession extends Store<CoachSessionState> {
     const userId = this.makeId();
     const replyId = this.makeId();
     this.update({
-      messages: [...this.state.messages, CoachMessage.make(userId, "user", { text: userText, pending: userText === "" }), CoachMessage.make(replyId, "assistant", { pending: true })],
+      messages: [...this.state.messages, CoachMessage.make(userId, "user", { text: userText, pending: userText === "", ...(input.kind === "voice" ? { spoken: true } : {}) }), CoachMessage.make(replyId, "assistant", { pending: true })],
       moment: null,
       working: SisuActivity.make("thinking"),
       task: null,

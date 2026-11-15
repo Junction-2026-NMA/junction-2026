@@ -13,7 +13,12 @@
 //   voiceUp()         the VoiceButton's `pressUp`: stop recording and send it here.
 // `conversation` is the hands-free conversation of the Talk screen for the same session (web/voice/
 // ConversationController.ts). It shares the voice controller's speech player, so "Speak replies" applies to it too.
-import { CoachErrors, CoachSession, Store } from "@/web/core/CoachSession";
+//
+// HISTORY: the conversation on screen is saved to this device after every answer (`Keys.conversations`, per
+// customer, web/core/ConversationHistory.ts). `newConversation()` starts a fresh one, `openConversation(id)` puts a
+// saved one back into the session (with its model context), `deleteConversation(id)` forgets one.
+import { CoachErrors, CoachSession, Store, makeUUID, type CoachMessage } from "@/web/core/CoachSession";
+import { ConversationHistory, type ConversationArchive, type SavedConversation } from "@/web/core/ConversationHistory";
 import { ActionStatus, type AgentAction, type TeachingCard } from "@/web/core/CoachModels";
 import { CoachText, TeachingQuiz } from "@/web/core/CoachPresentation";
 import type { RiveBindings } from "@/web/core/RiveContract";
@@ -21,6 +26,8 @@ import { ConversationController } from "@/web/voice/ConversationController";
 import { VoiceController, fixtureRecording } from "@/web/voice/VoiceController";
 import { VoiceLaunch } from "@/web/voice/VoiceLaunch";
 import { TalkLaunch } from "@/web/features/Talk/TalkLaunch";
+import { Keys } from "./AppState";
+import type { SisuDefaults } from "./Defaults";
 
 export interface CoachStoreState {
   /** The conversation for the chosen customer. Null before a customer is chosen. */
@@ -40,6 +47,10 @@ export interface CoachStoreState {
   readonly decisionNotices: Readonly<Record<string, string>>;
   /** True from an approval until the next question: Liito cheers. */
   readonly cheering: boolean;
+  /** The id of the conversation on screen (its entry in `savedConversations` once it has an answer). */
+  readonly conversationId: string;
+  /** This customer's saved conversations, newest first (the chat history drawer). */
+  readonly savedConversations: readonly SavedConversation[];
 }
 
 export class CoachStore extends Store<CoachStoreState> {
@@ -48,12 +59,22 @@ export class CoachStore extends Store<CoachStoreState> {
 
   private key: string | null = null;
   private watcher: (() => void) | null = null;
+  private defaults: SisuDefaults | null = null;
+  /** The messages saved last, so an unchanged conversation is not written again. */
+  private savedMessages: readonly CoachMessage[] | null = null;
+  private restoring = false;
   /** The answer language for every session (AppPrefs.language): `auto` or a code such as `fi`. */
   private language = "auto";
 
   constructor() {
-    super({ session: null, voice: null, conversation: null, fellBackToSample: false, quizChoices: {}, deciding: [], decisionNotices: {}, cheering: false });
+    super({
+      session: null, voice: null, conversation: null, fellBackToSample: false, quizChoices: {}, deciding: [], decisionNotices: {}, cheering: false,
+      conversationId: makeUUID(), savedConversations: [],
+    });
   }
+
+  /** Where conversations are saved (the app's defaults). Without it nothing is stored. */
+  attachDefaults(defaults: SisuDefaults): void { this.defaults = defaults; }
 
   get session(): CoachSession | null { return this.state.session; }
   get voice(): VoiceController | null { return this.state.voice; }
@@ -82,6 +103,8 @@ export class CoachStore extends Store<CoachStoreState> {
   choose(index: number, card: TeachingCard): boolean {
     if (this.state.quizChoices[card.id] !== undefined || !Number.isInteger(index) || index < 0 || index >= card.options.length) return false;
     this.update({ quizChoices: { ...this.state.quizChoices, [card.id]: index } });
+    this.savedMessages = null;
+    this.saveConversation();
     return true;
   }
 
@@ -172,15 +195,93 @@ export class CoachStore extends Store<CoachStoreState> {
     await session.refresh();
   }
 
+  // MARK: History
+
+  /** "New chat": the conversation on screen is kept in the history and a fresh one starts. A hands-free
+   *  conversation keeps listening; an answer on its way stops. */
+  newConversation(): void {
+    this.saveConversation();
+    const session = this.state.session;
+    if (this.state.conversation) this.state.conversation.newConversation();
+    else session?.reset();
+    this.savedMessages = null;
+    this.update({ conversationId: makeUUID(), quizChoices: {}, decisionNotices: {}, cheering: false });
+  }
+
+  /** Opens a saved conversation: its messages and context come back into the session, so the next question (typed or
+   *  spoken) continues it. The one on screen is saved first. Returns false when there is no such conversation. */
+  openConversation(id: string): boolean {
+    const session = this.state.session;
+    const entry = this.state.savedConversations.find((c) => c.id === id);
+    if (!session || !entry) return false;
+    if (id === this.state.conversationId) return true;
+    this.saveConversation();
+    const talk = this.state.conversation;
+    if (talk?.flow.isAnswering) talk.interrupt();
+    // The restore must not be saved under the id of the conversation it replaces.
+    this.restoring = true;
+    try {
+      session.restore(entry.messages);
+    } finally {
+      this.restoring = false;
+    }
+    this.savedMessages = session.getSnapshot().messages;
+    this.update({ conversationId: entry.id, quizChoices: entry.quizChoices, decisionNotices: {}, cheering: false });
+    // Approval cards in it show the server's current state of their action.
+    void session.refresh();
+    return true;
+  }
+
+  /** Forgets a saved conversation. The one on screen stays on screen (and is saved again after its next answer). */
+  deleteConversation(id: string): void {
+    const session = this.state.session;
+    if (!session) return;
+    const list = ConversationHistory.remove(this.state.savedConversations, id);
+    if (id === this.state.conversationId) this.savedMessages = null;
+    this.writeHistory(session.customerId, list);
+  }
+
+  /** Forgets every saved conversation of every customer (the demo starts over). */
+  clearHistory(): void {
+    this.defaults?.remove(Keys.conversations);
+    this.savedMessages = null;
+    this.update({ savedConversations: [] });
+  }
+
+  /** Saves the conversation on screen when it has settled (nothing pending) and changed since the last save. */
+  private saveConversation(): void {
+    const session = this.state.session;
+    if (!session || !this.defaults || this.restoring) return;
+    const messages = session.getSnapshot().messages;
+    if (messages === this.savedMessages || messages.some((m) => m.pending)) return;
+    const id = this.state.conversationId;
+    const existing = this.state.savedConversations.find((c) => c.id === id) ?? null;
+    const entry = ConversationHistory.entry(id, messages, this.state.quizChoices, existing, new Date());
+    if (!entry) return;
+    this.savedMessages = messages;
+    this.writeHistory(session.customerId, ConversationHistory.upsert(this.state.savedConversations, entry));
+  }
+
+  private writeHistory(customerId: string, list: readonly SavedConversation[]): void {
+    const archive = ConversationHistory.store(this.archive(), customerId, list);
+    this.defaults?.setJSON(Keys.conversations, archive);
+    this.update({ savedConversations: archive[customerId] ?? [] });
+  }
+
+  private archive(): ConversationArchive {
+    return this.defaults ? ConversationHistory.decodeArchive(this.defaults.json(Keys.conversations)) : {};
+  }
+
   /** Forgets the session (the customer was cleared). */
   clear(): void {
+    this.saveConversation();
     this.state.conversation?.shutDown();
     this.state.session?.cancel();
     this.state.voice?.dispose();
     this.watcher?.();
     this.watcher = null;
     this.key = null;
-    this.update({ session: null, voice: null, conversation: null });
+    this.update({ session: null, voice: null, conversation: null, savedConversations: [] });
     this.onApprovedSaving?.(0);
   }
 
@@ -189,12 +290,15 @@ export class CoachStore extends Store<CoachStoreState> {
     const session = this.state.session;
     if (!session) return;
     session.reset();
+    this.savedMessages = null;
+    this.update({ conversationId: makeUUID(), quizChoices: {} });
     await session.client.resetDemo().catch(() => null);
     await session.refresh();
     this.onApprovedSaving?.(session.approvedMonthlySaving);
   }
 
   private use(next: CoachSession): void {
+    this.saveConversation();
     this.state.conversation?.shutDown();
     this.state.session?.cancel();
     this.state.voice?.dispose();
@@ -205,12 +309,19 @@ export class CoachStore extends Store<CoachStoreState> {
     const conversation = new ConversationController(next, voice.player, fixture ? fixtureRecording() : null);
     conversation.repliesMuted = () => voice.isMuted;
     conversation.fixtureDelay = TalkLaunch.current().fixtureDelay;
-    this.update({ session: next, voice, conversation, quizChoices: {}, decisionNotices: {}, cheering: false });
-    // Swift watches `$actions`; here every change of the session is checked for a new actions array.
+    this.savedMessages = null;
+    this.update({
+      session: next, voice, conversation, quizChoices: {}, decisionNotices: {}, cheering: false,
+      conversationId: makeUUID(), savedConversations: this.archive()[next.customerId] ?? [],
+    });
+    // Swift watches `$actions`; here every change of the session is checked for a new actions array. A settled
+    // conversation is saved to the history.
     let actions = next.getSnapshot().actions;
     this.watcher = next.subscribe(() => {
+      if (this.state.session !== next) return;
+      this.saveConversation();
       const now = next.getSnapshot().actions;
-      if (now === actions || this.state.session !== next) return;
+      if (now === actions) return;
       actions = now;
       this.onApprovedSaving?.(next.approvedMonthlySaving);
     });

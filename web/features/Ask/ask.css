@@ -1,61 +1,5 @@
-/* The coach screen (AskScreen.tsx, CoachConversation.tsx, AskParts.tsx, Composer.tsx, PlaceholderScreen.tsx).
-   Light only. Spacing and type from web/theme/tokens.css. */
-
-/* The whole column: header, notice, answers, voice notice, ask box. It keeps to what is visible: above the
-   floating tab bar, or on the keyboard while it is up (--sisu-ask-kb / --sisu-ask-vv-top from the visual
-   viewport; MainScreen gives the bar's room back then). */
-.sisu-ask {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  background: var(--sisu-color-background);
-  padding-top: var(--sisu-ask-vv-top, 0px);
-  padding-bottom: max(var(--sisu-tabbar-room), var(--sisu-ask-kb, 0px));
-  padding-left: env(safe-area-inset-left, 0px);
-  padding-right: env(safe-area-inset-right, 0px);
-}
-
-.sisu-ask[data-keyboard="true"] {
-  padding-bottom: var(--sisu-ask-kb, 0px);
-}
-
-.sisu-ask-header {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: calc(var(--sisu-space-grid) * 3);
-  padding: calc(env(safe-area-inset-top, 0px) + var(--sisu-space-grid) * 2) var(--sisu-space-margin) calc(var(--sisu-space-grid) * 2);
-  background: var(--sisu-color-background);
-}
-
-.sisu-ask[data-keyboard="true"] .sisu-ask-header {
-  padding-top: calc(var(--sisu-space-grid) * 2);
-}
-
-/* As the sheet over Talk: no tab bar under it and no status bar over it. */
-.sisu-ask[data-sheet="true"] {
-  --sisu-tabbar-room: 0px;
-}
-
-.sisu-ask[data-sheet="true"] .sisu-ask-header {
-  padding-top: calc(var(--sisu-space-grid) * 2);
-}
-
-.sisu-ask-liito {
-  flex: none;
-  display: block;
-  width: 72px;
-  height: 72px;
-}
-
-.sisu-ask-close {
-  flex: none;
-  display: block;
-  width: 48px;
-  height: 48px;
-}
+/* The conversation pieces the Sisu tab uses (AskParts.tsx, Composer.tsx, PlaceholderScreen.tsx). Light only.
+   Spacing and type from web/theme/tokens.css. */
 
 .sisu-ask-title {
   flex: 1 1 auto;
@@ -74,56 +18,44 @@
   padding: 0;
 }
 
-.sisu-ask-scroll {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-}
-
-.sisu-ask-stack {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: var(--sisu-space-card);
-  padding: var(--sisu-space-card) var(--sisu-space-margin);
-}
-
-.sisu-ask-bottom {
-  flex: none;
-  height: 1px;
-}
-
-.sisu-ask-voice-notice {
-  flex: none;
-  margin: 0;
-  padding: 0 var(--sisu-space-margin);
-  font: var(--sisu-type-label);
-  color: var(--sisu-color-text-muted);
-}
-
-/* The ask box. */
+/* The ask box of the Sisu tab: a white pill with the field and Send inside, the microphone beside it. */
 .sisu-ask-composer {
   flex: none;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: calc(var(--sisu-space-grid) * 2);
-  padding: calc(var(--sisu-space-grid) * 2) var(--sisu-space-margin);
-  background: var(--sisu-color-background);
+}
+
+.sisu-ask-box {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sisu-space-grid);
+  min-height: 52px;
+  box-sizing: border-box;
+  padding: 4px 4px 4px 0;
+  border: 1px solid var(--sisu-color-hairline);
+  border-radius: 26px;
+  background: var(--sisu-color-card);
+  box-shadow: 0 6px 20px rgba(24, 33, 28, 0.06);
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.sisu-ask-box:focus-within {
+  border-color: var(--sisu-color-outline);
+  box-shadow: 0 0 0 3px rgba(153, 213, 159, 0.35), 0 6px 20px rgba(24, 33, 28, 0.06);
 }
 
 .sisu-ask-field {
   flex: 1 1 auto;
   min-width: 0;
   box-sizing: border-box;
-  min-height: var(--sisu-space-touch-target);
+  min-height: 42px;
   margin: 0;
-  padding: calc(var(--sisu-space-grid) * 3) var(--sisu-space-card);
+  padding: 10px 4px 10px 18px;
   border: 0;
-  border-radius: var(--sisu-radius-button);
-  background: var(--sisu-color-card);
+  background: transparent;
   color: var(--sisu-color-text);
   font: var(--sisu-type-body); /* 16 px: iOS does not zoom into the field */
   resize: none;
@@ -133,40 +65,85 @@
   -webkit-user-select: text;
 }
 
+/* The box shows focus (:focus-within); the field itself draws no second ring. */
+textarea.sisu-ask-field:focus-visible {
+  outline: none;
+}
+
 .sisu-ask-field::placeholder {
   color: var(--sisu-color-text-muted);
   opacity: 1;
 }
 
-.sisu-ask-field:focus-visible {
-  box-shadow: 0 0 0 2px var(--sisu-color-outline);
-}
-
-.sisu-ask-send {
+button.sisu-ask-send {
   flex: none;
-  width: 88px;
-}
-
-.sisu-ask-voice {
-  flex: none;
-  width: 56px;
-  height: 56px;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
-}
-
-/* The empty state. */
-.sisu-ask-empty {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: var(--sisu-space-card);
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--sisu-color-hairline);
+  color: var(--sisu-color-text-muted);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 200ms ease, color 200ms ease, transform 160ms var(--sisu-motion-ease-out);
 }
 
-.sisu-ask-empty-eyebrow {
-  padding-top: calc(var(--sisu-space-grid) * 2);
+button.sisu-ask-send[data-variant="ready"],
+button.sisu-ask-send[data-variant="stop"] {
+  background: var(--sisu-color-primary);
+  color: var(--sisu-color-on-primary);
+}
+
+button.sisu-ask-send:disabled {
+  cursor: default;
+}
+
+button.sisu-ask-send:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+button.sisu-ask-send:focus-visible,
+button.sisu-ask-mic:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--sisu-color-outline);
+}
+
+/* The microphone: the way into the hands-free conversation. Green-tinted, the brand's green glyph. */
+button.sisu-ask-mic {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 1px solid rgba(0, 120, 65, 0.16);
+  border-radius: 50%;
+  background: var(--sisu-color-selection-fill);
+  color: var(--sisu-color-primary);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 160ms var(--sisu-motion-ease-out), background-color 200ms ease;
+}
+
+button.sisu-ask-mic:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+button.sisu-ask-mic:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button.sisu-ask-send,
+  button.sisu-ask-mic {
+    transition: none;
+  }
 }
 
 /* The user's bubble: right-aligned, deep green, at least 64 px from the leading edge. */
@@ -174,6 +151,13 @@
   display: flex;
   justify-content: flex-end;
   padding-left: calc(var(--sisu-space-section) * 2);
+}
+
+.sisu-ask-user-mic {
+  display: inline-block;
+  margin-right: 6px;
+  vertical-align: -1px;
+  opacity: 0.75;
 }
 
 .sisu-ask-user-bubble {
@@ -195,7 +179,7 @@
   flex-direction: column;
   gap: var(--sisu-space-card);
   padding: calc(env(safe-area-inset-top, 0px) + var(--sisu-space-card)) var(--sisu-space-margin) var(--sisu-tabbar-room);
-  background: var(--sisu-color-background);
+  background: transparent;
 }
 
 .sisu-ask-placeholder-spacer {

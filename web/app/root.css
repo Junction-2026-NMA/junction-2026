@@ -10,7 +10,8 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: var(--sisu-color-background);
+  /* Transparent: the app-wide texture on .sisu-root (the shell paints the same near-white under it). */
+  background: transparent;
 }
 
 .sisu-route {

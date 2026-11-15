@@ -1,34 +1,39 @@
 "use client";
-// Talk, the main page. Port of ios/Sisu/Features/Talk/TalkScreen.swift. Before the first question it is Liito in the
-// middle, the microphone and Start / End right under it, and a line that says when a conversation started and
-// ended. From the first question on it becomes a chat: Liito shrinks into a small circle at the top (it visibly
-// travels there), the status sits beside it, and the conversation rises in underneath with every answer in full
-// (the same AssistantAnswer as the Ask screen). "New conversation" clears the chat and brings Liito back to the
-// middle. While Sisu works, Liito does what the backend is doing: listening, searching, calculating, comparing,
-// writing, presenting (web/core/LiitoTask.ts). Each task stays on screen long enough to read, in the order the
-// events came (web/shared/useLiitoMood.ts); both badges draw that one sequenced mood.
-//
-// The conversation is hands-free (web/voice/ConversationController.ts): Sisu listens, notices the pause, answers out
-// loud through the backend's voice turn, then listens again until End. Typing opens the Ask screen as a sheet.
-// All logic is in web/core (ConversationFlow, ConversationPresenter, LiitoTask) and in the controller; this file
-// lays it out.
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+// Sisu, the main page (it was Talk; port of ios/Sisu/Features/Talk/TalkScreen.swift). It opens on the conversation
+// and the ask box at once: no extra screen to start typing. Typed and spoken questions go to the same session, so
+// they are one conversation with one context; switching between them keeps everything.
+// - Header: the Sisu logo (opens the chat history drawer, web/features/History), the title, the live status while
+//   voice is on, and once the chat has started the small Liito badge that does what the backend is doing.
+// - Empty: Liito, larger, one friendly line and the suggested questions (web/core/AppLogic/SisuSuggestions.ts).
+// - The transcript keeps the reading position (TalkTranscript.tsx). The composer is pinned at the bottom: the text
+//   field, Send and the microphone; while voice is on it shows the live state with a stop control (VoiceStrip.tsx).
+// The hands-free logic is web/voice/ConversationController.ts and web/core (ConversationFlow, VoiceBar, LiitoTask).
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { useAppModel, useAppSelector, useCoach, useCoachSessionState, useConversation, useVoice } from "@/web/app/AppProvider";
 import type { CoachStore } from "@/web/app/CoachStore";
-import { ConversationText } from "@/web/core/AppLogic/Conversation";
-import { FirstInsightPresenter } from "@/web/core/AppLogic/OnboardingCopy";
+import { SisuSuggestions } from "@/web/core/AppLogic/SisuSuggestions";
+import { VoiceBar } from "@/web/core/AppLogic/VoiceBar";
 import type { CoachMessage, CoachSession } from "@/web/core/CoachSession";
 import { LiitoTask } from "@/web/core/LiitoTask";
-import { SisuButton } from "@/web/shared/SisuStyle";
 import { useLiitoMood } from "@/web/shared/useLiitoMood";
 import { springEasing } from "@/web/theme/theme";
 import { useReducedMotion } from "@/web/theme/motion";
 import { unlockAudio } from "@/web/voice/AudioUnlock";
-import { ConversationController } from "@/web/voice/ConversationController";
+import type { ConversationController } from "@/web/voice/ConversationController";
+import { FallbackNotice } from "@/web/features/Ask/AskParts";
+import { runLaunch } from "@/web/features/Ask/askLaunch";
+import { Composer } from "@/web/features/Ask/Composer";
 import { PlaceholderScreen } from "@/web/features/Ask/PlaceholderScreen";
-import { KeyboardIcon, LiitoBadge, MicButton, PencilSquareIcon, RoundControl, RoundIconButton, StatusLine } from "./TalkParts";
+import { useKeyboardInset } from "@/web/features/Ask/useKeyboardInset";
+import { HistoryDrawer } from "@/web/features/History/HistoryDrawer";
+import { useProjectsUnread } from "@/web/features/History/useProjectsUnread";
+import { ProjectScreen } from "@/web/features/Projects/ProjectScreen";
+import { SisuEmptyState } from "./SisuEmptyState";
+import { LiitoBadge, SisuLogoButton, StatusLine } from "./TalkParts";
 import { TalkLaunch } from "./TalkLaunch";
-import { TalkTranscript } from "./TalkTranscript";
+import { TalkTranscript, type TranscriptHandle } from "./TalkTranscript";
+import { VoiceStrip } from "./VoiceStrip";
+import "@/web/features/Ask/ask.css";
 import "./talk.css";
 
 /** One key per session object (Swift `.id(ObjectIdentifier(session))`): a new session starts a fresh screen. */
@@ -46,18 +51,17 @@ export default function TalkScreen() {
   const coach = useCoach();
   const model = useAppModel();
   if (!coach.session || !coach.conversation) {
-    return <PlaceholderScreen title="Talk to Sisu" mood="idle" line="Pick a profile and Sisu is ready to talk." testId="screen.talk" />;
+    return <PlaceholderScreen title="Sisu" mood="idle" line="Pick a profile and Sisu is ready for your questions." testId="screen.talk" />;
   }
   return <TalkContent key={keyOf(coach.session)} session={coach.session} talk={coach.conversation} store={model.coach} />;
 }
 
-/** The hero-to-chat move of the badge: a soft spring (SwiftUI .spring(response: 0.6, dampingFraction: 0.86)). */
+/** The empty-to-chat move of the badge: a soft spring (SwiftUI .spring(response: 0.6, dampingFraction: 0.86)). */
 const layoutSpring = springEasing(0.6, 0.86);
 
 /** What the answer in progress has done so far (LiitoTask.answering): the session worked on it, Sisu said part of it. */
 const noAnswer = { worked: false, spoke: false };
 
-/** The newest question's id: a new question starts Liito's moods afresh (useLiitoMood's `turn`). */
 function newestQuestion(messages: readonly CoachMessage[]): string | null {
   for (let index = messages.length - 1; index >= 0; index -= 1) if (messages[index].role === "user") return messages[index].id;
   return null;
@@ -65,57 +69,59 @@ function newestQuestion(messages: readonly CoachMessage[]): string | null {
 
 function TalkContent({ session, talk, store }: { session: CoachSession; talk: ConversationController; store: CoachStore }) {
   const model = useAppModel();
+  const coach = useCoach();
   const state = useCoachSessionState(session);
   const conversation = useConversation(talk);
   const voice = useVoice();
   const overview = useAppSelector((s) => s.overview);
-  const firstInsightPending = useAppSelector((s) => s.firstInsightPending);
   const flaggedBill = useAppSelector((s) => s.flaggedBill);
+  const customerName = useAppSelector((s) => s.customer?.displayName ?? null);
   useAppSelector((s) => s.confirmedBillNames);
-  const conversationShown = useAppSelector((s) => s.conversationShown);
+  const historyOpen = useAppSelector((s) => s.historyOpen);
+  const openProjectId = useAppSelector((s) => s.openProjectId);
   const reduceMotion = useReducedMotion();
   const visible = usePageVisible();
+  const keyboard = useKeyboardInset();
+  const unread = useProjectsUnread();
+  const logo = useRef<HTMLButtonElement>(null);
+  const input = useRef<HTMLTextAreaElement>(null);
+  const transcript = useRef<TranscriptHandle | null>(null);
+  const [draft, setDraft] = useState("");
 
   const flow = conversation?.flow ?? talk.flow;
   const messages = state?.messages ?? [];
-  /** The chat layout, from the first question on. */
   const chatting = messages.length > 0;
-
-  // Before the first conversation after the first run, Liito says the first insight (Today's callout figures).
-  const opening = firstInsightPending && flow.lastEnded === null && overview
-    ? FirstInsightPresenter.state(overview, flaggedBill ? model.confirmedName(flaggedBill) : null)
-    : null;
-  const screen = talk.screen(session.activity, opening ? { title: opening.eyebrow, detail: opening.headline } : null);
+  const screen = talk.screen(session.activity, null);
+  const bar = VoiceBar.state(flow, session.activity, conversation?.answerReady ?? false);
+  const isThinking = state?.isThinking ?? false;
 
   // Liito's mood: the presenter's, corrected while Sisu answers with what the session really does (real work beats
-  // a filler sentence, the pauses between spoken sentences stay "presenting"), then sequenced so each real task can
-  // be read. `answer` is what this answer has done so far (derived state, reset when Sisu listens again).
-  const isThinking = state?.isThinking ?? false;
+  // a filler sentence), then sequenced so each real task can be read (useLiitoMood). An approval cheers.
   const task = state?.task ?? null;
   const answering = flow.phase === "thinking" || flow.phase === "speaking";
   const [answer, setAnswer] = useState(noAnswer);
   const nextAnswer = answering
-    ? {
-        worked: answer.worked || isThinking,
-        spoke: answer.spoke || (flow.phase === "speaking" && !(isThinking && LiitoTask.isWork(task))),
-      }
+    ? { worked: answer.worked || isThinking, spoke: answer.spoke || (flow.phase === "speaking" && !(isThinking && LiitoTask.isWork(task))) }
     : noAnswer;
   if (nextAnswer.worked !== answer.worked || nextAnswer.spoke !== answer.spoke) setAnswer(nextAnswer);
-  const target = answering
+  const answered = answering
     ? LiitoTask.answering(screen.mood, {
-        phase: flow.phase === "speaking" ? "speaking" : "thinking", working: isThinking, task,
-        spoke: nextAnswer.spoke, workedThisAnswer: nextAnswer.worked,
+        phase: flow.phase === "speaking" ? "speaking" : "thinking", working: isThinking, task, spoke: nextAnswer.spoke, workedThisAnswer: nextAnswer.worked,
       })
     : screen.mood;
+  const target = coach.cheering && !isThinking ? "cheering" : answered;
   const busy = answering || flow.phase === "hearing" || isThinking || (state?.isSpeaking ?? false) || (state?.isRecording ?? false);
   const mood = useLiitoMood(target, { busy, turn: newestQuestion(messages) });
+  const canInterrupt = flow.isAnswering || isThinking || (state?.isSpeaking ?? false);
 
-  // Held while Talk is not what the person sees: the conversation sheet is up or the page is in the background.
-  const held = conversationShown || !visible;
+  // The microphone is held while the page is in the background or a project covers the conversation; leaving the
+  // tab holds it too (the unmount), and coming back listens again.
+  const held = !visible || openProjectId !== null;
   useEffect(() => { talk.setHeld(held); }, [talk, held]);
   useEffect(() => () => talk.setHeld(true), [talk]);
+  useEffect(() => { if (isThinking) store.setCheering(false); }, [isThinking, store]);
 
-  // -sisu.talkStart: start a conversation once Talk is first on screen (once per page load).
+  // talkStart=1: start a conversation once the tab is first on screen (once per page load).
   useEffect(() => {
     if (!TalkLaunch.current().startsConversation || TalkLaunch.startHandled) return;
     const timer = window.setTimeout(() => {
@@ -126,17 +132,20 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
     return () => window.clearTimeout(timer);
   }, [talk]);
 
-  // Liito visibly travels between the middle and the chat header (a FLIP of the badge that is shown).
+  // Launch options of the coach (screenshots): ask, quiz, decide, scroll. Once per session.
+  useEffect(() => {
+    let gone = false;
+    void runLaunch({
+      session, store, model, setFollowing: () => {}, cancelled: () => gone,
+      scrollToAnchor: (id, anchor) => transcript.current?.scrollToAnchor(id, anchor) ?? false,
+    });
+    return () => { gone = true; };
+  }, [session, store, model]);
+
+  // Liito visibly travels from the empty state up into the header (a FLIP of the badge that is shown).
   const badge = useRef<HTMLDivElement>(null);
   const lastBadge = useRef<{ rect: DOMRect; liito: number } | null>(null);
   const wasChatting = useRef(chatting);
-  // The chat rises in only when it starts on this screen, not when Talk opens on an existing chat.
-  const [chatEntered, setChatEntered] = useState(false);
-  const [shownChatting, setShownChatting] = useState(chatting);
-  if (shownChatting !== chatting) {
-    setShownChatting(chatting);
-    if (chatting) setChatEntered(true);
-  }
   useLayoutEffect(() => {
     const element = badge.current;
     const switched = wasChatting.current !== chatting;
@@ -145,74 +154,78 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
     if (element) lastBadge.current = { rect: element.getBoundingClientRect(), liito: Number(element.dataset.liito) || 1 };
   });
 
-  const interrupt = () => talk.interrupt();
-  const start = () => {
+  const interrupt = () => {
+    if (flow.isAnswering) talk.interrupt();
+    else session.cancel();
+  };
+  const send = (text: string) => {
+    const question = text.trim();
+    if (question === "") return;
+    setDraft("");
+    store.ask(question);
+  };
+  /** A suggestion: asked as typed, in this conversation. A running voice conversation ends first. */
+  const ask = (question: string) => {
+    if (flow.isOn) talk.end();
+    store.ask(question);
+  };
+  const startVoice = () => {
     // Inside the tap: the browser lets the page play Sisu's voice from now on.
     unlockAudio();
-    talk.toggle();
+    input.current?.blur();
+    talk.start();
+  };
+  const typeInstead = () => {
+    talk.end();
+    window.setTimeout(() => input.current?.focus(), 60);
   };
 
-  // A voice problem (speech failed, the microphone refused or interrupted) is said in one calm line by the controls.
-  const notice = conversation?.notice ?? null;
-  const noticeLine = notice ? <p className="sisu-talk-notice" role="status" data-testid="talk.notice">{notice}</p> : null;
-
-  const controls = (
-    <div className="sisu-talk-controls" data-chatting={chatting ? "true" : "false"} data-clips={voice?.clipsPlayed ?? 0}
-      data-testid={`talk.clips.${voice?.clipsPlayed ?? 0}`}>
-      <MicButton muted={flow.micMuted} enabled={screen.micEnabled} label={screen.micLabel} onPress={() => talk.toggleMute()} />
-      <div className="sisu-talk-main-button" data-testid={screen.live ? "talk.end" : "talk.start"}>
-        <SisuButton label={screen.buttonLabel} style={screen.live ? "secondary" : "primary"} action={start} />
-      </div>
-      <RoundControl label={ConversationText.typeInstead} testId="talk.type" onPress={() => model.setConversationShown(true)}>
-        <KeyboardIcon />
-      </RoundControl>
-    </div>
+  const notice = conversation?.notice ?? voice?.notice ?? null;
+  const suggestions = SisuSuggestions.make(overview, flaggedBill ? model.confirmedName(flaggedBill) : null);
+  const keyboardStyle = { "--sisu-talk-kb": `${keyboard.bottom}px`, "--sisu-talk-vv-top": `${keyboard.top}px` } as CSSProperties;
+  const liitoBadge = (size: "small" | "hero") => (
+    <LiitoBadge badgeRef={badge} mood={mood} target={target} talk={talk} listening={flow.micOpen}
+      diameter={size === "small" ? 44 : 124} liito={size === "small" ? 52 : 140} filled={size === "small"}
+      canInterrupt={canInterrupt} onInterrupt={interrupt} />
   );
 
   return (
-    <div className="sisu-talk" data-testid="screen.talk" data-phase={flow.phase} data-chatting={chatting ? "true" : "false"}
-      data-mood={mood} data-mood-target={target} data-chat-entered={chatEntered ? "true" : "false"}
-      aria-hidden={conversationShown || undefined}>
-      {chatting ? (
-        <>
-          <header className="sisu-talk-chat-header">
-            <LiitoBadge badgeRef={badge} mood={mood} target={target} talk={talk} listening={flow.micOpen} diameter={56} liito={64} filled
-              canInterrupt={screen.canInterrupt} onInterrupt={interrupt} />
-            <div className="sisu-talk-chat-titles">
-              <h2 className="sisu-talk-chat-title" data-testid="talk.title">{screen.title}</h2>
-              <StatusLine flow={flow} live={screen.live} statusLine={screen.statusLine} detail={screen.detail} compact />
-            </div>
-            <RoundIconButton label={ConversationText.newConversation} testId="talk.new" onPress={() => talk.newConversation()}>
-              <PencilSquareIcon />
-            </RoundIconButton>
-          </header>
-          {state ? <TalkTranscript session={session} state={state} store={store} reduceMotion={reduceMotion} /> : null}
-          {noticeLine}
-          {controls}
-        </>
+    <div className="sisu-talk" style={keyboardStyle} data-testid="screen.talk" data-phase={flow.phase} data-chatting={chatting ? "true" : "false"}
+      data-voice={flow.isOn ? "true" : "false"} data-mood={mood} data-mood-target={target} data-keyboard={keyboard.bottom > 0 ? "true" : "false"}>
+      <header className="sisu-talk-header">
+        <SisuLogoButton buttonRef={logo} open={historyOpen} unread={unread} onPress={() => model.setHistoryOpen(true)} />
+        <div className="sisu-talk-titles">
+          <h1 className="sisu-talk-title" data-testid="talk.title">Sisu</h1>
+          {flow.isOn ? <StatusLine flow={flow} live statusLine={screen.statusLine} detail={null} compact /> : null}
+        </div>
+        {chatting ? <div className="sisu-talk-header-liito">{liitoBadge("small")}</div> : null}
+      </header>
+      <FallbackNotice session={session} notice={state?.fallbackNotice ?? null} fellBackToSample={coach.fellBackToSample} />
+      {chatting && state ? (
+        <TalkTranscript session={session} state={state} store={store} reduceMotion={reduceMotion}
+          handle={(next) => { transcript.current = next; }}
+          onUserDrag={() => { if (document.activeElement === input.current) input.current?.blur(); }} />
       ) : (
-        <div className="sisu-talk-hero">
-          <div className="sisu-talk-topbar"><h1 className="sisu-talk-heading">Talk</h1></div>
-          <div className="sisu-talk-spacer" data-min="8" />
-          <div className="sisu-talk-caption">
-            <h2 className="sisu-talk-caption-title" data-testid="talk.title">{screen.title}</h2>
-            {screen.detail ? <p className="sisu-talk-caption-detail">{screen.detail}</p> : null}
-            {!flow.isOn && flow.lastEnded === null && opening ? (
-              <button type="button" className="sisu-talk-link" onClick={() => model.showEvidence(opening.evidenceTitle, opening.evidence)}>
-                {opening.linkLabel}
-              </button>
-            ) : null}
-          </div>
-          <div className="sisu-talk-hero-liito">
-            <LiitoBadge badgeRef={badge} mood={mood} target={target} talk={talk} listening={flow.micOpen} diameter={236} liito={248}
-              canInterrupt={screen.canInterrupt} onInterrupt={interrupt} />
-          </div>
-          {controls}
-          <StatusLine flow={flow} live={screen.live} statusLine={screen.statusLine} detail={screen.detail} compact={false} />
-          {noticeLine}
-          <div className="sisu-talk-spacer" data-min="16" />
+        <div className="sisu-talk-empty-scroll">
+          <SisuEmptyState name={overview?.displayName ?? customerName} liito={liitoBadge("hero")} suggestions={suggestions}
+            voiceOn={flow.isOn} onAsk={ask} />
         </div>
       )}
+      <div className="sisu-talk-dock" data-clips={voice?.clipsPlayed ?? 0} data-testid={`talk.clips.${voice?.clipsPlayed ?? 0}`}>
+        {notice ? <p className="sisu-talk-notice" role="status" data-testid="talk.notice">{notice}</p> : null}
+        {flow.isOn ? (
+          <VoiceStrip bar={bar} talk={talk} onType={typeInstead} onStop={() => (bar.stop === "interrupt" ? talk.interrupt() : talk.end())} />
+        ) : (
+          <Composer draft={draft} setDraft={setDraft} thinking={isThinking} onSend={send} onStop={() => session.cancel()}
+            onVoice={startVoice} inputRef={input} />
+        )}
+      </div>
+      <HistoryDrawer open={historyOpen} onClose={() => model.setHistoryOpen(false)} returnFocus={logo} />
+      {openProjectId ? (
+        <div className="sisu-talk-project">
+          <ProjectScreen id={openProjectId} onClose={() => model.setOpenProjectId(null)} />
+        </div>
+      ) : null}
     </div>
   );
 }

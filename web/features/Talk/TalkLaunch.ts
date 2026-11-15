@@ -1,14 +1,13 @@
 // Launch options of the Talk screen: port of ios/Sisu/Features/Talk/TalkLaunch.swift, read from the URL query (the
 // iOS argument names minus `-sisu.`).
 //
-//   tab=ask                  open Talk with the written conversation up, as the old Ask tab did (coach screenshots)
+//   tab=sisu (talk, ask)     open the Sisu tab (AppTab.fromArgument); typing and voice are one screen now
 //   talkStart=1              start a conversation once Talk is first on screen (once per page load). With
 //                            voicefixture=1 the conversation "hears" the bundled clip once instead of the microphone.
 //   talkFixtureDelay=<s>     seconds of quiet before that clip is "spoken" (default 1, at most 30)
 import { launchQuery, launchValue } from "@/web/app/LaunchOptions";
 
 export interface TalkLaunch {
-  readonly opensConversation: boolean;
   readonly startsConversation: boolean;
   readonly fixtureDelay: number;
 }
@@ -21,7 +20,6 @@ export const TalkLaunch = {
     const value = (name: string) => launchValue(query, name);
     const delay = Number(value("talkFixtureDelay"));
     return {
-      opensConversation: value("tab")?.toLowerCase() === "ask",
       startsConversation: value("talkStart") === "1",
       fixtureDelay: value("talkFixtureDelay") !== null && Number.isFinite(delay) && delay >= 0 ? Math.min(delay, 30) : 1,
     };

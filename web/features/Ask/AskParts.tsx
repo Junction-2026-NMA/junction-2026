@@ -1,49 +1,9 @@
 "use client";
-// The fixed pieces of the coach screen: the header with Liito, the one-time fallback notice, the empty state with
-// suggested questions and the user's bubble. Port of `header`, `fallbackNotice`, `emptyState` and UserBubble in
-// AskScreen.swift.
+// Pieces of the conversation shared by the Sisu tab: the one-time fallback notice and the user's bubble. Port of
+// `fallbackNotice` and UserBubble in AskScreen.swift.
 import { useEffect, useRef } from "react";
 import type { CoachSession } from "@/web/core/CoachSession";
-import { RiveBindings } from "@/web/core/RiveContract";
-import { RiveComponent } from "@/web/rive/RiveComponent";
 import { TransientNotice } from "@/web/shared/Notice";
-import { Eyebrow, SisuButton, SisuIconButton, riveAccessible } from "@/web/shared/SisuStyle";
-import { useReducedMotion } from "@/web/theme/motion";
-
-const suggestions = [
-  "How much do I spend on everyday things?",
-  "Can you find me a cheaper electricity deal?",
-  "Can I afford a €200 trip?",
-];
-
-/** Reduced motion: how long Liito runs after a mood change before it is held still (the blend, plus the one-shot
- *  arrivals of cheering, found and searching). */
-const stillAfter: Partial<Record<RiveBindings.LiitoMood, number>> = { cheering: 1400, found: 1400, searching: 800 };
-
-/** The header. `mood` is what Liito draws (sequenced, web/shared/useLiitoMood.ts), `target` what the events say now. */
-export function AskHeader({ mood, target, title = "Ask Sisu", onClose }: {
-  mood: RiveBindings.LiitoMood;
-  target?: RiveBindings.LiitoMood;
-  title?: string;
-  onClose?: () => void;
-}) {
-  const reduceMotion = useReducedMotion();
-  return (
-    <header className="sisu-ask-header">
-      <h1 className="sisu-ask-title">{title}</h1>
-      <span className="sisu-ask-liito" data-mood={mood} data-mood-target={target ?? mood} data-testid="ask.liito">
-        <RiveComponent component="Liito" values={RiveBindings.liito(mood)} sizing="contain" style={{ width: 72, height: 72 }}
-          stillAfterMs={reduceMotion ? stillAfter[mood] ?? 450 : undefined}
-          {...riveAccessible("Liito the flying squirrel", { value: mood })} />
-      </span>
-      {onClose ? (
-        <span className="sisu-ask-close" data-testid="conversation.close">
-          <SisuIconButton icon="close" label="Close the conversation" action={onClose} />
-        </span>
-      ) : null}
-    </header>
-  );
-}
 
 /**
  * Said once, in place, when Sisu switches from the live server to the recorded answers (or starts on them because
@@ -85,29 +45,24 @@ function DismissOnLeave({ onLeave }: { onLeave: () => void }) {
   return null;
 }
 
-export function AskEmptyState({ draftEmpty, onAsk, onInvestigate }: {
-  draftEmpty: boolean;
-  onAsk: (question: string) => void;
-  onInvestigate: () => void;
-}) {
+/** The user's message: right-aligned, deep green. A question asked out loud carries a small microphone mark (the
+ *  same bubble otherwise: typed and spoken turns are one conversation). */
+export function UserBubble({ text, pending, spoken = false }: { text: string; pending: boolean; spoken?: boolean }) {
+  const shown = text === "" && pending ? "Listening…" : text;
   return (
-    <div className="sisu-ask-empty">
-      <p className="sisu-ask-h2">Ask about your money. Sisu checks your own numbers first.</p>
-      <div className="sisu-ask-empty-eyebrow"><Eyebrow text="Try one of these" /></div>
-      {suggestions.map((question) => (
-        <SisuButton key={question} label={question} style="secondary" action={() => onAsk(question)} />
-      ))}
-      <div className="sisu-ask-empty-eyebrow"><Eyebrow text="Or let Sisu work through a whole case" /></div>
-      <SisuButton label="Look into my finances" style={draftEmpty ? "primary" : "secondary"} action={onInvestigate} />
+    <div className="sisu-ask-user" aria-label={`${spoken ? "You said" : "You asked"}: ${text}`} role="group">
+      <p className="sisu-ask-user-bubble" aria-hidden="true" data-selectable data-spoken={spoken ? "true" : "false"}>
+        {spoken ? <SpokenMark /> : null}{shown}
+      </p>
     </div>
   );
 }
 
-/** The user's message: right-aligned, deep green. */
-export function UserBubble({ text, pending }: { text: string; pending: boolean }) {
+function SpokenMark() {
   return (
-    <div className="sisu-ask-user" aria-label={`You asked: ${text}`} role="group">
-      <p className="sisu-ask-user-bubble" aria-hidden="true" data-selectable>{text === "" && pending ? "Listening…" : text}</p>
-    </div>
+    <svg className="sisu-ask-user-mic" width="12" height="14" viewBox="0 0 12 14" aria-hidden="true" focusable="false">
+      <rect x="3.6" y="0.8" width="4.8" height="8" rx="2.4" fill="currentColor" />
+      <path d="M1.6 6.6a4.4 4.4 0 0 0 8.8 0M6 11v2.2" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
   );
 }

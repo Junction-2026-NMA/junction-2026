@@ -62,7 +62,7 @@ group("endpointer: a question starts and ends after a pause", () => {
   ok(e.isSpeaking, "speaking");
   const pause = feedEndpointer(e, -60, 2.5, 2);
   eq(kinds(pause), ["utteranceEnded"], "ended");
-  near(pause[0]?.[0] ?? 0, 3.6, "after a 1.1 s pause", 0.06);
+  near(pause[0]?.[0] ?? 0, 3.4, "after a 0.9 s pause", 0.06);
   ok(e.isFinished, "finished");
   eq(e.feed(-20, 5), null, "nothing more until reset");
 });

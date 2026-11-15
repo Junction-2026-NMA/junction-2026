@@ -3,7 +3,8 @@
 .sisu-main {
   position: absolute;
   inset: 0;
-  background: var(--sisu-color-background);
+  /* No background: the app-wide texture on .sisu-root shows through. */
+  background: transparent;
 }
 
 /* While the keyboard is up the bar steps aside, and the screens give its room back. */
@@ -41,10 +42,3 @@
 
 @keyframes sisu-celebration-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes sisu-celebration-out { from { opacity: 1; } to { opacity: 0; } }
-
-/* The conversation sheet's content: the Ask screen fills it and scrolls itself. */
-.sisu-main-conversation {
-  position: relative;
-  flex: 1 1 auto;
-  min-height: 0;
-}
