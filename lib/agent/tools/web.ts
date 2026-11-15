@@ -39,6 +39,8 @@ function savingSteps(research: ResearchResult, best: Offer): CalcStep[] {
     ...(comparedAgainst < baseline ? [{ label: "Part of it that a new seller can change", amount: comparedAgainst, basis: "the rest is treated as grid fees and other charges, which stay the same" }] : []),
     ...(energy !== null ? [{ label: `${best.provider}: energy`, amount: -energy, basis: `${kwh} kWh a year ÷ 12 × ${best.energyPriceCentsPerKwh} c/kWh from the provider's page` }] : []),
     ...(energy !== null ? [{ label: `${best.provider}: monthly fee`, amount: -(best.monthlyPriceEur ?? 0), basis: feeBasis }] : [{ label: `${best.provider}: monthly price`, amount: -(best.estimatedMonthlyCostEur ?? 0), basis: best.feesUnknown ? "from the provider's page; its setup fee is not stated, so it is left out" : "from the provider's page, setup fee spread over 12 months" }]),
+    // The electricity cost counts a stated setup fee over the first year, so the steps add up to the saving.
+    ...(energy !== null && (best.setupFeeEur ?? 0) > 0 ? [{ label: `${best.provider}: setup fee`, amount: -round2((best.setupFeeEur as number) / 12), basis: `€${best.setupFeeEur} from the provider's page, spread over 12 months` }] : []),
     { label: best.feesUnknown ? "Estimated saving per month (incomplete)" : "Estimated saving per month", amount: monthlySaving, basis: "what a new seller can change minus the offer's cost" },
     { label: "Estimated saving per year", amount: best.estimatedYearlySavingEur ?? 0, basis: "monthly saving times 12" },
   ];

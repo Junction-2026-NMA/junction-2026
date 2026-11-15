@@ -78,10 +78,18 @@ describe("requirements decide which offer can be best, on every card", () => {
     assert.equal(both.best?.provider, "Priced");
     assert.equal(both.offers.find((o) => o.provider === "No Fee Stated")?.monthlyPriceEur, null, "the fee stays unknown");
     assert.equal(both.offers.find((o) => o.provider === "No Fee Stated")?.feesUnknown, true);
+    // An electricity offer without its base fee is listed but never ranked (judge audit on main), so it claims no saving.
     const only = toResult(raw([noFee]), 40, 2_000);
-    assert.equal(only.best?.provider, "No Fee Stated");
-    assert.equal(only.savingIncomplete, true);
-    assert.ok(only.assumptions.some((line) => /does not state its monthly fee/.test(line)));
+    assert.equal(only.best, null);
+    assert.equal(only.offers[0].estimatedYearlySavingEur, null);
+    assert.match(only.offers[0].notComparableReason ?? "", /does not state the monthly base fee/);
+    // A setup fee the page does not state is left out, not counted as €0: the saving says it is incomplete.
+    const tel = offer({ provider: "No Setup Fee Stated", energyPriceCentsPerKwh: null, monthlyPriceEur: 20, setupFeeEur: null });
+    const mobile = toResult(raw([tel], "mobile"), 30);
+    assert.equal(mobile.best?.provider, "No Setup Fee Stated");
+    assert.equal(mobile.best?.setupFeeEur, null, "the setup fee stays unknown");
+    assert.equal(mobile.savingIncomplete, true);
+    assert.ok(mobile.assumptions.some((line) => /does not state its setup fee/.test(line)));
   });
 });
 
