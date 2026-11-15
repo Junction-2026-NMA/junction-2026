@@ -4,7 +4,7 @@
 import { buildCashFlow } from "@/lib/finance/cashflow";
 import { fact } from "@/lib/finance/facts";
 import { lastMonthSpending } from "@/lib/finance/recent";
-import type { Fact, Grounding, NumberCheck, NumberCorrection, Overview } from "@/lib/types";
+import type { Fact, Grounding, NumberCheck, NumberCorrection, Overview, WeeklyBudget } from "@/lib/types";
 
 const TRIVIAL_MAX = 12; // small counts ("three offers", "12 months") are not financial claims
 // Numbers as people write them, in English and Finnish: 1,932.43 · 1 932,43 · 139,47 · 40. Digits glued to
@@ -257,6 +257,19 @@ export function checkGrounding(answer: string, facts: Fact[], contextTexts: stri
 }
 
 // Receipts for the figures in the customer summary, so an answer that needed no tool still has sources.
+// The estimated weekly budget until payday and its inputs, so the answer can say them and the card can show them.
+export function weeklyBudgetFacts(budget: WeeklyBudget | null | undefined, prefix = "budget"): Fact[] {
+  if (!budget) return [];
+  return [
+    fact(`${prefix}:per-week`, "Estimated weekly budget until payday", budget.perWeekEur, "EUR", `(balance - bills due - protected buffer) / ${budget.weeksToPayday} weeks`, { source: "calculation" }),
+    fact(`${prefix}:left`, "Left for spending until payday", budget.leftForSpendingEur, "EUR", "balance minus bills due before payday and the protected buffer", { source: "calculation" }),
+    fact(`${prefix}:buffer`, "Protected buffer", budget.bufferEur, "EUR", budget.bufferSource === "default" ? "assumed: one week of regular and occasional essentials" : "the amount the customer said", { source: budget.bufferSource === "default" ? "assumption" : "customer-stated" }),
+    fact(`${prefix}:weeks`, "Weeks until payday", budget.weeksToPayday, "count", `${budget.daysToPayday} days to ${budget.nextPayday}, divided by 7`, { source: "calculation" }),
+    fact(`${prefix}:usual-week`, "Usual everyday spending per week", budget.usualEverydayPerWeekEur, "EUR", "12-month average", { source: "calculation" }),
+    fact(`${prefix}:difference`, "Weekly budget minus usual weekly spending", budget.differencePerWeekEur, "EUR", "negative means usual spending is above the budget", { source: "calculation" }),
+  ];
+}
+
 export function overviewFacts(o: Overview): Fact[] {
   const window = { from: o.windowFrom, to: o.windowTo };
   const basis = `average of the last ${o.windowMonths} months`;
@@ -282,19 +295,20 @@ export function overviewFacts(o: Overview): Fact[] {
     fact("overview:runway-all", "Months of all spending covered", o.monthlySpending > 0 ? Math.max(o.balance, 0) / o.monthlySpending : 0, "months", "balance divided by average monthly spending", { source: "calculation" }),
     fact("overview:buffer-3", "A three-month buffer", o.monthlyMandatory * 3, "EUR", "three times monthly must-pay costs", { source: "calculation" }),
     fact("overview:buffer-6", "A six-month buffer", o.monthlyMandatory * 6, "EUR", "six times monthly must-pay costs", { source: "calculation" }),
-    fact("overview:safe-week", "Safe to spend per week", o.safeToSpend.perWeek, "EUR", "safe to spend per month divided by weeks in a month", { source: "calculation" }),
-    fact("overview:safe-month", "Safe to spend per month", o.safeToSpend.perMonth, "EUR/month", "income minus must-pays, now-and-then costs and savings", { source: "calculation" }),
-    fact("overview:safe-gap", "Gap between safe to spend and actual everyday spending", o.safeToSpend.gapPerMonth, "EUR/month", "safe to spend minus actual", { source: "calculation" }),
+    fact("overview:safe-week", "Estimated weekly budget from 12-month averages", o.safeToSpend.perWeek, "EUR", "the monthly figure divided by weeks in a month", { source: "calculation" }),
+    fact("overview:safe-month", "Estimated monthly budget for everyday spending, from 12-month averages", o.safeToSpend.perMonth, "EUR/month", "income minus regular essentials, occasional essentials and savings", { source: "calculation" }),
+    fact("overview:safe-gap", "Gap between that budget and actual everyday spending", o.safeToSpend.gapPerMonth, "EUR/month", "budget minus actual", { source: "calculation" }),
+    ...weeklyBudgetFacts(flow.weeklyBudget),
     fact("overview:weeks", "Weeks in a month", 52 / 12, "count", "52 weeks divided by 12 months", { source: "calculation" }),
     fact("overview:age", "Age", o.age, "years", "customer record"),
-    fact("overview:peers", "Customers in the same age band", o.peerCount, "count", `ages ${o.ageBand}`),
+    fact("overview:peers", "Other demo profiles in the same age band", o.peerCount, "count", `ages ${o.ageBand}, synthetic demo data`, { synthetic: true }),
     ...o.baskets.flatMap((b) => [
       fact(`overview:basket:${b.id}`, `${b.label}, per month`, b.monthlyAvg, "EUR/month", basis, { evidence: { ...window, basket: b.id } }),
       fact(`overview:basket:${b.id}:share`, `${b.label}, share of spending`, Math.round(b.share * 100), "percent", "basket divided by all spending", { source: "calculation" }),
       ...b.categories.flatMap((c) => [
         fact(`overview:category:${c.category}`, `${c.category}, per month`, c.monthlyAvg, "EUR/month", `${c.count} transactions, ${basis}`, { evidence: { ...window, category: c.category } }),
-        ...(c.peerMonthlyAvg === null ? [] : [fact(`overview:category:${c.category}:peers`, `${c.category}, age ${o.ageBand} average`, c.peerMonthlyAvg, "EUR/month", `${o.peerCount} customers in the same age band`)]),
-        ...(c.peerMonthlyAvg === null ? [] : [fact(`overview:category:${c.category}:gap`, `${c.category}, gap to peers`, c.monthlyAvg - c.peerMonthlyAvg, "EUR/month", "your average minus the peer average", { source: "calculation" })]),
+        ...(c.peerMonthlyAvg === null ? [] : [fact(`overview:category:${c.category}:peers`, `${c.category}, average of demo profiles aged ${o.ageBand}`, c.peerMonthlyAvg, "EUR/month", `${o.peerCount} other profiles in the synthetic demo data`, { synthetic: true })]),
+        ...(c.peerMonthlyAvg === null ? [] : [fact(`overview:category:${c.category}:gap`, `${c.category}, gap to demo profiles`, c.monthlyAvg - c.peerMonthlyAvg, "EUR/month", "your average minus theirs, within the demo data", { source: "calculation", synthetic: true })]),
       ]),
     ]),
     ...o.recurringBills.flatMap((bill) => [

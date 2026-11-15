@@ -22,7 +22,7 @@ export async function executeTool(call: ToolCall, ctx: ToolContext): Promise<Too
     case "list_bills":
       return listBills(ctx);
     case "get_cash_flow":
-      return getCashFlow(ctx);
+      return getCashFlow(ctx, args);
     case "find_patterns":
       return findPatternsTool(ctx);
     case "check_affordability":

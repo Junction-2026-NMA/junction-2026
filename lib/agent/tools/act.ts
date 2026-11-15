@@ -8,6 +8,7 @@ import type { BillType, MemoryKind } from "@/lib/types";
 import { ACTION_KINDS, BILL_TYPES, MEMORY_KINDS } from "./schemas";
 import { type ToolContext, type ToolOutcome, factsForModel, failure, outcome } from "./types";
 import { looksLikeInstructions } from "./untrusted";
+import { parseRequirements } from "../research/requirements";
 
 export const digitsOf = (text: string): number[] => [...text.replace(/(\d)[ ,](\d{3})\b/g, "$1$2").matchAll(/\d+(?:\.\d+)?/g)].map((match) => Number(match[0]));
 const wordsOf = (text: string): string[] => text.toLowerCase().match(/[a-zà-öø-ÿ]{4,}/g) ?? [];
@@ -36,7 +37,7 @@ export function prepareAction(args: Record<string, unknown>, ctx: ToolContext): 
   const built =
     kind === "switch_contract"
       ? BILL_TYPES.includes(args.billType as BillType)
-        ? buildSwitchDraft(ctx.customerId, args.billType as BillType, { provider: typeof args.provider === "string" ? args.provider.slice(0, 60) : undefined, preparedBy: "sisu-agent" })
+        ? buildSwitchDraft(ctx.customerId, args.billType as BillType, { provider: typeof args.provider === "string" ? args.provider.slice(0, 60) : undefined, preparedBy: "sisu-agent", requirements: parseRequirements(args) })
         : ({ ok: false, status: 400, reason: "switch_contract needs billType: electricity, mobile or internet." } as const)
       : typeof amount === "number" && amountWasDiscussed(ctx, amount)
         ? buildTransferDraft(ctx.customerId, amount, { preparedBy: "sisu-agent", once: kind === "one_off_transfer", destination: args.destination === "investments" ? "investments" : "savings" })
@@ -51,7 +52,7 @@ export function prepareAction(args: Record<string, unknown>, ctx: ToolContext): 
     return outcome({
       content: JSON.stringify({
         status: "ALREADY APPROVED EARLIER. Nothing new was set up: a bill can be switched once.",
-        tellTheCustomer: "Say in one sentence that they have already approved this switch (as a simulation), name it, and that its saving is already counted. Do not ask them to tap Approve.",
+        tellTheCustomer: "In one short sentence, in your own words: they already approved this switch (a simulation) and its saving is already counted. Do not ask them to tap Approve.",
         alreadyApproved: action.title,
         approvedOn: (action.decidedAt ?? action.createdAt).slice(0, 10),
         summary: action.summary,
@@ -66,9 +67,9 @@ export function prepareAction(args: Record<string, unknown>, ctx: ToolContext): 
   return outcome({
     content: JSON.stringify({
       status: "SET UP AND WAITING. One tap on Approve carries it out (as a simulation in this demo).",
-      tellTheCustomer: "Say in one sentence what you have set up and what it does, then ask them to tap Approve. Speak as someone who has done the work: 'I've set up…', not 'I can only prepare…'. Do not say it has already gone through.",
+      tellTheCustomer: "In one short sentence, in your own words, say what is now ready and that it waits for their tap on Approve. It is yours to say you did it; do not say it has gone through. The card shows the details and figures: do not repeat them.",
       warning: action.warning ?? undefined,
-      ifThereIsAWarning: action.warning ? "Say the warning plainly, with its figures, and name the safer amount." : undefined,
+      ifThereIsAWarning: action.warning ? "Add one plain sentence with the warning's main point and the safer amount." : undefined,
       prepared: action.title,
       summary: action.summary,
       numbers: factsForModel(action.facts),
@@ -101,7 +102,7 @@ export function rememberTool(args: Record<string, unknown>, ctx: ToolContext): T
   if (!result.ok) return failure("finance", result.reason);
 
   return outcome({
-    content: JSON.stringify({ saved: true, remembered: `${result.item.kind}: ${result.item.value}`, tellTheCustomer: "Mention briefly that you will remember this, and that they can ask Sisu to forget it." }),
+    content: JSON.stringify({ saved: true, remembered: `${result.item.kind}: ${result.item.value}`, tellTheCustomer: "Mention in a few words that you'll remember it (they can ask you to forget it any time)." }),
     summary: `Remembered ${result.item.kind}: ${result.item.value}`,
     memory: result.item,
     stages: [{ kind: "memory", title: "Remembered", summary: `${result.item.kind.replace("_", " ")}: ${result.item.value}`, source: "customer-stated", data: { kind: "memory", item: result.item } }],

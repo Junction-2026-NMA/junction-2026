@@ -139,16 +139,16 @@ function everydayPatterns(overview: Overview, w: Windows): Pattern[] {
     patterns.push({
       id: `peer-gap:${overPeers.category}`,
       kind: "peer-gap",
-      title: `${overPeers.category}: €${Math.round(gap)} a month above people your age`,
-      detail: `You average €${Math.round(overPeers.monthlyAvg)} a month; the ${overview.peerCount} customers aged ${overview.ageBand} average €${Math.round(overPeers.peerMonthlyAvg ?? 0)}. That gap is €${Math.round(gap * 12)} a year.`,
+      title: `${overPeers.category}: €${Math.round(gap)} a month above other demo profiles`,
+      detail: `You average €${Math.round(overPeers.monthlyAvg)} a month; the ${overview.peerCount} other profiles aged ${overview.ageBand} in the synthetic demo data average €${Math.round(overPeers.peerMonthlyAvg ?? 0)}. That gap is €${Math.round(gap * 12)} a year. A comparison within the demo data, not a statistic about real people.`,
       yearlyImpactEur: round2(gap * 12),
       confidence: "medium",
       billType: null,
       evidence: { ...w.evidence, category: overPeers.category },
       facts: [
         fact(`peer:${overPeers.category}:mine`, `${overPeers.category}, your monthly average`, overPeers.monthlyAvg, "EUR/month", `${overPeers.count} purchases in the last 12 months`, { evidence: { ...w.evidence, category: overPeers.category } }),
-        fact(`peer:${overPeers.category}:peers`, `${overPeers.category}, age ${overview.ageBand} average`, overPeers.peerMonthlyAvg ?? 0, "EUR/month", `${overview.peerCount} customers in the same age band`),
-        fact(`peer:${overPeers.category}:gap-yearly`, `${overPeers.category}, gap per year`, gap * 12, "EUR/year", "monthly gap times 12", { source: "calculation" }),
+        fact(`peer:${overPeers.category}:peers`, `${overPeers.category}, average of demo profiles aged ${overview.ageBand}`, overPeers.peerMonthlyAvg ?? 0, "EUR/month", `${overview.peerCount} other profiles in the synthetic demo data`, { synthetic: true }),
+        fact(`peer:${overPeers.category}:gap-yearly`, `${overPeers.category}, gap to demo profiles per year`, gap * 12, "EUR/year", "monthly gap times 12", { source: "calculation", synthetic: true }),
       ],
       nextSteps: ["get_spending", "run_scenario"],
     });

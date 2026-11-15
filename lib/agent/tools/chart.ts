@@ -8,7 +8,7 @@ export function showChart(args: Record<string, unknown>, ctx: ToolContext): Tool
   const visual = chartFor(kind, ctx.overview);
   if (!visual) return failure("finance", "There is not enough data to draw that chart.");
   return outcome({
-    content: JSON.stringify({ shownOnScreen: visual.title, whatItShows: visual.summary, covers: visual.caption, someFiguresInIt: factsForModel(visual.facts).slice(0, 8), say: "The chart is on the customer's screen now. Tell them what it shows in one or two sentences, from whatItShows. Do not read out every number, and do not describe anything whatItShows does not say." }),
+    content: JSON.stringify({ shownOnScreen: visual.title, whatItShows: visual.summary, covers: visual.caption, someFiguresInIt: factsForModel(visual.facts).slice(0, 8), say: "The chart is on the customer's screen now. Say the one thing it shows that matters most, in one sentence and your own words, from whatItShows. Do not read out its numbers or describe anything whatItShows does not say." }),
     summary: `Chart on screen: ${visual.title}`,
     facts: visual.facts,
     visual,

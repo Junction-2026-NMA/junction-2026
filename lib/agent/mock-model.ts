@@ -43,7 +43,9 @@ const firstNumber = (text: string): number | null => {
 function firstTool(question: string): [string, Json] | null {
   const q = question.toLowerCase();
   const offer = speculate(question);
-  if (offer) return ["search_offers", { billType: offer.billType }];
+  // "12 months or less": the requirement goes with the search, as the real model is told to pass it.
+  const maxMonths = /(\d{1,2})[- ]?months? (or less|max(imum)?|at most)|(at most|max(imum)?|up to) (\d{1,2}) months?/.exec(q);
+  if (offer) return ["search_offers", { billType: offer.billType, ...(maxMonths ? { maxContractMonths: Number(maxMonths[1] ?? maxMonths[6]) } : {}) }];
   if (/afford|unexpected|sent me a bill|bill for \d/.test(q) && firstNumber(q)) return ["check_affordability", { amountEur: firstNumber(q), what: "this cost" }];
   if (/remember|kwh/.test(q) && firstNumber(q)) return ["remember", { kind: "yearly_kwh", value: String(firstNumber(q)) }];
   if (/mortgage|apartment|buy a (home|house|flat)/.test(q)) return ["get_mortgage", {}];
@@ -70,13 +72,16 @@ function wordAnswer(results: { name: string; body: Json }[]): string {
   const patterns = (of("find_patterns")?.patterns as Json[] | undefined)?.[0];
   if (patterns) parts.push(`The thing that stands out most: ${String(patterns.what)}.`);
   if (best) parts.push(`${String(best.provider)} looks cheapest at about ${best.estimatedMonthlyCostEur} euros a month, saving about ${best.estimatedYearlySavingEur} euros a year against your bill of ${offers?.currentBillMonthlyEur} euros a month. These are example offers, not live prices.`);
+  else if (offers && typeof offers.note === "string" && offers.note.includes("No matching options found")) parts.push(`No matching options found for ${String(offers.requirements)}. Want me to widen it, or keep checking?`);
   else if (offers) parts.push("No example offer is cheaper than your current bill.");
   const scenario = of("run_scenario");
   if (scenario) parts.push(`Keeping ${scenario.freedPerMonthEur} euros a month adds up to about ${scenario.extraAfterPeriodIfKeptEur} euros over the period.`);
   const afford = of("check_affordability");
   if (afford) parts.push(`That cost is ${String(afford.verdictMeans)}. Your balance straight after would be ${afford.balanceStraightAfterEur} euros.`);
   const cash = of("get_cash_flow");
-  if (cash) parts.push(`Your next payday is expected on ${String(cash.nextPaydayExpected)}, and your balance just before it should be about ${cash.expectedBalanceJustBeforePaydayEur} euros.`);
+  const weekly = cash?.estimatedWeeklyBudgetUntilPayday as Json | null | undefined;
+  if (cash && weekly) parts.push(`Your estimated weekly budget until payday on ${String(cash.nextPaydayExpected)} is about ${weekly.perWeekEur} euros, after your bills and a small buffer.`);
+  else if (cash) parts.push(`Your next payday is expected on ${String(cash.nextPaydayExpected)}, and your balance just before it should be about ${cash.expectedBalanceJustBeforePaydayEur} euros.`);
   const mortgage = of("get_mortgage");
   if (mortgage) parts.push(mortgage.onRecord ? `Your mortgage application was ${String(mortgage.decision)}: a loan of ${mortgage.loanEur} euros on a home priced at ${mortgage.propertyPriceEur} euros.` : "There is no mortgage application on record for you.");
   const bills = of("list_bills");
@@ -121,6 +126,6 @@ export async function* scriptedMockModel(options: StreamOptions): AsyncGenerator
   }
 
   if (results.length) return yield* speak(wordAnswer(results));
-  const perWeek = /"safeToSpendPerWeekEur":\s*([\d.]+)/.exec(system)?.[1];
-  yield* speak(perWeek ? `Mock answer. You can safely spend ${perWeek} euros a week. Try asking for a cheaper electricity deal, whether you can afford a phone repair, or where your money goes.` : "Mock answer. Try asking for a cheaper electricity deal.");
+  const perWeek = /"estimatedWeeklyBudgetUntilPayday":\{"perWeekEur":\s*([\d.]+)/.exec(system)?.[1];
+  yield* speak(perWeek ? `Mock answer. Your estimated weekly budget until payday is about ${perWeek} euros. Try asking for a cheaper electricity deal, whether you can afford a phone repair, or where your money goes.` : "Mock answer. Try asking for a cheaper electricity deal.");
 }

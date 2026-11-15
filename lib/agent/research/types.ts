@@ -9,6 +9,7 @@ export type RawOffer = {
   monthlyPriceEur: number | null;
   energyPriceCentsPerKwh: number | null;
   setupFeeEur: number | null;
+  greenEnergy?: boolean | null; // electricity: renewable energy, as the page states it; null or missing when it does not say
   sourceUrl: string;
 };
 
