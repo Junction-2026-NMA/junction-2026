@@ -376,9 +376,11 @@ export class CoachSession extends Store<CoachSessionState> {
     return this.runTurn({ kind: "voice", audio, fileName, mimeType, language: language ?? this.language });
   }
 
-  /** A buffer worth sending: a finite number of euros, zero or more. Anything else is null (none said). */
+  /** A buffer worth sending: a finite number of euros from 0 to 100,000 (the server refuses anything else, which
+   *  would fail every question). Anything else is null (none said), so a value stored before the limit existed
+   *  never blocks the conversation. */
   static validBuffer(value: number | null | undefined): number | null {
-    return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
+    return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 100_000 ? value : null;
   }
 
   /** Stops whatever Sisu is doing: aborts the stream, stops speech, and leaves what has arrived on screen. A voice

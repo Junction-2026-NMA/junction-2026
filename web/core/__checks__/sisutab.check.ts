@@ -204,6 +204,7 @@ async function main() {
     (model.coach as unknown as { use(next: CoachSession): void }).use(next);
     eq(next.bufferEur, 150, "a new session (another profile) gets the buffer too");
     eq([CoachSession.validBuffer(-5), CoachSession.validBuffer(Number.NaN), CoachSession.validBuffer(0)], [null, null, 0], "only a real amount is sent");
+    eq([CoachSession.validBuffer(100_000), CoachSession.validBuffer(150_000)], [100_000, null], "a buffer over 100,000 the server refuses is never sent");
   });
 
   await group("stop: a reply stopped before anything arrived says so, with Try again, also after reopening (15 Nov QA)", async () => {
