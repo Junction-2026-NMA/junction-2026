@@ -30,6 +30,12 @@ export function transactionsFor(customerId: string): Transaction[] {
   return ALL_TX.filter((t) => t.customerId === customerId);
 }
 
+// The first day of the customer's transactions: get_spending can answer any period from here to DATA_AS_OF.
+export function dataStartFor(customerId: string): string {
+  const dates = transactionsFor(customerId).map((row) => row.date);
+  return dates.length ? dates.reduce((a, b) => (a < b ? a : b)) : DATA_AS_OF;
+}
+
 export function ageBandOf(age: number): string {
   if (age < 25) return "18-24";
   if (age < 31) return "25-30";

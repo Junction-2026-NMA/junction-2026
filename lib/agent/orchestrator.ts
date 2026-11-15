@@ -13,6 +13,7 @@ import { APP_NOTE, BROKEN_TOOL_CALL, BROKEN_TRIP, type Trip, asksForAdvice, asks
 import { type Sources, checkGrounding, correctNames, correctNumbers, numbersIn, overviewFacts, spelledToDigits } from "./grounding";
 import { type ChatMessage, type ToolCall, streamChat } from "./model";
 import { buildSystemPrompt, customerSummary } from "./prompt";
+import { periodNote } from "./periods";
 import { ensureResearch, isResearchReady } from "./research";
 import { createSentenceSplitter, forSpeech } from "./sentences";
 import { speculate } from "./speculate";
@@ -125,7 +126,7 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
   const messages: ChatMessage[] = [
     { role: "system", content: buildSystemPrompt({ overview, city: customer.area, mode: request.mode, memory, investigate, language: request.language, actions: listActions(request.customerId), accounts, watches, notifications: watchNotes, bufferEur: appBuffer, question: request.text }) },
     ...history.map((turn) => ({ role: turn.role, content: turn.content })),
-    { role: "user", content: forged ? `${request.text}\n\n${FORGED_NOTE}` : request.text },
+    { role: "user", content: forged ? `${request.text}\n\n${FORGED_NOTE}` : withPeriodNote(request.text) },
   ];
 
   const splitter = createSentenceSplitter();
@@ -386,4 +387,9 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
     console.error("[agent] turn failed", error);
     yield { type: "error", message: (error as Error).message || "Sisu could not answer just now. Please try again." };
   }
+}
+
+function withPeriodNote(text: string): string {
+  const note = periodNote(text);
+  return note ? `${text}\n\n${note}` : text;
 }

@@ -123,8 +123,12 @@ export async function searchOffers(args: Record<string, unknown>, ctx: ToolConte
             : // With no offer read (search and readers down) the model said "I checked today's offers; none is cheaper".
               "No offer could be read just now, so nothing was compared. Say the live offer search is not working right now and offer to try again later. Do not say that no offer is cheaper, and give no kWh figure.",
       stillToConfirm: best && research.toConfirm.length ? research.toConfirm : undefined,
+      // "Find a cheaper deal and set up the switch": the old wording ("then ask for ONE of stillToConfirm") won over the
+      // rule to act, so Sisu said "I can set up the switch" and set nothing up (seen 2026-11-15 in the web app).
       howToAnswer: best
-        ? `Give the saving as a rough "about" figure in one sentence${research.savingIncomplete ? ", and say a fee is not stated so it may be smaller" : ""}. The cards show the offers, sources and workings: do not list them.${research.toConfirm.length ? " Then ask for ONE of stillToConfirm, the one that matters most, so the estimate becomes dependable." : ""}`
+        ? asksToSwitch(ctx.userTexts.at(-1) ?? "")
+          ? `They asked you to switch: call prepare_action now with kind switch_contract and billType ${billType} for the best offer, then give the saving as a rough "about" figure in one sentence and say one tap on Approve switches it.${research.toConfirm.length ? " Mention ONE of stillToConfirm in a few words; do not wait for it." : ""}`
+          : `Give the saving as a rough "about" figure in one sentence${research.savingIncomplete ? ", and say a fee is not stated so it may be smaller" : ""}. The cards show the offers, sources and workings: do not list them.${research.toConfirm.length ? " Then ask for ONE of stillToConfirm, the one that matters most, so the estimate becomes dependable." : ""}`
         : undefined,
       offers: research.offers.slice(0, 5).map(compact),
       sources: research.citations.map((c) => hostOf(c.url)),
@@ -214,4 +218,10 @@ async function deepSearch(query: string, ctx: ToolContext): Promise<ToolOutcome>
   } catch (error) {
     return failure("exa", `Deeper research is unavailable right now (${(error as Error).message})`);
   }
+}
+
+// The customer asked for the switch itself, not only a comparison ("set up the switch", "go ahead", "vaihda", "byt").
+const SWITCH_WORDS = /\b(switch(ing)? (me|it|over|to)|set (it |that |the switch |this )?up|set up the switch|go ahead|do it|sign me up|change (it|my contract|provider))\b|\bswitch\b.*\b(for me|now)\b|vaihda|vaihdetaan|byt (till|avtal)|byta/i;
+export function asksToSwitch(text: string): boolean {
+  return SWITCH_WORDS.test(text);
 }
