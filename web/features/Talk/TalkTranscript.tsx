@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { CoachStore } from "@/web/app/CoachStore";
 import { CoachSession, type CoachMessage, type CoachSessionState } from "@/web/core/CoachSession";
-import { SisuMotion } from "@/web/shared/SisuStyle";
+import { Message, MessageContent } from "@/web/agents/Message";
 import { UserBubble } from "@/web/features/Ask/AskParts";
 import { AssistantAnswer } from "@/web/features/Ask/AssistantAnswer";
 import { COACH_BOTTOM } from "@/web/features/Ask/askLaunch";
@@ -195,13 +195,17 @@ export function TalkTranscript({ session, state, store, conversationId, reduceMo
     else store.ask(question);
   };
 
-  const enter = (id: string) => (isNew(id) ? SisuMotion.entrance(reduceMotion) : undefined);
+  // Each turn is a beUI Message row (web/agents): a new one pops up from the live edge, one already on screen when
+  // the chat appeared does not move.
   const row = (message: CoachMessage): ReactNode => (
-    <div key={message.id} data-anchor={message.id} data-role={message.role} className={enter(message.id)}>
-      {message.role === "user"
-        ? <UserBubble text={message.text} pending={message.pending} spoken={message.spoken === true} />
-        : <AssistantAnswer message={message} actions={state.actions} retry={() => retry(message)} isNew={isNew} />}
-    </div>
+    <Message key={message.id} from={message.role === "user" ? "user" : "assistant"} animateIn={isNew(message.id)}
+      data-anchor={message.id} data-role={message.role}>
+      <MessageContent>
+        {message.role === "user"
+          ? <UserBubble text={message.text} pending={message.pending} spoken={message.spoken === true} animateIn={isNew(message.id)} />
+          : <AssistantAnswer message={message} actions={state.actions} retry={() => retry(message)} isNew={isNew} />}
+      </MessageContent>
+    </Message>
   );
 
   return (

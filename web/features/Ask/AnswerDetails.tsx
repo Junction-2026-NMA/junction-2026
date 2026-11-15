@@ -1,12 +1,12 @@
 "use client";
 // The details of one answer, closed at first: the offers compared, "Show the maths" (what stood out, the
-// transactions, each calculation's steps, the futures, the tool calls and timing), the assumptions (each once per
+// transactions, each calculation's steps, the futures), the assumptions (each once per
 // answer) and the sources (labelled, with when they were read and a link). Replaces the stage cards and the
 // "How Sisu worked this out" drawer of the iOS port, which repeated the same figures several times. When the answer
 // leads with a monthly saving, its projection over the years is a separate optional section, labelled an estimate.
+// The tool calls and the timing are not here: they are the answer's activity trace above the card (AnswerActivity).
 import { useAppModel } from "@/web/app/AppProvider";
 import type { AnswerView, FuturesView, HowBlock } from "@/web/core/AnswerPresentation";
-import type { StepRow } from "@/web/core/ChartPresentation";
 import { Footnote, LinesView, SourceLink } from "./CardParts";
 import { Disclosure } from "./Disclosure";
 import { ImpactChart } from "./ImpactChart";
@@ -17,7 +17,7 @@ import "./answer.css";
 export function AnswerDetails({ view }: { view: AnswerView }) {
   const optional = view.futures?.optional ? view.futures : null;
   const inHow = view.futures?.optional ? null : view.futures;
-  const hasHow = view.how.length > 0 || inHow != null || view.steps.length > 0;
+  const hasHow = view.how.length > 0 || inHow != null;
   if (!hasHow && optional == null && view.offers == null && view.assumptions.length === 0 && view.sources.length === 0 && view.tags.length === 0) return null;
   return (
     <section className="sisu-answer-details" aria-label="Details" data-testid="answer.details">
@@ -41,7 +41,6 @@ export function AnswerDetails({ view }: { view: AnswerView }) {
               <Futures futures={inHow} />
             </div>
           ) : null}
-          {view.steps.length > 0 ? <ToolSteps steps={view.steps} timing={view.timing} /> : null}
         </Disclosure>
       ) : null}
       {optional ? (
@@ -99,23 +98,6 @@ function HowSection({ block }: { block: HowBlock }) {
           See the transactions
         </button>
       ) : null}
-    </div>
-  );
-}
-
-function ToolSteps({ steps, timing }: { steps: StepRow[]; timing: string | null }) {
-  return (
-    <div className="sisu-answer-section">
-      <span className="sisu-ask-label">What Sisu did</span>
-      <ol className="sisu-answer-steps">
-        {steps.map((step) => (
-          <li key={step.id} className="sisu-answer-step" data-state={step.state}>
-            <span className="sisu-ask-caption">{step.label + (step.state === "failed" ? " (did not finish)" : "")}</span>
-            {step.result ? <span className="sisu-ask-caption sisu-ask-muted">{step.result + (step.duration ? ` · ${step.duration}` : "")}</span> : null}
-          </li>
-        ))}
-      </ol>
-      {timing ? <Footnote text={timing} /> : null}
     </div>
   );
 }

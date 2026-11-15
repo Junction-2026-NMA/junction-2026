@@ -242,22 +242,6 @@
   min-width: 0;
 }
 
-.sisu-answer-steps {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--sisu-space-grid) * 2);
-  margin: 0;
-  padding: 0 0 0 18px;
-}
-
-.sisu-answer-step {
-  display: list-item;
-}
-
-.sisu-answer-step > span { display: block; }
-.sisu-answer-step::marker { font: var(--sisu-type-caption); color: var(--sisu-color-text-muted); }
-.sisu-answer-step[data-state="failed"]::marker { color: var(--sisu-amber-text); }
-
 /* Offers. */
 .sisu-answer-offers {
   display: flex;
