@@ -6,26 +6,6 @@ import "./gate.css";
 
 export const QR_MESSAGE = "Scan this QR code with your phone to use the demo.";
 
-/** Remembers, for the tab, that this computer chose to open the app here instead of on a phone. */
-const UNLOCK_KEY = "sisu.gate.desktopUnlocked";
-
-function readUnlocked(): boolean {
-  try {
-    return window.sessionStorage.getItem(UNLOCK_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function rememberUnlocked(on: boolean): void {
-  try {
-    if (on) window.sessionStorage.setItem(UNLOCK_KEY, "1");
-    else window.sessionStorage.removeItem(UNLOCK_KEY);
-  } catch {
-    // Private mode: it lasts until the page reloads.
-  }
-}
-
 type QrLib = typeof import("qrcode");
 
 /** The QR code the server drew into the page. Either part may be missing. */
@@ -50,13 +30,8 @@ export default function DesktopQr({ serverQr }: { serverQr?: ServerQr }) {
   const fromServer = serverQr?.svg && serverQr.url ? { kind: "ready" as const, svg: serverQr.svg, url: serverQr.url } : null;
   const [qr, setQr] = useState<QrState>(fromServer ?? { kind: "loading" });
   const hasServerQr = fromServer !== null;
-  const [unlocked, setUnlocked] = useState(false);
-
-  useEffect(() => {
-    // The unlock is kept for the tab, so a reload stays in the app.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (readUnlocked()) setUnlocked(true);
-  }, []);
+  // Nothing is remembered: every visit on a computer starts on the QR page and needs the button.
+  const [openHere, setOpenHere] = useState(false);
 
   useEffect(() => {
     if (hasServerQr) return;
@@ -84,14 +59,7 @@ export default function DesktopQr({ serverQr }: { serverQr?: ServerQr }) {
     };
   }, [hasServerQr]);
 
-  const openHere = () => {
-    rememberUnlocked(true);
-    setUnlocked(true);
-  };
-
-  if (unlocked) {
-    return <DesktopPhone onLeave={() => { rememberUnlocked(false); setUnlocked(false); }} />;
-  }
+  if (openHere) return <DesktopPhone onLeave={() => setOpenHere(false)} />;
 
   return (
     <main className="sisu-gate">
@@ -112,7 +80,7 @@ export default function DesktopQr({ serverQr }: { serverQr?: ServerQr }) {
         ) : null}
         <div className="sisu-gate-open">
           <span className="sisu-gate-open-label">No phone at hand?</span>
-          <button type="button" className="sisu-gate-open-button" onClick={openHere} data-testid="desktop.open">
+          <button type="button" className="sisu-gate-open-button" onClick={() => setOpenHere(true)} data-testid="desktop.open">
             Use it on this computer
           </button>
         </div>
