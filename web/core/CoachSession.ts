@@ -487,7 +487,13 @@ export class CoachSession extends Store<CoachSessionState> {
       if (this.turnToken !== token) return;
       this.turnTask = null;
       this.turnAbort = null;
-      this.update({ isThinking: false, task: null, messages: this.state.messages.map((m) => (!m.pending ? m : m.id === userId ? CoachSession.settledQuestion(m) : { ...m, pending: false })) });
+      // A stream that closed with nothing in it (no words, no done, no error, for example a crashed route) leaves
+      // no empty card: the reply says it stopped, and the card offers Try again.
+      this.update({ isThinking: false, task: null, messages: this.state.messages.map((m) => {
+        if (!m.pending) return m;
+        if (m.id === userId) return CoachSession.settledQuestion(m);
+        return ConversationHistory.isBlank(m) ? { ...m, pending: false, runningTool: null, error: CoachErrors.stopped } : { ...m, pending: false };
+      }) });
     })();
     this.turnTask = task;
     return task;

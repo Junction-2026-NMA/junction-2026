@@ -10,6 +10,7 @@ import type { AgentAction, Fact, Offer, ResearchResult, Stage, ToolTrace } from 
 import { ActionPresenter, GroundingPresenter, OfferPresenter } from "@/web/core/CoachPresentation";
 import { StepPresenter } from "@/web/core/ChartPresentation";
 import { CoachMessage, CoachStep } from "@/web/core/CoachSession";
+import { Working } from "@/web/core/AnswerWorking";
 import { Visual } from "@/web/core/PlanModels";
 
 let failures = 0, passes = 0;
@@ -233,6 +234,89 @@ group("fees and reused results", () => {
   const fresh = { ...step, tookMs: 3671, result: "15 offers from 3 pages in 3.6 s; best saves €67 a year" };
   const live = CoachMessage.make("m", "assistant", { steps: [fresh], tools: [trace("s", "search_offers", { billType: "electricity" }, 3671, fresh.result)] });
   eq(StepPresenter.rows(live, "en").map((row) => [row.result, row.duration]), [["15 offers from 3 pages; best saves €67 a year", "3.7 s"]], "a fresh search: its own duration once");
+});
+
+// MARK: - Final round of 15 Nov
+
+const f = (id: string, label: string, value: number, unit: string, source = "calculation", extra: Partial<Fact> = {}): Fact => ({ id, label, value, unit, source, basis: "b", ...extra });
+const restaurantFacts: Fact[] = [
+  f("scenario:freed", "Freed per month", 55.3, "EUR/month"), f("scenario:years", "Years ahead", 5, "years", "customer-stated"),
+  f("scenario:category-avg", "Restaurants, average per month", 276.52, "EUR/month", "bank-data", { basis: "average of the last 12 months", evidence: { from: "2025-10-01", to: "2026-09-30", category: "Restaurants" } }),
+  f("scenario:category-cut-pct", "Cut asked for", 20, "percent", "customer-stated"),
+  f("scenario:category-freed", "Cutting Restaurants by 20% frees, per month", 55.3, "EUR/month"),
+  f("scenario:category-freed-yearly", "Cutting Restaurants by 20% frees, per year", 663.6, "EUR/year"),
+  f("scenario:gain", "Extra after the period if the money is kept", 3318, "EUR"), f("scenario:save:end", "Make the change, keep the cash: total at the end", 3808.75, "EUR"),
+];
+const restaurantImpact = (monthly = 55.3): Stage => ({ id: "i", kind: "impact", title: "5 years ahead", summary: "About €3318 more after 5 years if the freed money is kept.", source: "calculation",
+  toolCallId: "s", atMs: 0, facts: restaurantFacts, data: { kind: "impact", impact: { monthlyEur: monthly, yearlyEur: monthly * 12, horizonYears: 5, gainVsNothingEur: 3318,
+    summary: "About €3318 more after 5 years if the freed money is kept.", branches: [{ id: "nothing", label: "Change nothing", endTotal: 490.75, endLow: 490.75, endHigh: 490.75 },
+      { id: "save", label: "Make the change, keep the cash", endTotal: 3808.75, endLow: 3808.75, endHigh: 3808.75 },
+      { id: "invest", label: "Make the change, invest it", endTotal: 4247.32, endLow: 3877.11, endHigh: 4559.18 }] } } });
+const restaurantText = "Spending 20% less on restaurants would free about 55.3 euros a month, or 663.6 euros a year, from your 12-month average.";
+const restaurantGrounding = { ok: true, checked: 4, unverified: [], corrections: [], numbers: [{ value: 20, status: "receipt", factId: "scenario:category-cut-pct" },
+  { value: 55.3, status: "receipt", factId: "scenario:freed" }, { value: 663.6, status: "receipt", factId: "scenario:category-freed-yearly" }, { value: 12, status: "context", factId: null }] };
+const restaurantAnswer = (text = restaurantText, monthly = 55.3) => {
+  const step = { ...CoachStep.make("s", "Projecting the next years ahead from your real averages"), done: true, tookMs: 1, result: "€55 a month freed, projected over 5 years" };
+  return CoachMessage.make("m", "assistant", { text, stages: [restaurantImpact(monthly)], facts: restaurantFacts, grounding: restaurantGrounding, steps: [step],
+    tools: [trace("s", "run_scenario", {}, 1, step.result)] });
+};
+
+group("a monthly saving leads with the month, the years are optional (QA: 'More after 5 years if you keep it €3,318')", () => {
+  const view = AnswerPresenter.view(restaurantAnswer(), "en", "Europe/Helsinki", "What would spending 20% less at restaurants save?");
+  eq([view.result?.label, view.result?.value, view.result?.detail], ["Cutting Restaurants by 20% frees", "€55.30 a month", "€663.60 a year"], "per month, then per year");
+  eq(view.result?.tags.map((tag) => tag.kind), ["bank", "input", "estimate"], "where it comes from");
+  eq(view.how.map((block) => [block.title, block.lines.map((line) => [line.label, line.value])]),
+    [["What the saving is worked out from", [["Restaurants, average per month", "€276.52 a month"], ["Cut asked for", "20%"]]]], "the basis once, no 'Figures behind' repeats");
+  eq(view.how[0].evidence?.filter.category, "Restaurants", "with the transactions behind the average");
+  eq([view.futures?.optional, view.futures?.label, view.futures?.series.map((line) => line.id), view.futures?.tags.map((tag) => tag.kind)],
+    [true, "Optional: if you keep the saving for 5 years", ["nothing", "save"], ["estimate"]], "the projection is optional, an estimate, with no invest line");
+  eq([view.steps[0].label, view.steps[0].result], ["Projected the next years ahead from your real averages", null], "the tool line adds no figure");
+  const said = [view.result?.value, view.result?.detail, ...view.how.flatMap((block) => block.lines.map((line) => line.value))].filter((one) => one?.includes("55.30"));
+  eq(said.length, 1, "€55.30 is on the card only");
+  eq(["Drawing a chart from your account", "Scanning twelve months of your transactions for what stands out", "Saving that so I remember it next time"].map(StepPresenter.pastTense),
+    ["Drew a chart from your account", "Scanned twelve months of your transactions for what stands out", "Saved that so I remember it next time"], "finished steps in the past tense");
+
+  const years = AnswerPresenter.view(restaurantAnswer(), "en", "Europe/Helsinki", "How much more would I have after 5 years if I cut restaurants by 20%?");
+  eq([years.result?.label, years.result?.value, years.futures?.optional, years.futures?.label, years.futures?.summary, years.futures?.series.map((line) => line.id)],
+    ["More after 5 years if you keep it", "€3,318", false, "If you keep the money", "", ["nothing", "save"]], "asked about the years: they lead, the chart's sentence is not repeated");
+  const invest = AnswerPresenter.view(restaurantAnswer(), "en", "Europe/Helsinki", "What if I cut restaurants by 20% and invest it?");
+  eq([invest.result?.label, invest.futures?.series.map((line) => line.id)], ["More after 5 years if you keep it", ["nothing", "save", "invest"]], "asked about investing: the invest line");
+  const own = AnswerPresenter.view(restaurantAnswer("Saving 50 euros a month adds up.", 50), "en", "Europe/Helsinki", "What if I save €50 a month?");
+  eq(own.result?.label, "More after 5 years if you keep it", "the person's own monthly amount is not echoed as the result");
+  eq(AnswerPresenter.view(restaurantAnswer(), "en", "Europe/Helsinki").result?.value, "€55.30 a month", "question unknown: the month leads");
+  eq([Working.asksLongTerm("What would spending 20% less at restaurants save per year?"), Working.asksLongTerm("Where will I be in 10 years?"),
+    Working.asksLongTerm("Should I put it in an index fund?")], [false, true, true], "what counts as asking about the years ahead");
+});
+
+group("'Figures behind this answer' lists only figures the text says as the same kind (live: 'ages 18 to 24' as 18% and €24.83)", () => {
+  eq(Working.claims("€64 a month more than ages 18 to 24, 20% less, 419 customers, 6 months, in 2026, −€22.88 and 276.52 a month").map((c) => [c.value, c.kind]),
+    [[64, "euro"], [18, null], [24, null], [20, "percent"], [419, "count"], [6, "time"], [2026, null], [22.88, "euro"], [276.52, "euro"]], "kinds read from the words around");
+  const live = "You spend more than people your age on Home & Tech and Restaurants. The biggest gap is Restaurants, where you spend 64 euros a month more than the average for ages 18 to 24.";
+  const facts = [f("chart:peers:Restaurants:gap", "Restaurants, you against people your age, per month", 64, "EUR/month"),
+    f("overview:basket:irregular:share", "Must pay, now and then, share of spending", 18, "percent"), f("overview:bill:utilities-3", "Mobile plan, per month", 24.83, "EUR/month", "bank-data"),
+    f("overview:bill:utilities-1", "Utilities in Sep 2026", 64.78, "EUR", "bank-data")];
+  const grounding = { ok: true, checked: 3, unverified: [], corrections: [], numbers: [{ value: 64, status: "receipt", factId: "chart:peers:Restaurants:gap" },
+    { value: 18, status: "receipt", factId: "overview:basket:irregular:share" }, { value: 24, status: "receipt", factId: "overview:bill:utilities-3" }, { value: 64, status: "receipt", factId: "overview:bill:utilities-1" }] };
+  const view = AnswerPresenter.view(CoachMessage.make("m", "assistant", { text: live, facts, grounding }), "en");
+  eq(view.how.map((block) => block.lines.map((line) => [line.label, line.value])), [[["Restaurants, you against people your age, per month", "€64 a month"]]],
+    "the restaurant gap only: no 18% share, no €24.83 bill, no €64.78 that rounds to 65");
+  eq(view.tags.some((tag) => tag.kind === "synthetic"), true, "still labelled as a synthetic comparison");
+  const bare = AnswerPresenter.view(CoachMessage.make("m", "assistant", { text: "You paid it on day 24, 3 times.", facts: [f("x", "Mobile plan", 24, "EUR"), f("y", "Payments", 3, "count")],
+    grounding: { ok: true, checked: 2, unverified: [], corrections: [], numbers: [{ value: 24, status: "receipt", factId: "x" }, { value: 3, status: "receipt", factId: "y" }] } }), "en");
+  eq(bare.how.map((block) => block.lines.map((line) => [line.label, line.value])), [[["Payments", "3"]]], "a bare day of the month backs nothing; '3 times' is a count");
+});
+
+group("no matching offer: the requirement is said once (QA: in What Sisu did and in an assumption)", () => {
+  const long = offer("Example Energia", 24, 24.12, { meetsRequirements: false, misses: ["24-month contract (you asked for 6 months or less)"] });
+  const r = research([long], { requirements: { maxContractMonths: 6 }, noMatch: true, matchingCount: 0,
+    assumptions: ["Only offers that meet what you asked for (contract of 6 months or less) can be the best offer. An offer whose page does not state one of these counts as not meeting it."] });
+  const step = { ...CoachStep.make("s", "Searching today's electricity offers with Exa and reading the pages with Context.dev"), done: true, tookMs: 900,
+    result: "3 offers from 1 page in 0.9 s; No matching options found (contract of 6 months or less)" };
+  const view = AnswerPresenter.view(CoachMessage.make("m", "assistant", { text: "No matching options found for contract of 6 months or less.", research: r, steps: [step],
+    tools: [trace("s", "search_offers", { billType: "electricity" }, 900, step.result)], stages: [read("s", [long])] }), "en", "Europe/Helsinki", "Find me electricity contracts of 6 months or less");
+  eq([view.result?.label, view.result?.detail], ["No matching options found", "You asked for a contract of 6 months or less."], "the card says it");
+  eq(view.steps.map((row) => row.result), ["3 offers from 1 page"], "not again in What Sisu did");
+  eq(view.assumptions, ["Only offers that meet what you asked for can be the best offer. An offer whose page does not state one of these counts as not meeting it."], "nor in the assumptions");
 });
 
 console.log(`\n${passes} passed, ${failures} failed`);

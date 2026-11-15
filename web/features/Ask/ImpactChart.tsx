@@ -1,6 +1,7 @@
 "use client";
 // Where the three futures end: one bar each, labelled by the presenter. Port of ImpactChart in AskCards.swift
-// (a Swift Charts BarMark per series with its end label on top, axes hidden, 140 pt tall, then a legend).
+// (a Swift Charts BarMark per series with its end label on top, axes hidden, 140 pt tall, then a legend that names
+// each bar and adds its range when there is one, so no total is said twice).
 import type { FuturesSeries } from "@/web/core/CoachPresentation";
 
 const CHART_HEIGHT = 140;
@@ -42,7 +43,8 @@ export function ImpactChart({ series }: { series: FuturesSeries[] }) {
           <div key={line.id} className="sisu-ask-impact-row">
             <span className="sisu-ask-impact-dot" style={{ background: color(line.id) }} />
             <span className="sisu-ask-body sisu-ask-grow">{line.label}</span>
-            <span className="sisu-ask-label">{line.rangeLabel ?? line.endLabel}</span>
+            {/* The bar already says the end total: the legend adds a value only when it says more (a range). */}
+            {line.rangeLabel ? <span className="sisu-ask-label">{line.rangeLabel}</span> : null}
           </div>
         ))}
       </div>

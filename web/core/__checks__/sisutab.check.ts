@@ -239,6 +239,26 @@ async function main() {
     eq(reopened.messages[1].error, CoachErrors.stopped, "an old blank reply comes back as stopped");
   });
 
+  await group("a stream that ends with nothing (no words, no done, no error) says it stopped, with Try again (final QA)", async () => {
+    const closes = (async () => new Response('data: {"type":"start","turnId":"t","provider":"mock","model":"mock","mock":true}\n\n',
+      { status: 200, headers: { "Content-Type": "text/event-stream" } })) as typeof fetch;
+    const session = new CoachSession("CUST04974", CoachClient.live("", closes));
+    await session.ask("Will my money last until payday?");
+    eq(session.messages.map((m) => [m.role, m.text, m.pending, m.error]), [
+      ["user", "Will my money last until payday?", false, null], ["assistant", "", false, CoachErrors.stopped],
+    ], "typed: no empty card");
+    eq(session.getSnapshot().isThinking, false, "no longer thinking");
+    const spoken = (async () => new Response('data: {"type":"transcript","text":"Will my money last?"}\n\ndata: {"type":"start","turnId":"t","provider":"mock","model":"mock","mock":true}\n\n',
+      { status: 200, headers: { "Content-Type": "text/event-stream" } })) as typeof fetch;
+    const voice = new CoachSession("CUST04974", CoachClient.live("", spoken));
+    await voice.sendVoice(new Uint8Array([1]), "speech.webm", "audio/webm");
+    eq(voice.messages.map((m) => [m.role, m.text, m.error]), [["user", "Will my money last?", null], ["assistant", "", CoachErrors.stopped]], "voice: the same");
+    const answered = (async () => new Response('data: {"type":"delta","text":"About €109 a week."}\n\n', { status: 200, headers: { "Content-Type": "text/event-stream" } })) as typeof fetch;
+    const partial = new CoachSession("CUST04974", CoachClient.live("", answered));
+    await partial.ask("What can I spend?");
+    eq(partial.messages.map((m) => [m.text, m.pending, m.error]), [["What can I spend?", false, null], ["About €109 a week.", false, null]], "words that arrived stay, with no error");
+  });
+
   await group("drafts: the unsent text is kept per conversation and goes on New chat", async () => {
     const model = new AppModel(LaunchOptions.parse(new URLSearchParams("sample=1&customer=CUST04974"), memoryDefaults()));
     const store = model.coach;

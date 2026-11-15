@@ -297,7 +297,8 @@ export namespace StepPresenter {
     [/^Searching\b/, "Searched"], [/^Checking\b/, "Checked"], [/^Adding up\b/, "Added up"], [/^Working out\b/, "Worked out"],
     [/^Reading\b/, "Read"], [/^Looking\b/, "Looked"], [/^Finding\b/, "Found"], [/^Comparing\b/, "Compared"],
     [/^Preparing\b/, "Prepared"], [/^Projecting\b/, "Projected"], [/^Building\b/, "Built"], [/^Setting up\b/, "Set up"],
-    [/^Calculating\b/, "Calculated"], [/^Getting\b/, "Got"], [/\band reading\b/, "and read"],
+    [/^Calculating\b/, "Calculated"], [/^Getting\b/, "Got"], [/^Drawing\b/, "Drew"], [/^Scanning\b/, "Scanned"], [/^Going through\b/, "Went through"],
+    [/^Opening\b/, "Opened"], [/^Saving that\b/, "Saved that"], [/^Researching\b/, "Researched"], [/^Running\b/, "Ran"], [/\band reading\b/, "and read"],
   ];
 
   /** `Searched today's offers … and read the pages` for `Searching today's offers … and reading the pages`. */

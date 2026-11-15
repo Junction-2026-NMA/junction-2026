@@ -2,9 +2,10 @@
 // The details of one answer, closed at first: the offers compared, how it was worked out (what stood out, the
 // transactions, each calculation's steps, the futures, the tool calls and timing), the assumptions (each once per
 // answer) and the sources (labelled, with when they were read and a link). Replaces the stage cards and the
-// "How Sisu worked this out" drawer of the iOS port, which repeated the same figures several times.
+// "How Sisu worked this out" drawer of the iOS port, which repeated the same figures several times. When the answer
+// leads with a monthly saving, its projection over the years is a separate optional section, labelled an estimate.
 import { useAppModel } from "@/web/app/AppProvider";
-import type { AnswerView, HowBlock } from "@/web/core/AnswerPresentation";
+import type { AnswerView, FuturesView, HowBlock } from "@/web/core/AnswerPresentation";
 import type { StepRow } from "@/web/core/ChartPresentation";
 import { Footnote, LinesView, SourceLink } from "./CardParts";
 import { Disclosure } from "./Disclosure";
@@ -14,8 +15,10 @@ import { SourceChips } from "./ResultLine";
 import "./answer.css";
 
 export function AnswerDetails({ view }: { view: AnswerView }) {
-  const hasHow = view.how.length > 0 || view.futures != null || view.steps.length > 0;
-  if (!hasHow && view.offers == null && view.assumptions.length === 0 && view.sources.length === 0 && view.tags.length === 0) return null;
+  const optional = view.futures?.optional ? view.futures : null;
+  const inHow = view.futures?.optional ? null : view.futures;
+  const hasHow = view.how.length > 0 || inHow != null || view.steps.length > 0;
+  if (!hasHow && optional == null && view.offers == null && view.assumptions.length === 0 && view.sources.length === 0 && view.tags.length === 0) return null;
   return (
     <section className="sisu-answer-details" aria-label="Details" data-testid="answer.details">
       <div className="sisu-answer-details-head">
@@ -32,14 +35,21 @@ export function AnswerDetails({ view }: { view: AnswerView }) {
       {hasHow ? (
         <Disclosure label="How this was worked out" testId="how">
           {view.how.map((block) => <HowSection key={block.id} block={block} />)}
-          {view.futures ? (
+          {inHow ? (
             <div className="sisu-answer-section">
-              <span className="sisu-ask-label">If you keep the money</span>
-              <ImpactChart series={view.futures.series} />
-              {view.futures.summary !== "" ? <p className="sisu-ask-caption sisu-ask-muted">{view.futures.summary}</p> : null}
+              <span className="sisu-ask-label">{inHow.label}</span>
+              <Futures futures={inHow} />
             </div>
           ) : null}
           {view.steps.length > 0 ? <ToolSteps steps={view.steps} timing={view.timing} /> : null}
+        </Disclosure>
+      ) : null}
+      {optional ? (
+        <Disclosure label={optional.label} testId="futures">
+          <div className="sisu-answer-section">
+            <SourceChips tags={optional.tags} />
+            <Futures futures={optional} />
+          </div>
         </Disclosure>
       ) : null}
       {view.assumptions.length > 0 ? (
@@ -66,6 +76,15 @@ export function AnswerDetails({ view }: { view: AnswerView }) {
         </Disclosure>
       ) : null}
     </section>
+  );
+}
+
+function Futures({ futures }: { futures: FuturesView }) {
+  return (
+    <>
+      <ImpactChart series={futures.series} />
+      {futures.summary !== "" ? <p className="sisu-ask-caption sisu-ask-muted">{futures.summary}</p> : null}
+    </>
   );
 }
 

@@ -8,7 +8,7 @@ import type { EvidenceFilter } from "./Models";
 import type { AgentAction, ResearchResult, Stage } from "./CoachModels";
 import type { CoachMessage } from "./CoachSession";
 import type { Visual } from "./PlanModels";
-import { CardLine, CoachText, FuturesPresenter, GroundingPresenter, OfferPresenter, StagePresenter, ToolPresenter } from "./CoachPresentation";
+import { CardLine, CoachText, GroundingPresenter, OfferPresenter, StagePresenter, ToolPresenter } from "./CoachPresentation";
 import type { FuturesSeries, GroundingLine, OfferRow } from "./CoachPresentation";
 import { StepPresenter, type StepRow } from "./ChartPresentation";
 import { Dates, Money, rawOf, roundAway, type SisuLanguage } from "./Presentation";
@@ -51,11 +51,15 @@ export interface AnswerOffers {
   requirement: string | null;
 }
 
+/** The projection over the years. `optional`: the card leads with the monthly figure, so it is its own closed,
+ *  optional section of the details; otherwise it is part of "How this was worked out". */
+export interface FuturesView { series: FuturesSeries[]; summary: string; label: string; optional: boolean; tags: SourceTag[] }
+
 export interface AnswerView {
   result: AnswerResult | null;
   offers: AnswerOffers | null;
   how: HowBlock[];
-  futures: { series: FuturesSeries[]; summary: string } | null;
+  futures: FuturesView | null;
   steps: StepRow[];
   timing: string | null;
   assumptions: string[];
@@ -94,6 +98,8 @@ export namespace AnswerPresenter {
     const webTag = groups.length > 0 ? webTagOf(groups[0], language, timeZone) : null;
     const isMock = groups.some((group) => group.research?.mock === true || (group.researchStage?.data.kind === "research" && group.researchStage.data.mock));
     const actions = messageActions(message);
+    // A monthly saving leads with what it frees each month; the years ahead only when the question asked about them.
+    const monthly = impact && impact.data.kind === "impact" && Working.leadsMonthly(impact.data.impact, question) ? impact : null;
 
     // The result: the first thing that holds the most useful number.
     let result: AnswerResult | null = null;
@@ -123,6 +129,11 @@ export namespace AnswerPresenter {
     } else if (research != null) {
       result = { label: OfferPresenter.headline(research, language), value: null, detail: OfferPresenter.baseline(research, language),
         noMatch: false, evidence: null, tags: SourceTags.unique([webTag, SourceTags.estimate(language), isMock ? SourceTags.mock(language) : null]) };
+    } else if (monthly && monthly.data.kind === "impact") {
+      const data = monthly.data.impact;
+      result = { label: h(Working.freedLabel(monthly, data.monthlyEur, language)), value: CoachText.value(data.monthlyEur, "EUR/month", language),
+        detail: Number.isFinite(data.yearlyEur) ? CoachText.value(data.yearlyEur, "EUR/year", language) : null, noMatch: false, evidence: null,
+        tags: SourceTags.unique([SourceTags.estimate(language), ...Working.savingFacts(monthly, data.monthlyEur).map((f) => SourceTags.of(f.source, language))]) };
     } else if (impact && impact.data.kind === "impact") {
       const years = impact.data.impact.horizonYears;
       result = { label: pick(language, `More after ${CoachText.number(years, 1, language)} ${years === 1 ? "year" : "years"} if you keep it`, `Enemmän ${CoachText.number(years, 1, language)} vuoden jälkeen`),
@@ -157,7 +168,10 @@ export namespace AnswerPresenter {
       const block = Working.calcBlock(stage, stage === resultCalc, language, timeZone);
       if (block) how.push(block);
     }
-    const factsBlock = message.stages.some((stage) => stage.data.kind === "calculation") ? null : Working.factsBlock(message, result, language, timeZone);
+    const saving = monthly && monthly.data.kind === "impact" ? Working.savingBlock(monthly, monthly.data.impact.monthlyEur, language, timeZone) : null;
+    if (saving) how.push(saving);
+    const factsBlock = message.stages.some((stage) => stage.data.kind === "calculation") ? null
+      : Working.factsBlock(message, result, language, timeZone, how.flatMap((block) => block.lines.flatMap((line) => Working.numbers(line.value))));
     if (factsBlock) how.push(factsBlock);
     // A chart kind this app cannot draw is only words (its title and summary): those go with the working.
     for (const visual of message.visuals.filter((one) => one.content.kind === "unknown" && one.summary !== "")) {
@@ -168,7 +182,7 @@ export namespace AnswerPresenter {
       ...calcs.flatMap((stage) => (stage.data.kind === "calculation" ? stage.data.assumptions : [])),
       ...(research?.assumptions ?? []),
       ...actions.flatMap((action) => action.assumptions ?? []),
-    ].map(h)).filter((item) => !Working.sameText(item, result?.detail));
+    ].map(h)).map((item) => Working.withoutCardText(item, result?.detail)).filter((item) => !Working.sameText(item, result?.detail));
 
     const sources: AnswerSource[] = [];
     const addSource = (title: string, url: string, at: string | null | undefined) => {
@@ -191,7 +205,7 @@ export namespace AnswerPresenter {
       }
     });
 
-    const synthetic = Working.usedFacts(message).some(SourceTags.isPeerFact) || SourceTags.comparesWithPeers(message.text) ? SourceTags.synthetic(language) : null;
+    const synthetic = Working.backedFacts(message).some(SourceTags.isPeerFact) || SourceTags.comparesWithPeers(message.text) ? SourceTags.synthetic(language) : null;
     if (result && synthetic) result = { ...result, tags: SourceTags.unique([...result.tags, synthetic]) };
     const tags = SourceTags.unique([
       webTag,
@@ -215,10 +229,12 @@ export namespace AnswerPresenter {
     const mismatchedActionIds = actions.filter((action) => rawOf(action.kind) === "switch_contract"
       && ((action.offer != null && OfferPresenter.qualifies(action.offer) === false) || noMatch)).map((action) => action.id);
 
-    const futures = impact && impact.data.kind === "impact" ? { series: FuturesPresenter.series(impact.data.impact, language), summary: h(impact.data.impact.summary) } : null;
+    const futures = impact && impact.data.kind === "impact"
+      ? Working.futures(impact.data.impact, monthly != null, Working.asksInvesting(question), result, language, timeZone) : null;
     const shown = Working.shownNumbers(message.text, result, how);
+    const said = { shown, noMatch: noMatch ? result?.label ?? null : null, monthly: monthly != null };
     const steps = message.pending ? [] : StepPresenter.rows(message, language, timeZone).map((row) => ({
-      ...row, label: h(row.label), result: stepResult(row.result, shown, noMatch, h),
+      ...row, label: h(row.label), result: stepResult(row.result, said, h),
     }));
     const grounding = message.grounding && !(noMatch && !/\d/.test(message.text)) ? GroundingPresenter.line(message.grounding, language) : null;
     return {
@@ -229,10 +245,14 @@ export namespace AnswerPresenter {
   }
 
   /** A tool's one-line result, unless it only repeats numbers the answer already says. With no matching offer, the
-   *  server's "best saves …" (chosen without the requirements) is left out. */
-  function stepResult(line: string | null, shown: readonly number[], noMatch: boolean, h: (text: string) => string): string | null {
-    const kept = noMatch && line ? line.replace(/;\s*best saves [^;]*/i, "") : line;
-    return kept == null || kept.trim() === "" || Working.onlyRepeats(kept, shown) ? null : h(kept);
+   *  server's "best saves …" (chosen without the requirements) and its "No matching options found (…)" (the card's
+   *  own words) are left out; with a monthly saving leading, so is "projected over 5 years". */
+  function stepResult(line: string | null, said: { shown: readonly number[]; noMatch: string | null; monthly: boolean }, h: (text: string) => string): string | null {
+    const part = (head: string) => new RegExp(`[;,]\\s*${head}[^;·]*?(?=\\s*(?:[;·]|$))`, "i");
+    let kept = line;
+    if (kept && said.noMatch != null) kept = kept.replace(part("best saves "), "").replace(part(said.noMatch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), "");
+    if (kept && said.monthly) kept = kept.replace(part("projected over "), "");
+    return kept == null || kept.trim() === "" || Working.onlyRepeats(kept, said.shown) ? null : h(kept);
   }
 
   /** `Web · Context.dev · 15 Nov 2026, 02:43`: what read a group's offers, and when. */
