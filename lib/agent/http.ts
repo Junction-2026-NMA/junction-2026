@@ -3,6 +3,7 @@ import type { AgentRequest, BillType, ChatTurn, SisuEvent } from "@/lib/types";
 import { SHARED, currentSession, inSession } from "@/lib/store/session";
 import { settleSession } from "@/lib/store/state";
 import { parseBuffer } from "@/lib/finance/budget";
+import { parsePaydayOverrides } from "@/lib/finance/payday";
 import { languageCode } from "./languages";
 
 const MAX_TEXT_CHARS = 500;
@@ -46,6 +47,9 @@ export function parseAgentRequest(body: unknown, mode: "voice" | "text"): AgentR
   if (text.length > MAX_TEXT_CHARS) return `Please keep questions under ${MAX_TEXT_CHARS} characters.`;
   const bufferEur = parseBufferField(input.bufferEur);
   if (bufferEur === "invalid") return "The buffer to keep must be an amount of euros between 0 and 100,000.";
+  // v2 payday: the payday the customer confirmed and bills they added in the app, so chat and Today agree.
+  const payday = parsePaydayOverrides(input);
+  if (typeof payday === "string") return `Check the payday and bills you added: ${payday}`;
   return {
     customerId,
     text,
@@ -54,6 +58,7 @@ export function parseAgentRequest(body: unknown, mode: "voice" | "text"): AgentR
     focusBill: parseBillType(input.focusBill),
     language: languageCode(input.language) ?? undefined,
     ...(bufferEur === null ? {} : { bufferEur }),
+    ...payday,
   };
 }
 

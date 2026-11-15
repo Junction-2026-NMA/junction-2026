@@ -254,6 +254,9 @@ export type AgentRequest = {
   investigate?: boolean; // true = Sisu works through a whole investigation on its own (see POST /api/agent/investigate)
   language?: string; // ISO 639-1 code ("fi", "de", "hi") to answer in. Leave out to answer in whatever language the text is in
   bufferEur?: number; // the protected buffer the customer set in the app (Today or Settings), 0 to 100,000 euros. Leave out for the default (one week of essentials)
+  // v2 payday
+  paydayDate?: string; // YYYY-MM-DD: the next payday the customer confirmed (replaces the one inferred from salary history)
+  extraBills?: ExtraBill[]; // bills the customer added that the history does not show (counted when due before payday)
 };
 
 export type ToolTrace = {
@@ -358,6 +361,9 @@ export type CashFlow = {
   steps: CalcStep[];
   assumptions: string[];
   weeklyBudget?: WeeklyBudget | null; // added: what can be spent each week until payday, after bills and a protected buffer
+  // v2 payday
+  basis?: PaydayBasis; // where payday and the bills come from, the headline label and the period said in words
+  cutBack?: CutBackSuggestion | null; // one practical cut-back, worked out from the largest flexible everyday category
 };
 
 // Estimated weekly budget until the next payday: (balance - bills due before payday - protected buffer) / weeks to
@@ -846,3 +852,25 @@ export type WatchProject = { customerId: string; watch: PropertyWatch; notificat
 
 export type WatchList = { customerId: string; watches: PropertyWatch[]; notifications: WatchNotification[]; scheduler?: WatchScheduler };
 export type WatchCheck = { customerId: string; checked: number; changesSeen: number; pagesReread: number; notifications: WatchNotification[]; problems: string[] };
+
+// v2 payday: what the customer confirmed or added for the budget until payday, and how the result was found.
+export type ExtraBill = { label: string; amountEur: number; dueDate: string }; // dueDate YYYY-MM-DD
+export type PaydayOverrides = { paydayDate?: string; extraBills?: ExtraBill[] };
+export type PaydayBasis = {
+  payday: "history" | "confirmed"; // history = the usual salary day; confirmed = the date the customer gave
+  bills: "history" | "history+added"; // recurring bills are 12-month averages; +added = bills the customer added too
+  averages: true; // bills and everyday spending come from 12-month averages
+  label: "Estimated budget"; // the headline label: always an estimate while bills are averages
+  periodText: string; // "until payday on Thu 15 Oct, 15 days"
+  addedBills: (ExtraBill & { counted: boolean })[]; // counted false = due on or after payday
+};
+export type CutBackSuggestion = {
+  category: string;
+  averagePerMonthEur: number; // the 12-month average, rounded to cents (the baseline every cut starts from)
+  cutPct: number;
+  freesPerMonthEur: number;
+  freesPerYearEur: number;
+  baselineFrom: string; // YYYY-MM-DD
+  baselineTo: string;
+  baselineText: string; // "Based on €276.52 a month at restaurants, Oct 2025–Sep 2026"
+};

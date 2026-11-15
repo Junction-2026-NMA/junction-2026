@@ -288,7 +288,7 @@ group("Onboarding copy and first insight", () => {
   const customers = fixture<DemoCustomer[] | { customers: DemoCustomer[] }>("demo-customers.json");
   const list = Array.isArray(customers) ? customers : customers.customers;
   const sorted = OnboardingProfiles.sorted(list);
-  eq(sorted.map((c) => c.displayName), ["Eetu", "Aino", "Sanna"], "Eetu first");
+  eq(sorted.map((c) => c.displayName), ["Eetu", "Jack", "Sanna"], "Eetu first");
   ok(list.every((c) => !/\d/.test(OnboardingProfiles.pitch(c.customerId))), "no figures in pitches");
   eq(OnboardingProfiles.subtitle(sorted[0]), "25 · Espoo", "subtitle");
   eq(OnboardingProfiles.accessibilityLabel(sorted[0]), "Eetu, 25, Espoo. The biggest bill-switching win", "a11y");

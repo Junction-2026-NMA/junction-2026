@@ -3,6 +3,7 @@
 // (stages, offers, teaching, approval, receipts) against the real endpoints. Its answers start with "Mock answer."
 import type { ChatMessage, ModelChunk, StreamOptions, ToolCall } from "./model";
 import { speculate } from "./speculate";
+import { categoryFromHistory, categoryIn, percentIn } from "@/lib/finance/payday";
 
 const WORD_DELAY_MS = 25;
 const THINK_MS = 250;
@@ -90,6 +91,42 @@ function firstTool(question: string): [string, Json] | null {
   return null;
 }
 
+// v2 payday (begin): "how much can I spend until my next paycheck?" and a follow-up cut ("what about 10%?") that
+// names no category: the one named earlier in the conversation, so the baseline stays the same.
+const PAYDAY_QUESTION = /pay ?check|pay ?day|next salary|until i get paid/;
+function paydayTool(question: string, earlierUserTexts: string[]): [string, Json] | null {
+  const q = question.toLowerCase();
+  const pct = percentIn(q);
+  const category = pct === null || categoryIn(q) ? null : categoryFromHistory(earlierUserTexts);
+  if (pct !== null && category && /what about|how about|instead|\bwhat if\b|^\s*(and\s+)?\d/.test(q)) return ["run_scenario", { category, categoryCutPct: pct }];
+  if (PAYDAY_QUESTION.test(q) && /how much|what can i|spend|left|cut back|running short|run out/.test(q)) return ["get_cash_flow", {}];
+  return null;
+}
+
+const eur = (value: unknown): string => `€${Number(value).toFixed(2)}`;
+
+// The payday answer: the estimated budget and its period, the weekly figure on the side, one cut-back, and one
+// question when the payday is only inferred. Every figure is the tool's.
+function paydayAnswer(cash: Json): string | null {
+  if (cash.nextPaydayExpected === null) return "No regular salary shows in your history, so I cannot tell when your next payday is. When is it?";
+  const budget = cash.estimatedBudget as Json | null | undefined;
+  if (!budget) return null;
+  const cut = cash.cutBack as Json | null | undefined;
+  const weekly = cash.estimatedWeeklyBudgetUntilPayday as Json | null | undefined;
+  const parts = [`Estimated budget: about ${eur(budget.amountEur)} to spend ${String(budget.period)} (about ${eur(budget.perWeekEur)} a week), after your bills and a buffer of ${eur(weekly?.protectedBufferEur)}.`];
+  if (cut) parts.push(`One thing to cut back on: spending ${cut.cutPct}% less at ${String(cut.category).toLowerCase()} would free about ${eur(cut.freesPerMonthEur)} a month.`);
+  if (String(cash.nextPaydayFrom).startsWith("inferred")) parts.push("Is your payday still that day, and is any other bill due before then?");
+  return parts.join(" ");
+}
+
+function cutAnswer(cut: Json): string {
+  const earlier = cut.comparedWithEarlier as Json | undefined;
+  const ratio = Number(earlier?.thisIsTimesThat);
+  const compare = earlier ? ` That is ${ratio === 0.5 ? "exactly half of" : ratio === 2 ? "exactly twice" : "compared with"} the ${eur(earlier.freesPerMonthEur)} a ${earlier.cutPct}% cut frees, from the same baseline.` : "";
+  return `Spending ${cut.cutPct}% less on ${String(cut.category).toLowerCase()} would free about ${eur(cut.freesPerMonthEur)} a month, or ${eur(cut.freesPerYearEur)} a year. ${String(cut.baseline)}.${compare}`;
+}
+// v2 payday (end)
+
 const INVESTIGATION = ["find_patterns", "search_offers", "run_scenario", "explain_concept", "prepare_action"];
 
 // Words an answer from what the tools returned. Every number comes straight from a tool result.
@@ -117,7 +154,7 @@ function wordAnswer(results: { name: string; body: Json }[], question = ""): str
   // A cut of one category is answered per month and per year. The years ahead only when the tool projected them,
   // which it does only when the question asked about them.
   if (categoryCut) {
-    parts.push(`Spending ${categoryCut.cutPct}% less on ${String(categoryCut.category).toLowerCase()} would free about ${categoryCut.freesPerMonthEur} euros a month, or ${categoryCut.freesPerYearEur} euros a year, from your 12-month average.`);
+    parts.push(typeof categoryCut.baseline === "string" ? cutAnswer(categoryCut) : `Spending ${categoryCut.cutPct}% less on ${String(categoryCut.category).toLowerCase()} would free about ${categoryCut.freesPerMonthEur} euros a month, or ${categoryCut.freesPerYearEur} euros a year, from your 12-month average.`);
     if (typeof scenario?.extraAfterPeriodIfKeptEur === "number") parts.push(`Kept for ${(scenario.input as Json | undefined)?.years} years, that adds up to about ${scenario.extraAfterPeriodIfKeptEur} euros more.`);
   } else if (scenario) parts.push(`Keeping ${scenario.freedPerMonthEur} euros a month adds up to about ${scenario.extraAfterPeriodIfKeptEur} euros over the period.`);
   const afford = of("check_affordability");
@@ -127,7 +164,9 @@ function wordAnswer(results: { name: string; body: Json }[], question = ""): str
   // "Why does my balance go below zero?" hears how often it did before the budget that helps avoid it.
   if (cash && /below zero|negative/i.test(question) && Number(cash.monthsBelowZeroInLast12) > 0) parts.push(`Your balance went below zero in ${cash.monthsBelowZeroInLast12} of the last 12 months.`);
   // A weekly figure far above the usual week is not a budget: the bills are covered, and this much is left after them.
-  if (cash && weekly?.billsBeforePaydayCovered === true) parts.push(`Your bills before payday on ${String(cash.nextPaydayExpected)} are covered: about ${weekly.leftForSpendingEur} euros is left after them and a protected buffer of ${weekly.protectedBufferEur} euros.`);
+  const payday = cash && weekly?.billsBeforePaydayCovered !== true ? paydayAnswer(cash) : null;
+  if (payday) parts.push(payday);
+  else if (cash && weekly?.billsBeforePaydayCovered === true) parts.push(`Your bills before payday on ${String(cash.nextPaydayExpected)} are covered: about ${weekly.leftForSpendingEur} euros is left after them and a protected buffer of ${weekly.protectedBufferEur} euros.`);
   else if (cash && weekly) parts.push(`Your estimated weekly budget until payday on ${String(cash.nextPaydayExpected)} is about ${weekly.perWeekEur} euros, after your bills and a protected buffer of ${weekly.protectedBufferEur} euros.`);
   else if (cash) parts.push(`Your next payday is expected on ${String(cash.nextPaydayExpected)}, and your balance just before it should be about ${cash.expectedBalanceJustBeforePaydayEur} euros.`);
   const mortgage = of("get_mortgage");
@@ -169,7 +208,8 @@ export async function* scriptedMockModel(options: StreamOptions): AsyncGenerator
   } else if (canCallTools && !called.length) {
     const clarify = clarifyingQuestion(question);
     if (clarify) return yield* speak(clarify);
-    const tool = firstTool(question);
+    const earlierUserTexts = messages.slice(0, Math.max(userIndex, 0)).flatMap((m) => (m.role === "user" && typeof m.content === "string" ? [m.content] : []));
+    const tool = paydayTool(question, earlierUserTexts) ?? firstTool(question);
     if (tool) return yield* callTool(tool[0], tool[1]);
   } else if (canCallTools && called.length === 1 && called[0] === "search_offers" && /prepare|switch me|set (it|that) up|go ahead/i.test(question)) {
     return yield* callTool("prepare_action", { kind: "switch_contract", billType: "electricity" });

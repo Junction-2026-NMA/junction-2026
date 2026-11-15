@@ -8,7 +8,8 @@ import { round2 } from "./math";
 const WEEKS_PER_MONTH = 52 / 12;
 export const BUFFER_LIMITS: [number, number] = [0, 100_000];
 
-type Inputs = { nextPayday: string | null; daysToNextPayday: number | null; billsBeforePaydayEur: number; billCount: number; averageDailyEverydayEur: number };
+// v2 payday: `paydayConfirmed` when the customer gave the date, `addedBills` how many of the bills they added.
+type Inputs = { nextPayday: string | null; daysToNextPayday: number | null; billsBeforePaydayEur: number; billCount: number; averageDailyEverydayEur: number; paydayConfirmed?: boolean; addedBills?: number };
 
 // The default buffer: one week of regular and occasional essentials (rent and bills, plus the share set aside for
 // costs that come now and then). An assumption the customer can replace with their own figure.
@@ -51,7 +52,7 @@ export function buildWeeklyBudget(overview: Overview, inputs: Inputs, statedBuff
   const usualEverydayPerWeekEur = round2(inputs.averageDailyEverydayEur * 7);
   const steps: CalcStep[] = [
     { label: "Balance today", amount: balanceEur, basis: overview.balanceBasis ?? `account balance on ${DATA_AS_OF}, from your bank data` },
-    { label: `Bills expected before payday (${inputs.billCount})`, amount: -bills, basis: "each bill's 12-month average, on its usual day of the month" },
+    { label: `Bills expected before payday (${inputs.billCount})`, amount: -bills, basis: inputs.addedBills ? `each bill's 12-month average on its usual day, plus ${inputs.addedBills} you added` : "each bill's 12-month average, on its usual day of the month" },
     { label: "Protected buffer", amount: -bufferEur, basis: bufferSource === "default" ? "assumed: one week of regular and occasional essentials" : bufferFrom === "app" ? "the amount you set in the app" : "the amount you said you want to keep" },
     { label: "Left for spending until payday", amount: leftForSpendingEur, basis: "never below zero" },
     { label: "Estimated weekly budget", amount: perWeekEur, basis: `divided by ${weeks} weeks until payday on ${inputs.nextPayday}` },
@@ -71,7 +72,7 @@ export function buildWeeklyBudget(overview: Overview, inputs: Inputs, statedBuff
     shortBeforePayday: beforeBuffer < bufferEur,
     steps,
     assumptions: [
-      `Payday is expected on ${inputs.nextPayday}, the usual salary day in your history.`,
+      inputs.paydayConfirmed ? `Payday is on ${inputs.nextPayday}, the date you gave.` : `Payday is expected on ${inputs.nextPayday}, the usual salary day in your history.`,
       "Bills are their 12-month averages on their usual day. A bill due on payday itself is not counted.",
       bufferSource === "default"
         ? `The protected buffer of €${bufferEur.toFixed(2)} is an assumption: one week of your regular and occasional essentials. Tell Sisu if you want to keep a different amount.`

@@ -39,11 +39,11 @@ describe("mock mode: every feature works with no keys and no network", () => {
   // Regression: QA on the mock backend, 15 Nov. Three suggested questions, the payday question and the move question
   // got the generic answer, a bills total or a lesson instead of an answer to what was asked.
   const SUGGESTED: [string, string, RegExp][] = [
-    ["I keep running short before payday. What can I spend this week without missing my bills?", "get_cash_flow", /estimated weekly budget until payday .* is about 133\.64 euros/],
-    ["What can I spend this week without missing my bills?", "get_cash_flow", /estimated weekly budget/],
+    ["I keep running short before payday. What can I spend this week without missing my bills?", "get_cash_flow", /Estimated budget: about €286\.37 to spend until payday on Thu 15 Oct, 15 days \(about €133\.64 a week\)/],
+    ["What can I spend this week without missing my bills?", "get_cash_flow", /Estimated budget/],
     ["Why does my balance go below zero, and how do I stop it?", "get_cash_flow", /went below zero in \d+ of the last 12 months/],
     ["Find a cheaper plan that meets my needs.", "search_offers", /cheapest|No example offer/],
-    ["What would spending 20% less at restaurants save?", "run_scenario", /20% less on restaurants would free about [\d.]+ euros a month, or [\d.]+ euros a year/],
+    ["What would spending 20% less at restaurants save?", "run_scenario", /20% less on restaurants would free about €55\.30 a month, or €663\.60 a year\. Based on €276\.52 a month at restaurants, Oct 2025–Sep 2026/],
   ];
   for (const [question, tool, answer] of SUGGESTED) {
     it(`"${question}" calls ${tool} and answers what was asked`, async () => {
@@ -62,7 +62,7 @@ describe("mock mode: every feature works with no keys and no network", () => {
     assert.deepEqual(stages.map((stage) => stage.kind), ["calculation"]);
     assert.ok(stages[0].data.kind === "calculation" && stages[0].data.resultLabel === "Freed per month");
     assert.equal(ofType(monthly, "visual").length, 0);
-    assert.match(ofType(monthly, "done")[0].text, /^Mock answer\. Spending 20% less on restaurants would free about [\d.]+ euros a month, or [\d.]+ euros a year, from your 12-month average\.\s*$/);
+    assert.match(ofType(monthly, "done")[0].text, /^Mock answer\. Spending 20% less on restaurants would free about €[\d.]+ a month, or €[\d.]+ a year\. Based on €276\.52 a month at restaurants, Oct 2025–Sep 2026\.\s*$/);
     assert.doesNotMatch(ofType(monthly, "done")[0].text, /years|invest|undefined|over the period/i);
     const yearly = await collect(runTurn({ customerId: AINO, text: "What would cutting restaurants by 20% add up to in 3 years?", mode: "text" }));
     assert.deepEqual(ofType(yearly, "stage").map((e) => e.stage.kind), ["impact"]);
@@ -86,9 +86,10 @@ describe("mock mode: every feature works with no keys and no network", () => {
 
   it("the buffer set in the app is the one the weekly budget keeps", async () => {
     const events = await collect(runTurn({ customerId: AINO, text: "I keep running short before payday. What can I spend this week without missing my bills?", mode: "text", bufferEur: 300 }));
-    assert.match(ofType(events, "done")[0].text, /about 109\.12 euros, after your bills and a protected buffer of 300 euros/); // (1220.35 - 686.53 - 300) / (15 / 7)
+    assert.match(ofType(events, "done")[0].text, /about €233\.82 to spend until payday on Thu 15 Oct, 15 days \(about €109\.12 a week\), after your bills and a buffer of €300\.00/); // 1220.35 - 686.53 - 300; / (15 / 7)
     const card = ofType(events, "stage").find((e) => e.stage.kind === "calculation")!.stage;
-    assert.equal(card.data.kind === "calculation" && card.data.resultValue, 109.12);
+    assert.equal(card.data.kind === "calculation" && card.data.resultValue, 233.82);
+    assert.ok(card.data.kind === "calculation" && card.data.steps.some((step) => step.label === "Estimated weekly budget" && step.amount === 109.12));
     assert.ok(card.data.kind === "calculation" && card.data.steps.some((step) => step.label === "Protected buffer" && step.amount === -300 && step.basis === "the amount you set in the app"));
     assert.ok(card.data.kind === "calculation" && !card.data.assumptions.some((line) => /Tell Sisu if you want to keep a different amount/.test(line)), "no invitation to set a buffer that is already set");
     assert.equal(ofType(events, "grounding")[0].grounding.ok, true);

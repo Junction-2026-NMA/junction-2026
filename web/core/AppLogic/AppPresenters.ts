@@ -68,7 +68,7 @@ export interface TransactionRowState { readonly date: string; readonly category:
 export namespace TodayPresenter {
   export function money(amount: number): string { return Money.format(amount, "en"); }
 
-  /** `Hei Aino`. */
+  /** `Hei Jack`. */
   export function greeting(name: string): string { return `Hei ${name}`; }
 
   /** `Data up to 30 Sep 2026`. */

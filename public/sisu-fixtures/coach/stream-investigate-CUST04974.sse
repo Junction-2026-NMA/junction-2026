@@ -2,7 +2,7 @@ data: {"type":"start","turnId":"71c02f42-6e6c-4014-af86-4fb049e61e86","provider"
 
 data: {"type":"speculation","billType":"electricity","reason":"An investigation usually needs live electricity offers, so research started early."}
 
-data: {"type":"filler","text":"Give me a moment, Aino. I'm going through your last twelve months."}
+data: {"type":"filler","text":"Give me a moment, Jack. I'm going through your last twelve months."}
 
 data: {"type":"tool_start","id":"mock_find_patterns_ek4ti2","name":"find_patterns","args":{},"label":"Scanning twelve months of your transactions for what stands out"}
 

@@ -1,4 +1,4 @@
-import type { AgentAction, CashFlow, Citation, CustomerMemory, Fact, MemoryItem, Overview, ResearchResult, Stage, TeachingCard, ToolTrace, Visual } from "@/lib/types";
+import type { AgentAction, CashFlow, Citation, CustomerMemory, Fact, MemoryItem, Overview, PaydayOverrides, ResearchResult, Stage, TeachingCard, ToolTrace, Visual } from "@/lib/types";
 import type { ToolCall } from "../model";
 
 // Everything a tool may use. Built once per turn by the orchestrator.
@@ -12,6 +12,7 @@ export type ToolContext = {
   userTexts: string[]; // what the user has actually said this conversation; used to check "remember" requests
   sisuTexts: string[]; // what Sisu said earlier in this conversation (answers that already passed the number check)
   signal?: AbortSignal;
+  payday?: PaydayOverrides; // v2 payday: the payday date and bills the customer confirmed in the app
 };
 
 // A stage before the orchestrator stamps it with its time and tool call.

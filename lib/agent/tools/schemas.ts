@@ -45,7 +45,11 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
     ["from", "to"],
   ),
   tool("list_bills", "Recurring bills: yearly cost, change on a year ago, and whether each name is confirmed.", {}),
-  tool("get_cash_flow", "Until payday: bills due, the expected balance, and the estimated weekly budget with its working on screen. Also pay cycles and how fast money goes after payday.", { bufferEur: { type: "number", description: "only if the customer said how much they want to keep untouched; otherwise leave out (a default of one week of essentials is assumed)" } }),
+  tool("get_cash_flow", "Until payday: bills due, the expected balance, and the estimated weekly budget with its working on screen. Also pay cycles and how fast money goes after payday.", {
+    bufferEur: { type: "number", description: "only if the customer said how much they want to keep untouched; otherwise leave out (a default of one week of essentials is assumed)" },
+    paydayDate: { type: "string", description: "YYYY-MM-DD, only if the customer said when their next payday is; otherwise leave out (the usual salary day is used)" },
+    extraBills: { type: "array", description: "only bills the customer named that are not in their history", items: { type: "object", properties: { label: { type: "string" }, amountEur: { type: "number" }, dueDate: { type: "string", description: "YYYY-MM-DD" } }, required: ["label", "amountEur", "dueDate"] } },
+  }),
   tool("find_patterns", "Scans the history for what stands out, ranked by yearly euros. For open questions: where does my money go, what should I change, how can I save.", {}),
   tool("check_affordability", "Can the customer absorb a one-off or unexpected cost now?", { amountEur: { type: "number" }, what: { type: "string" } }, ["amountEur"]),
   tool(

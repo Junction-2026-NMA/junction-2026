@@ -4,7 +4,7 @@
 import { buildCashFlow } from "@/lib/finance/cashflow";
 import { fact } from "@/lib/finance/facts";
 import { lastMonthSpending } from "@/lib/finance/recent";
-import type { Fact, Grounding, NumberCheck, NumberCorrection, Overview, WeeklyBudget } from "@/lib/types";
+import type { Fact, Grounding, NumberCheck, NumberCorrection, Overview, PaydayOverrides, WeeklyBudget } from "@/lib/types";
 
 const TRIVIAL_MAX = 12; // small counts ("three offers", "12 months") are not financial claims
 // Numbers as people write them, in English and Finnish: 1,932.43 · 1 932,43 · 139,47 · 40. Digits glued to
@@ -324,11 +324,12 @@ export function weeklyBudgetFacts(budget: WeeklyBudget | null | undefined, prefi
 }
 
 // `bufferEur`: the protected buffer the customer set in the app, if any, so the weekly budget's receipts match Today.
-export function overviewFacts(o: Overview, bufferEur: number | null = null): Fact[] {
+// v2 payday: `payday`, the payday and bills the customer confirmed in the app.
+export function overviewFacts(o: Overview, bufferEur: number | null = null, payday: PaydayOverrides = {}): Fact[] {
   const window = { from: o.windowFrom, to: o.windowTo };
   const basis = `average of the last ${o.windowMonths} months`;
   const last = lastMonthSpending(o);
-  const flow = buildCashFlow(o, { bufferEur, bufferFrom: "app" });
+  const flow = buildCashFlow(o, { bufferEur, bufferFrom: "app", ...payday });
   return [
     fact("last-month:total", `All spending in ${last.month}`, last.totalEur, "EUR", `sum of ${last.transactions} transactions`, { evidence: last.evidence }),
     ...last.categories.flatMap((c) => [

@@ -3,6 +3,7 @@
 // the future or investing: a monthly-savings question gets no projection and no investment talk.
 import { fact } from "@/lib/finance/facts";
 import { round2 } from "@/lib/finance/math";
+import { baselineText, categoryIn, cutOf, percentIn } from "@/lib/finance/payday";
 import type { Fact, Overview } from "@/lib/types";
 import { type ToolOutcome, outcome } from "./types";
 
@@ -28,6 +29,19 @@ export function wantsProjection(args: Record<string, unknown>, question: string)
 }
 
 export type CategoryCut = { category: string; monthly: number };
+export type EarlierCut = { cutPct: number; freesPerMonthEur: number };
+
+// v2 payday: the cut asked about earlier in this conversation for the same category ("20% less at restaurants",
+// then "what about 10%?"), worked out again from the same baseline, so the answer can compare the two exactly.
+export function earlierCut(userTexts: string[], cut: CategoryCut, cutPct: number): EarlierCut | null {
+  for (const text of userTexts.slice(0, -1).reverse()) {
+    const pct = percentIn(text);
+    const category = categoryIn(text);
+    if (pct === null || (category !== null && category !== cut.category)) continue;
+    return pct > 0 && pct <= 100 && pct !== cutPct ? { cutPct: pct, freesPerMonthEur: cutOf(cut.monthly, pct) } : null;
+  }
+  return null;
+}
 
 // The receipts for a category cut, shared with the projection so both answers source the same figures.
 export function categoryCutFacts(overview: Overview, cut: CategoryCut, cutPct: number, freesPerMonthEur: number): Fact[] {
@@ -40,33 +54,36 @@ export function categoryCutFacts(overview: Overview, cut: CategoryCut, cutPct: n
 }
 
 // The per-month answer: one calculation card (average, the cut, per month, per year), no projection, no chart.
-export function categoryCutOutcome(overview: Overview, cut: CategoryCut, cutPct: number, freesPerMonthEur: number): ToolOutcome {
+export function categoryCutOutcome(overview: Overview, cut: CategoryCut, cutPct: number, freesPerMonthEur: number, earlier: EarlierCut | null = null): ToolOutcome {
   const yearly = round2(freesPerMonthEur * 12);
   const window = overview.windowMonths;
+  const baseline = baselineText(cut.category, cut.monthly, overview.windowFrom, overview.windowTo);
+  const ratio = earlier ? round2(freesPerMonthEur / earlier.freesPerMonthEur) : null;
+  const earlierFacts = earlier ? [fact("scenario:earlier-cut-pct", "Cut asked about before", earlier.cutPct, "percent", "earlier in this conversation", { source: "customer-stated" }), fact("scenario:earlier-cut-freed", `Cutting ${cut.category} by ${earlier.cutPct}% frees, per month`, earlier.freesPerMonthEur, "EUR/month", "the same 12-month baseline", { source: "calculation" })] : [];
   return outcome({
     content: JSON.stringify({
-      categoryCut: { category: cut.category, averagePerMonthEur: cut.monthly, cutPct, freesPerMonthEur, freesPerYearEur: yearly, basis: `the ${window}-month average, not any single month` },
-      say: "Answer with what the cut frees per month, and per year if useful, from their average. They asked about saving, not the years ahead: give no projection and do not suggest investing it. The card shows the working.",
+      categoryCut: { category: cut.category, averagePerMonthEur: cut.monthly, cutPct, freesPerMonthEur, freesPerYearEur: yearly, basis: `the ${window}-month average, not any single month`, baseline, ...(earlier ? { comparedWithEarlier: { cutPct: earlier.cutPct, freesPerMonthEur: earlier.freesPerMonthEur, thisIsTimesThat: ratio, sameBaseline: true } } : {}) },
+      say: "Answer with what the cut frees per month, and per year if useful, from their average (say the baseline once). If comparedWithEarlier is there, say how it compares with the earlier cut from the same baseline (thisIsTimesThat 0.5 is exactly half). They asked about saving, not the years ahead: give no projection and do not suggest investing it. The card shows the working.",
     }),
     summary: `Cutting ${cut.category} by ${cutPct}% frees €${freesPerMonthEur.toFixed(2)} a month`,
-    facts: categoryCutFacts(overview, cut, cutPct, freesPerMonthEur),
+    facts: [...categoryCutFacts(overview, cut, cutPct, freesPerMonthEur), ...earlierFacts],
     stages: [
       {
         kind: "calculation",
         title: `Spending ${cutPct}% less on ${cut.category}`,
-        summary: `${cutPct}% of your usual ${cut.category.toLowerCase()} spending`,
+        summary: baseline,
         source: "calculation",
         data: {
           kind: "calculation",
           steps: [
-            { label: `${cut.category}, average per month`, amount: cut.monthly, basis: `average of the last ${window} months, from your bank data` },
+            { label: `${cut.category}, average per month`, amount: cut.monthly, basis: `${baseline.replace(/^Based on .*?, /, "")}: average of the last ${window} months, from your bank data` },
             { label: "Freed per month", amount: freesPerMonthEur, basis: `${cutPct}% of the monthly average` },
             { label: "Freed per year", amount: yearly, basis: "the monthly figure times 12" },
           ],
           resultLabel: "Freed per month",
           resultValue: freesPerMonthEur,
           unit: "EUR/month",
-          assumptions: [`From your ${window}-month average for ${cut.category}, not any single month.`, "An estimate: the money is freed only if the spending really goes down. Nothing is moved for you."],
+          assumptions: [`${baseline}: your ${window}-month average for ${cut.category}, not any single month.`, ...(earlier ? [`The same baseline as the ${earlier.cutPct}% cut asked about before (€${earlier.freesPerMonthEur.toFixed(2)} a month).`] : []), "An estimate: the money is freed only if the spending really goes down. Nothing is moved for you."],
         },
       },
     ],
