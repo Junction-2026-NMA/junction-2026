@@ -82,7 +82,8 @@ button.sisu-history-close {
 
 button.sisu-history-close:focus-visible,
 button.sisu-history-new:focus-visible,
-button.sisu-history-item:focus-visible {
+button.sisu-history-item:focus-visible,
+button.sisu-history-settings:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px var(--sisu-color-outline);
 }
@@ -93,7 +94,35 @@ button.sisu-history-item:focus-visible {
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  padding: 0 var(--sisu-space-card) calc(env(safe-area-inset-bottom, 0px) + var(--sisu-space-section)) var(--sisu-space-margin);
+  padding: 0 var(--sisu-space-card) var(--sisu-space-section) var(--sisu-space-margin);
+}
+
+/* Settings, pinned under the list. */
+.sisu-history-footer {
+  flex: none;
+  padding: calc(var(--sisu-space-grid) * 2) var(--sisu-space-card) calc(env(safe-area-inset-bottom, 0px) + var(--sisu-space-grid) * 4) var(--sisu-space-margin);
+  border-top: 1px solid var(--sisu-color-hairline);
+}
+
+button.sisu-history-settings {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 3);
+  width: 100%;
+  min-height: var(--sisu-space-touch-target);
+  padding: 0 calc(var(--sisu-space-grid) * 2);
+  border: 0;
+  border-radius: var(--sisu-radius-button);
+  background: transparent;
+  color: var(--sisu-color-text);
+  font: var(--sisu-type-button);
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button.sisu-history-settings:active {
+  background: var(--sisu-color-selection-fill);
 }
 
 button.sisu-history-new {
@@ -128,16 +157,10 @@ button.sisu-history-new:active {
   color: var(--sisu-color-text-muted);
 }
 
-.sisu-history-empty,
-.sisu-history-projects-empty {
+.sisu-history-empty {
   margin: 0;
   font: var(--sisu-type-body);
   color: var(--sisu-color-text-muted);
-}
-
-/* The projects stream's list replaces the empty line once it renders anything. */
-.sisu-history-projects:not(:empty) + .sisu-history-projects-empty {
-  display: none;
 }
 
 .sisu-history-list {

@@ -7,6 +7,8 @@
 //   while the on-screen keyboard is up the bar steps aside and that room is given back.
 // - The evidence sheet (model.evidence) and the Rive celebration (model.celebration) sit on top, so the
 //   transactions behind any figure open over the conversation too.
+// - Projects (web/features/Projects) are checked while any tab is shown (useProjectsPolling), and `?project=<id>`
+//   opens one on the Sisu tab (useProjectLaunch). Both run here once, because MainScreen stays mounted.
 // - Nothing here paints a background: the app-wide texture under .sisu-root shows through.
 import { useAppModel, useAppSelector } from "@/web/app/AppProvider";
 import { AppTab } from "@/web/app/AppTypes";
@@ -16,6 +18,8 @@ import TodayScreen from "@/web/features/Today/TodayScreen";
 import TalkScreen from "@/web/features/Talk/TalkScreen";
 import PathScreen from "@/web/features/Path/PathScreen";
 import { TransactionsSheet } from "@/web/features/Sheets/TransactionsSheet";
+import { useProjectLaunch } from "@/web/features/Projects/ProjectLaunch";
+import { useProjectsPolling } from "@/web/features/Projects/useProjects";
 import { CelebrationOverlay } from "./CelebrationOverlay";
 import "./main.css";
 
@@ -34,6 +38,8 @@ export default function MainScreen() {
   const celebration = useAppSelector((s) => s.celebration);
   // The tab bar steps aside while the keyboard is up, so it never floats above the keys.
   const keyboardShown = useKeyboardShown();
+  useProjectsPolling();
+  useProjectLaunch();
 
   return (
     <div className="sisu-main" data-keyboard={keyboardShown ? "true" : "false"} data-testid="main" data-tab={tab}>

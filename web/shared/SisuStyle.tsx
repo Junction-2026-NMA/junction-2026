@@ -120,11 +120,6 @@ export function LiitoView({ mood, label, className, style }: {
 export const RiveHug = {
   /** The "Sample data" tag. */
   sampleTag: 92,
-  /** A StatPill: icon and padding, plus about 10 px per character of its value. The berries icon is wider. */
-  statPill(value: string, kind = "streak"): number {
-    const base = kind === "berries" ? 58 : 52;
-    return Math.min(base + Math.max(Array.from(value).length - 1, 0) * 10, 96);
-  },
 } as const;
 
 /** Shows only the leading `width` px of the child at full scale (RiveComponentView.hugging(width:)). */

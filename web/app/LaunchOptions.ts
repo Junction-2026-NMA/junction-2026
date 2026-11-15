@@ -5,20 +5,21 @@
 //   sample=1                  bundled sample data only, no network
 //   baseURL=<url>             the backend address (default "": this site's own /api routes)
 //   customer=<id>             skip the picker and open this customer (CUST04974, CUST04414, CUST02003)
-//   tab=today|sisu|path       (talk: the old name of sisu; ask: Sisu with the conversation sheet up,
-//                             web/features/Talk/TalkLaunch.ts)
-//   onboarding=reset|done     reset: the first-run flow from its first screen, as on a clean install
-//                             (progress, names and the chosen customer are cleared); done: skip it. Without it,
+//   tab=today|sisu|path       (talk and ask: old names of sisu, web/features/Talk/TalkLaunch.ts)
+//   project=<watch id>        open that project on the Sisu tab (web/features/Projects/ProjectLaunch.ts)
+//   onboarding=reset|done     reset: the first-run flow from its first screen, as on a clean install (the chosen
+//                             customer and the personal data are cleared: names, preferences, voice languages,
+//                             conversations, lesson progress; AppState clearPersonalData); done: skip it. Without it,
 //                             customer=… or screenshots=1 count as done, so those launches land on their
 //                             screens; otherwise the stored completion decides.
 //   motionScale=<n>           slows the first-run transitions n times
 //   motionDelay=<s>           applies each first-run tap s seconds later
 //
 // For screenshots only:
-//   screenshots=1             a fresh, throwaway settings store (in memory), so every run starts at day 1 with 0 berries
-//   scroll=baskets|bill|insights|end|futures   scroll Today or Jars to that section
-//   sheet=maths|transactions|settings          open that sheet on Today
-//   answer=nothing|save|invest                 answer the Jars question
+//   screenshots=1             a fresh, throwaway settings store (in memory), so every run starts clean
+//   scroll=overview|focus|baskets|recent|end   scroll Today to that section (web/features/Today/todayScroll.ts)
+//   sheet=maths|transactions|settings|buffer|basket   open that sheet on Today
+//   answer=nothing|save|invest                 parsed for iOS parity; nothing reads it since the Jars screen went
 import { BranchId } from "@/web/core/Models";
 import { OnboardingLaunch } from "@/web/core/AppLogic/Onboarding";
 import { AppTab } from "./AppTypes";

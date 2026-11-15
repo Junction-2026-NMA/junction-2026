@@ -86,10 +86,15 @@ function HousingEffectView({ view }: { view: NonNullable<ReturnType<typeof Housi
       ) : null}
       <Rows rows={view.totals} />
       {view.missing.length > 0 ? (
-        <Note title="Not known yet" lines={[view.missing.join(", ") + ".", ...(view.note ? [view.note] : [])]} />
+        <Note title="Not known yet" lines={[...missingLines(view.missing), ...(view.note ? [view.note] : [])]} />
       ) : view.note ? <p className="sisu-project-muted">{view.note}</p> : null}
     </>
   );
+}
+
+/** Short names ("Deposit") join into one line; the newer backend's full sentences stay one per line. */
+function missingLines(missing: readonly string[]): string[] {
+  return missing.some((item) => /[.!?]$/.test(item.trim())) ? [...missing] : [missing.join(", ") + "."];
 }
 
 function Enquiry({ finding }: { finding: WatchNotification }) {

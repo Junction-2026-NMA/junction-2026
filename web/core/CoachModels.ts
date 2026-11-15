@@ -102,8 +102,12 @@ export interface Offer {
   matchesRequirements?: boolean | null;
   /** Optional: why it does not meet them, in words (`Contract is 24 months; you asked for 12 or less`). */
   misses?: string[] | null;
-  /** Optional: false when a fee the cost depends on was not stated, so the saving is incomplete. */
+  /** Optional: false when a fee the cost depends on was not stated, so the saving is incomplete. The backend that
+   *  shipped (rework/api-answers) sends the opposite flag, `feesUnknown: true`; both are read. */
   feesKnown?: boolean | null;
+  feesUnknown?: boolean | null;
+  /** Electricity: true when the page says the energy is renewable; null when it does not say. */
+  greenEnergy?: boolean | null;
 }
 
 /** Offer research for one bill type in one city. `mock` true means example data: label it. */
@@ -134,6 +138,8 @@ export interface ResearchResult {
   requirements?: Record<string, unknown> | null;
   matchingCount?: number | null;
   noMatch?: boolean | null;
+  /** The requirements in the backend's words ("contract of 12 months or less, fixed price"). */
+  requirementsText?: string | null;
 }
 
 // MARK: - A turn
@@ -255,6 +261,18 @@ export interface CashFlow {
   negativeMonths: number;
   steps: CalcStep[];
   assumptions: string[];
+  /** Newer backends only (lib/finance/budget.ts): the estimated weekly budget the coach's answers use. Read through
+   *  `WeeklyBudget.inputs`, which takes its default buffer so Today and Sisu's answers agree; absent on today's hosted one. */
+  weeklyBudget?: CashFlowWeeklyBudget | null;
+}
+
+/** `CashFlow.weeklyBudget` (every field optional: decoded defensively, only the buffer is used). */
+export interface CashFlowWeeklyBudget {
+  perWeekEur?: number;
+  bufferEur?: number;
+  /** `default` = one week of regular and occasional essentials, an assumption; `customer-stated` = said in the chat. */
+  bufferSource?: "default" | "customer-stated" | string;
+  assumptions?: string[];
 }
 
 /** Answer of `GET /api/coach/affordability`. */

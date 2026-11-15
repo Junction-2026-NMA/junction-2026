@@ -215,7 +215,17 @@ export class CoachEndpoints {
   /** `PATCH {base}/api/watch/{id}` with `{ customerId, requirements }` (the whole set: null members are left out,
    *  as in every body here). Not on the hosted backend yet (404). */
   static watchUpdate(baseURL: string, id: string, customerId: string, requirements: WatchRequirements): SisuRequest {
-    const request = CoachEndpoints.post(baseURL, CoachEndpoints.watchPath(id), { customerId, requirements }, CoachEndpoints.researchTimeout);
+    // The backend (rework/api-projects) takes the watch's own limits beside the requirements:
+    // `{ customerId, budgetEur?, minRooms?, goal?, requirements? }`; a requirement it does not know is refused.
+    const { budgetEur, minRooms, goal, ...rest } = requirements;
+    const body = {
+      customerId,
+      ...(typeof budgetEur === "number" ? { budgetEur } : {}),
+      ...(typeof minRooms === "number" || minRooms === null ? { minRooms } : {}),
+      ...(typeof goal === "string" ? { goal } : {}),
+      ...(Object.keys(rest).length > 0 ? { requirements: rest } : {}),
+    };
+    const request = CoachEndpoints.post(baseURL, CoachEndpoints.watchPath(id), body, CoachEndpoints.researchTimeout);
     return { ...request, method: "PATCH" };
   }
 

@@ -5,6 +5,7 @@
 // Read from the same defaults the AppModel uses (LaunchOptions.current().defaults), so every SpeechPlayer and
 // VoiceController, which are rebuilt with each coach session, picks up the stored choice without extra wiring.
 import { AppPrefs } from "@/web/app/AppPrefs";
+import { Keys } from "@/web/app/AppState";
 import { LaunchOptions } from "@/web/app/LaunchOptions";
 import type { SisuDefaults } from "@/web/app/Defaults";
 
@@ -14,8 +15,8 @@ export interface VoiceLanguages {
   readonly reply: string;
 }
 
-const KEY = "sisu.voiceLanguages";
-const PREFS_KEY = "sisu.prefs";
+const KEY = Keys.voiceLanguages;
+const PREFS_KEY = Keys.prefs;
 const code = /^[a-z]{2,3}(-[a-z0-9]{2,8})?$/i;
 
 const defaults = (): SisuDefaults | null => {

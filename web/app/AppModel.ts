@@ -6,13 +6,13 @@ import { FixtureAPI, LiveAPI, SisuError, type SisuAPI } from "@/web/core/API";
 import { CoachClient } from "@/web/core/CoachClient";
 import type { DemoCustomer, EvidenceFilter, RecurringBill, ScenarioInput, ScenarioResponse, TransactionList } from "@/web/core/Models";
 import { Store } from "@/web/core/CoachSession";
-import { CoachBillMatch, type CoachRewards } from "@/web/core/AppLogic/CoachAppLogic";
-import { DailyProgress, DayStamp } from "@/web/core/AppLogic/DailyProgress";
+import { CoachBillMatch } from "@/web/core/AppLogic/CoachAppLogic";
+import { DayStamp } from "@/web/core/AppLogic/DayStamp";
 import { OnboardingFlow } from "@/web/core/AppLogic/Onboarding";
 import { SampleEvidence } from "@/web/core/AppLogic/SampleEvidence";
 import { Dates } from "@/web/core/Presentation";
 import { AppPrefs } from "./AppPrefs";
-import { type AppState, type AppStored, Keys, billKey, derive, stringDictionary } from "./AppState";
+import { type AppState, type AppStored, Keys, billKey, clearPersonalData, derive, stringDictionary } from "./AppState";
 import { type AppTab, type Celebration, EvidenceRequest, LoadState, type TodaySheet } from "./AppTypes";
 import { CoachStore } from "./CoachStore";
 import { LaunchOptions } from "./LaunchOptions";
@@ -34,8 +34,10 @@ export class AppModel extends Store<AppState> {
   constructor(launch: LaunchOptions = LaunchOptions.current(), now: () => Date = () => new Date(), timeZone: string = Dates.currentTimeZone()) {
     const defaults = launch.defaults;
     if (launch.onboarding === "reset") {
-      // As on a clean install: no names, old progress, chosen customer, preferences, conversations or finished first run.
-      [Keys.progress, Keys.billNames, Keys.coachRewards, Keys.customer, Keys.onboarding, Keys.prefs, Keys.conversations].forEach((key) => defaults.remove(key));
+      // As on a clean install: no chosen customer or finished first run, and none of the personal data
+      // (names, preferences, voice languages, conversations, lesson progress).
+      clearPersonalData(defaults);
+      [Keys.customer, Keys.onboarding].forEach((key) => defaults.remove(key));
     }
     const storedFlow = OnboardingFlow.decode(defaults.json(Keys.onboarding));
     const stored: AppStored = {
@@ -54,7 +56,6 @@ export class AppModel extends Store<AppState> {
       onboarding: OnboardingFlow.atLaunch(storedFlow, launch.onboarding, LaunchOptions.skipsOnboardingByDefault(launch)),
       evidence: null,
       todaySheet: null,
-      progress: DailyProgress.decode(defaults.json(Keys.progress)) ?? DailyProgress.make(),
       confirmedBillNames: stringDictionary(defaults.json(Keys.billNames)),
       approvedMonthlySaving: 0,
       investigationRequests: 0,
@@ -292,18 +293,6 @@ export class AppModel extends Store<AppState> {
     this.coach.investigate();
   }
 
-  /** @deprecated The daily actions are gone (2026-11-15): every one counts as done, so callers skip `complete`. */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  isDone(_action: string): boolean { return true; }
-  /** @deprecated The daily actions are gone (2026-11-15): completing one does nothing. */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  complete(_action: string): void {}
-
-  /** @deprecated Rewards are gone (2026-11-15): a coach moment (quiz answered, action decided) earns nothing.
-   *  Kept as a no-op so callers in Ask still compile until they drop the call. */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  coachMoment(_moment: CoachRewards.Moment, _id: string): void {}
-
   resetDemo(): void {
     // The backend's demo state (actions, memory) and the conversation go too. A server that refuses the reset
     // (401/403 when SISU_RESET_TOKEN is set) changes nothing here: the demo still starts over locally.
@@ -312,11 +301,10 @@ export class AppModel extends Store<AppState> {
     this.coach.clearHistory();
     const client = session?.client ?? (this.isLive ? CoachClient.live(this.state.baseURLString) : null);
     if (client) void client.resetDemo().catch(() => null);
-    [Keys.progress, Keys.billNames, Keys.coachRewards].forEach((key) => this.defaults.remove(key));
-    this.set({
-      progress: DailyProgress.make(), confirmedBillNames: {},
-      approvedMonthlySaving: 0, todaySheet: null,
-    });
+    clearPersonalData(this.defaults);
+    const prefs = AppPrefs.defaults;
+    if (prefs.language !== this.state.prefs.language) this.coach.setLanguage(prefs.language);
+    this.set({ confirmedBillNames: {}, approvedMonthlySaving: 0, todaySheet: null, prefs });
     this.switchCustomer();
     this.saveOnboarding(OnboardingFlow.restart(this.state.onboarding));
   }

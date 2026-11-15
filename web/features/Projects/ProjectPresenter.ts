@@ -3,7 +3,8 @@
 // named as missing, never shown as zero.
 import { Money } from "@/web/core/Presentation";
 import type { Citation } from "@/web/core/CoachModels";
-import { type Listing, type PropertyWatch, type WatchNotification, type WatchPlan, PriceUnit, WatchStatus } from "@/web/core/WatchModels";
+import { type Listing, type PropertyWatch, type WatchNotification, type WatchPlan, PriceUnit, WatchStatus, projectStatusOf } from "@/web/core/WatchModels";
+import { BackendHousing } from "./BackendHousing";
 
 export type ProjectTone = "active" | "paused" | "stopped" | "attention";
 export interface ProjectLine { label: string; value: string }
@@ -40,9 +41,10 @@ export const ProjectText = {
 
   /** Active / Paused / Stopped / Needs attention (a failing status, a page that could not be read, or a problem). */
   status(w: PropertyWatch): { label: string; tone: ProjectTone } {
-    if (w.status === WatchStatus.stopped) return { label: "Stopped", tone: "stopped" };
-    if (w.status === WatchStatus.paused) return { label: "Paused", tone: "paused" };
-    const troubled = w.status === WatchStatus.failing || w.problems.length > 0 || w.pages.some((p) => !!p.lastError);
+    const status = projectStatusOf(w);
+    if (status === WatchStatus.stopped) return { label: "Stopped", tone: "stopped" };
+    if (status === WatchStatus.paused) return { label: "Paused", tone: "paused" };
+    const troubled = status === WatchStatus.failing || w.problems.length > 0 || w.pages.some((p) => !!p.lastError);
     return troubled ? { label: "Needs attention", tone: "attention" } : { label: "Active", tone: "active" };
   },
 
@@ -55,10 +57,14 @@ export const ProjectText = {
 
   /** What checks the pages and when, said honestly. A schedule is promised only when the server names one. */
   schedule(w: PropertyWatch, scheduler: boolean, now: Date = new Date()): string {
-    if (w.status === WatchStatus.stopped) return "Stopped. Nothing is being checked.";
-    if (w.status === WatchStatus.paused) return "Paused. Nothing is checked until you resume.";
-    if (w.nextCheckAt && !Number.isNaN(Date.parse(w.nextCheckAt))) return `Next check ${ProjectText.when(w.nextCheckAt, now)}.`;
-    if (scheduler) return "Sisu's server checks these pages on a schedule, also while the app is closed.";
+    const status = projectStatusOf(w);
+    if (status === WatchStatus.stopped) return "Stopped. Nothing is being checked.";
+    if (status === WatchStatus.paused) return "Paused. Nothing is checked until you resume.";
+    if (w.nextCheckAt && !Number.isNaN(Date.parse(w.nextCheckAt))) {
+      const next = `Next check ${ProjectText.when(w.nextCheckAt, now)}.`;
+      return scheduler ? `${next} Sisu's server also reviews the changes once a day, while the app is closed.` : next;
+    }
+    if (scheduler) return "Sisu's server reviews these pages once a day, also while the app is closed.";
     if (w.pages.some((p) => !!p.monitorId)) return "Context.dev re-checks these pages about every 6 hours. Sisu reviews the changes when you open the app.";
     return "Sisu re-reads these pages itself when you open the app, at most every 30 minutes. Nothing checks them while the app is closed.";
   },
@@ -216,7 +222,10 @@ export const HousingText = {
    *  what is not. Null for a price watch. */
   view(n: WatchNotification, rent: boolean): HousingView | null {
     if (!rent) return null;
-    const effect = n.housingEffect;
+    // The newer backend's `housing` (lib/finance/housing.ts: recurring, upfront, buffer, savings goal), else the
+    // first draft's `housingEffect` (items and totals).
+    if (n.housing && typeof n.housing === "object" && BackendHousing.matches(n.housing)) return BackendHousing.view(n.housing, n);
+    const effect = n.housingEffect ?? n.housing;
     if (effect && typeof effect === "object") return HousingText.fromServer(effect as Record<string, unknown>);
     // Only the rent is known, and the listing line and "Why it matters" already show it and what a month leaves:
     // nothing is repeated here, only what is missing.

@@ -5,7 +5,7 @@
 import { useEffect, useState } from "react";
 import { useCoachDataTag } from "@/web/app/AppProvider";
 import { ProjectStore, type ProjectsState } from "@/web/app/ProjectStore";
-import { type PropertyWatch, PriceUnit } from "@/web/core/WatchModels";
+import { type PropertyWatch, PriceUnit, projectStatusOf } from "@/web/core/WatchModels";
 import { Screen, ScreenStack } from "@/web/shared/Screen";
 import { prefersReducedMotion } from "@/web/theme/motion";
 import { SisuCard } from "@/web/shared/SisuStyle";
@@ -124,8 +124,8 @@ function ProjectControls({ watch, store, state }: { watch: PropertyWatch; store:
   const [confirming, setConfirming] = useState(false);
   const busy = state.busy[watch.id] ?? null;
   const notice = state.notices[watch.id] ?? null;
-  const stopped = watch.status === "stopped";
-  const paused = watch.status === "paused";
+  const stopped = projectStatusOf(watch) === "stopped";
+  const paused = projectStatusOf(watch) === "paused";
   const live = store.isLive;
 
   if (stopped) {

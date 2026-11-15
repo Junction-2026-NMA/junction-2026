@@ -4,7 +4,9 @@
 //   weekly = max(0, (balance − bills due before payday − buffer) / max(days to payday / 7, 1))
 // Pure. The balance comes from the overview, the payday, the bills and the everyday pace from
 // GET /api/coach/cash-flow (bank data, 12-month averages), the buffer from the person (AppPrefs.bufferEur) or a
-// labelled default. It is an estimate, never "safe to spend". A missing input is named, never guessed.
+// labelled default. The default is the backend's own when it sends one (`CashFlow.weeklyBudget`, newer backends: one
+// week of regular and occasional essentials), so Today and Sisu's answers agree; otherwise €100. It is an estimate,
+// never "safe to spend". A missing input is named, never guessed.
 import type { CashFlow } from "@/web/core/CoachModels";
 import type { Overview } from "@/web/core/Models";
 import { Dates, Money } from "@/web/core/Presentation";
@@ -24,8 +26,10 @@ export namespace WeeklyBudget {
     /** The bills expected before the next payday; null when they are not known (the cash flow did not load). */
     readonly bills: readonly Bill[] | null;
     readonly averageDailyEverydayEur: number | null;
-    /** The person's own buffer, or null to use `defaultBufferEur`. */
+    /** The person's own buffer, or null to use the default. */
     readonly bufferEur: number | null;
+    /** The default buffer (`defaultBuffer(cashFlow)`); `defaultBufferEur` when left out. */
+    readonly defaultBufferEur?: number;
     /** False when the cash-flow answer never arrived (so payday and bills are unknown, not absent). */
     readonly cashFlowLoaded: boolean;
   }
@@ -60,6 +64,13 @@ export namespace WeeklyBudget {
 
   const finite = (value: number | null | undefined): value is number => typeof value === "number" && Number.isFinite(value);
 
+  /** The buffer assumed until the person sets one: the backend's default when it sends one, else `defaultBufferEur`. */
+  export function defaultBuffer(cashFlow: CashFlow | null): number {
+    const server = cashFlow?.weeklyBudget;
+    return server && server.bufferSource === "default" && finite(server.bufferEur) && server.bufferEur >= 0
+      ? Math.round(server.bufferEur * 100) / 100 : defaultBufferEur;
+  }
+
   /** The inputs from what Today has loaded. `cashFlow` is null while it is missing. */
   export function inputs(overview: Overview | null, cashFlow: CashFlow | null, bufferEur: number | null): Inputs {
     const days = cashFlow?.daysToNextPayday;
@@ -72,6 +83,7 @@ export namespace WeeklyBudget {
       averageDailyEverydayEur: cashFlow && finite(cashFlow.averageDailyEverydayEur) && cashFlow.averageDailyEverydayEur >= 0
         ? cashFlow.averageDailyEverydayEur : null,
       bufferEur: finite(bufferEur) && bufferEur >= 0 ? bufferEur : null,
+      defaultBufferEur: defaultBuffer(cashFlow),
       cashFlowLoaded: cashFlow !== null,
     };
   }
@@ -86,7 +98,7 @@ export namespace WeeklyBudget {
       return { kind: "missing", missing, cashFlowLoaded: input.cashFlowLoaded };
     }
     const billsEur = input.bills.reduce((sum, bill) => sum + bill.amountEur, 0);
-    const bufferEur = input.bufferEur ?? defaultBufferEur;
+    const bufferEur = input.bufferEur ?? input.defaultBufferEur ?? defaultBufferEur;
     const weeks = Math.max(input.daysToPayday / 7, 1);
     const leftEur = input.balanceEur - billsEur - bufferEur;
     const daily = input.averageDailyEverydayEur;

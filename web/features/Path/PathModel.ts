@@ -12,6 +12,7 @@ import { CoachText } from "@/web/core/CoachPresentation";
 import { CoachErrors, type CoachDataLabel } from "@/web/core/CoachSession";
 import { LessonPathPresenter, LessonProgress, LessonWording, type LessonNode } from "@/web/core/AppLogic/LessonPath";
 import { LessonAttempt } from "@/web/core/AppLogic/LessonFollowUps";
+import { Keys } from "@/web/app/AppState";
 import type { SisuDefaults } from "@/web/app/Defaults";
 
 /** The lesson the sheet shows. `token` counts presentations, so a lesson opened again starts fresh. */
@@ -191,6 +192,6 @@ export class PathModel {
     return LessonAttempt.decode(this.defaults?.json(PathModel.attemptKey(this.customerId)));
   }
 
-  private static key(customerId: string): string { return `sisu.lessons.${customerId}`; }
-  private static attemptKey(customerId: string): string { return `sisu.lessonAttempt.${customerId}`; }
+  private static key(customerId: string): string { return `${Keys.lessonsPrefix}${customerId}`; }
+  private static attemptKey(customerId: string): string { return `${Keys.lessonAttemptPrefix}${customerId}`; }
 }

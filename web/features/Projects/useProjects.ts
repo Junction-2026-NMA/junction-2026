@@ -24,6 +24,13 @@ export function useProjects(): { store: ProjectStore | null; state: ProjectsStat
   return { store, state };
 }
 
+/** Keeps the store attached (so its 60 s check runs) without re-rendering on every change: for MainScreen, which is
+ *  mounted on every tab, so projects keep being checked while the person is on Today or Path. */
+export function useProjectsPolling(): void {
+  const store = useProjectStore();
+  useEffect(() => (store ? store.attach() : undefined), [store]);
+}
+
 /** Unread findings across every project: for the dot on the Sisu logo (0 when there are none or no customer). */
 export function useProjectsUnread(): number {
   const { state } = useProjects();

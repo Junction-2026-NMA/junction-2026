@@ -531,13 +531,19 @@ button.sisu-talk-strip-stop:focus-visible {
   box-shadow: 0 0 0 3px var(--sisu-color-outline);
 }
 
-/* MARK: A project over the conversation (web/features/Projects/ProjectScreen.tsx) */
+/* MARK: A project in place of the conversation (web/features/Projects/ProjectScreen.tsx). The project paints no
+   background, so the conversation under it is hidden (not unmounted: its scroll position and draft stay), and
+   hidden content is out of the tab order and the accessibility tree too. */
 
 .sisu-talk-project {
   position: absolute;
   inset: 0;
   z-index: 5;
   animation: sisu-talk-rise-soft 320ms var(--sisu-motion-ease-out) both;
+}
+
+.sisu-talk[data-project="true"] > :not(.sisu-talk-project):not(.sisu-history) {
+  visibility: hidden;
 }
 
 /* MARK: Status line */

@@ -18,12 +18,15 @@ export interface SisuDefaults {
   setJSON(key: string, value: unknown): void;
   /** `defaults.removeObject(forKey:)`. */
   remove(key: string): void;
+  /** Removes every key that starts with `prefix` (per-customer values such as `sisu.lessons.<id>`). */
+  removePrefix(prefix: string): void;
 }
 
 interface TextStore {
   get(key: string): string | null;
   set(key: string, value: string): void;
   remove(key: string): void;
+  keys(): string[];
 }
 
 function defaultsOver(store: TextStore): SisuDefaults {
@@ -53,6 +56,7 @@ function defaultsOver(store: TextStore): SisuDefaults {
       }
     },
     remove: (key) => store.remove(key),
+    removePrefix: (prefix) => store.keys().filter((key) => key.startsWith(prefix)).forEach((key) => store.remove(key)),
   };
 }
 
@@ -92,6 +96,19 @@ export function localDefaults(): SisuDefaults {
         // Blocked: nothing to remove.
       }
     },
+    keys: () => {
+      const keys = new Set(memory.keys());
+      try {
+        const store = storage();
+        for (let index = 0; store && index < store.length; index += 1) {
+          const key = store.key(index);
+          if (key !== null) keys.add(key);
+        }
+      } catch {
+        // Blocked: only this page's own values.
+      }
+      return [...keys];
+    },
   });
 }
 
@@ -102,5 +119,6 @@ export function memoryDefaults(): SisuDefaults {
     get: (key) => memory.get(key) ?? null,
     set: (key, value) => { memory.set(key, value); },
     remove: (key) => { memory.delete(key); },
+    keys: () => [...memory.keys()],
   });
 }

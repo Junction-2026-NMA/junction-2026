@@ -57,7 +57,7 @@ export default function TodayScreen() {
       </Screen>
       <MathsSheet open={todaySheet === "maths"} overview={overview} budget={budget}
         cashFlowAssumptions={flow?.assumptions ?? []} onBuffer={openBuffer} onClose={() => model.setTodaySheet(null)} />
-      <BufferSheet open={bufferOpen} onClose={() => setBufferOpen(false)} />
+      <BufferSheet open={bufferOpen} onClose={() => setBufferOpen(false)} defaultEur={WeeklyBudget.defaultBuffer(flow)} />
       <SettingsSheet open={todaySheet === "settings"} onClose={() => model.setTodaySheet(null)} />
     </>
   );

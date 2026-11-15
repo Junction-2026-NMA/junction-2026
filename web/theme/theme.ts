@@ -18,7 +18,7 @@ export const SisuTheme = {
     neutral400: "#949494",
     neutral200: "#E6E6E6",
 
-    /** Streak flame and heads-up notes only. */
+    /** Heads-up notes only. */
     amberBackground: "#FFF1D8",
     amberMark: "#CF8300",
     amberText: "#885600",

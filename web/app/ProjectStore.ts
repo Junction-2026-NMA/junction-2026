@@ -14,7 +14,8 @@ import { SisuError } from "@/web/core/API";
 import type { CoachClient } from "@/web/core/CoachClient";
 import { CoachErrors, Store } from "@/web/core/CoachSession";
 import { sisuFetch } from "@/web/core/VisitorSession";
-import { type PropertyWatch, type WatchNotification, type WatchRequirements, WatchStatus } from "@/web/core/WatchModels";
+import { type PropertyWatch, type WatchNotification, type WatchRequirements, WatchStatus, projectStatusOf } from "@/web/core/WatchModels";
+import { Keys } from "./AppState";
 import type { SisuDefaults } from "./Defaults";
 
 /** Controls whose routes the hosted backend may not have yet. */
@@ -38,7 +39,8 @@ export interface ProjectsState {
   readonly checkProblems: readonly string[];
   /** True only once a probe showed the route exists. */
   readonly support: Readonly<Record<ProjectFeature, boolean>>;
-  /** True only when /api/health says a scheduled process runs the checks. */
+  /** True only when the server says a scheduled process reviews the pages while the app is closed
+   *  (`watchScheduler: "cron"` in /api/health or `scheduler: "cron"` in the list). Missing means on-open. */
   readonly scheduler: boolean;
   readonly busy: Readonly<Record<string, ProjectBusy>>;
   /** A sentence per watch id after a control failed. */
@@ -55,7 +57,7 @@ export type Prober = (path: string) => Promise<number | null>;
 const POLL_MS = 60_000;
 /** Coming back to the app checks again, but never more often than this (the server allows 12 checks a minute). */
 const FOCUS_GAP_MS = 20_000;
-const SEEN_KEY = "sisu.projectsSeen";
+const SEEN_KEY = Keys.projectsSeen;
 const MAX_SEEN = 300;
 const NO_SUPPORT = { pause: false, resume: false, update: false, read: false } as const;
 
@@ -65,7 +67,17 @@ export const ProjectFeatureText: Record<ProjectFeature, string> = { pause: "Paus
 const missingRoute = (error: unknown): boolean =>
   error instanceof SisuError && error.info.kind === "server" && error.info.status === 404 && error.info.message === "";
 
-export const isActiveWatch = (watch: PropertyWatch): boolean => (watch.status ?? WatchStatus.active) === WatchStatus.active || watch.status === WatchStatus.failing;
+export const isActiveWatch = (watch: PropertyWatch): boolean => {
+  const status = projectStatusOf(watch);
+  return status === WatchStatus.active || status === WatchStatus.failing;
+};
+
+/** `watchScheduler: "cron"` (rework/api-projects) or the first draft's `services.watchScheduler: true`. */
+export function schedulerRuns(report: unknown): boolean {
+  if (!report || typeof report !== "object") return false;
+  const r = report as { watchScheduler?: unknown; services?: { watchScheduler?: unknown } | null };
+  return r.watchScheduler === "cron" || r.services?.watchScheduler === true;
+}
 
 export class ProjectStore extends Store<ProjectsState> {
   private static readonly registry = new WeakMap<object, ProjectStore>();
@@ -117,7 +129,7 @@ export class ProjectStore extends Store<ProjectsState> {
     return state.notifications.filter((n) => n.watchId === watchId).slice().sort((a, b) => (b.detectedAt ?? "").localeCompare(a.detectedAt ?? ""));
   }
 
-  static isUnread(state: ProjectsState, n: WatchNotification): boolean { return n.read !== true && !state.seen.includes(n.id); }
+  static isUnread(state: ProjectsState, n: WatchNotification): boolean { return n.read !== true && !n.readAt && !state.seen.includes(n.id); }
   static unreadCount(state: ProjectsState, watchId?: string): number {
     return state.notifications.filter((n) => (watchId === undefined || n.watchId === watchId) && ProjectStore.isUnread(state, n)).length;
   }
@@ -169,7 +181,10 @@ export class ProjectStore extends Store<ProjectsState> {
     this.update({ loading: true });
     try {
       const list = await this.client.watchList(this.state.customerId);
-      this.update({ watches: list.watches, notifications: list.notifications, loaded: true, loading: false, error: null });
+      this.update({
+        watches: list.watches, notifications: list.notifications, loaded: true, loading: false, error: null,
+        ...(list.scheduler === "cron" ? { scheduler: true } : {}),
+      });
       void this.probeOnce();
     } catch (error) {
       this.update({ loading: false, loaded: true, error: CoachErrors.sentence(error) || CoachErrors.generic });
@@ -208,8 +223,8 @@ export class ProjectStore extends Store<ProjectsState> {
     if (this.healthAsked) return;
     this.healthAsked = true;
     try {
-      const report = (await this.client.health()) as unknown as { services?: { watchScheduler?: unknown } };
-      this.update({ scheduler: report.services?.watchScheduler === true });
+      const report: unknown = await this.client.health();
+      if (schedulerRuns(report)) this.update({ scheduler: true });
     } catch { /* No health report: promise nothing. */ }
   }
 

@@ -18,6 +18,12 @@ export const PriceUnit = { perMonth: "EUR/month", once: "EUR" } as const;
 export type WatchStatus = "active" | "stopped" | "paused" | "failing" | (string & {});
 export const WatchStatus = { active: "active", stopped: "stopped", paused: "paused", failing: "failing" } as const;
 
+/** The status to draw: the newer backend's derived `projectStatus` (active, paused, stopped or failing) when sent,
+ *  else `status` (today's hosted backend: active or stopped). */
+export function projectStatusOf(w: { status?: WatchStatus | null; projectStatus?: WatchStatus | null }): WatchStatus {
+  return w.projectStatus ?? w.status ?? WatchStatus.active;
+}
+
 /** `property_watch` (a flat to rent) or `price_watch` (anything else with a price): an action whose approval really
  *  starts a watch (not simulated). */
 export function isWatchKind(kind: string | null | undefined): boolean {
@@ -89,6 +95,9 @@ export interface WatchedPage {
   /** When Context.dev last reported a change. */
   lastChangeAt?: string | null;
   lastError?: string | null;
+  /** Newer backends: the page's title, and when Context.dev runs its monitor next. */
+  title?: string | null;
+  monitorNextRunAt?: string | null;
 }
 
 /** A running (or stopped) watch: what the Projects screens show. */
@@ -119,6 +128,8 @@ export interface PropertyWatch {
   lastSuccessAt?: string | null;
   /** Future: when the next scheduled check runs. Absent: there is no schedule to promise. */
   nextCheckAt?: string | null;
+  /** Newer backends: `status` plus the pages' errors (`failing`). Draw it through `projectStatusOf`. */
+  projectStatus?: WatchStatus | null;
 }
 
 /** A finding: a listing that fits now (new, or its price fell). */
@@ -142,14 +153,21 @@ export interface WatchNotification {
   /** True when the change was made up by the demo's simulate button. Show it. */
   simulated?: boolean | null;
   facts: Fact[];
-  /** Future: seen by the user. */
+  /** Future: seen by the user. Newer backends send `readAt` instead (set = read). */
   read?: boolean | null;
-  /** Future: the total effect of a housing finding. */
+  readAt?: string | null;
+  /** The total effect of a housing finding: `housing` on newer backends (lib/finance/housing.ts), `housingEffect`
+   *  in the shape this client first expected. Read through HousingText.view. */
   housingEffect?: HousingEffect | null;
+  housing?: HousingEffect | null;
 }
 
 /** Answer of `GET /api/watch`: the watches and the findings, newest first. */
-export interface WatchList { customerId?: string | null; watches: PropertyWatch[]; notifications: WatchNotification[] }
+export interface WatchList {
+  customerId?: string | null; watches: PropertyWatch[]; notifications: WatchNotification[];
+  /** Newer backends: `cron` when a scheduled review runs while the app is closed; missing means `on-open`. */
+  scheduler?: string | null;
+}
 
 /** Answer of `POST /api/watch/check`: `notifications` holds only the new findings of this check. */
 export interface WatchCheck {
@@ -222,6 +240,7 @@ export const WatchedPage = {
     return {
       url: text(o, "url"), monitorId: text(o, "monitorId"), listings: many(o.listings, Listing.decode),
       lastReadAt: text(o, "lastReadAt"), lastChangeAt: text(o, "lastChangeAt"), lastError: text(o, "lastError"),
+      title: text(o, "title"), monitorNextRunAt: text(o, "monitorNextRunAt"),
     };
   },
 } as const;
@@ -237,7 +256,7 @@ export const PropertyWatch = {
       status: text(o, "status"), mode: text(o, "mode"), pages: many(o.pages, WatchedPage.decode),
       searchMonitorId: text(o, "searchMonitorId"), createdAt: text(o, "createdAt"), lastCheckedAt: text(o, "lastCheckedAt"),
       problems: texts(o.problems), goal: text(o, "goal"), requirements: record(o, "requirements"),
-      lastSuccessAt: text(o, "lastSuccessAt"), nextCheckAt: text(o, "nextCheckAt"),
+      lastSuccessAt: text(o, "lastSuccessAt"), nextCheckAt: text(o, "nextCheckAt"), projectStatus: text(o, "projectStatus"),
     };
   },
 } as const;
@@ -253,7 +272,7 @@ export const WatchNotification = {
       previousPriceEur: number(o, "previousPriceEur"), budgetEur: number(o, "budgetEur"), underBudgetByEur: number(o, "underBudgetByEur"),
       leftOverAfterEur: number(o, "leftOverAfterEur"), balanceAfterEur: number(o, "balanceAfterEur"), detectedAt: text(o, "detectedAt"),
       detectedBy: text(o, "detectedBy"), simulated: flag(o, "simulated"), facts: facts(o.facts), read: flag(o, "read"),
-      housingEffect: record(o, "housingEffect"),
+      readAt: text(o, "readAt"), housingEffect: record(o, "housingEffect"), housing: record(o, "housing"),
     };
   },
 } as const;
@@ -263,7 +282,10 @@ export const WatchList = {
   empty(customerId: string | null = null): WatchList { return { customerId, watches: [], notifications: [] }; },
   decode(json: unknown): WatchList {
     const o = top(json);
-    return { customerId: text(o, "customerId"), watches: many(o.watches, PropertyWatch.decode), notifications: many(o.notifications, WatchNotification.decode) };
+    return {
+      customerId: text(o, "customerId"), watches: many(o.watches, PropertyWatch.decode),
+      notifications: many(o.notifications, WatchNotification.decode), scheduler: text(o, "scheduler"),
+    };
   },
 } as const;
 

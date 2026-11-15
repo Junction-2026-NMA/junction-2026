@@ -1,7 +1,9 @@
 "use client";
 // The saved projects (watches) in the Sisu tab's history drawer: each with its goal, status, last successful check
-// and unread findings. Tapping one opens it (`onOpen(id)`, the drawer calls `AppModel.setOpenProjectId`).
+// and unread findings. Tapping one opens it (`onOpen(id)`, the drawer calls `AppModel.setOpenProjectId`). No heading
+// of its own: the drawer's "Saved projects" heading names it.
 import { ProjectStore } from "@/web/app/ProjectStore";
+import { projectStatusOf } from "@/web/core/WatchModels";
 import { Chip } from "./ProjectParts";
 import { ProjectText } from "./ProjectPresenter";
 import { useProjects } from "./useProjects";
@@ -19,14 +21,11 @@ export function ProjectsSection({ onOpen }: ProjectsSectionProps) {
   const watches = state?.watches ?? [];
   // Running projects first, then the stopped ones; newest first within each.
   const ordered = [...watches].sort((a, b) =>
-    Number(a.status === "stopped") - Number(b.status === "stopped") || (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
+    Number(projectStatusOf(a) === "stopped") - Number(projectStatusOf(b) === "stopped") || (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
 
   return (
-    <section className="sisu-project-section" aria-labelledby="sisu-projects-title" data-testid="projects.section">
-      <div className="sisu-project-section-head">
-        <h2 id="sisu-projects-title" className="sisu-project-h2">Projects</h2>
-        {state?.loading && state.loaded ? <span className="sisu-project-muted" role="status">Updating…</span> : null}
-      </div>
+    <div className="sisu-project-section" data-testid="projects.section">
+      {state?.loading && state.loaded && ordered.length > 0 ? <span className="sisu-project-muted" role="status">Updating…</span> : null}
       {!state || !state.loaded ? <p className="sisu-project-muted" role="status">Loading projects…</p> : null}
       {state?.loaded && ordered.length === 0 && !state.error ? <p className="sisu-project-muted">{EMPTY}</p> : null}
       {state?.error ? <p className="sisu-project-error" role="alert">{state.error}</p> : null}
@@ -54,6 +53,6 @@ export function ProjectsSection({ onOpen }: ProjectsSectionProps) {
           })}
         </ul>
       ) : null}
-    </section>
+    </div>
   );
 }

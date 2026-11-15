@@ -3,7 +3,7 @@ import type { EvidenceFilter } from "@/web/core/Models";
 import { makeUUID } from "@/web/core/CoachSession";
 
 /** Swift `enum AppTab: Int`: the three pages in the floating tab bar, in order. Sisu (the conversation with Liito,
- *  typed and spoken; it was called Talk) is the main page and sits in the middle. The Jars screen is not in the bar.
+ *  typed and spoken; it was called Talk) is the main page and sits in the middle.
  *  The web uses the case names; `AppTab.index(tab)` is the Swift rawValue. */
 export type AppTab = "today" | "sisu" | "path";
 
@@ -12,9 +12,8 @@ const tabs: readonly AppTab[] = ["today", "sisu", "path"];
 export const AppTab = {
   allCases: tabs,
 
-  /** Swift `AppTab(argument:)`, `tab=`: `today`, `sisu` (also the old names `talk` and `ask`; `ask` also opens the
-   *  conversation sheet, web/features/Talk/TalkLaunch.ts) or `path`; case-insensitive; null for anything else
-   *  (`jars` too). */
+  /** Swift `AppTab(argument:)`, `tab=`: `today`, `sisu` (also the old names `talk` and `ask`) or `path`;
+   *  case-insensitive; null for anything else (`jars` too). */
   fromArgument(argument: string | null | undefined): AppTab | null {
     switch (argument?.toLowerCase()) {
       case "today": return "today";
@@ -63,7 +62,7 @@ export const LoadState = {
   },
 } as const;
 
-/** The celebration MainScreen shows when the last of today's actions is done. */
+/** The celebration MainScreen shows when a simulated action is approved ("Approved.", web/features/Ask/answerActions.ts). */
 export interface Celebration {
   readonly headline: string;
   readonly detail: string;

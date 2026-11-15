@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { useAppModel } from "@/web/app/AppProvider";
 import type { ProjectStore } from "@/web/app/ProjectStore";
-import type { PropertyWatch } from "@/web/core/WatchModels";
+import { type PropertyWatch, projectStatusOf } from "@/web/core/WatchModels";
 import { SisuCard } from "@/web/shared/SisuStyle";
 import { Rows } from "./ProjectParts";
 import { ProjectText } from "./ProjectPresenter";
@@ -28,7 +28,7 @@ export function ProjectRequirements({ watch, store, canEdit }: { watch: Property
   const [draft, setDraft] = useState<Record<string, string>>({});
   const rows = ProjectText.requirements(watch);
   const fields = editable(watch);
-  const stopped = watch.status === "stopped";
+  const stopped = projectStatusOf(watch) === "stopped";
   const busy = store.getSnapshot().busy[watch.id] === "update";
 
   const askSisu = () => model.askSisu(`I'd like to change the requirements of my project "${ProjectText.title(watch)}".`);

@@ -21,15 +21,16 @@ export function parseBuffer(text: string): number | null {
   return Number.isFinite(value) && value >= 0 && value <= maxBuffer ? value : null;
 }
 
-export function BufferSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+/** `defaultEur`: the buffer assumed until one is set (`WeeklyBudget.defaultBuffer(cashFlow)`). */
+export function BufferSheet({ open, onClose, defaultEur = WeeklyBudget.defaultBufferEur }: { open: boolean; onClose: () => void; defaultEur?: number }) {
   return (
     <SheetFrame open={open} onClose={onClose} title="Your buffer" detents={["medium", "large"]} testId="sheet.buffer">
-      {open ? <BufferForm onClose={onClose} /> : null}
+      {open ? <BufferForm onClose={onClose} defaultEur={defaultEur} /> : null}
     </SheetFrame>
   );
 }
 
-function BufferForm({ onClose }: { onClose: () => void }) {
+function BufferForm({ onClose, defaultEur }: { onClose: () => void; defaultEur: number }) {
   const model = useAppModel();
   const current = useAppSelector((s) => s.prefs.bufferEur);
   const [text, setText] = useState(current === null ? "" : `${current}`);
@@ -48,7 +49,7 @@ function BufferForm({ onClose }: { onClose: () => void }) {
       </p>
       <p className="sisu-buffer-note">
         {current === null
-          ? `Until you set one, Sisu assumes ${TodayPresenter.money(WeeklyBudget.defaultBufferEur)}.`
+          ? `Until you set one, Sisu assumes ${TodayPresenter.money(defaultEur)}.`
           : `Now: ${TodayPresenter.money(current)}, your setting.`}
       </p>
       <label className="sisu-buffer-field">
@@ -74,7 +75,7 @@ function BufferForm({ onClose }: { onClose: () => void }) {
       <SisuButton label="Save buffer" enabled={value !== null} action={() => { if (value !== null) save(value); }} />
       {current !== null ? (
         <button type="button" className="sisu-buffer-reset" onClick={() => save(null)}>
-          Use the default ({TodayPresenter.money(WeeklyBudget.defaultBufferEur)})
+          Use the default ({TodayPresenter.money(defaultEur)})
         </button>
       ) : null}
     </div>

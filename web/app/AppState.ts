@@ -4,9 +4,10 @@
 import type { DataSourceKind } from "@/web/core/API";
 import type { DemoCustomer, Overview, RecurringBill } from "@/web/core/Models";
 import { TodayPresenter } from "@/web/core/AppLogic/AppPresenters";
-import type { DailyProgress, DayStamp } from "@/web/core/AppLogic/DailyProgress";
+import type { DayStamp } from "@/web/core/AppLogic/DayStamp";
 import { OnboardingFlow } from "@/web/core/AppLogic/Onboarding";
 import type { AppPrefs } from "./AppPrefs";
+import type { SisuDefaults } from "./Defaults";
 import type { AppTab, Celebration, EvidenceRequest, LoadState, TodaySheet } from "./AppTypes";
 
 /** What AppModel stores. */
@@ -39,9 +40,6 @@ export interface AppStored {
   /** The sheet Today shows, or null. */
   readonly todaySheet: TodaySheet | null;
   // Hooks
-  /** @deprecated The old daily-actions progress (streak and berries), read from storage and never advanced since the
-   *  rewards were removed (2026-11-15). Only Path's header still reads it until its pills go. */
-  readonly progress: DailyProgress;
   /** Confirmed bill names by "customerId/billId". */
   readonly confirmedBillNames: Readonly<Record<string, string>>;
   /** Euros a month freed by switches the user approved (follows the coach session). */
@@ -85,7 +83,7 @@ export const Keys = {
   baseURL: "sisu.baseURL",
   sample: "sisu.sample",
   customer: "sisu.customer",
-  /** The old daily-actions progress and coach rewards (no longer written; cleared on reset). */
+  /** The old daily-actions progress (streak, berries) and coach rewards: no longer written, only cleared on reset. */
   progress: "sisu.progress",
   billNames: "sisu.billNames",
   coachRewards: "sisu.coachRewards",
@@ -95,7 +93,22 @@ export const Keys = {
   prefs: "sisu.prefs",
   /** The saved conversations of every customer (web only; web/core/ConversationHistory.ts). */
   conversations: "sisu.conversations",
+  /** "I speak" and "Sisu answers in" (web only; web/voice/VoicePrefs.ts). */
+  voiceLanguages: "sisu.voiceLanguages",
+  /** The project findings seen on this device, by customer (web only; web/app/ProjectStore.ts). */
+  projectsSeen: "sisu.projectsSeen",
+  /** Prefixes of per-customer values: lesson progress and a lesson left for "Ask Sisu" (web/features/Path/PathModel.ts). */
+  lessonsPrefix: "sisu.lessons.",
+  lessonAttemptPrefix: "sisu.lessonAttempt.",
 } as const;
+
+/** What starting over removes ("Start the demo over" and `onboarding=reset`): names, old progress, preferences,
+ *  voice languages, conversations, lesson progress and seen findings. The address and sample switch stay. */
+export function clearPersonalData(defaults: SisuDefaults): void {
+  [Keys.progress, Keys.billNames, Keys.coachRewards, Keys.prefs, Keys.voiceLanguages, Keys.conversations, Keys.projectsSeen]
+    .forEach((key) => defaults.remove(key));
+  [Keys.lessonsPrefix, Keys.lessonAttemptPrefix].forEach((prefix) => defaults.removePrefix(prefix));
+}
 
 export const billKey = (customerId: string, billId: string): string => `${customerId}/${billId}`;
 

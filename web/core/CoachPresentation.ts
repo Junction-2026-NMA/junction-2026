@@ -164,8 +164,8 @@ export namespace OfferPresenter {
 
   /** True when a fee the cost depends on was not stated (the server then counts it as nothing). */
   export function feesUnknown(offer: Offer): boolean {
-    if (offer.feesKnown === false) return true;
-    if (offer.feesKnown === true) return false;
+    if (offer.feesUnknown === true || offer.feesKnown === false) return true;
+    if (offer.feesUnknown === false || offer.feesKnown === true) return false;
     return offer.monthlyPriceEur == null || offer.setupFeeEur == null;
   }
 
@@ -240,7 +240,8 @@ export namespace OfferPresenter {
     if (research.noMatch === true) return true;
     const flags = research.offers.map(qualifies);
     const flagged = flags.some((flag) => flag !== null);
-    if (research.matchingCount === 0 && (research.requirements != null || flagged)) return true;
+    const asked = research.requirements != null || (typeof research.requirementsText === "string" && research.requirementsText.trim() !== "");
+    if (research.matchingCount === 0 && (asked || flagged)) return true;
     if (flagged && !flags.some((flag) => flag === true)) return true;
     return textSaysNoMatch(answerText);
   }
@@ -257,18 +258,22 @@ export namespace OfferPresenter {
   /** `You asked for: a contract of 12 months or less, a fixed price.` from the requirements the backend sent; null
    *  when there are none it can name. */
   export function requirementText(research: ResearchResult, language: SisuLanguage = "en"): string | null {
-    const req = research.requirements;
-    if (req == null || typeof req !== "object") return null;
+    const req = research.requirements ?? {};
+    const stated = typeof research.requirementsText === "string" ? research.requirementsText.trim().replace(/\.$/, "") : "";
+    if (typeof req !== "object") return null;
     const parts: string[] = [];
     const num = (key: string) => (typeof req[key] === "number" && Number.isFinite(req[key]) ? (req[key] as number) : null);
-    const max = num("maxContractMonths"), min = num("minContractMonths"), fee = num("maxMonthlyFeeEur");
+    const max = num("maxContractMonths"), min = num("minContractMonths"), fee = num("maxMonthlyFeeEur"), cost = num("maxMonthlyCostEur");
     if (max != null) parts.push(pick(language, `a contract of ${max} months or less`, `enintään ${max} kk sopimus`));
     if (min != null) parts.push(pick(language, `a contract of at least ${min} months`, `vähintään ${min} kk sopimus`));
     if (req.contractType === "fixed") parts.push(pick(language, "a fixed price", "kiinteä hinta"));
     if (req.contractType === "spot") parts.push(pick(language, "a spot price", "pörssihinta"));
     if (fee != null) parts.push(pick(language, `a monthly fee of ${Money.format(fee, language, fee !== roundAway(fee))} or less`, `kuukausimaksu enintään ${Money.format(fee, language, true)}`));
+    if (cost != null) parts.push(pick(language, `an estimated cost of ${Money.format(cost, language, cost !== roundAway(cost))} a month or less`, `arvioitu hinta enintään ${Money.format(cost, language, true)} kuukaudessa`));
     if (req.noSetupFee === true) parts.push(pick(language, "no setup fee", "ei avausmaksua"));
-    if (req.greenEnergy === true) parts.push(pick(language, "green energy", "vihreä sähkö"));
+    // `greenOnly` is the shipped backend's name (rework/api-answers), `greenEnergy` the first draft's.
+    if (req.greenEnergy === true || req.greenOnly === true) parts.push(pick(language, "green energy", "vihreä sähkö"));
+    if (parts.length === 0 && stated !== "") return pick(language, "You asked for: ", "Toiveesi: ") + stated + ".";
     return parts.length === 0 ? null : pick(language, "You asked for ", "Toiveesi: ") + parts.join(", ") + ".";
   }
 

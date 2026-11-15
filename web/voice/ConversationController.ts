@@ -18,6 +18,7 @@ import type { SisuActivity } from "@/web/core/Activity";
 import { ConversationFlow, ConversationPresenter, ConversationText, type ConversationCommand, type ConversationEnd, type ConversationScreenState } from "@/web/core/AppLogic/Conversation";
 import { VoicePressRule } from "@/web/core/AppLogic/VoiceLogic";
 import type { SpeechPlayer } from "./SpeechPlayer";
+import { VoicePrefs } from "./VoicePrefs";
 import { VoiceRecorder, VoiceRecording } from "./VoiceRecorder";
 
 export interface ConversationControllerState {
@@ -306,7 +307,8 @@ export class ConversationController extends Store<ConversationControllerState> {
         return;
       }
       this.session.speakReplies = !this.repliesMuted();
-      const turn = this.session.sendVoice(heard.data, heard.fileName, heard.mimeType);
+      // The recogniser hears the "I speak" language (Settings), as push-to-talk does (VoiceController).
+      const turn = this.session.sendVoice(heard.data, heard.fileName, heard.mimeType, VoicePrefs.recogniserLanguage());
       this.turn = turn;
       void turn.then(() => {
         if (this.turn !== turn || token !== this.token) return;

@@ -12,12 +12,12 @@ import { RiveBindings, RiveComponent, RiveFile, RiveValue, ResearchStage } from 
 import type { RiveSizing } from "@/web/core/RiveContract";
 import { ActionPresenter, CoachText, OfferPresenter, TeachingQuiz, ToolPresenter } from "@/web/core/CoachPresentation";
 import { ChartColorRole, ChartPresenter, StepPresenter } from "@/web/core/ChartPresentation";
-import { DailyAction, DailyProgress, DayStamp } from "@/web/core/AppLogic/DailyProgress";
+import { DayStamp } from "@/web/core/AppLogic/DayStamp";
 import { LessonPathPresenter, LessonProgress, LessonNode } from "@/web/core/AppLogic/LessonPath";
 import { OnboardingFlow, OnboardingLaunch, OnboardingStep } from "@/web/core/AppLogic/Onboarding";
 import { FirstInsightPresenter, OnboardingCopy, OnboardingProfiles, OnboardingReading } from "@/web/core/AppLogic/OnboardingCopy";
 import { NumberText, TodayPresenter } from "@/web/core/AppLogic/AppPresenters";
-import { CoachBillMatch, CoachMood, CoachProviderName, CoachRewards } from "@/web/core/AppLogic/CoachAppLogic";
+import { CoachBillMatch, CoachMood, CoachProviderName } from "@/web/core/AppLogic/CoachAppLogic";
 import { SampleEvidence } from "@/web/core/AppLogic/SampleEvidence";
 import { VoiceAudioFormat, VoiceButtonPresenter, VoiceClipQueue, VoicePressRule } from "@/web/core/AppLogic/VoiceLogic";
 
@@ -197,37 +197,13 @@ group("RiveBindings build complete value sets", () => {
   }
 });
 
-// MARK: - Daily progress (AppLogicDailyProgressTests)
+// MARK: - Day stamps (from AppLogicDailyProgressTests; the daily actions, streak and berries went on 2026-11-15)
 
-group("DailyProgress", () => {
-  const monday = DayStamp.make(2026, 11, 16), tuesday = DayStamp.make(2026, 11, 17), friday = DayStamp.make(2026, 11, 20);
-  const run = (steps: [DailyAction, DayStamp][]) => steps.reduce((p, [a, d]) => DailyProgress.complete(p, a, d).progress, DailyProgress.make());
-  const fresh = DailyProgress.make();
-  eq([fresh.streakDays, fresh.berries, DailyProgress.progress(fresh, monday)], [0, 0, 0], "starts honestly");
-  const first = DailyProgress.complete(fresh, "checkIn", monday);
-  eq([first.earned, first.progress.streakDays, first.progress.berries], [DailyAction.reward("checkIn"), 1, 5], "first check-in is day one");
-  const once = run([["checkIn", monday]]);
-  eq(DailyProgress.complete(once, "checkIn", monday).earned, 0, "a day counts once");
-  const two = run([["checkIn", monday], ["checkIn", monday], ["confirmBill", monday]]);
-  eq([two.streakDays, two.berries], [1, 15], "streak 1, 15 berries");
-  near(DailyProgress.progress(two, monday), 2 / 3, "progress 2/3");
-  const next = run([["checkIn", monday], ["checkIn", tuesday]]);
-  eq([next.streakDays, DailyProgress.done(next, tuesday), DailyProgress.done(next, monday)], [2, ["checkIn"], []], "next day grows the streak");
-  const gap = run([["checkIn", monday], ["investigate", monday], ["checkIn", friday]]);
-  eq([gap.streakDays, gap.berries], [1, 25], "gap restarts streak, keeps berries");
-  const before = run([["checkIn", tuesday]]);
-  const back = DailyProgress.complete(before, "confirmBill", monday);
-  eq([back.earned, back.progress], [0, before], "clock set back changes nothing");
-  const all = run([["checkIn", monday], ["confirmBill", monday]]);
-  eq(DailyProgress.celebration(all, monday), null, "no celebration at two");
-  const three = DailyProgress.complete(all, "investigate", monday).progress;
-  eq(DailyProgress.berriesEarned(three, monday), 30, "30 berries");
-  eq(DailyProgress.celebration(three, monday)?.detail, "30 berries today. Day 1 of your streak.", "celebration");
-  eq(DailyProgress.celebration(three, tuesday), null, "no celebration tomorrow");
+group("DayStamp", () => {
+  const monday = DayStamp.make(2026, 11, 16);
   eq(DayStamp.from(new Date(1_794_785_400 * 1000), "Europe/Helsinki"), monday, "day stamp in Helsinki");
-  eq(DailyProgress.decode(JSON.parse(JSON.stringify(once))), once, "JSON round trip");
   eq(DayStamp.daysUntil(DayStamp.make(2024, 2, 28), DayStamp.make(2024, 3, 1)), 2, "leap year days");
-  eq([DailyAction.title("investigate"), DailyAction.rewardText("confirmBill")], ["Let Sisu look into it", "+10"], "action copy");
+  eq([DayStamp.equals(monday, DayStamp.make(2026, 11, 16)), DayStamp.less(monday, DayStamp.make(2026, 11, 17)), DayStamp.text(monday)], [true, true, "2026-11-16"], "equals, less, text");
 });
 
 // MARK: - Lesson path (AppLogicLessonPathTests)
@@ -372,11 +348,6 @@ group("Sample evidence", () => {
 });
 
 group("Coach app logic and voice", () => {
-  const steps: [CoachRewards.Moment, string, number][] = [["quizAnswered", "card-1", 5], ["quizAnswered", "card-1", 0], ["actionDecided", "act-1", 10], ["actionDecided", "act-1", 0], ["quizAnswered", "act-1", 5]];
-  const rewards = steps.reduce((r, [moment, id, expected]) => { const out = CoachRewards.award(r, moment, id); eq(out.earned, expected, `${moment} ${id}`); return out.rewards; }, CoachRewards.make());
-  eq(rewards.berries, 20, "coach berries");
-  eq(CoachRewards.decode(JSON.parse(JSON.stringify(rewards))), rewards, "rewards round trip");
-  eq(CoachRewards.rewardText("actionDecided"), "+10", "reward text");
   eq(["Electricity", "Helen sähkö", "Mobile phone", "Home broadband", "Rent"].map((t) => CoachBillMatch.billType(t)), ["electricity", "electricity", "mobile", "internet", null], "bill types");
   eq([CoachMood.liito(false, false, false), CoachMood.liito(true, false, false), CoachMood.liito(true, true, false), CoachMood.liito(false, false, true)], ["idle", "thinking", "found", "cheering"], "moods");
   eq(["exa", "context.dev", "Other"].map(CoachProviderName.display), ["Exa", "Context.dev", "Other"], "provider names");

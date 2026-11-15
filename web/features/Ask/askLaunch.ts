@@ -52,7 +52,7 @@ export async function runLaunch({ session, store, model, setFollowing, scrollToA
   if (!reply || cancelled()) return;
   const card = reply.teaching ?? reply.stages.flatMap((stage) => (stage.data.kind === "teaching" ? [stage.data.card] : []))[0] ?? null;
   if (launch.quiz !== null && card) {
-    if (store.choose(launch.quiz, card)) model.coachMoment("quizAnswered", card.id);
+    store.choose(launch.quiz, card);
   }
   const action = reply.action ?? reply.stages.flatMap((stage) => (stage.data.kind === "action" ? [stage.data.action] : []))[0] ?? null;
   if (launch.decide !== null && action) {

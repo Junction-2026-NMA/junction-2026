@@ -2,7 +2,7 @@
 // The teaching question: guess first (Rive ChoiceCards), then the reveal. Port of QuizCard in AskCards.swift
 // (no reward counter since the 15 Nov rework).
 import { useState } from "react";
-import { useAppModel, useCoach, useCoachStore } from "@/web/app/AppProvider";
+import { useCoach, useCoachStore } from "@/web/app/AppProvider";
 import type { TeachingCard } from "@/web/core/CoachModels";
 import { TeachingQuiz } from "@/web/core/CoachPresentation";
 import { RiveComponent } from "@/web/rive/RiveComponent";
@@ -12,7 +12,6 @@ import { useReducedMotion } from "@/web/theme/motion";
 const language = "en";
 
 export function QuizCard({ card }: { card: TeachingCard }) {
-  const model = useAppModel();
   const store = useCoachStore();
   useCoach(); // re-render when the pick is recorded (quizChoices)
   const reduceMotion = useReducedMotion();
@@ -23,9 +22,7 @@ export function QuizCard({ card }: { card: TeachingCard }) {
   const reveal = TeachingQuiz.reveal(quiz);
   const feedback = TeachingQuiz.feedback(quiz, language);
 
-  const choose = (index: number) => {
-    if (store.choose(index, card)) model.coachMoment("quizAnswered", card.id);
-  };
+  const choose = (index: number) => { store.choose(index, card); };
 
   return (
     <SisuCard>

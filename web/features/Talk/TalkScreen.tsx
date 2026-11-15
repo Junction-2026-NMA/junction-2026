@@ -2,8 +2,11 @@
 // Sisu, the main page (it was Talk; port of ios/Sisu/Features/Talk/TalkScreen.swift). It opens on the conversation
 // and the ask box at once: no extra screen to start typing. Typed and spoken questions go to the same session, so
 // they are one conversation with one context; switching between them keeps everything.
-// - Header: the Sisu logo (opens the chat history drawer, web/features/History), the title, the live status while
-//   voice is on, and once the chat has started the small Liito badge that does what the backend is doing.
+// - Header: the Sisu logo (opens the chat history drawer, web/features/History, with a dot for unread project
+//   findings), the title, the live status while voice is on, and once the chat has started the small Liito badge.
+// - A project opened from the drawer (openProjectId) is shown in place of the conversation; the conversation stays
+//   mounted under it (hidden), so its reading position, draft and voice state come back with Back.
+// - Settings opens from the drawer's last row (the same sheet as on Today and Path).
 // - Empty: Liito, larger, one friendly line and the suggested questions (web/core/AppLogic/SisuSuggestions.ts).
 // - The transcript keeps the reading position (TalkTranscript.tsx). The composer is pinned at the bottom: the text
 //   field, Send and the microphone; while voice is on it shows the live state with a stop control (VoiceStrip.tsx).
@@ -26,8 +29,9 @@ import { Composer } from "@/web/features/Ask/Composer";
 import { PlaceholderScreen } from "@/web/features/Ask/PlaceholderScreen";
 import { useKeyboardInset } from "@/web/features/Ask/useKeyboardInset";
 import { HistoryDrawer } from "@/web/features/History/HistoryDrawer";
-import { useProjectsUnread } from "@/web/features/History/useProjectsUnread";
 import { ProjectScreen } from "@/web/features/Projects/ProjectScreen";
+import { useProjectsUnread } from "@/web/features/Projects/useProjects";
+import { SettingsSheet } from "@/web/features/Sheets/SettingsSheet";
 import { SisuEmptyState } from "./SisuEmptyState";
 import { LiitoBadge, SisuLogoButton, StatusLine } from "./TalkParts";
 import { TalkLaunch } from "./TalkLaunch";
@@ -82,7 +86,8 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
   const reduceMotion = useReducedMotion();
   const visible = usePageVisible();
   const keyboard = useKeyboardInset();
-  const unread = useProjectsUnread();
+  const unread = useProjectsUnread() > 0;
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const logo = useRef<HTMLButtonElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   const transcript = useRef<TranscriptHandle | null>(null);
@@ -191,6 +196,7 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
 
   return (
     <div className="sisu-talk" style={keyboardStyle} data-testid="screen.talk" data-phase={flow.phase} data-chatting={chatting ? "true" : "false"}
+      data-project={openProjectId ? "true" : "false"}
       data-voice={flow.isOn ? "true" : "false"} data-mood={mood} data-mood-target={target} data-keyboard={keyboard.bottom > 0 ? "true" : "false"}>
       <header className="sisu-talk-header">
         <SisuLogoButton buttonRef={logo} open={historyOpen} unread={unread} onPress={() => model.setHistoryOpen(true)} />
@@ -220,12 +226,14 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
             onVoice={startVoice} inputRef={input} />
         )}
       </div>
-      <HistoryDrawer open={historyOpen} onClose={() => model.setHistoryOpen(false)} returnFocus={logo} />
+      <HistoryDrawer open={historyOpen} onClose={() => model.setHistoryOpen(false)} returnFocus={logo}
+        onSettings={() => { model.setHistoryOpen(false); setSettingsOpen(true); }} />
       {openProjectId ? (
         <div className="sisu-talk-project">
           <ProjectScreen id={openProjectId} onClose={() => model.setOpenProjectId(null)} />
         </div>
       ) : null}
+      <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 // The tab icons: drawn stand-ins for the SF Symbols sun.max, waveform.circle and flag (outline when idle, filled
-// when selected). The drawn jar (JarGlyph in GlassTabBar.swift: the brand's own savings picture) and the bubble of
-// the old Ask tab are kept for when Jars comes back to the bar.
+// when selected). The bubble of the old Ask tab is kept; the jar of the old Jars tab went with the jar illustrations
+// on 2026-11-15.
 // Each sits in a 28 x 26 frame like TabItem's, drawn at the 20 pt semibold symbol weight.
 
 const STROKE = 1.9;
@@ -94,29 +94,3 @@ function FlagIcon({ filled }: { filled: boolean }) {
   );
 }
 
-/** A jar with a lid (18 x 21 inside the frame), drawn to sit with the other icons at the same weight. */
-export function JarGlyph({ filled }: { filled: boolean }) {
-  const w = 18;
-  const h = 21;
-  const x = (28 - w) / 2;
-  const y = (26 - h) / 2;
-  const line = 2;
-  const lid = { x: x + w * 0.16, y, width: w * 0.68, height: h * 0.2 };
-  const jar = { x, y: y + h * 0.28, width: w, height: h * 0.72 };
-  const inset = filled ? 0 : line / 2;
-  return (
-    <Frame>
-      <rect {...lid} rx={lid.height / 2} fill="currentColor" />
-      <rect
-        x={jar.x + inset}
-        y={jar.y + inset}
-        width={jar.width - inset * 2}
-        height={jar.height - inset * 2}
-        rx={w * 0.3 - inset}
-        fill={filled ? "currentColor" : "none"}
-        stroke={filled ? "none" : "currentColor"}
-        strokeWidth={line}
-      />
-    </Frame>
-  );
-}

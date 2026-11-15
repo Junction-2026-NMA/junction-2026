@@ -1,8 +1,8 @@
 "use client";
 // The chat history drawer of the Sisu tab, opened by the Sisu logo: New chat, the previous conversations of this
 // customer (kept on this device, web/core/ConversationHistory.ts; opening one puts it back into the session with its
-// context) and the saved projects (web/features/Projects). A modal panel from the left: focus moves into it, Tab
-// stays inside, Escape or the scrim closes it and focus goes back to the logo.
+// context), the saved projects (web/features/Projects) and, at the bottom, Settings. A modal panel from the left:
+// focus moves into it, Tab stays inside, Escape or the scrim closes it and focus goes back to the logo.
 import { useEffect, useRef, type RefObject } from "react";
 import { useAppModel, useCoach } from "@/web/app/AppProvider";
 import { ConversationHistory } from "@/web/core/ConversationHistory";
@@ -10,9 +10,11 @@ import { ProjectsSection } from "@/web/features/Projects/ProjectsSection";
 import { PencilSquareIcon } from "@/web/features/Talk/TalkParts";
 import "./history.css";
 
-export function HistoryDrawer({ open, onClose, returnFocus }: {
+export function HistoryDrawer({ open, onClose, onSettings, returnFocus }: {
   open: boolean;
   onClose: () => void;
+  /** The Settings row: the drawer closes and the Settings sheet opens. */
+  onSettings: () => void;
   /** Where focus goes when the drawer closes (the logo button). */
   returnFocus: RefObject<HTMLElement | null>;
 }) {
@@ -106,15 +108,28 @@ export function HistoryDrawer({ open, onClose, returnFocus }: {
           <section className="sisu-history-section" aria-labelledby="sisu-history-projects">
             <h3 className="sisu-history-head" id="sisu-history-projects">Saved projects</h3>
             <div className="sisu-history-projects">
-              <ProjectsSection onOpen={(id) => { model.setOpenProjectId(id); onClose(); }} />
+              <ProjectsSection onOpen={(id) => { model.setOpenProjectId(id); model.setHistoryOpen(false); }} />
             </div>
-            <p className="sisu-history-projects-empty">
-              When Sisu offers to keep checking something for you and you agree, the project appears here.
-            </p>
           </section>
         </div>
+        <footer className="sisu-history-footer">
+          <button type="button" className="sisu-history-settings" data-testid="history.settings" onClick={onSettings}>
+            <GearGlyph />
+            <span>Settings</span>
+          </button>
+        </footer>
       </div>
     </div>
+  );
+}
+
+function GearGlyph() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+      <circle cx="10" cy="10" r="2.6" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4"
+        fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
   );
 }
 

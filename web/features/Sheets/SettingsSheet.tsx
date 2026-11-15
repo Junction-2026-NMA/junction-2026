@@ -57,7 +57,7 @@ function BufferSetting() {
   };
   return (
     <form className="sisu-settings-buffer" onSubmit={save}>
-      <p className="sisu-sheet-text">Money you want to keep untouched, for surprises. Sisu leaves it out when it estimates what you can spend.</p>
+      <p className="sisu-sheet-text">Money you want to keep untouched, for surprises. Sisu takes it off before it estimates your weekly budget.</p>
       <div className="sisu-settings-buffer-row">
         <label className="sisu-settings-buffer-field">
           <span className="sisu-visually-hidden">Buffer in euros</span>
@@ -69,7 +69,7 @@ function BufferSetting() {
         <button type="submit" className="sisu-settings-save" disabled={!valid}>Save</button>
       </div>
       <p className="sisu-sheet-caption" role="status">
-        {!valid ? "Type an amount in euros, like 500." : saved ? (value === null ? "No buffer set." : "Saved.") : "Leave it empty if you have not decided."}
+        {!valid ? "Type an amount in euros, like 500." : saved ? (value === null ? "No buffer set." : "Saved.") : "Leave it empty and Sisu assumes a default buffer, marked as assumed."}
       </p>
     </form>
   );
