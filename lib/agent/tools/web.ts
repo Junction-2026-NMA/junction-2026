@@ -118,7 +118,10 @@ export async function searchOffers(args: Record<string, unknown>, ctx: ToolConte
         ? `No offer meets the requirements (${research.requirementsText}). Say "No matching options found", name the requirement, and offer to broaden it or look further. Nothing keeps checking offers later: do not promise it. Do not recommend, name as best or prepare any offer.`
         : best
           ? undefined
-          : "No comparable offer is cheaper than the current bill. Say so honestly.",
+          : ok
+            ? "No comparable offer is cheaper than the current bill. Say so honestly."
+            : // With no offer read (search and readers down) the model said "I checked today's offers; none is cheaper".
+              "No offer could be read just now, so nothing was compared. Say the live offer search is not working right now and offer to try again later. Do not say that no offer is cheaper, and give no kWh figure.",
       stillToConfirm: best && research.toConfirm.length ? research.toConfirm : undefined,
       howToAnswer: best
         ? `Give the saving as a rough "about" figure in one sentence${research.savingIncomplete ? ", and say a fee is not stated so it may be smaller" : ""}. The cards show the offers, sources and workings: do not list them.${research.toConfirm.length ? " Then ask for ONE of stillToConfirm, the one that matters most, so the estimate becomes dependable." : ""}`
