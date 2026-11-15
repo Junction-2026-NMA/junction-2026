@@ -42,8 +42,19 @@ const firstNumber = (text: string): number | null => {
 // One step: which tool the scripted model would call for this question, or null to answer in words.
 function firstTool(question: string): [string, Json] | null {
   const q = question.toLowerCase();
-  const offer = speculate(question);
-  if (offer) return ["search_offers", { billType: offer.billType }];
+  // "Find me electricity contracts of 12 months or less" names the bill and a contract but no "cheaper": still a search.
+  const offer = speculate(question) ?? (/\b(contracts?|plans?|tariffs?)\b/.test(q) ? speculate(`cheaper ${question}`) : null);
+  // "12 months or less": the requirement goes with the search, as the real model is told to pass it.
+  const maxMonths = /(\d{1,2})[- ]?months? (or less|max(imum)?|at most)|(at most|max(imum)?|up to) (\d{1,2}) months?/.exec(q);
+  if (offer) return ["search_offers", { billType: offer.billType, ...(maxMonths ? { maxContractMonths: Number(maxMonths[1] ?? maxMonths[6]) } : {}) }];
+  // A flat within a rent they named, or a price to watch for: the Project flow (search, then a proposal to approve).
+  const keepChecking = /keep an eye|keep checking|keep looking|watch|monitor/.test(q);
+  if (/\b(flats?|homes?|rentals?)\b/.test(q) && firstNumber(q)) {
+    const city = /\bin ([A-ZÅÄÖ][\p{L}-]+)/u.exec(question)?.[1];
+    return ["search_flats", { ...(city ? { city } : {}), budgetEur: firstNumber(q), ...(keepChecking ? { watch: true } : {}) }];
+  }
+  const priced = /tell me when (?:an? |the )?(.+?) (?:is|costs?|drops?) (?:under|below|to) (\d[\d,.]*)/.exec(q);
+  if (priced) return ["search_prices", { what: priced[1], maxPriceEur: firstNumber(priced[2]), ...(keepChecking ? { watch: true } : {}) }];
   if (/afford|unexpected|sent me a bill|bill for \d/.test(q) && firstNumber(q)) return ["check_affordability", { amountEur: firstNumber(q), what: "this cost" }];
   if (/remember|kwh/.test(q) && firstNumber(q)) return ["remember", { kind: "yearly_kwh", value: String(firstNumber(q)) }];
   if (/mortgage|apartment|buy a (home|house|flat)/.test(q)) return ["get_mortgage", {}];
@@ -51,7 +62,7 @@ function firstTool(question: string): [string, Json] | null {
   if (/bills?\b|subscription|gone up/.test(q)) return ["list_bills", {}];
   if (/where (is|does) my money|what should i change|how (can|could) i save|unusual|stands? out/.test(q)) return ["find_patterns", {}];
   if (/what if|if i (save|cut)|years?/.test(q)) return ["run_scenario", { billSavingPerMonth: /save/.test(q) ? (firstNumber(q) ?? 50) : 0, everydayCutPct: /cut/.test(q) ? 10 : 0, years: 5 }];
-  if (/explain|teach|what (is|are)|why/.test(q)) return ["explain_concept", { concept: /fixed|spot/.test(q) ? "fixed-vs-spot" : /buffer|emergency/.test(q) ? "buffer-first" : /safe/.test(q) ? "safe-to-spend" : /compound|interest|invest/.test(q) ? "compound-growth" : "three-baskets" }];
+  if (/explain|teach|what (is|are)|why/.test(q)) return ["explain_concept", { concept: /fixed|spot/.test(q) ? "fixed-vs-spot" : /buffer|emergency/.test(q) ? "buffer-first" : /safe|weekly budget/.test(q) ? "safe-to-spend" : /compound|interest|invest/.test(q) ? "compound-growth" : "three-baskets" }];
   if (/spen[dt]|cost/.test(q) && /(restaurant|grocer|transport|entertain|health|travel)/.test(q)) {
     const category = { restaurant: "Restaurants", grocer: "Groceries", transport: "Transportation", entertain: "Entertainment", health: "Health", travel: "Travel" }[/(restaurant|grocer|transport|entertain|health|travel)/.exec(q)![1]];
     return ["get_spending", { from: "2026-06-01", to: "2026-09-30", category, groupBy: "month" }];
@@ -70,13 +81,25 @@ function wordAnswer(results: { name: string; body: Json }[]): string {
   const patterns = (of("find_patterns")?.patterns as Json[] | undefined)?.[0];
   if (patterns) parts.push(`The thing that stands out most: ${String(patterns.what)}.`);
   if (best) parts.push(`${String(best.provider)} looks cheapest at about ${best.estimatedMonthlyCostEur} euros a month, saving about ${best.estimatedYearlySavingEur} euros a year against your bill of ${offers?.currentBillMonthlyEur} euros a month. These are example offers, not live prices.`);
+  else if (offers && typeof offers.note === "string" && offers.note.includes("No matching options found")) parts.push(`No matching options found for ${String(offers.requirements)}. Want me to widen it, or look further?`);
   else if (offers) parts.push("No example offer is cheaper than your current bill.");
+  const flats = of("search_flats") ?? of("search_prices");
+  if (flats && typeof flats.watch === "string") {
+    const fitting = Array.isArray(flats.withinBudget ?? flats.withinPrice) ? ((flats.withinBudget ?? flats.withinPrice) as unknown[]).length : 0;
+    const homes = "budgetPerMonthEur" in flats;
+    const found = fitting ? `${fitting} of the example ${homes ? "flats" : "offers"} fit.` : `None of the example ${homes ? "flats" : "offers"} is at your price today.`;
+    parts.push(flats.watch.startsWith("PREPARED") ? `${found} Would you like me to keep checking for ${homes ? "homes that match these requirements" : "offers at this price"}? One tap on Approve starts it.` : `${found} ${flats.watch}`);
+  } else if (flats && Array.isArray(flats.withinBudget ?? flats.withinPrice)) {
+    parts.push(`${((flats.withinBudget ?? flats.withinPrice) as unknown[]).length} of the example ${"budgetPerMonthEur" in flats ? "flats" : "offers"} fit. Check each one's own page before you contact anyone.`);
+  }
   const scenario = of("run_scenario");
   if (scenario) parts.push(`Keeping ${scenario.freedPerMonthEur} euros a month adds up to about ${scenario.extraAfterPeriodIfKeptEur} euros over the period.`);
   const afford = of("check_affordability");
   if (afford) parts.push(`That cost is ${String(afford.verdictMeans)}. Your balance straight after would be ${afford.balanceStraightAfterEur} euros.`);
   const cash = of("get_cash_flow");
-  if (cash) parts.push(`Your next payday is expected on ${String(cash.nextPaydayExpected)}, and your balance just before it should be about ${cash.expectedBalanceJustBeforePaydayEur} euros.`);
+  const weekly = cash?.estimatedWeeklyBudgetUntilPayday as Json | null | undefined;
+  if (cash && weekly) parts.push(`Your estimated weekly budget until payday on ${String(cash.nextPaydayExpected)} is about ${weekly.perWeekEur} euros, after your bills and a small buffer.`);
+  else if (cash) parts.push(`Your next payday is expected on ${String(cash.nextPaydayExpected)}, and your balance just before it should be about ${cash.expectedBalanceJustBeforePaydayEur} euros.`);
   const mortgage = of("get_mortgage");
   if (mortgage) parts.push(mortgage.onRecord ? `Your mortgage application was ${String(mortgage.decision)}: a loan of ${mortgage.loanEur} euros on a home priced at ${mortgage.propertyPriceEur} euros.` : "There is no mortgage application on record for you.");
   const bills = of("list_bills");
@@ -121,6 +144,6 @@ export async function* scriptedMockModel(options: StreamOptions): AsyncGenerator
   }
 
   if (results.length) return yield* speak(wordAnswer(results));
-  const perWeek = /"safeToSpendPerWeekEur":\s*([\d.]+)/.exec(system)?.[1];
-  yield* speak(perWeek ? `Mock answer. You can safely spend ${perWeek} euros a week. Try asking for a cheaper electricity deal, whether you can afford a phone repair, or where your money goes.` : "Mock answer. Try asking for a cheaper electricity deal.");
+  const perWeek = /"estimatedWeeklyBudgetUntilPayday":\{"perWeekEur":\s*([\d.]+)/.exec(system)?.[1];
+  yield* speak(perWeek ? `Mock answer. Your estimated weekly budget until payday is about ${perWeek} euros. Try asking for a cheaper electricity deal, whether you can afford a phone repair, or where your money goes.` : "Mock answer. Try asking for a cheaper electricity deal.");
 }

@@ -13,6 +13,15 @@ export const GROUPINGS = ["month", "category", "merchantType"];
 export const MEMORY_KINDS = ["yearly_kwh", "bill_name", "preference", "goal"];
 export const ACTION_KINDS = ["switch_contract", "standing_transfer", "one_off_transfer"];
 export const DESTINATIONS = ["savings", "investments"];
+// What a new contract must meet. Set a field ONLY if the customer asked for it; pass the same ones to prepare_action.
+const REQUIREMENTS = {
+  maxContractMonths: { type: "number", description: "only if they said: the longest contract they accept, in months ('12 months or less' is 12)" },
+  minContractMonths: { type: "number", description: "only if they said: the shortest contract they accept, in months" },
+  contractType: { type: "string", enum: ["fixed", "spot"], description: "only if they asked for a fixed or a spot price" },
+  greenOnly: { type: "boolean", description: "only if they asked for renewable (green) energy" },
+  maxMonthlyCostEur: { type: "number", description: "only if they named the most they will pay a month" },
+  noSetupFee: { type: "boolean", description: "only if they asked for no setup or opening fee" },
+};
 
 const tool = (name: string, description: string, properties: Record<string, unknown>, required: string[] = []): ToolSchema => ({
   type: "function",
@@ -36,7 +45,7 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
     ["from", "to"],
   ),
   tool("list_bills", "Recurring bills: yearly cost, change on a year ago, and whether each name is confirmed.", {}),
-  tool("get_cash_flow", "Pay cycles: how fast money goes after payday, lowest balance each cycle, bills due before the next payday.", {}),
+  tool("get_cash_flow", "Until payday: bills due, the expected balance, and the estimated weekly budget with its working on screen. Also pay cycles and how fast money goes after payday.", { bufferEur: { type: "number", description: "only if the customer said how much they want to keep untouched; otherwise leave out (a default of one week of essentials is assumed)" } }),
   tool("find_patterns", "Scans the history for what stands out, ranked by yearly euros. For open questions: where does my money go, what should I change, how can I save.", {}),
   tool("check_affordability", "Can the customer absorb a one-off or unexpected cost now?", { amountEur: { type: "number" }, what: { type: "string" } }, ["amountEur"]),
   tool(
@@ -57,19 +66,30 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
   tool(
     "search_offers",
     "Live search for current Finnish offers for one bill, with the saving computed against the customer's real bill.",
-    { billType: { type: "string", enum: BILL_TYPES }, yearlyKwh: { type: "number", description: "electricity only, ONLY if the customer said it" } },
+    { billType: { type: "string", enum: BILL_TYPES }, yearlyKwh: { type: "number", description: "electricity only, ONLY if the customer said it" }, ...REQUIREMENTS },
     ["billType"],
   ),
   tool(
     "search_flats",
-    "Live search for flats to rent in a city within a monthly budget the customer said. If nothing fits it sets up a price watch for them to approve.",
-    { city: { type: "string", description: "the city they named; leave out for where they live" }, budgetEur: { type: "number", description: "the monthly rent they said" }, minRooms: { type: "number", description: "only if they asked for a number of rooms" }, watch: { type: "boolean", description: "true if they asked you to keep watching even though some flats fit" } },
+    "Live search for flats to rent in a city within a monthly budget the customer said. If nothing fits, or they said yes to more checking, it prepares a Project for them to approve.",
+    {
+      city: { type: "string", description: "the city they named; leave out for where they live" },
+      budgetEur: { type: "number", description: "the monthly rent they said" },
+      minRooms: { type: "number", description: "only if they asked for a number of rooms" },
+      goal: { type: "string", description: "the decision in their words, e.g. 'move to Espoo to save for a deposit'" },
+      requirements: {
+        type: "object",
+        description: "only what they said: districts, moveBy (YYYY-MM-DD), maxCommuteMinutes, commuteTo (a place), maxDepositEur, movingCostEur, bufferToKeepEur, savingsGoalEur",
+        properties: { districts: { type: "array", items: { type: "string" } }, moveBy: { type: "string" }, maxCommuteMinutes: { type: "number" }, commuteTo: { type: "string" }, maxDepositEur: { type: "number" }, movingCostEur: { type: "number" }, bufferToKeepEur: { type: "number" }, savingsGoalEur: { type: "number" } },
+      },
+      watch: { type: "boolean", description: "true if they said yes to you keeping on checking even though some flats fit" },
+    },
     ["budgetEur"],
   ),
   tool(
     "search_prices",
     "Live search for what something costs today (a phone, a used car, a bike, anything sold online) against a price the customer said. If nothing is at that price it sets up a price watch for them to approve. Not for flats (search_flats) or their bills (search_offers).",
-    { what: { type: "string", description: "the thing, in a few plain words: 'iPhone 15', 'used Toyota Corolla'. No amounts" }, maxPriceEur: { type: "number", description: "the most they said they would pay" }, watch: { type: "boolean", description: "true if they asked you to keep watching even though some offers fit" } },
+    { what: { type: "string", description: "the thing, in a few plain words: 'iPhone 15', 'used Toyota Corolla'. No amounts" }, maxPriceEur: { type: "number", description: "the most they said they would pay" }, goal: { type: "string", description: "why they want it, in their words, if they said" }, watch: { type: "boolean", description: "true if they said yes to you keeping on checking even though some offers fit" } },
     ["what", "maxPriceEur"],
   ),
   tool("web_search", "Live web search (Exa) for anything in the outside world: rents and prices nearby, typical water or energy use, benefits, rates, rules, a company, how something works. Keep the query general: place and topic, no personal figures.", { query: { type: "string" }, deep: { type: "boolean", description: "true for an open question that needs several sources put together (who can get a benefit, what changes next year, how a rule works for someone like them). Takes a few seconds longer. Leave out for a single fact or price." } }, ["query"]),
@@ -86,7 +106,7 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
   ),
   tool(
     "show_chart",
-    "Puts a chart on the customer's screen. baskets = their three baskets (must pay every month, must pay now and then, everyday choices). budget = a ring of where their money goes by category. vs_peers = their categories beside people their age. months = money in and out for each of the last 12 months. safe_to_spend = how safe-to-spend is built up.",
+    "Puts a chart on the customer's screen. baskets = their three baskets (regular essentials, occasional essentials, everyday spending). budget = a ring of where their money goes by category. vs_peers = their categories beside other profiles in the demo data. months = money in and out for each of the last 12 months. safe_to_spend = how the estimated weekly budget until payday is built up.",
     { chart: { type: "string", enum: CHART_KINDS } },
     ["chart"],
   ),
@@ -100,6 +120,7 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
       provider: { type: "string", description: "from search_offers, if the customer chose one" },
       amountEur: { type: "number", description: "transfers: the amount the customer said or agreed to" },
       destination: { type: "string", enum: DESTINATIONS, description: "transfers: savings (default) or their investment account" },
+      ...REQUIREMENTS,
     },
     ["kind"],
   ),

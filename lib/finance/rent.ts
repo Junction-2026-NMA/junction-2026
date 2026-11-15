@@ -44,7 +44,7 @@ export function rentFit(overview: Overview, rentEur: number): RentFit {
     shareOfIncomePct: share,
     verdict,
     steps: [
-      { label: "Left over in an average month today", amount: leftOverNow, basis: "safe to spend minus actual everyday spending, 12-month average" },
+      { label: "Left over in an average month today", amount: leftOverNow, basis: "monthly budget from averages minus actual everyday spending, 12-month average" },
       { label: "Housing today", amount: housing, basis: "Housing payments, 12-month average" },
       { label: "This rent", amount: -rent, basis: "the monthly rent being checked" },
       { label: "Left over in an average month with this rent", amount: leftOverAfter, basis: "left over today, plus housing today, minus this rent" },
@@ -55,7 +55,7 @@ export function rentFit(overview: Overview, rentEur: number): RentFit {
 export function rentFacts(prefix: string, fit: RentFit, overview: Overview): Fact[] {
   return [
     fact(`${prefix}:housing-now`, "Housing cost per month today", fit.currentHousingEur, "EUR/month", "Housing payments, 12-month average", { evidence: { from: overview.windowFrom, to: overview.windowTo, category: "Housing" } }),
-    fact(`${prefix}:left-over-now`, "Left over in an average month today", fit.leftOverNowEur, "EUR/month", "safe to spend minus actual everyday spending", { source: "calculation" }),
+    fact(`${prefix}:left-over-now`, "Left over in an average month today", fit.leftOverNowEur, "EUR/month", "monthly budget from averages minus actual everyday spending", { source: "calculation" }),
     fact(`${prefix}:left-over-after`, "Left over in an average month with this rent", fit.leftOverAfterEur, "EUR/month", "left over today, plus housing today, minus the rent", { source: "calculation" }),
     ...(fit.shareOfIncomePct === null ? [] : [fact(`${prefix}:share`, "This rent as a share of income", fit.shareOfIncomePct, "percent", "rent divided by average monthly income", { source: "calculation" })]),
   ];

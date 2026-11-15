@@ -39,7 +39,7 @@ describe("mock mode: every feature works with no keys and no network", () => {
   it("a plain question is answered from the summary with no tool", async () => {
     const events = await collect(runTurn({ customerId: AINO, text: "Hello", mode: "voice" }));
     assert.equal(ofType(events, "tool_end").length, 0);
-    assert.match(ofType(events, "done")[0].text, /164\.09 euros a week/);
+    assert.match(ofType(events, "done")[0].text, /estimated weekly budget until payday is about 133\.82 euros/);
   });
 
   it("search and prepare in one message leaves an action awaiting approval", async () => {

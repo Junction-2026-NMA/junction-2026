@@ -13,7 +13,7 @@ const ACTS: { id: Exclude<Act, "idle">; label: string }[] = [
   { id: "web", label: "Web" },
   { id: "sums", label: "Sums" },
 ];
-const BASKET_COLOUR = ["#c9f26b", "#eda100", "#6aa6ff"]; // must pay every month, must pay now and then, everyday choices
+const BASKET_COLOUR = ["#c9f26b", "#eda100", "#6aa6ff"]; // regular essentials, occasional essentials, everyday spending
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const monthYear = (date: string): string => `${MONTHS[Number(date.slice(5, 7)) - 1]} ${date.slice(0, 4)}`;
 

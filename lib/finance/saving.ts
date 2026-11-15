@@ -19,7 +19,7 @@ export function savingRoom(overview: Overview, cashFlow: CashFlow): SavingRoom {
       { label: "Expected balance just before payday", amount: beforePayday, basis: cashFlow.nextPayday ? `after bills due and usual spending until ${cashFlow.nextPayday}` : "account balance" },
       { label: "Kept in hand", amount: -cushionEur, basis: `${CUSHION_DAYS} days of everyday spending` },
       { label: "Could be moved today", amount: nowEur, basis: "rounded down to the nearest ten, never below zero" },
-      { label: "Left over in an average month", amount: overview.safeToSpend.gapPerMonth, basis: "safe to spend minus actual everyday spending, 12-month average" },
+      { label: "Left over in an average month", amount: overview.safeToSpend.gapPerMonth, basis: "monthly budget from averages minus actual everyday spending, 12-month average" },
       { label: "Could be moved every month", amount: perMonthEur, basis: "rounded down to the nearest ten, never below zero" },
     ],
     basis: "One-off: the balance expected just before payday, less a week of everyday spending. Monthly: what an average month leaves over.",

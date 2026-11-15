@@ -159,7 +159,7 @@ export type Branch = {
   endTotal: number;
   endLow: number;
   endHigh: number;
-  runwayMonthsAtYear1: number; // months of must-pay costs covered by cash alone after 12 months
+  runwayMonthsAtYear1: number; // months of essential costs covered by cash alone after 12 months
 };
 
 export type ScenarioResult = {
@@ -192,6 +192,20 @@ export type Offer = {
   comparable: boolean; // false when the price cannot be compared fairly (e.g. spot contracts)
   estimatedMonthlyCostEur: number | null; // computed in code
   estimatedYearlySavingEur: number | null; // computed in code, against the customer's current bill
+  greenEnergy?: boolean | null; // electricity: true when the page says the energy is renewable; null when it does not say
+  meetsRequirements?: boolean; // false when the offer misses a requirement the customer stated (see ResearchResult.requirements)
+  misses?: string[]; // why it misses them, one short reason each ("24-month contract, you asked for 12 months or less")
+  feesUnknown?: boolean; // true when a fee the cost depends on is not stated on the page: the cost leaves it out, so it is incomplete
+};
+
+// What the customer said a new contract must meet. Every field is optional: only what they asked for is set.
+export type OfferRequirements = {
+  maxContractMonths?: number;
+  minContractMonths?: number;
+  contractType?: "fixed" | "spot";
+  greenOnly?: boolean;
+  maxMonthlyCostEur?: number; // the estimated cost per month, all in
+  noSetupFee?: boolean;
 };
 
 export type ResearchStatus = "running" | "partial" | "done" | "failed";
@@ -216,6 +230,14 @@ export type ResearchResult = {
   citations: Citation[];
   assumptions: string[];
   errors: string[];
+  // Added for recommendation consistency. `best` is only ever an offer that meets the requirements.
+  requirements?: OfferRequirements | null; // what the customer asked for; null or missing = no requirement stated
+  requirementsText?: string | null; // the same in words, for a card: "12 months or less, fixed price"
+  matchingCount?: number; // comparable offers that meet the requirements
+  noMatch?: boolean; // true when requirements were stated and no comparable offer meets them: show "No matching options found"
+  savingIncomplete?: boolean; // true when the best offer's saving leaves out a fee the page does not state
+  bill?: { label: string; confirmed: boolean } | null; // which of the customer's bills this is compared with; confirmed false = Sisu's guess
+  toConfirm?: string[]; // what the customer should confirm before the saving is dependable (use, current tariff, requirements, which bill)
 };
 
 export type ChatTurn = { role: "user" | "assistant"; content: string };
@@ -284,6 +306,7 @@ export type Fact = {
   basis: string; // one line a person can read: how it was worked out
   evidence?: EvidenceFilter; // pass to GET /api/customers/:id/transactions to show the rows
   url?: string; // for web facts
+  synthetic?: boolean; // true for a comparison with other profiles in the synthetic demo dataset (not statistics about real people)
 };
 
 export type NumberCheck = {
@@ -330,6 +353,26 @@ export type CashFlow = {
   negativeMonths: number;
   steps: CalcStep[];
   assumptions: string[];
+  weeklyBudget?: WeeklyBudget | null; // added: what can be spent each week until payday, after bills and a protected buffer
+};
+
+// Estimated weekly budget until the next payday: (balance - bills due before payday - protected buffer) / weeks to
+// payday, never below zero. Computed in lib/finance/budget.ts. It is an estimate, never "safe to spend".
+export type WeeklyBudget = {
+  perWeekEur: number;
+  nextPayday: string;
+  daysToPayday: number;
+  weeksToPayday: number; // days / 7, at least 1
+  balanceEur: number;
+  billsBeforePaydayEur: number;
+  bufferEur: number;
+  bufferSource: "default" | "customer-stated"; // default = one week of regular and occasional essentials, an assumption
+  leftForSpendingEur: number; // balance - bills - buffer, never below zero
+  usualEverydayPerWeekEur: number; // what the customer usually spends on everyday spending in a week (12-month average)
+  differencePerWeekEur: number; // budget minus usual spending: negative means usual spending would eat into the buffer or bills
+  shortBeforePayday: boolean; // true when balance minus bills is already below the buffer
+  steps: CalcStep[];
+  assumptions: string[];
 };
 
 // How much the customer could move to savings without running short, worked out from their own numbers.
@@ -348,7 +391,7 @@ export type Affordability = {
   verdict: AffordabilityVerdict;
   balanceAfterEur: number;
   projectedLowPointEur: number | null;
-  bufferMonthsAfter: number; // months of must-pay costs still covered by the balance afterwards
+  bufferMonthsAfter: number; // months of essential costs still covered by the balance afterwards
   monthsToSaveUp: number | null; // if not affordable now: months of current surplus needed
   steps: CalcStep[];
   assumptions: string[];
@@ -368,6 +411,8 @@ export type TeachingCard = {
   reveal: string;
   facts: Fact[];
   revealVisual?: Visual; // a chart to show with the answer, once the customer has guessed
+  whyWrong?: string[]; // one kind sentence per option, same order as `options`; the entry at correctIndex says why it is right
+  followUp?: { question: string; options: string[]; correctIndex: number; reveal: string } | null; // a second, short check after a wrong first answer
 };
 
 export type ActionKind = "switch_contract" | "standing_transfer" | "one_off_transfer" | "property_watch" | "price_watch";
@@ -439,9 +484,10 @@ export type AgentAction = {
   confirmation?: string | null; // filled in when approved: "Done (simulation). Reference SIM-1A2B3C4D."
   execution?: ActionExecution | null; // filled in when approved: what was carried out in the demo bank, with balances before and after
   watch?: WatchPlan | null; // property_watch and price_watch: what would be watched once approved
+  requirements?: OfferRequirements | null; // switch_contract: what the customer asked the new contract to meet
 };
 
-export type AuditEventType = "action_prepared" | "action_approved" | "action_executed_simulated" | "action_declined" | "action_expired" | "memory_saved" | "memory_forgotten" | "consent_changed" | "demo_reset" | "watch_started" | "watch_checked" | "watch_notified" | "watch_stopped";
+export type AuditEventType = "action_prepared" | "action_approved" | "action_executed_simulated" | "action_declined" | "action_expired" | "memory_saved" | "memory_forgotten" | "consent_changed" | "demo_reset" | "watch_started" | "watch_checked" | "watch_notified" | "watch_stopped" | "watch_paused" | "watch_resumed" | "watch_updated";
 
 // Tamper-evident log: each event carries the hash of the one before it.
 export type AuditEvent = {
@@ -502,7 +548,14 @@ export type AgentExtraEvent =
   | { type: "memory"; item: MemoryItem }
   | { type: "grounding"; grounding: Grounding; facts: Fact[] } // sent just before "done"
   | { type: "visual"; visual: Visual } // a chart to draw with the answer (see Visual below, and app/visuals/)
-  | { type: "replace"; text: string }; // the answer so far, after Sisu threw away a sentence that failed a check. Show this instead of the deltas received so far
+  | { type: "replace"; text: string } // the answer so far, after Sisu threw away a sentence that failed a check. Show this instead of the deltas received so far
+  | { type: "suggestions"; items: Suggestion[] }; // 2-3 tappable next steps for this answer, sent just before "grounding"
+
+// A tappable next step: under an answer (the "suggestions" event) or on an empty Talk screen (GET /api/agent/suggestions).
+// On tap, send `prompt` as the customer's question, or call investigate() when kind is "investigate".
+// agentic: tapping it makes Sisu do something (search, set up a transfer or a watch), not only answer.
+export type SuggestionKind = "ask" | "show" | "act" | "watch" | "investigate";
+export type Suggestion = { id: string; label: string; prompt: string; kind: SuggestionKind; agentic: boolean };
 
 export type SisuEvent = AgentEvent | AgentExtraEvent;
 
@@ -521,6 +574,7 @@ export type HealthReport = {
   dataBoundary: string[];
   store: { persistent: boolean; path: string | null; kind?: "file" | "supabase"; perVisitor?: boolean }; // kind and perVisitor: where state lives and whether each visitor has their own
   checkedAt: string;
+  watchScheduler?: WatchScheduler; // added 15 Nov: whether Sisu reviews watched pages on its own once a day ("cron") or only when the app checks in
 };
 
 // --- Reading a photographed bill with the model's vision (added 14 Nov) ---
@@ -645,11 +699,11 @@ export type Visual = VisualBase &
   (
     | { kind: "budget_donut"; slices: { label: string; value: number; share: number }[]; total: number; centerLabel: string } // share is 0..100
     | { kind: "basket_bar"; total: number; baskets: { id: BasketId; label: string; description: string; monthly: number; share: number; top: { category: string; monthly: number }[] }[] } // share is 0..100
-    | { kind: "peer_bars"; peerGroup: string; rows: { label: string; you: number; peers: number }[] }
+    | { kind: "peer_bars"; peerGroup: string; rows: { label: string; you: number; peers: number }[]; synthetic?: boolean } // synthetic: the peers are other profiles in the demo dataset
     | { kind: "month_bars"; months: { month: string; label: string; income: number; spending: number }[] }
     | { kind: "waterfall"; steps: CalcStep[]; resultLabel: string; resultValue: number }
     | { kind: "futures_lines"; years: number; series: { id: BranchId; label: string; points: { year: number; value: number; low: number; high: number }[] }[] }
-    | { kind: "offer_bars"; currentMonthlyEur: number; offers: { provider: string; plan: string | null; monthlyEur: number; yearlySavingEur: number; url: string }[]; mock: boolean }
+    | { kind: "offer_bars"; currentMonthlyEur: number; offers: { provider: string; plan: string | null; monthlyEur: number; yearlySavingEur: number; url: string; contractMonths?: number | null; feesUnknown?: boolean }[]; mock: boolean; requirementsText?: string | null } // only offers that meet the requirements
   );
 
 // What Sisu is doing right now, in one value, for a mascot or a status line. See lib/agent/activity.ts.
@@ -680,6 +734,8 @@ export type Listing = {
   details?: string | null; // price watch: a few words that tell this offer apart (model, year, seller)
   url: string; // the listing's own page if the page links to one, otherwise the page it was read from
   pageUrl: string; // the page Context.dev read it from
+  depositEur?: number | null; // added 15 Nov: the deposit, only when the page states it
+  utilitiesPerMonthEur?: number | null; // added 15 Nov: water and other monthly charges on top of the rent, only when the page states them
 };
 
 export type PriceUnit = "EUR/month" | "EUR"; // a rent, or a price paid once
@@ -687,7 +743,37 @@ export type PriceUnit = "EUR/month" | "EUR"; // a rent, or a price paid once
 // What a watch action would watch: the city (flats), the topic (anything else; null for flats), the price limit the
 // customer said, the pages, and the listings read from them when the watch was prepared (the starting point later
 // readings are compared with).
-export type WatchPlan = { city: string | null; topic: string | null; priceUnit: PriceUnit; budgetEur: number; minRooms: number | null; urls: string[]; seen: Listing[] };
+export type WatchPlan = { city: string | null; topic: string | null; priceUnit: PriceUnit; budgetEur: number; minRooms: number | null; urls: string[]; seen: Listing[]; goal?: string | null; requirements?: WatchRequirements | null; titles?: Record<string, string> };
+
+// --- Projects (added 15 Nov). A watch is shown as a Project: a goal in the customer's words, requirements they can
+// edit, the sources, when it was last read successfully and when Context.dev runs next, and its findings.
+// Every field is optional so a watch stored before this still reads. Money figures are ones the customer said.
+export type WatchRequirements = {
+  districts?: string[]; // flats: only these districts (a listing whose district is not stated is kept and flagged)
+  moveBy?: string | null; // YYYY-MM-DD: the flat must be free by then (a date the page does not state is kept and flagged)
+  maxCommuteMinutes?: number | null; // never computed by Sisu: always listed as missing, with background reading if any
+  commuteTo?: string | null; // a public place name (a campus, a district), only used for background reading
+  maxDepositEur?: number | null;
+  movingCostEur?: number | null; // the customer's own estimate
+  bufferToKeepEur?: number | null; // money they want to keep in the account after moving
+  savingsGoalEur?: number | null; // a savings target they named
+};
+export type ProjectStatus = "active" | "paused" | "stopped" | "failing"; // failing: active, but no page could be read or watched on the last check
+export type WatchScheduler = "cron" | "on-open"; // cron: Sisu also reviews changes once a day on its own; on-open: only when the app checks in
+
+// The total effect of moving into a listed flat, worked out in code (lib/finance/housing.ts). Recurring vs upfront.
+// A figure nobody knows is null and named in `missing`; an assumption is named in `assumptions`. Nothing is invented.
+export type HousingEffect = {
+  rentEur: number;
+  recurring: { currentHousingEur: number; rentChangeEur: number; utilitiesChangeEur: number | null; transportChangeEur: number | null; knownChangeEur: number; leftOverNowEur: number; leftOverAfterEur: number };
+  upfront: { depositEur: number | null; depositAssumedEur: { low: number; high: number } | null; movingCostEur: number | null; knownEur: number; rangeEur: { low: number; high: number } };
+  buffer: { balanceNowEur: number; afterUpfrontEur: { low: number; high: number }; keepEur: number | null; keeps: "yes" | "no" | "depends" | null };
+  savingsGoal: { goalEur: number; monthsNow: number | null; monthsAfter: number | null } | null;
+  missing: string[];
+  assumptions: string[];
+  sentence: string; // one plain sentence for a card
+  facts: Fact[];
+};
 
 export type WatchedPage = {
   url: string;
@@ -696,6 +782,9 @@ export type WatchedPage = {
   lastReadAt: string;
   lastChangeAt: string | null; // when Context.dev last reported a change on the page
   lastError: string | null;
+  title?: string | null; // added 15 Nov: the page's title when it was found
+  monitorLastRunAt?: string | null; // added 15 Nov: when Context.dev last ran the monitor (from getMonitor)
+  monitorNextRunAt?: string | null; // added 15 Nov: when Context.dev will run it next (from getMonitor)
 };
 
 export type PropertyWatch = {
@@ -707,13 +796,23 @@ export type PropertyWatch = {
   priceUnit: PriceUnit;
   budgetEur: number; // the limit the customer said: rent per month, or a full price
   minRooms: number | null;
-  status: "active" | "stopped";
+  status: "active" | "paused" | "stopped"; // "paused" added 15 Nov: its monitors are removed and nothing is checked until resumed
   mode: "monitor" | "reread"; // monitor: Context.dev watches and Sisu polls its changes. reread: Sisu re-reads the pages itself
-  pages: WatchedPage[];
+  pages: WatchedPage[]; // the sources monitored
   searchMonitorId: string | null; // a Context.dev search monitor for listings that appear elsewhere
   createdAt: string;
-  lastCheckedAt: string | null;
+  lastCheckedAt: string | null; // the last check, even one where every page failed
   problems: string[];
+  // Added 15 Nov (Projects), all optional:
+  goal?: string | null; // the decision, in the customer's words
+  requirements?: WatchRequirements;
+  projectStatus?: ProjectStatus; // derived from status and the pages' errors; always set in API answers
+  lastSuccessAt?: string | null; // the last time at least one page was read (by Sisu or by its Context.dev monitor)
+  nextCheckAt?: string | null; // the earliest next run Context.dev reported for a monitor; null when there is no monitor
+  visitorSeenAt?: string | null; // the last time the visitor's own app checked in; after 14 days without it the watch stops itself
+  pausedAt?: string | null;
+  stoppedAt?: string | null;
+  stoppedBecause?: "user" | "inactive" | "demo-reset" | null;
 };
 
 export type WatchNotification = {
@@ -733,7 +832,13 @@ export type WatchNotification = {
   detectedBy: "context.dev monitor" | "context.dev re-read" | "simulation";
   simulated: boolean; // true when the change was made up by the demo's "simulate a price drop" button
   facts: Fact[];
+  readAt?: string | null; // added 15 Nov: when the visitor marked it read (POST /api/watch/:id/read); null or absent = unread
+  housing?: HousingEffect | null; // added 15 Nov: flats only, the total effect of moving in
+  research?: Citation[]; // added 15 Nov: background reading from Exa (district, commute), links only, no figures taken from it
 };
 
-export type WatchList = { customerId: string; watches: PropertyWatch[]; notifications: WatchNotification[] };
+// GET /api/watch/:id. `currentMatches`: the listings last read that meet the requirements now, each with its housing effect.
+export type WatchProject = { customerId: string; watch: PropertyWatch; notifications: WatchNotification[]; unread: number; currentMatches: { listing: Listing; housing: HousingEffect | null }[]; scheduler: WatchScheduler };
+
+export type WatchList = { customerId: string; watches: PropertyWatch[]; notifications: WatchNotification[]; scheduler?: WatchScheduler };
 export type WatchCheck = { customerId: string; checked: number; changesSeen: number; pagesReread: number; notifications: WatchNotification[]; problems: string[] };

@@ -8,8 +8,10 @@ import { getMemory } from "@/lib/memory";
 import { buildSystemPrompt } from "./prompt";
 import { TOOL_SCHEMAS } from "./tools";
 import { synthesize } from "./speech";
+import { allFillers, offerFiller } from "./fillers";
 
-const FILLERS = ["Let me check today's electricity deals in Helsinki.", "Let me check today's electricity deals in Espoo.", "Let me check today's mobile plans."];
+// The first phrasing of each line is the one a first turn hears; the rest vary by turn (lib/agent/fillers.ts).
+const FILLERS = [...new Set([...allFillers("Helsinki").slice(0, 2), offerFiller("electricity", "Espoo") ?? "", offerFiller("mobile", "Helsinki") ?? ""].filter(Boolean))];
 
 const globalStore = globalThis as unknown as { __sisuWarm?: Promise<void> };
 

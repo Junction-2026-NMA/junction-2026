@@ -6,10 +6,13 @@ import { checkAffordability } from "@/lib/finance/affordability";
 import { buildCashFlow } from "@/lib/finance/cashflow";
 import { fact } from "@/lib/finance/facts";
 import { round2 } from "@/lib/finance/math";
+import { housingEffect } from "@/lib/finance/housing";
 import { rentFacts, rentFit, withinBudget } from "@/lib/finance/rent";
-import type { Fact, Listing, Overview, PropertyWatch, WatchNotification } from "@/lib/types";
+import type { Fact, Listing, Overview, PropertyWatch, WatchNotification, WatchRequirements } from "@/lib/types";
+import { checkRequirements } from "./requirements";
 
-export type WatchRule = { budgetEur: number; minRooms: number | null; floorEur?: number };
+// requirements and today (YYYY-MM-DD) added 15 Nov: a Project's other requirements, applied after the price.
+export type WatchRule = { budgetEur: number; minRooms: number | null; floorEur?: number; requirements?: WatchRequirements; today?: string };
 export type FitEvent = { kind: WatchNotification["kind"]; listing: Listing; previousPriceEur: number | null };
 
 const MAX_EVENTS_PER_PAGE = 5;
@@ -17,11 +20,20 @@ const MAX_EVENTS_PER_PAGE = 5;
 // (a phone case on a page of phones), so it is not reported. Flats have no floor.
 export const ACCESSORY_SHARE = 0.3;
 
-export const ruleFor = (watch: Pick<PropertyWatch, "budgetEur" | "minRooms" | "topic">): WatchRule => ({ budgetEur: watch.budgetEur, minRooms: watch.minRooms, floorEur: watch.topic ? round2(watch.budgetEur * ACCESSORY_SHARE) : 0 });
+const todayOf = (now: Date = new Date()): string => now.toISOString().slice(0, 10);
 
-// An offer fits when its price is at or under the limit (and not under the floor) and, if rooms were asked for,
-// the page states enough of them.
-export const fits = (listing: Listing, rule: WatchRule): boolean => withinBudget(listing.priceEur, rule.budgetEur) && listing.priceEur >= (rule.floorEur ?? 0) && (rule.minRooms === null || (listing.rooms ?? 0) >= rule.minRooms);
+export const ruleFor = (watch: Pick<PropertyWatch, "budgetEur" | "minRooms" | "topic"> & { requirements?: WatchRequirements | null }, now?: Date): WatchRule => ({
+  budgetEur: watch.budgetEur,
+  minRooms: watch.minRooms,
+  floorEur: watch.topic ? round2(watch.budgetEur * ACCESSORY_SHARE) : 0,
+  ...(watch.requirements ? { requirements: watch.requirements, today: todayOf(now) } : {}),
+});
+
+// An offer fits when its price is at or under the limit (and not under the floor), if rooms were asked for the
+// page states enough of them, and it meets the Project's other requirements (a field the page does not state is
+// not held against it).
+export const fits = (listing: Listing, rule: WatchRule): boolean =>
+  withinBudget(listing.priceEur, rule.budgetEur) && listing.priceEur >= (rule.floorEur ?? 0) && (rule.minRooms === null || (listing.rooms ?? 0) >= rule.minRooms) && (!rule.requirements || checkRequirements(listing, rule.requirements, rule.today ?? todayOf()).ok);
 
 // Compares two readings of the same page. An offer is reported when it fits now AND it is news: it was not on the
 // page before, or its price has come down. One that already fitted at the same price is not reported again, and a
@@ -59,7 +71,7 @@ function checkAgainstFigures(id: string, monthly: boolean, price: number, overvi
   if (typeof afford === "string") return { sentence: "", leftOverAfterEur: null, balanceAfterEur: null, facts: [] };
   const low = afford.projectedLowPointEur ?? afford.balanceAfterEur;
   return {
-    sentence: afford.verdict === "not-yet" ? `Paying it now would leave your account about €${Math.round(-low)} below zero just before payday, on your own figures.` : `After paying it you would have about €${Math.round(low)} just before payday${afford.verdict === "tight" ? ", which is less than a month of must-pay costs" : ""}.`,
+    sentence: afford.verdict === "not-yet" ? `Paying it now would leave your account about €${Math.round(-low)} below zero just before payday, on your own figures.` : `After paying it you would have about €${Math.round(low)} just before payday${afford.verdict === "tight" ? ", which is less than a month of essential costs" : ""}.`,
     leftOverAfterEur: null,
     balanceAfterEur: low,
     facts: [fact(`watch:${id}:balance`, "Balance today", overview.balance, "EUR", `account balance on ${overview.dataTimestamp}`), fact(`watch:${id}:after`, "Expected balance just before payday, after paying this", low, "EUR", "payday projection minus the price", { source: "calculation" })],
@@ -77,6 +89,9 @@ export function toNotification(watch: PropertyWatch, overview: Overview, event: 
   const id = crypto.randomUUID();
   const checked = checkAgainstFigures(id, monthly, price, overview);
   const details = describe(listing);
+  // Flats: the whole effect of moving in (recurring and upfront), in place of the rent-only sentence.
+  const housing = monthly ? housingEffect(overview, listing, watch.requirements ?? {}, `watch:${id}:housing`, { simulated }) : null;
+  const unchecked = watch.requirements ? checkRequirements(listing, watch.requirements, todayOf(now)).unchecked : [];
   const limit = monthly ? "your budget" : "the price you set";
   const what = monthly ? "rent per month" : "price";
   return {
@@ -88,7 +103,8 @@ export function toNotification(watch: PropertyWatch, overview: Overview, event: 
     summary: [
       `€${Math.round(price)}${per}${event.previousPriceEur === null ? "" : `, down from €${Math.round(event.previousPriceEur)}`}: €${Math.round(under)} under ${limit} of €${Math.round(watch.budgetEur)}.`,
       details ? `${details}.` : null,
-      checked.sentence || null,
+      housing?.sentence ?? (checked.sentence || null),
+      unchecked.length ? `Not on the page, so not checked: ${unchecked.join(", ")}.` : null,
       simulated ? "Simulated for the demo: the page did not really change." : `Check the ${monthly ? "listing" : "offer"}'s own page before you act: Sisu read it, it did not contact anyone.`,
     ]
       .filter(Boolean)
@@ -109,5 +125,7 @@ export function toNotification(watch: PropertyWatch, overview: Overview, event: 
       fact(`watch:${id}:under`, `Under ${limit} by`, under, watch.priceUnit, "limit minus price", { source: "calculation" }),
       ...checked.facts,
     ],
+    readAt: null,
+    housing,
   };
 }

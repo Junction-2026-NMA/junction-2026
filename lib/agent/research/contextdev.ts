@@ -24,6 +24,7 @@ export const OFFER_SCHEMA = {
           monthlyPriceEur: { type: ["number", "null"], description: "Fixed monthly price or base fee in euros" },
           energyPriceCentsPerKwh: { type: ["number", "null"], description: "Electricity only: energy price in cents per kWh. Null for other products." },
           setupFeeEur: { type: ["number", "null"], description: "One-off opening or setup fee in euros" },
+          greenEnergy: { type: ["boolean", "null"], description: "Electricity only: true if the page says the energy is renewable (wind, solar, hydro), false if it says it is not, null if it does not say" },
         },
       },
     },
@@ -73,6 +74,7 @@ export function cleanOffers(extracted: Partial<RawOffer>[], url: string): { offe
         monthlyPriceEur: numberOrNull(o.monthlyPriceEur),
         energyPriceCentsPerKwh: numberOrNull(o.energyPriceCentsPerKwh),
         setupFeeEur: numberOrNull(o.setupFeeEur),
+        greenEnergy: typeof o.greenEnergy === "boolean" ? o.greenEnergy : null,
         sourceUrl: url,
       },
     ];

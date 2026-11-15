@@ -80,7 +80,7 @@ export function calculate(args: Record<string, unknown>, _ctx: ToolContext, call
   }
   const shown = expression.replace(/\s+/g, " ").trim();
   return outcome({
-    content: JSON.stringify({ what, expression: shown, result, unit, figuresUsed: figures, remember: "Say this is an estimate. When you name a figure you used, give it with the same unit as in figuresUsed, and say where it came from." }),
+    content: JSON.stringify({ what, expression: shown, result, unit, figuresUsed: figures, remember: "Say it is an estimate. The card lists every figure and where it came from, so name at most the one assumption that matters most, with the same unit as in figuresUsed." }),
     summary: `${what}: ${shown} = ${result}${figures.length ? `. Using: ${figures.join("; ")}` : ""}`,
     facts: [fact(`calc:${callId}`, what, result, unit, shown, { source: "calculation" })],
     stages: [{ kind: "calculation", title: `Worked out: ${what}`, summary: `${shown} = ${result}`, source: "calculation", data: { kind: "calculation", steps: [{ label: what, amount: result, basis: shown }], resultLabel: what, resultValue: result, unit, assumptions: figures.length ? figures : ["The figures in the sum come from the customer's data, a web search or a stated assumption."] } }],

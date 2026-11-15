@@ -134,7 +134,8 @@ if (!only || only === "workflows") {
     for (const { customerId, turn } of turns) {
       const own = Math.round(overviews[customerId].balance).toLocaleString("en-US");
       if (turn.error) failures.push(`error: ${turn.error}`);
-      else if (!turn.text.replace(/[, ]/g, "").includes(String(Math.floor(overviews[customerId].balance)))) failures.push(`${overviews[customerId].displayName}'s answer lacks their own balance ${own}: "${turn.text}"`);
+      // The balance may be written exactly or rounded to whole euros (27,161.60 -> 27,162).
+      else if (![Math.floor(overviews[customerId].balance), Math.round(overviews[customerId].balance)].some((value) => turn.text.replace(/[, ]/g, "").includes(String(value)))) failures.push(`${overviews[customerId].displayName}'s answer lacks their own balance ${own}: "${turn.text}"`);
       for (const [otherId, other] of Object.entries(overviews)) if (otherId !== customerId && turn.text.replace(/[, ]/g, "").includes(String(Math.floor(other.balance)))) failures.push(`${overviews[customerId].displayName} was shown ${other.displayName}'s balance`);
     }
     record("concurrency-12-turns", "concurrency", failures, { wallMs: Date.now() - started, total: summarise(turns.map((t) => t.turn.timings?.totalMs)), usedBackup: turns.filter((t) => t.turn.usedBackup).length });

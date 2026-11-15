@@ -566,8 +566,9 @@ through `useSisu` (typed, voice, or `POST /api/agent/query`) gets it:
 
 - "Find me a three-room flat in Helsinki under 700 euros a month" runs a live listing search (a step with the label
   "Searching rental listings in Helsinki with Exa and reading them with Context.dev").
-- If nothing fits, the answer asks "Shall I watch prices and tell you when one fits?" and the message carries an
-  `action` of kind `property_watch`. It is an ordinary action card: `approve(action.id)` starts the watch.
+- If nothing fits, the answer asks "Would you like me to keep checking for homes that match these requirements?"
+  (15 Nov wording) and the message carries an `action` of kind `property_watch`. It is an ordinary action card:
+  `approve(action.id)` starts the watch.
 - This action has `simulated: false`. Label its button "Approve (starts the watch)", not "simulation": approving it
   creates real Context.dev monitors. No money moves and `execution` stays empty.
 
@@ -611,6 +612,82 @@ is a rent for a flat and a full price for anything else.
 The Swift client needs no change to keep working (`ActionKind` is an open enum); it shows a watch as an action
 with a kind it does not know until a case is added.
 
+### Projects: a watch with a goal, requirements and controls (added 15 Nov)
+
+A watch is shown to the customer as a **Project** inside the Sisu tab. Every route and field above still works;
+everything below is optional and additive, so a client must feature-detect it (the hosted backend has it only once
+Nicholas deploys `rework/api-projects`). When a field is missing, fall back to the 14 Nov shape; never invent it.
+
+**How one starts.** The conversation stays ordinary until monitoring would help. Sisu asks for the requirements it
+needs, runs `search_flats` with the goal and requirements the customer said, and the message carries the
+`property_watch` action as before. Its `summary` now starts with the consent question ("Would you like me to keep
+checking for homes that match these requirements?" / "...for offers at this price?") and says exactly what runs
+(see `scheduler` below). Show it as an approval card; Approve creates the Project. Use `action.summary` as is: it
+already carries the nearest listing's total effect; `action.facts` holds the receipts, `action.assumptions` the
+assumptions and every `Missing: ...` line.
+
+**New fields on `PropertyWatch`** (all optional; `GET /api/watch` and `GET /api/watch/:id` always fill them):
+
+| Field | Meaning |
+|---|---|
+| `goal` | the decision in the customer's words, or `null` |
+| `requirements` | `{ districts?, moveBy? (YYYY-MM-DD), maxCommuteMinutes?, commuteTo?, maxDepositEur?, movingCostEur?, bufferToKeepEur?, savingsGoalEur? }`; the price limit stays `budgetEur` and rooms stay `minRooms` |
+| `status` | now `"active" \| "paused" \| "stopped"` (stored lifecycle; `"paused"` is new) |
+| `projectStatus` | `"active" \| "paused" \| "stopped" \| "failing"`: draw this one. `failing` = active, but no page could be read or watched on the last check (show `problems`) |
+| `lastSuccessAt` | last time at least one page was read (by Sisu or by its Context.dev monitor) |
+| `nextCheckAt` | the next run Context.dev reported for a monitor; `null` when there is no monitor or it is paused/stopped. Never compute one yourself |
+| `pages[].title`, `pages[].monitorLastRunAt`, `pages[].monitorNextRunAt` | the sources monitored, with their titles |
+| `visitorSeenAt`, `pausedAt`, `stoppedAt`, `stoppedBecause` | `stoppedBecause`: `"user" \| "inactive" \| "demo-reset"`. A watch whose app has not checked in for 14 days stops itself (`inactive`) |
+
+**New fields on `WatchNotification`** (a finding): `readAt` (`null` = unread), `housing` (flats only, below) and
+`research` (optional `Citation[]` from Exa: background reading about the district or commute; links only, no figure
+is taken from them). Findings are deduplicated against earlier ones: the same listing at the same or a higher price
+is never reported twice, even if it drops off a page and comes back.
+
+**`housing` (`HousingEffect`)**, worked out in `lib/finance/housing.ts`, never by the model:
+- `recurring`: `currentHousingEur`, `rentChangeEur`, `utilitiesChangeEur` (only when the listing states charges,
+  else `null`), `transportChangeEur` (always `null`: not known), `knownChangeEur`, `leftOverNowEur`, `leftOverAfterEur`.
+- `upfront`: `depositEur` (only when the listing states it), `depositAssumedEur` (`{low, high}` = 1 to 3 months'
+  rent, an explicitly labelled assumption, set only when the deposit is not stated), `movingCostEur` (the customer's
+  estimate, or `null`), `knownEur`, `rangeEur`.
+- `buffer`: `balanceNowEur`, `afterUpfrontEur {low, high}`, `keepEur`, `keeps` (`"yes" | "no" | "depends" | null`).
+- `savingsGoal`: `{ goalEur, monthsNow, monthsAfter }` or `null`.
+- `missing` (show as a list: "Not known yet"), `assumptions`, `sentence` (one line for the card), `facts` (receipts).
+Show the recurring and the upfront part apart. Next actions: open `listing.url`, or ask Sisu to draft a viewing
+enquiry for the customer to send. Sisu never contacts a landlord.
+
+**New endpoints** (all `withVisitor`: send `X-Sisu-Session`; all answer `{ error }` with a friendly 4xx):
+
+| Call | Body | Answer |
+|---|---|---|
+| `GET /api/watch/:id?customerId=` | | `WatchProject`: `{ customerId, watch, notifications, unread, currentMatches: [{ listing, housing }], scheduler }`. 400 without a customer, 404 for someone else's or an unknown id |
+| `PATCH /api/watch/:id` | `{ customerId, budgetEur?, minRooms?, goal?, requirements? }` (a field set to `null` clears it; requirements merge) | the `WatchProject`, with `currentMatches` re-evaluated against the listings already read (no new page read). 400 for a bad value, 409 when stopped |
+| `POST /api/watch/:id/pause` | `{ customerId }` | `{ watch }`. **Deletes** the Context.dev monitors (Context.dev's own pause is not verified), so nothing runs or costs credits; checks skip it |
+| `POST /api/watch/:id/resume` | `{ customerId }` | `{ watch }`. **Creates new** monitors for the same pages; changes are counted from now |
+| `POST /api/watch/:id/read` | `{ customerId, notificationIds? }` (none = all of this project) | `{ marked, unread }` |
+
+`POST /api/watch/:id/stop` still stops for good. `GET /api/watch` now also returns `scheduler`.
+Approving a watch answers the new Project at once: `POST /api/actions/:id/approve` returns `{ action, watch, scheduler }`
+with `watch` filled like `GET /api/watch/:id` fills it (`projectStatus`, `lastSuccessAt`, `nextCheckAt`, `goal`,
+`requirements`...), and `POST /api/actions/approve-all` adds `watches` and `scheduler` when the tap started any.
+
+**Saying honestly what runs.** `GET /api/health` has `watchScheduler` and `GET /api/watch` has `scheduler`:
+`"cron"` or `"on-open"` (missing = treat as `"on-open"`).
+- Always true: Context.dev re-checks the watched pages every 6 hours on its own servers.
+- `"on-open"`: Sisu turns those changes into findings only when the app checks in (`POST /api/watch/check`, or the
+  hook's once-a-minute poll). Say "Sisu reviews changes when you open the app".
+- `"cron"`: Sisu also reviews them once a day on its own (`GET /api/watch/cron`, Vercel Cron), so a finding can be
+  waiting when they come back. There is no push notification either way: never promise an instant alert.
+
+**Simulation stays labelled.** `simulate-drop` and `demo-drop` are unchanged: `simulated: true`,
+`detectedBy: "simulation"` and "Simulated for the demo" in the summary. Draw that label on the finding.
+
+**For Nicholas (deploy).** The daily review needs three things, in this order: run
+`deploy/supabase/sisu_watch_sessions.sql` in the Supabase SQL editor (after `sisu_sessions.sql`); deploy with the
+`crons` entry in `vercel.json` (once a day at 06:00 UTC, the Hobby plan's limit); then set `CRON_SECRET` (any long
+random string) in the Vercel project's environment. Until `CRON_SECRET` is set the cron route answers 503 and
+everything says `"on-open"`. Each run reviews at most 20 sessions and stops starting new ones after 45 s.
+
 ## Voice: what the backend takes, checked live on 14 Nov
 
 Checked against the hosted backend with real recordings (`tests/gauntlet/voice-formats.mjs`).
@@ -623,3 +700,15 @@ Checked against the hosted backend with real recordings (`tests/gauntlet/voice-f
 | Nothing heard | Silence, noise or a very short clip ends the stream with one `error` event: "Sisu did not catch any words. Hold the button while you speak." |
 | Speed | Speech to text about 0.5 s; first sentence of the answer 1.1 to 2.3 s after the upload; first audio of a spoken sentence about 0.3 s. |
 | Speaking an answer | `POST /api/voice/tts` per sentence, `format: "pcm"` to stream or `"mp3"` for a file, at most 600 characters. Five sentences at once are fine. |
+
+## 18. Short answers and next-step buttons (new 15 Nov)
+
+Sisu's written answers are now one or two sentences (about 20-60 words). The cards, charts, offer lists, sources and workings carry the detail, so the answer text no longer repeats them.
+
+**Buttons under every answer.** Each turn sends `{ type: "suggestions", items: Suggestion[] }` (2-3 items) just before `grounding`. With `useSisu`, read `message.suggestions`. Show them as chips under the answer. On tap: `sisu.ask(item.prompt)`, or `sisu.investigate()` when `item.kind === "investigate"`. `item.agentic` is true when tapping makes Sisu do something (search offers, set up a transfer, start a watch); give those a distinct look.
+
+**Buttons on an empty Talk screen.** `GET /api/agent/suggestions?customerId=…[&language=fi]` returns `{ customerId, suggestions }` (4 items, no model call). `useSisu` exposes them as `sisu.starters` and refreshes them after every turn, so a bill already switched or a watch already running is replaced by what comes next.
+
+**Watch actions.** `monthlyAmountEur` is now 0 for `property_watch` and `price_watch`: a watch frees no money. Its limit is `action.watch.budgetEur`. Do not show "freed" or "Simulated, no real switch" on a watch: `action.simulated` is false because the monitors are real.
+
+Fields are additive; nothing existing changed shape.

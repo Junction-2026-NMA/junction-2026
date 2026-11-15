@@ -3,12 +3,14 @@ import { buildSwitchDraft, buildTransferDraft } from "@/lib/actions/drafts";
 import { TOO_MANY, allowRequest, jsonError, parseBillType, parseCustomerId } from "@/lib/agent/http";
 import { findCustomer } from "@/lib/finance/data";
 import { withVisitor } from "@/lib/agent/visitor";
+import { parseRequirements } from "@/lib/agent/research/requirements";
 
 export const runtime = "nodejs";
 
 // Prepares an action from a button (for example "Prepare the switch" on an offer card). It is only a draft:
 // nothing happens until POST /api/actions/:id/approve.
-// Body: { customerId, kind, billType?, provider?, amountEur?, destination? }. (monthlyAmountEur still works for standing_transfer.)
+// Body: { customerId, kind, billType?, provider?, amountEur?, destination?, requirements? }. requirements (optional):
+// { maxContractMonths?, minContractMonths?, contractType?: "fixed"|"spot", greenOnly?, maxMonthlyCostEur?, noSetupFee? }. (monthlyAmountEur still works for standing_transfer.)
 export const POST = withVisitor(async function POST(request: Request) {
   if (!allowRequest(request, "actions", 30)) return TOO_MANY();
   const body = ((await request.json().catch(() => null)) ?? {}) as Record<string, unknown>;
@@ -21,7 +23,7 @@ export const POST = withVisitor(async function POST(request: Request) {
   const built =
     body.kind === "switch_contract"
       ? billType
-        ? buildSwitchDraft(customerId, billType, { provider: typeof body.provider === "string" ? body.provider.slice(0, 60) : undefined, preparedBy: "user" })
+        ? buildSwitchDraft(customerId, billType, { provider: typeof body.provider === "string" ? body.provider.slice(0, 60) : undefined, preparedBy: "user", requirements: parseRequirements(body) })
         : null
       : body.kind === "standing_transfer" || body.kind === "one_off_transfer"
         ? typeof amount === "number"

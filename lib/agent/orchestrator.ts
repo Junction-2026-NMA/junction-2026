@@ -5,7 +5,7 @@ import { buildOverview } from "@/lib/finance/overview";
 import { findPatterns } from "@/lib/finance/patterns";
 import { accountsFor, listActions } from "@/lib/actions";
 import { getMemory } from "@/lib/memory";
-import type { AgentRequest, CashFlow, Citation, Fact, NumberCorrection, SisuEvent, Stage, ToolTrace, TurnTimings } from "@/lib/types";
+import type { AffordabilityVerdict, AgentAction, AgentRequest, CashFlow, Citation, Fact, NumberCorrection, ResearchResult, SisuEvent, Stage, ToolTrace, TurnTimings } from "@/lib/types";
 import { getConfig } from "./config";
 import { investigationFiller, offerFiller, researchFiller } from "./fillers";
 import { APP_NOTE, BROKEN_TOOL_CALL, BROKEN_TRIP, type Trip, asksForAdvice, asksForChart, asksToMoveMoney, checkSentence, isMetaTalk, withoutMetaTalk } from "./guards";
@@ -15,6 +15,7 @@ import { buildSystemPrompt, customerSummary } from "./prompt";
 import { ensureResearch, isResearchReady } from "./research";
 import { createSentenceSplitter, forSpeech } from "./sentences";
 import { speculate } from "./speculate";
+import { type TurnSummary, followUpSuggestions } from "./suggestions";
 import { TOOL_SCHEMAS, type ToolContext, type ToolOutcome, billTypeOf, executeTool, parseArgs } from "./tools";
 import { activityLabel } from "./tools/labels";
 import { failure } from "./tools/types";
@@ -55,6 +56,26 @@ function missingInvestigationStep(called: Set<string>, offerFound: boolean, rese
   return null;
 }
 
+// The verdict and amount from a check_affordability result, or null if it cannot be read.
+function affordabilityOf(content: string): TurnSummary["affordability"] {
+  try {
+    const parsed = JSON.parse(content) as { amountEur?: unknown; verdict?: unknown };
+    return typeof parsed.amountEur === "number" && typeof parsed.verdict === "string" ? { amountEur: parsed.amountEur, verdict: parsed.verdict as AffordabilityVerdict } : null;
+  } catch {
+    return null;
+  }
+}
+
+// Buttons are a nicety: a bug in them must never cost the customer their answer.
+function safeFollowUps(...args: Parameters<typeof followUpSuggestions>): ReturnType<typeof followUpSuggestions> {
+  try {
+    return followUpSuggestions(...args);
+  } catch (error) {
+    console.error("[agent] follow-up suggestions failed", error);
+    return [];
+  }
+}
+
 export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttMs: number | null = null): AsyncGenerator<SisuEvent> {
   const turnStarted = Date.now();
   const sinceStart = () => Date.now() - turnStarted;
@@ -82,7 +103,9 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
     yield { type: "speculation", billType: guess.billType, reason: guess.reason };
   }
 
-  const openingLine = investigate ? investigationFiller(overview.displayName, request.language) : null;
+  // Fillers vary with the turn, and skip a line Sisu just said, so a voice chat never replays the same sentence.
+  const fillerContext = { turn: (request.history ?? []).filter((turn) => turn.role === "user").length, recent: (request.history ?? []).filter((turn) => turn.role === "assistant").map((turn) => turn.content) };
+  const openingLine = investigate ? investigationFiller(overview.displayName, request.language, fillerContext) : null;
   if (openingLine) yield { type: "filler", text: openingLine };
 
   const history = (request.history ?? []).slice(-MAX_HISTORY_TURNS);
@@ -123,6 +146,10 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
   let nudges = 0;
   let offerFound = false;
   let researched = false;
+  // What this turn did, for the follow-up buttons under the answer.
+  let lastAction: AgentAction | null = null;
+  let lastResearch: ResearchResult | null = null;
+  let affordability: TurnSummary["affordability"] = null;
 
   // Everything the answer's numbers may be checked against. Tool results are added as they arrive.
   const summaryFacts = [
@@ -271,7 +298,7 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
         // Deeper research takes a few seconds: say so, so a voice conversation never goes quiet.
         if (call.function.name === "web_search" && args.deep === true && !fillerSent && !stepText.trim()) {
           fillerSent = true;
-          const line = researchFiller(request.language);
+          const line = researchFiller(request.language, fillerContext);
           if (line) yield { type: "filler", text: line };
         }
         const billType = call.function.name === "search_offers" ? billTypeOf(args) : null;
@@ -279,7 +306,7 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
         const { key } = ensureResearch(billType, customer.area);
         if (!fillerSent && !stepText.trim() && !isResearchReady(key)) {
           fillerSent = true;
-          const line = offerFiller(billType, customer.area, request.language);
+          const line = offerFiller(billType, customer.area, request.language, fillerContext);
           if (line) yield { type: "filler", text: line };
         }
       }
@@ -304,7 +331,9 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
           providerNames.push(...outcome.research.offers.map((offer) => offer.provider));
           researched = true;
           offerFound ||= outcome.research.best !== null;
+          lastResearch = outcome.research;
         }
+        if (call.function.name === "check_affordability" && outcome.ok) affordability = affordabilityOf(outcome.content);
         const trace: ToolTrace = { id: call.id, name: call.function.name, args: parseArgs(call), source: outcome.source, startedAtMs, tookMs, ok: outcome.ok, summary: outcome.summary, joinedPrefetch: outcome.joinedPrefetch };
         yield { type: "tool_end", trace };
         if (outcome.research) yield { type: "research", result: outcome.research };
@@ -316,6 +345,7 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
         if (outcome.teaching) yield { type: "teaching", card: outcome.teaching };
         if (outcome.action) {
           guard.prepared = true;
+          lastAction = outcome.action;
           yield { type: "action", action: outcome.action };
         }
         if (outcome.memory) yield { type: "memory", item: outcome.memory };
@@ -329,6 +359,8 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
 
     // Every number in the answer is checked against the receipts before the turn is declared done.
     const finalText = correctNames(correctNumbers(isMetaTalk(answer) ? withoutMetaTalk(answer.split("<|")[0]) : answer.split("<|")[0], sources()).text, providerNames).text;
+    const suggestions = safeFollowUps({ overview, cashFlow: cashFlow(), city: customer.area, language: request.language, actions: listActions(request.customerId), watches }, { question: request.text, investigate, tools: [...called], action: lastAction, research: lastResearch, affordability });
+    if (suggestions.length) yield { type: "suggestions", items: suggestions };
     const { facts: allFacts, contextTexts } = sources();
     const grounding = { ...checkGrounding(finalText, allFacts, contextTexts, userTexts, corrections), ...(nameCorrections.length ? { nameCorrections } : {}) };
     if (corrections.length) console.error(`[agent] corrected slipped figures: ${corrections.map((c) => `${c.said} -> ${c.corrected}`).join(", ")}`);

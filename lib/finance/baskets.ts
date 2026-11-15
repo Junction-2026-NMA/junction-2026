@@ -1,18 +1,20 @@
 import type { BasketId } from "@/lib/types";
 
 // The three S-Pankki baskets. Every spending category maps to exactly one, with a reason we can show.
+// The labels are said aloud by Sisu and shown on cards, so they stay neutral: groceries are essential spending,
+// not waste, even though they sit in the basket the customer can adjust day to day.
 export const BASKETS: Record<BasketId, { label: string; description: string }> = {
   regular: {
-    label: "Must pay, every month",
-    description: "Fixed commitments like rent and bills. They arrive on schedule whether you plan for them or not.",
+    label: "Regular essentials",
+    description: "Rent and bills that arrive every month, whether you plan for them or not.",
   },
   irregular: {
-    label: "Must pay, now and then",
-    description: "Necessary costs that come in lumps: a repair, a dentist, a broken phone. Easy to forget, so set money aside.",
+    label: "Occasional essentials",
+    description: "Necessary costs that come now and then: a repair, a dentist, a new phone. Setting a little aside each month smooths them out.",
   },
   everyday: {
-    label: "Everyday choices",
-    description: "Food, transport and fun. Small amounts that quietly add up, and the basket you control most.",
+    label: "Everyday spending",
+    description: "Groceries, transport, eating out and fun. Groceries are essential; this is the basket where day-to-day decisions show most.",
   },
 };
 
@@ -21,11 +23,11 @@ const CATEGORY_BASKET: Record<string, { basket: BasketId; reason: string }> = {
   Utilities: { basket: "regular", reason: "Bills that come every month, even if the amount moves a little." },
   Health: { basket: "irregular", reason: "Needed when it happens, but you cannot predict when." },
   "Home & Tech": { basket: "irregular", reason: "Repairs, appliances and furniture arrive rarely and in large lumps." },
-  Groceries: { basket: "everyday", reason: "Needed, but how much you spend is a daily choice." },
-  Restaurants: { basket: "everyday", reason: "Frequent small purchases that are fully your choice." },
+  Groceries: { basket: "everyday", reason: "Essential food. The amount still moves with day-to-day decisions, like planning meals." },
+  Restaurants: { basket: "everyday", reason: "Frequent purchases you decide on day to day." },
   Transportation: { basket: "everyday", reason: "Daily travel costs that vary with your habits." },
   Entertainment: { basket: "everyday", reason: "Optional and frequent." },
-  Lifestyle: { basket: "everyday", reason: "Clothes, hobbies and shopping: optional." },
+  Lifestyle: { basket: "everyday", reason: "Clothes, hobbies and shopping: mostly optional." },
   Travel: { basket: "everyday", reason: "Optional, even when the amounts are large." },
 };
 
