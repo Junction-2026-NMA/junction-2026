@@ -35,7 +35,18 @@ Conventions added at integration:
 
 ## beUI agent components (web/agents, 2026-11-15)
 
-The chat is built from beUI's agent components (https://beui.dev/components/agents, MIT, `web/agents/LICENSE`), ported by hand rather than with the shadcn CLI: their structure and `motion` animations are kept, their Tailwind/shadcn styling is replaced by plain CSS on the Sisu tokens (`web/agents/agents.css`, classes `sisu-agent-*`), and Reduce Motion follows `web/theme/motion`. Dependencies: `motion` and `lucide-react` (pinned). Used: `Message`/`MessageContent` (each transcript row, pops up once when new), `MessageBubble`/`MessageTyping` (the person's question; dots while a spoken one is still heard), `PromptInput` (the ask box in `Ask/Composer.tsx`, Send swaps to Stop), `AgentActivity` + `ThinkingShimmer` (the tool trace, `Ask/AnswerActivity.tsx`) and `VoiceOrb` (the live microphone in the voice dock, Sisu greens, follows the conversation level; draws nothing without WebGL). Not ported: MessageScroller (the transcript keeps its own reading-position rules), the prompt's action menu and model picker, and the approval, citation and code components (Sisu's own cards cover them).
+The chat is built from beUI's agent components (https://beui.dev/components/agents, MIT, `web/agents/LICENSE`), ported by hand rather than with the shadcn CLI: their structure and `motion` animations are kept, their Tailwind/shadcn styling is replaced by plain CSS on the Sisu tokens (`web/agents/agents.css`, classes `sisu-agent-*`), and Reduce Motion follows `web/theme/motion`. Dependencies: `motion` and `lucide-react` (pinned). Where they are used:
+
+- `Message`/`MessageContent`: each transcript row (pops up once when new). `MessageBubble`/`MessageTyping`/`MessageBubbleCollapsible`: the person's question (dots while a spoken one is still heard; over 240 characters it is clamped to five lines with "Show more").
+- `PromptInput`: the ask box (`Ask/Composer.tsx`); Send swaps to Stop.
+- `AgentActivity` + `AgentProgress` + `ThinkingShimmer`: the tool trace above each answer (`Ask/AnswerActivity.tsx`): a pulsing grid, the shimmering filler and the real time since the question, the steps, and after a web search the query exactly as sent with the pages that came back (the research stage of that tool call, labelled when it is mock data); folded when done.
+- `ToolApproval`: the simulated action card (`Ask/ActionCard.tsx`): the icon and badge follow the decision, "Simulated, no real switch" sits under the title, "What a real switch takes" is the details, Approve / Decline (Sisu's Rive buttons) are the action row, replaced by the outcome once decided. The watch card (`Projects/WatchActionCard.tsx`) is unchanged.
+- `ApprovalQuestion` (beUI ApprovalCard, question mode): the teaching quiz (`Ask/QuizCard.tsx`); the first tap is the guess, then each option shows right or your guess (never red) and the reveal opens.
+- `CitationList`: the Sources in the Details (numbered, domain, when each page was read, a new tab). A plain globe, no favicon service.
+- `ResponseActions` (StreamingResponse's completion actions): Copy under a finished answer ("Copied" only when the clipboard took it). No thumbs up/down: there is nothing behind them.
+- `VoiceOrb`: the live microphone in the voice dock (Sisu greens, follows the conversation level; draws nothing without WebGL).
+
+Not ported: MessageScroller (the transcript keeps its own reading-position rules), the prompt's action menu and model picker, ReasoningText (it cycles made-up phrases), and the code, file diff, image generation, sidebar and chat-app components (nothing in Sisu to show with them).
 
 ## Gate + PWA (web/gate, app/app/layout.tsx, app/app/page.tsx)
 

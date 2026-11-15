@@ -165,36 +165,8 @@
   text-align: right;
 }
 
-/* Quiz. */
-.sisu-ask-quiz-top {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: calc(var(--sisu-space-grid) * 2);
-}
-
-.sisu-ask-choice[data-locked="true"],
 .sisu-ask-no-hit {
   pointer-events: none;
-}
-
-.sisu-ask-reveal {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sisu-space-grid);
-  padding: calc(var(--sisu-space-grid) * 3);
-  border-radius: var(--sisu-radius-button);
-  background: var(--sisu-color-background);
-}
-
-@keyframes sisu-ask-reveal-in {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-.sisu-ask-reveal-in {
-  transform-origin: top center;
-  animation: sisu-ask-reveal-in var(--sisu-motion-state-duration) var(--sisu-motion-state-easing) both;
 }
 
 /* Action. */

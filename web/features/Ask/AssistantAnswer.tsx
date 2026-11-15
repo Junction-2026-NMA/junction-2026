@@ -3,6 +3,7 @@
 // the most useful number, then the details closed (offers compared, how it was worked out, assumptions, sources),
 // each figure said once. Above the card, beUI's activity trace (AnswerActivity): what Sisu is doing while the
 // answer is on its way (it stands in for the card until the first words arrive), folded into "What Sisu did" after.
+// Under a finished answer, beUI's completion action: Copy.
 // The live research stage shows under the card while it works.
 // Charts that say more than the card, the quiz and the approval cards stay open, since they need a look or a tap.
 // Every figure and sentence comes from the payload through AnswerPresenter / SisuCore presenters.
@@ -16,6 +17,7 @@ import { RiveBindings } from "@/web/core/RiveContract";
 import { RiveComponent } from "@/web/rive/RiveComponent";
 import { SisuButton, SisuCard, SisuMotion, riveAccessible } from "@/web/shared/SisuStyle";
 import { useReducedMotion } from "@/web/theme/motion";
+import { ResponseActions } from "@/web/agents/ResponseActions";
 import { ActionCard } from "./ActionCard";
 import { AnswerActivity } from "./AnswerActivity";
 import { AnswerDetails } from "./AnswerDetails";
@@ -65,6 +67,9 @@ export function AssistantAnswer({ message, actions, retry, isNew }: {
           ) : null}
           {!message.pending ? <div data-anchor={anchor("details")}><AnswerDetails view={view} /></div> : null}
         </SisuCard>
+      ) : null}
+      {!message.pending && message.text !== "" && !message.error ? (
+        <ResponseActions copyText={CardText.humanize(message.text, language)} testId="answer.actions" />
       ) : null}
       {stage != null && stage !== "done" ? (
         <div data-anchor={anchor("indicator")}>

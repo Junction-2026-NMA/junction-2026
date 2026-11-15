@@ -2,16 +2,20 @@
 // beUI Message, MessageBubble and MessageTyping (https://beui.dev/components/agents/message, MIT, see
 // web/agents/LICENSE), restyled with the Sisu tokens in agents.css. A row (`Message`) pops up from the live edge
 // once when it is new; a bubble's surface pops in and follows its content's size (a voice question going from the
-// typing dots to the words heard). The app's own Reduce Motion rule applies (web/theme/motion).
+// typing dots to the words heard, a long question opened with "Show more"). The app's own Reduce Motion rule
+// applies (web/theme/motion).
+import { ChevronDown } from "lucide-react";
 import { motion, type HTMLMotionProps } from "motion/react";
-import { createContext, useContext, type ComponentPropsWithRef, type ReactNode } from "react";
+import { createContext, useContext, useId, useState, type ComponentPropsWithRef, type ReactNode } from "react";
 import { useReducedMotion } from "@/web/theme/motion";
-import { EASE_OUT, SPRING_BUBBLE, SPRING_LAYOUT, SPRING_POP_UP, cx } from "./motion";
+import { EASE_OUT, SPRING_BUBBLE, SPRING_LAYOUT, SPRING_POP_UP, SPRING_SWAP, cx } from "./motion";
 import "./agents.css";
 
 export type MessageFrom = "user" | "assistant";
 
 const MessageContext = createContext<MessageFrom>("assistant");
+/** Tells the bubble its content changed size from inside (a collapsible opening), so the surface follows. */
+const BubbleLayoutContext = createContext<() => void>(() => {});
 
 export interface MessageProps extends Omit<HTMLMotionProps<"article">, "children"> {
   from: MessageFrom;
@@ -59,25 +63,53 @@ export interface MessageBubbleProps extends ComponentPropsWithRef<"div"> {
 export function MessageBubble({ variant = "soft", animateIn = false, layoutKey, className, children, ...props }: MessageBubbleProps) {
   const reduce = useReducedMotion();
   const from = useContext(MessageContext);
+  const [layoutVersion, setLayoutVersion] = useState(0);
   return (
-    <div data-slot="message-bubble" data-variant={variant} data-from={from} className={cx("sisu-agent-bubble", className)} {...props}>
-      <motion.span
-        aria-hidden="true"
-        className="sisu-agent-bubble-surface"
-        layout={reduce ? false : "size"}
-        layoutDependency={layoutKey}
-        initial={animateIn && !reduce ? { opacity: 0, scale: 0.92 } : false}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={reduce ? { duration: 0 } : { opacity: { duration: 0.12, ease: EASE_OUT }, scale: SPRING_BUBBLE, layout: SPRING_LAYOUT }}
-      />
-      <motion.div
-        className="sisu-agent-bubble-text"
-        initial={animateIn ? { opacity: 0 } : false}
-        animate={{ opacity: 1 }}
-        transition={reduce ? { duration: 0.12, ease: EASE_OUT } : { duration: 0.12, ease: EASE_OUT, delay: 0.04 }}
-      >
+    <BubbleLayoutContext.Provider value={() => setLayoutVersion((version) => version + 1)}>
+      <div data-slot="message-bubble" data-variant={variant} data-from={from} className={cx("sisu-agent-bubble", className)} {...props}>
+        <motion.span
+          aria-hidden="true"
+          className="sisu-agent-bubble-surface"
+          layout={reduce ? false : "size"}
+          layoutDependency={`${layoutKey ?? ""}|${layoutVersion}`}
+          initial={animateIn && !reduce ? { opacity: 0, scale: 0.92 } : false}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={reduce ? { duration: 0 } : { opacity: { duration: 0.12, ease: EASE_OUT }, scale: SPRING_BUBBLE, layout: SPRING_LAYOUT }}
+        />
+        <motion.div
+          className="sisu-agent-bubble-text"
+          initial={animateIn ? { opacity: 0 } : false}
+          animate={{ opacity: 1 }}
+          transition={reduce ? { duration: 0.12, ease: EASE_OUT } : { duration: 0.12, ease: EASE_OUT, delay: 0.04 }}
+        >
+          {children}
+        </motion.div>
+      </div>
+    </BubbleLayoutContext.Provider>
+  );
+}
+
+/** beUI MessageBubbleCollapsible: long content clamped to `lines` lines with a fade, and "Show more" / "Show less".
+ *  `content` is what is clamped; it may be hidden from screen readers when the bubble is labelled as a whole. */
+export function MessageBubbleCollapsible({ lines = 5, contentHidden = false, children }: { lines?: number; contentHidden?: boolean; children: ReactNode }) {
+  const reduce = useReducedMotion();
+  const notifyLayout = useContext(BubbleLayoutContext);
+  const contentId = useId();
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="sisu-agent-collapsible" data-state={open ? "open" : "closed"}>
+      <div id={contentId} aria-hidden={contentHidden || undefined} className="sisu-agent-collapsible-content"
+        style={open ? undefined : { WebkitLineClamp: lines }} data-selectable>
         {children}
-      </motion.div>
+      </div>
+      <button type="button" className="sisu-agent-collapsible-toggle" aria-expanded={open} aria-controls={contentId}
+        onClick={() => { notifyLayout(); setOpen((was) => !was); }}>
+        <span>{open ? "Show less" : "Show more"}</span>
+        <motion.span aria-hidden="true" className="sisu-agent-collapsible-chevron" animate={{ rotate: open ? 180 : 0 }}
+          transition={reduce ? { duration: 0 } : SPRING_SWAP}>
+          <ChevronDown size={14} strokeWidth={2.2} />
+        </motion.span>
+      </button>
     </div>
   );
 }

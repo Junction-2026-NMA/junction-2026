@@ -179,10 +179,6 @@ button.sisu-agent-activity-toggle:active {
   display: inline-flex;
 }
 
-.sisu-agent-activity-disclosure {
-  overflow: hidden;
-}
-
 .sisu-agent-activity-viewport {
   overflow-y: hidden;
   overscroll-behavior: contain;
@@ -421,4 +417,527 @@ button.sisu-agent-prompt-send[data-variant="stop"]:focus-visible {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+/* AgentDisclosure: the shared reveal. */
+.sisu-agent-disclosure {
+  overflow: hidden;
+}
+
+@keyframes sisu-agent-spin {
+  to { transform: rotate(360deg); }
+}
+
+.sisu-agent-spin {
+  animation: sisu-agent-spin 0.9s linear infinite;
+}
+
+/* MessageBubbleCollapsible: a long question, clamped with a fade, "Show more" under it. */
+.sisu-agent-collapsible-content {
+  overflow-wrap: anywhere;
+}
+
+.sisu-agent-collapsible[data-state="closed"] .sisu-agent-collapsible-content {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 68%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 68%, transparent 100%);
+}
+
+button.sisu-agent-collapsible-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sisu-space-grid);
+  min-height: 32px;
+  margin-top: var(--sisu-space-grid);
+  padding: 0 calc(var(--sisu-space-grid) * 3);
+  border-radius: var(--sisu-radius-pill);
+  background: rgba(255, 255, 255, 0.16);
+  color: inherit;
+  font: var(--sisu-type-label);
+}
+
+.sisu-agent-collapsible-chevron {
+  display: inline-flex;
+}
+
+/* AgentProgress: the live status line of the activity (grid, words, elapsed time). */
+.sisu-agent-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2.5);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.sisu-agent-progress-grid {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  width: 16px;
+  height: 16px;
+}
+
+.sisu-agent-progress-cell {
+  border-radius: 1px;
+  background: var(--sisu-green-500);
+}
+
+.sisu-agent-progress-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sisu-agent-progress-time {
+  flex: none;
+  font: var(--sisu-type-caption);
+  color: var(--sisu-color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* AgentActivity search rows: the query as sent, then the pages that came back. */
+.sisu-agent-search {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--sisu-space-grid) 0;
+}
+
+.sisu-agent-search-query {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2.5);
+  min-height: 28px;
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-agent-search-icon {
+  flex: none;
+}
+
+.sisu-agent-search-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: var(--sisu-type-label);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sisu-agent-search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: calc(var(--sisu-space-grid) * 6.5);
+}
+
+.sisu-agent-search-result {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+  min-height: 32px;
+  min-width: 0;
+  border-radius: var(--sisu-space-grid);
+  color: var(--sisu-color-text);
+  text-decoration: none;
+}
+
+a.sisu-agent-search-result:active .sisu-agent-search-title {
+  color: var(--sisu-color-primary);
+}
+
+.sisu-agent-search-globe {
+  flex: none;
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-agent-search-title {
+  min-width: 0;
+  font: var(--sisu-type-label);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sisu-agent-search-domain,
+.sisu-agent-search-more {
+  flex: none;
+  max-width: 45%;
+  font: var(--sisu-type-caption);
+  color: var(--sisu-color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sisu-agent-search-more {
+  padding-left: calc(var(--sisu-space-grid) * 5.5);
+}
+
+/* ToolApproval (and ApprovalQuestion, which shares its head): a white card in the Sisu look. */
+.sisu-agent-approval,
+.sisu-agent-question {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 3);
+  width: 100%;
+  padding: var(--sisu-space-margin);
+  border: 1px solid var(--sisu-color-hairline);
+  border-radius: var(--sisu-radius-card);
+  background: var(--sisu-color-card);
+  overflow: hidden;
+}
+
+.sisu-agent-approval-head {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(var(--sisu-space-grid) * 3);
+}
+
+.sisu-agent-approval-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--sisu-color-hairline);
+  border-radius: 12px;
+  background: var(--sisu-color-background);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-agent-approval-icon[data-status="pending"] {
+  color: var(--sisu-amber-mark);
+}
+
+.sisu-agent-approval-icon[data-status="approving"] {
+  color: var(--sisu-info-text);
+}
+
+.sisu-agent-approval-icon[data-status="approved"] {
+  border-color: var(--sisu-green-100);
+  background: var(--sisu-green-50);
+  color: var(--sisu-green-700);
+}
+
+.sisu-agent-question-icon {
+  display: grid;
+  place-items: center;
+}
+
+.sisu-agent-approval-titles {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 2);
+}
+
+/* A question whose words are already in the answer: the badge alone, centred on the icon. */
+.sisu-agent-approval-titles[data-centred="true"] {
+  justify-content: center;
+  min-height: 36px;
+}
+
+.sisu-agent-approval-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 1.5);
+}
+
+.sisu-agent-approval-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font: var(--sisu-type-h3);
+  color: var(--sisu-color-text);
+  overflow-wrap: anywhere;
+}
+
+/* The kind of action under the title: "Simulated, no real switch" stays plain to see. */
+.sisu-agent-approval-tool {
+  padding: 3px calc(var(--sisu-space-grid) * 2);
+  border-radius: var(--sisu-radius-pill);
+  background: var(--sisu-amber-background);
+  color: var(--sisu-amber-text);
+  font: var(--sisu-type-caption);
+}
+
+.sisu-agent-approval-badge {
+  padding: 2px calc(var(--sisu-space-grid) * 2);
+  border: 1px solid var(--sisu-color-hairline);
+  border-radius: var(--sisu-radius-pill);
+  background: var(--sisu-color-background);
+  color: var(--sisu-color-text-muted);
+  font: var(--sisu-type-caption);
+  text-align: center;
+  transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
+}
+
+.sisu-agent-approval-badge[data-status="pending"] {
+  border-color: rgba(207, 131, 0, 0.3);
+  background: var(--sisu-amber-background);
+  color: var(--sisu-amber-text);
+}
+
+.sisu-agent-approval-badge[data-status="approving"] {
+  border-color: rgba(0, 110, 135, 0.25);
+  background: var(--sisu-info-background);
+  color: var(--sisu-info-text);
+}
+
+.sisu-agent-approval-badge[data-status="approved"] {
+  border-color: var(--sisu-green-100);
+  background: var(--sisu-green-50);
+  color: var(--sisu-green-900);
+}
+
+.sisu-agent-approval-description {
+  margin: 0;
+  font: var(--sisu-type-body);
+  color: var(--sisu-color-text);
+  overflow-wrap: anywhere;
+}
+
+button.sisu-agent-approval-details {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 1.5);
+  min-height: 44px;
+  margin: -6px 0;
+  color: var(--sisu-color-primary);
+  font: var(--sisu-type-label);
+  text-align: left;
+}
+
+.sisu-agent-approval-chevron {
+  flex: none;
+  display: inline-flex;
+}
+
+.sisu-agent-approval-details-body {
+  padding: calc(var(--sisu-space-grid) * 3);
+  border: 1px solid var(--sisu-color-hairline);
+  border-radius: var(--sisu-radius-button);
+  background: var(--sisu-color-background);
+}
+
+.sisu-agent-approval-actions,
+.sisu-agent-approval-result {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 3);
+  margin: 0 calc(var(--sisu-space-margin) * -1);
+  padding: var(--sisu-space-card) var(--sisu-space-margin) 0;
+  border-top: 1px solid var(--sisu-color-hairline);
+}
+
+/* ApprovalQuestion: the options as a radio group. */
+.sisu-agent-question-options {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 2);
+}
+
+button.sisu-agent-question-option {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 3);
+  width: 100%;
+  min-height: 52px;
+  padding: calc(var(--sisu-space-grid) * 2) calc(var(--sisu-space-grid) * 3);
+  border: 1px solid var(--sisu-color-hairline);
+  border-radius: var(--sisu-radius-button);
+  background: var(--sisu-color-card);
+  color: var(--sisu-color-text);
+  font: var(--sisu-type-body);
+  text-align: left;
+  transition: background-color 200ms ease, border-color 200ms ease, opacity 200ms ease;
+}
+
+button.sisu-agent-question-option[data-locked="true"] {
+  cursor: default;
+}
+
+button.sisu-agent-question-option[data-locked="true"][data-state="idle"] {
+  opacity: 0.55;
+}
+
+button.sisu-agent-question-option[data-state="correct"] {
+  border-color: var(--sisu-green-300);
+  background: var(--sisu-green-50);
+}
+
+button.sisu-agent-question-option[data-state="wrong"] {
+  border-color: rgba(207, 131, 0, 0.35);
+  background: var(--sisu-amber-background);
+}
+
+.sisu-agent-question-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--sisu-neutral-400);
+  border-radius: 50%;
+  color: var(--sisu-white);
+  transition: background-color 200ms ease, border-color 200ms ease;
+}
+
+.sisu-agent-question-mark[data-state="correct"] {
+  border-color: var(--sisu-green-700);
+  background: var(--sisu-green-700);
+}
+
+.sisu-agent-question-mark[data-state="wrong"] {
+  border-color: var(--sisu-amber-mark);
+  background: var(--sisu-amber-mark);
+}
+
+.sisu-agent-question-mark-glyph {
+  display: grid;
+  place-items: center;
+}
+
+.sisu-agent-question-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.sisu-agent-question-result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sisu-space-grid);
+  padding: calc(var(--sisu-space-grid) * 3);
+  border-radius: var(--sisu-radius-button);
+  background: var(--sisu-color-background);
+}
+
+/* CitationList: numbered sources. */
+.sisu-agent-citations {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sisu-agent-citation {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(var(--sisu-space-grid) * 2.5);
+  min-height: 44px;
+  padding: calc(var(--sisu-space-grid) * 1.5) var(--sisu-space-grid);
+  border-radius: calc(var(--sisu-space-grid) * 3);
+  color: var(--sisu-color-text);
+  text-decoration: none;
+  transition: background-color 150ms ease;
+}
+
+a.sisu-agent-citation:active {
+  background: var(--sisu-green-25);
+}
+
+.sisu-agent-citation-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-agent-citation-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sisu-agent-citation-title {
+  font: var(--sisu-type-label);
+  overflow-wrap: anywhere;
+}
+
+.sisu-agent-citation-domain,
+.sisu-agent-citation-meta {
+  font: var(--sisu-type-caption);
+  color: var(--sisu-color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.sisu-agent-citation-end {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 1.5);
+  min-height: 20px;
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-agent-citation-index {
+  display: grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  border-radius: 6px;
+  background: var(--sisu-green-50);
+  color: var(--sisu-green-900);
+  font: var(--sisu-type-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+/* StreamingResponse's completion actions, under a finished answer. */
+.sisu-agent-response-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 var(--sisu-space-grid);
+}
+
+button.sisu-agent-response-action {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 1.5);
+  min-height: 36px;
+  padding: 0 calc(var(--sisu-space-grid) * 2.5);
+  border-radius: var(--sisu-radius-pill);
+  color: var(--sisu-color-text-muted);
+  font: var(--sisu-type-caption);
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+button.sisu-agent-response-action:active {
+  background: var(--sisu-green-50);
+  color: var(--sisu-color-text);
+}
+
+@media (hover: hover) {
+  button.sisu-agent-response-action:hover {
+    background: var(--sisu-green-50);
+    color: var(--sisu-color-text);
+  }
+}
+
+.sisu-agent-response-icon {
+  display: grid;
+  place-items: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sisu-agent-spin { animation: none; }
+  .sisu-agent-approval-badge,
+  button.sisu-agent-question-option,
+  .sisu-agent-question-mark { transition: none; }
 }

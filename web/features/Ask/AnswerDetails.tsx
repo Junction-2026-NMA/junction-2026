@@ -1,13 +1,15 @@
 "use client";
 // The details of one answer, closed at first: the offers compared, how it was worked out (what stood out, the
-// transactions, each calculation's steps, the futures), the assumptions (each once per
-// answer) and the sources (labelled, with when they were read and a link). Replaces the stage cards and the
-// "How Sisu worked this out" drawer of the iOS port, which repeated the same figures several times. When the answer
-// leads with a monthly saving, its projection over the years is a separate optional section, labelled an estimate.
-// The tool calls and the timing are not here: they are the answer's activity trace above the card (AnswerActivity).
+// transactions, each calculation's steps, the futures), the assumptions (each once per answer) and the sources
+// (beUI's CitationList: numbered, with when each page was read, each opening in a new tab). Replaces the stage
+// cards and the "How Sisu worked this out" drawer of the iOS port, which repeated the same figures several times.
+// When the answer leads with a monthly saving, its projection over the years is a separate optional section,
+// labelled an estimate. The tool calls and the timing are not here: they are the activity trace above the card
+// (AnswerActivity).
 import { useAppModel } from "@/web/app/AppProvider";
 import type { AnswerView, FuturesView, HowBlock } from "@/web/core/AnswerPresentation";
-import { Footnote, LinesView, SourceLink } from "./CardParts";
+import { CitationList, citationDomain } from "@/web/agents/Citations";
+import { LinesView, validURL } from "./CardParts";
 import { Disclosure } from "./Disclosure";
 import { ImpactChart } from "./ImpactChart";
 import { OffersDetail } from "./Offers";
@@ -66,12 +68,12 @@ export function AnswerDetails({ view }: { view: AnswerView }) {
               <SourceChips tags={view.tags} />
             </div>
           ) : null}
-          {view.sources.map((source) => (
-            <div key={source.url} className="sisu-answer-source">
-              <SourceLink title={source.title} url={source.url} />
-              {source.fetched ? <Footnote text={source.fetched} /> : null}
-            </div>
-          ))}
+          {view.sources.length > 0 ? (
+            <CitationList citations={view.sources.map((source) => ({
+              id: source.url, title: source.title, domain: citationDomain(source.url) ?? source.url, url: validURL(source.url) ?? undefined,
+              meta: source.fetched ?? undefined,
+            }))} />
+          ) : null}
         </Disclosure>
       ) : null}
     </section>
