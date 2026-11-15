@@ -25,7 +25,6 @@ export function useProjectLaunch(): void {
     const id = ProjectLaunch.current();
     if (!id) return;
     model.setTab("sisu");
-    model.setConversationShown(false);
     model.setOpenProjectId(id);
   }, [ready, model]);
 }

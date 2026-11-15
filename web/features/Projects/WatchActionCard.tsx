@@ -58,7 +58,6 @@ export function WatchActionCard({ action }: WatchActionCardProps) {
       .finally(() => { inFlight.current = false; });
   };
   const openProject = (id: string) => {
-    model.setConversationShown(false);
     model.setHistoryOpen(false);
     model.setTab("sisu");
     model.setOpenProjectId(id);
