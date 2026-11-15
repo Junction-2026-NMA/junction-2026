@@ -9,6 +9,7 @@
 // an object at all throws (CoachClient turns that into `SisuError.invalidResponse`).
 import type { Fact } from "./CoachModels";
 import { DecodingError, type JSONObject, JSONRead } from "./Models";
+import { WatchMonitoring } from "./WatchMonitoring";
 
 /** `EUR/month` (a rent) or `EUR` (a price paid once). */
 export type PriceUnit = "EUR/month" | "EUR" | (string & {});
@@ -241,6 +242,7 @@ export const WatchedPage = {
       url: text(o, "url"), monitorId: text(o, "monitorId"), listings: many(o.listings, Listing.decode),
       lastReadAt: text(o, "lastReadAt"), lastChangeAt: text(o, "lastChangeAt"), lastError: text(o, "lastError"),
       title: text(o, "title"), monitorNextRunAt: text(o, "monitorNextRunAt"),
+      ...WatchMonitoring.page(o),
     };
   },
 } as const;
@@ -257,6 +259,7 @@ export const PropertyWatch = {
       searchMonitorId: text(o, "searchMonitorId"), createdAt: text(o, "createdAt"), lastCheckedAt: text(o, "lastCheckedAt"),
       problems: texts(o.problems), goal: text(o, "goal"), requirements: record(o, "requirements"),
       lastSuccessAt: text(o, "lastSuccessAt"), nextCheckAt: text(o, "nextCheckAt"), projectStatus: text(o, "projectStatus"),
+      ...WatchMonitoring.watch(o),
     };
   },
 } as const;

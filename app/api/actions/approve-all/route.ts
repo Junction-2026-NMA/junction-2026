@@ -5,9 +5,12 @@ import type { AgentAction, PropertyWatch } from "@/lib/types";
 import { withVisitor } from "@/lib/agent/visitor";
 import { isWatchKind, startWatch } from "@/lib/watch";
 import { asProject } from "@/lib/watch/project";
+import { finishStart } from "@/lib/watch/start";
+import { later } from "@/lib/background";
 import { watchScheduler } from "@/lib/watch/scheduler";
 
 export const runtime = "nodejs";
+export const maxDuration = 60; // the first research continues after the answer (after()), within this limit
 const MAX_AT_ONCE = 6;
 
 // One tap for a whole plan. The same rule as a single approval: the request must name the customer and say
@@ -29,7 +32,9 @@ export const POST = withVisitor(async function POST(request: Request) {
   const failed: { actionId: string; reason: string }[] = [];
   const watches: PropertyWatch[] = [];
   for (const [index, result] of results.entries()) {
-    const watch = result.ok && isWatchKind(result.action.kind) ? await startWatch(customerId, result.action) : null;
+    // v2 push: stored now (phase "researching"); the monitors are made after the answer (lib/watch/start.ts).
+    const watch = result.ok && isWatchKind(result.action.kind) ? await startWatch(customerId, result.action, new Date(), { background: true }) : null;
+    if (watch?.phase === "researching") later("first research", () => finishStart(customerId, watch.id, { origin: new URL(request.url).origin }));
     if (watch) watches.push(asProject(watch));
     if (result.ok) approved.push(result.action);
     else failed.push({ actionId: ids[index], reason: result.reason });

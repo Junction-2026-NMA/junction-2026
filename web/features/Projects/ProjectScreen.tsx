@@ -13,6 +13,7 @@ import { prefersReducedMotion } from "@/web/theme/motion";
 import { SisuCard } from "@/web/shared/SisuStyle";
 import { Chevron, Chip, ExternalLink, Note } from "./ProjectParts";
 import { ProjectFindings } from "./ProjectFindings";
+import { ProjectMonitoringStatus } from "./ProjectMonitoringStatus";
 import { ProjectRequirements } from "./ProjectRequirements";
 import { ProjectText } from "./ProjectPresenter";
 import { useProjects } from "./useProjects";
@@ -61,6 +62,7 @@ export function ProjectScreen({ id, onClose }: ProjectScreenProps) {
             {state.error ? <p className="sisu-project-error" role="alert">{state.error}</p> : null}
           </SisuCard>
         ) : null}
+        {state && store && watch ? <ProjectMonitoringStatus watch={watch} store={store} /> : null}
         {state && store && watch ? <ProjectBody watch={watch} store={store} state={state} fresh={fresh} title={title} /> : null}
       </ScreenStack>
     </Screen>

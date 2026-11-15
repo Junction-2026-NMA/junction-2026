@@ -1,0 +1,22 @@
+/* v2 push: the project's background research status and the notification controls (ProjectMonitoringStatus.tsx,
+   PushControls.tsx). Classes are sisu-monitor-* and defined here only. */
+.sisu-monitor-card { display: flex; flex-direction: column; gap: 8px; }
+.sisu-monitor-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sisu-monitor-title { margin: 0; font: var(--sisu-type-h3); color: var(--sisu-color-text); }
+.sisu-monitor-chip { font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: var(--sisu-color-hairline); color: var(--sisu-color-text); white-space: nowrap; }
+.sisu-monitor-chip[data-tone="good"] { background: rgba(2, 166, 73, 0.14); color: #02733a; }
+.sisu-monitor-chip[data-tone="busy"] { background: rgba(0, 102, 204, 0.12); color: #0b4f99; }
+.sisu-monitor-chip[data-tone="attention"] { background: rgba(214, 120, 0, 0.16); color: var(--sisu-amber-text); }
+.sisu-monitor-text { margin: 0; font-size: 15px; line-height: 1.4; color: var(--sisu-color-text); }
+.sisu-monitor-muted { margin: 0; font-size: 13px; line-height: 1.4; color: var(--sisu-color-text-muted); }
+.sisu-monitor-failure { margin: 0; font-size: 14px; line-height: 1.4; color: var(--sisu-amber-text); }
+.sisu-monitor-push { display: flex; flex-direction: column; gap: 6px; padding-top: 8px; border-top: 1px solid var(--sisu-color-hairline); }
+.sisu-monitor-line { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; }
+.sisu-monitor-label { color: var(--sisu-color-text-muted); }
+.sisu-monitor-value { font-weight: 600; text-align: right; color: var(--sisu-color-text); }
+.sisu-monitor-value[data-status="on"] { color: #02733a; }
+.sisu-monitor-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.sisu-monitor-demo { display: flex; flex-direction: column; gap: 6px; padding-top: 8px; border-top: 1px solid var(--sisu-color-hairline); }
+button.sisu-monitor-button { min-height: 40px; padding: 8px 14px; border-radius: 12px; border: 1px solid rgba(20, 32, 25, 0.16); background: var(--sisu-color-card); color: var(--sisu-color-text); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+button.sisu-monitor-button[data-kind="primary"] { background: #02a649; border-color: #02a649; color: #fff; }
+button.sisu-monitor-button:disabled { opacity: 0.55; cursor: default; }
