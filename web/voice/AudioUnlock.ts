@@ -9,6 +9,26 @@ type AudioContextClass = typeof AudioContext;
 let context: AudioContext | null = null;
 let unlocked = false;
 
+/** iOS Safari's audio session kinds (Safari 16.4+ / iOS 17). Elsewhere `navigator.audioSession` is missing. */
+export type AudioSessionKind = "playback" | "play-and-record";
+
+/**
+ * Tells iOS Safari what the page's sound is. By default iOS treats Web Audio as "ambient", so the ringer
+ * (silent) switch mutes it: a clip decodes and "plays" but nothing is heard. "playback" makes it media,
+ * like a video, which the silent switch does not mute. While the microphone is open the recorder asks for
+ * "play-and-record" instead, and goes back to "playback" when it lets the microphone go.
+ */
+export function setAudioSessionKind(kind: AudioSessionKind): void {
+  if (typeof navigator === "undefined") return;
+  const session = (navigator as unknown as { audioSession?: { type: string } }).audioSession;
+  if (!session) return;
+  try {
+    session.type = kind;
+  } catch {
+    // Older Safari: nothing to set.
+  }
+}
+
 /** The app's AudioContext, made on first use. Null where the browser has no Web Audio. */
 export function audioContext(): AudioContext | null {
   if (context) return context;
@@ -16,6 +36,7 @@ export function audioContext(): AudioContext | null {
   const Context: AudioContextClass | undefined =
     window.AudioContext ?? (window as unknown as { webkitAudioContext?: AudioContextClass }).webkitAudioContext;
   if (!Context) return null;
+  setAudioSessionKind("playback");
   try {
     context = new Context();
   } catch {

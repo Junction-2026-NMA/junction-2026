@@ -12,7 +12,7 @@
 // `level()` is 20·log10 of the RMS of its latest samples, in dBFS like AVAudioRecorder.averagePower (0 is loudest,
 // -160 silence).
 import { VoicePressRule } from "@/web/core/AppLogic/VoiceLogic";
-import { audioContext } from "./AudioUnlock";
+import { audioContext, setAudioSessionKind } from "./AudioUnlock";
 
 /** One finished recording. */
 export interface VoiceRecording {
@@ -96,10 +96,12 @@ export class VoiceRecorder {
     const devices = typeof navigator === "undefined" ? undefined : navigator.mediaDevices;
     // No microphone API (an old browser, or a plain-http page, where browsers hide it) or no MediaRecorder.
     if (!devices?.getUserMedia || typeof MediaRecorder === "undefined") return "failed";
+    setAudioSessionKind("play-and-record");
     try {
       this.stream = await devices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
       return null;
     } catch (error) {
+      setAudioSessionKind("playback");
       const name = (error as { name?: string } | null)?.name;
       return name === "NotAllowedError" || name === "SecurityError" || name === "PermissionDeniedError" ? "denied" : "failed";
     }
@@ -200,10 +202,13 @@ export class VoiceRecorder {
   }
 
   private static closeStream(stream: MediaStream | null): void {
-    stream?.getTracks().forEach((track) => {
+    if (!stream) return;
+    stream.getTracks().forEach((track) => {
       track.onended = null;
       track.stop();
     });
+    // Microphone off: back to plain playback, so the silent switch does not mute Sisu's voice.
+    setAudioSessionKind("playback");
   }
 
   /** A level meter on the shared AudioContext, or null where Web Audio is missing. Not connected to the speakers. */
