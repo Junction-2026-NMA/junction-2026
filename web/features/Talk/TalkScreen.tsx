@@ -8,15 +8,14 @@
 //   mounted under it (hidden), so its reading position, draft and voice state come back with Back. Leaving the tab
 //   unmounts it: the draft is kept per conversation in CoachStore, the reading position in TalkTranscript.
 // - Settings opens from the drawer's last row (the same sheet as on Today and Path).
-// - Empty: Liito, larger, one friendly line and the suggested questions (web/core/AppLogic/SisuSuggestions.ts). With
-//   the keyboard up Liito is smaller and the hint goes, so the greeting and the suggestions still fit.
+// - Empty: Liito, larger, and one friendly line, centred above the ask box (no suggestion list). With the keyboard
+//   up Liito is smaller, so the greeting still fits.
 // - The transcript keeps the reading position (TalkTranscript.tsx). The composer is pinned at the bottom: the text
 //   field, Send and the microphone; while voice is on it shows the live state with a stop control (VoiceStrip.tsx).
 // The hands-free logic is web/voice/ConversationController.ts and web/core (ConversationFlow, VoiceBar, LiitoTask).
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { useAppModel, useAppSelector, useCoach, useCoachSessionState, useConversation, useVoice } from "@/web/app/AppProvider";
 import type { CoachStore } from "@/web/app/CoachStore";
-import { SisuSuggestions } from "@/web/core/AppLogic/SisuSuggestions";
 import { VoiceBar } from "@/web/core/AppLogic/VoiceBar";
 import type { CoachMessage, CoachSession } from "@/web/core/CoachSession";
 import { LiitoTask } from "@/web/core/LiitoTask";
@@ -80,7 +79,6 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
   const conversation = useConversation(talk);
   const voice = useVoice();
   const overview = useAppSelector((s) => s.overview);
-  const flaggedBill = useAppSelector((s) => s.flaggedBill);
   const customerName = useAppSelector((s) => s.customer?.displayName ?? null);
   useAppSelector((s) => s.confirmedBillNames);
   const historyOpen = useAppSelector((s) => s.historyOpen);
@@ -179,11 +177,6 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
     setDraft("");
     store.ask(question);
   };
-  /** A suggestion: asked as typed, in this conversation. A running voice conversation ends first. */
-  const ask = (question: string) => {
-    if (flow.isOn) talk.end();
-    store.ask(question);
-  };
   const startVoice = () => {
     // Inside the tap: the browser lets the page play Sisu's voice from now on.
     unlockAudio();
@@ -196,7 +189,6 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
   };
 
   const notice = conversation?.notice ?? voice?.notice ?? null;
-  const suggestions = SisuSuggestions.make(overview, flaggedBill ? model.confirmedName(flaggedBill) : null);
   const keyboardStyle = { "--sisu-talk-kb": `${keyboard.bottom}px`, "--sisu-talk-vv-top": `${keyboard.top}px` } as CSSProperties;
   const keyboardUp = keyboard.bottom > 0;
   const liitoBadge = (size: "small" | "hero") => (
@@ -224,8 +216,7 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
           onUserDrag={() => { if (document.activeElement === input.current) input.current?.blur(); }} />
       ) : (
         <div className="sisu-talk-empty-scroll">
-          <SisuEmptyState name={overview?.displayName ?? customerName} liito={liitoBadge("hero")} suggestions={suggestions}
-            voiceOn={flow.isOn} onAsk={ask} />
+          <SisuEmptyState name={overview?.displayName ?? customerName} liito={liitoBadge("hero")} voiceOn={flow.isOn} />
         </div>
       )}
       <div className="sisu-talk-dock" data-clips={voice?.clipsPlayed ?? 0} data-testid={`talk.clips.${voice?.clipsPlayed ?? 0}`}>

@@ -203,7 +203,7 @@ button.sisu-talk-logo:focus-visible {
   mask-image: linear-gradient(to bottom, transparent 0, #000 16px);
 }
 
-/* With the keyboard up the greeting and the suggestions must still fit: Liito is smaller (TalkScreen), the hint goes. */
+/* With the keyboard up the greeting must still fit: Liito is smaller (TalkScreen), the hint goes. */
 .sisu-talk[data-keyboard="true"] .sisu-talk-empty-hero {
   gap: var(--sisu-space-grid);
   padding-top: calc(var(--sisu-space-grid) * 2);
@@ -220,8 +220,10 @@ button.sisu-talk-logo:focus-visible {
 .sisu-talk-empty {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: var(--sisu-space-card);
-  padding: 0 var(--sisu-space-margin) var(--sisu-space-card);
+  min-height: 100%;
+  padding: 0 var(--sisu-space-margin) calc(var(--sisu-space-section) * 1.5);
 }
 
 .sisu-talk-empty-hero {
@@ -247,90 +249,6 @@ button.sisu-talk-logo:focus-visible {
   font: var(--sisu-type-body);
   color: var(--sisu-color-text-muted);
   text-wrap: pretty;
-}
-
-.sisu-talk-suggest {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--sisu-space-grid) * 2);
-  animation: sisu-talk-rise-soft 420ms var(--sisu-motion-ease-out) both;
-}
-
-.sisu-talk-suggest + .sisu-talk-suggest {
-  animation-delay: 60ms;
-}
-
-.sisu-talk-suggest-head {
-  margin: var(--sisu-space-grid) 0 0;
-  font: var(--sisu-type-label);
-  color: var(--sisu-color-text-muted);
-}
-
-.sisu-talk-suggest-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  border: 1px solid var(--sisu-color-hairline);
-  border-radius: var(--sisu-radius-button);
-  background: var(--sisu-color-card);
-  overflow: hidden;
-}
-
-.sisu-talk-suggest-list > li + li {
-  border-top: 1px solid var(--sisu-color-hairline);
-}
-
-button.sisu-talk-suggest-item {
-  display: flex;
-  align-items: center;
-  gap: calc(var(--sisu-space-grid) * 3);
-  width: 100%;
-  min-height: 52px;
-  padding: calc(var(--sisu-space-grid) * 3) var(--sisu-space-card);
-  border: 0;
-  background: transparent;
-  color: var(--sisu-color-text);
-  text-align: left;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  transition: background-color 160ms ease;
-}
-
-button.sisu-talk-suggest-item:active {
-  background: var(--sisu-color-selection-fill);
-}
-
-button.sisu-talk-suggest-item:focus-visible {
-  outline: none;
-  box-shadow: inset 0 0 0 3px var(--sisu-color-outline);
-}
-
-.sisu-talk-suggest-stack {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.sisu-talk-suggest-text {
-  flex: 1 1 auto;
-  min-width: 0;
-  font: 600 16px/1.35 var(--sisu-font-text);
-}
-
-.sisu-talk-suggest-noticed {
-  font: var(--sisu-type-caption);
-  color: var(--sisu-color-text-muted);
-}
-
-.sisu-talk-suggest-tag {
-  font-weight: 400;
-}
-
-.sisu-talk-suggest-chevron {
-  flex: none;
-  color: var(--sisu-color-primary);
 }
 
 /* MARK: Transcript */
@@ -643,7 +561,6 @@ button.sisu-talk-strip-stop[data-kind="interrupt"]:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   .sisu-talk-empty-hero,
-  .sisu-talk-suggest,
   .sisu-talk-project,
   button.sisu-talk-jump,
   .sisu-talk-strip {
@@ -656,8 +573,7 @@ button.sisu-talk-strip-stop[data-kind="interrupt"]:focus-visible {
 
   button.sisu-talk-logo,
   button.sisu-talk-strip-stop,
-  .sisu-talk-strip-halo,
-  button.sisu-talk-suggest-item {
+  .sisu-talk-strip-halo {
     transition: none;
   }
 }
