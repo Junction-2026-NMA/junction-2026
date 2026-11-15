@@ -1,0 +1,242 @@
+/* Section "Built to live inside S-Pankki": two places Sisu would sit (the app, the website)
+   and the four points where the bank connects. The two pictures are built from HTML and CSS;
+   nothing in them can be clicked. Also the code link that the engine section shares. */
+.inside,
+.engine {
+  scroll-margin-top: 16px;
+}
+
+.inside-grid,
+.plug-block {
+  width: min(100% - 2 * var(--gutter), var(--page-max));
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.inside-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.place-card {
+  display: grid;
+  gap: 20px;
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.place-mock {
+  display: grid;
+  align-content: space-between;
+  gap: 12px;
+  min-height: 190px;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  background: var(--bg);
+}
+
+.app-bar,
+.web-bar {
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.app-card {
+  display: grid;
+  gap: 2px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--green-900);
+  color: var(--white);
+}
+
+.app-card-label,
+.app-card-sub {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.app-card-num {
+  color: var(--hero-number);
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* The tab row of the app and the breadcrumb of the website: the Sisu entry is the dark one. */
+.app-tabs,
+.web-crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.app-tabs span,
+.web-crumbs span {
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  background: var(--white);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.app-tabs {
+  flex-wrap: nowrap;
+}
+
+.app-tabs span {
+  flex: 1 1 0;
+  min-width: 0;
+  padding-right: 4px;
+  padding-left: 4px;
+  text-align: center;
+}
+
+.app-tabs .is-on,
+.web-crumbs .is-on {
+  background: var(--green-900);
+  color: var(--green-200);
+  font-weight: 700;
+}
+
+.web-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: var(--radius-full);
+  background: var(--white);
+}
+
+.web-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--green-500);
+}
+
+.web-here {
+  justify-self: start;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  background: var(--green-200);
+  font-weight: 700;
+}
+
+.place-copy {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+
+.place-kicker,
+.plug-label {
+  color: var(--green-700);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.place-copy h3,
+.plug-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+/* A link to the code on GitHub, written as its path. */
+.code-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 16px;
+}
+
+.code-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--green-700);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+
+/* Where the bank plugs in: each row is one connection, as it is in the demo and as it would be. */
+.plug-block {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.plug-list {
+  display: grid;
+  gap: 12px;
+}
+
+.plug {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: var(--border) solid var(--bg);
+}
+
+.plug-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 12px;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.plug-now,
+.plug-then {
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--bg);
+}
+
+.plug-then {
+  background: var(--green-100);
+}
+
+.plug-label {
+  display: block;
+}
+
+@media (min-width: 720px) {
+  .inside-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .plug {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr) minmax(0, 1fr);
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .plug-name {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+  }
+}
+
+@media (min-width: 1024px) {
+  .place-card {
+    padding: 24px;
+  }
+
+  .plug-block {
+    padding: 28px;
+  }
+}
