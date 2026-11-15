@@ -13,7 +13,7 @@ export interface OnboardingBasketRow {
   readonly kind: BasketKind;
   /** "Rent, phone, electricity" */
   readonly examples: string;
-  /** "Must pay, every month" */
+  /** "Bills that come every month" */
   readonly meaning: string;
 }
 
@@ -27,16 +27,16 @@ export namespace OnboardingCopy {
 
   export const promiseTitle = "Every euro lands in one of three baskets";
   export const promiseBaskets: readonly OnboardingBasketRow[] = [
-    basketRow("fixed", "Rent, phone, electricity", "Must pay, every month"),
-    basketRow("curveballs", "Dentist, repairs, gifts", "Must pay, now and then"),
-    basketRow("leaks", "Food, coffee, rides", "Everyday choices"),
+    basketRow("fixed", "Rent, phone, electricity", "Bills that come every month"),
+    basketRow("curveballs", "Dentist, repairs, gifts", "Needed now and then"),
+    basketRow("leaks", "Groceries, coffee, rides", "Day-to-day spending you can adjust"),
   ];
   /** What Sisu does with the baskets: the three promises, one line each. */
   export const promiseThenTitle = "Then Sisu";
   export const promiseThen: readonly string[] = [
-    "Finds the money that slips away",
+    "Shows what is left before payday",
     "Checks live offers for your bills",
-    "Gives you one small step a day",
+    "Suggests one next step at a time",
   ];
   export const promiseButton = "Got it";
 
@@ -90,7 +90,7 @@ export namespace OnboardingReading {
   /** While the overview loads: "Liito is sorting 12 months of Eetu's payments". */
   export function loadingTitle(name: string, months = 12): string { return `Liito is sorting ${months} months of ${name}'s payments`; }
 
-  export const loadingDetail = "Sorting them into three baskets: must pay every month, now and then, and everyday choices.";
+  export const loadingDetail = "Sorting them into three baskets: regular essentials, occasional essentials and everyday spending.";
 
   /** Every categorised payment in the overview's window (the sum of the categories' counts). */
   export function paymentCount(overview: Overview): number {

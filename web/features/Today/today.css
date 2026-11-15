@@ -1,19 +1,6 @@
-/* Today (web/features/Today). Port of TodayScreen.swift + TodaySections.swift. Tokens: web/theme/tokens.css. */
-
-/* ---- Text styles ---- */
-.sisu-today-h1 { font: var(--sisu-type-h1); color: var(--sisu-color-text); }
-.sisu-today-h2 { margin: 0; font: var(--sisu-type-h2); color: var(--sisu-color-text); }
-.sisu-today-h3 { margin: 0; font: var(--sisu-type-h3); color: var(--sisu-color-text); }
-.sisu-today-button-text { font: var(--sisu-type-button); color: var(--sisu-color-text); }
-.sisu-today-button-green { font: var(--sisu-type-button); color: var(--sisu-green-700); }
-.sisu-today-body-muted { font: var(--sisu-type-body); color: var(--sisu-color-text-muted); }
-.sisu-today-label-muted { margin: 0; font: var(--sisu-type-label); color: var(--sisu-color-text-muted); }
-.sisu-today-label-green { margin: 0; font: var(--sisu-type-label); color: var(--sisu-green-700); }
-.sisu-today-caption { margin: 0; font: var(--sisu-type-caption); color: var(--sisu-color-text-muted); }
-.sisu-today-caption-green { font: var(--sisu-type-caption); color: var(--sisu-green-700); }
-.sisu-today-muted { color: var(--sisu-color-text-muted); }
-.sisu-today-grow { flex: 1 1 auto; min-width: 0; }
-.sisu-today-chevron-green { display: inline-flex; flex: none; color: var(--sisu-green-700); }
+/* Today (web/features/Today): the header, the screen stack and small shared pieces of this folder. The sections
+   have their own files: overview.css, insight.css, baskets.css, recent.css, buffer.css. Tokens: web/theme/tokens.css.
+   No opaque screen background: the app-wide texture on .sisu-root shows through; cards stay solid. */
 
 .sisu-chevron { display: block; flex: none; }
 
@@ -25,64 +12,6 @@
   background: var(--sisu-neutral-200);
 }
 
-/* A button that is only a tappable area (SwiftUI `.buttonStyle(.plain)` + contentShape(Rectangle())). */
-.sisu-today-plain-button {
-  display: flex;
-  width: 100%;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.sisu-today-plain-button:active { opacity: 0.6; }
-.sisu-today-plain-button:focus-visible { outline: 2px solid var(--sisu-green-500); outline-offset: 4px; border-radius: 8px; }
-
-.sisu-today-baseline-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: calc(var(--sisu-space-grid) * 2);
-  width: 100%;
-}
-
-/* ---- Screen ---- */
-.sisu-today-stack {
-  padding-top: calc(var(--sisu-space-grid) * 2);
-  padding-bottom: var(--sisu-space-section);
-}
-
-/* The section gap is 32: 16 of stack spacing plus 16 under the section. */
-.sisu-today-gap-after { padding-bottom: calc(var(--sisu-space-section) - var(--sisu-space-card)); }
-.sisu-today-optional:empty { display: none; }
-.sisu-today-end { padding-top: var(--sisu-space-card); }
-
-.sisu-today-section {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: var(--sisu-space-card);
-}
-
-/* ---- Header ---- */
-.sisu-today-header {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--sisu-space-grid) * 2);
-  padding: calc(var(--sisu-space-grid) * 2) calc(var(--sisu-space-margin) + env(safe-area-inset-right, 0px))
-    calc(var(--sisu-space-grid) * 3) calc(var(--sisu-space-margin) + env(safe-area-inset-left, 0px));
-  background: var(--sisu-color-background);
-}
-
-.sisu-today-header-row {
-  display: flex;
-  align-items: center;
-  gap: calc(var(--sisu-space-grid) * 2);
-}
-
 .sisu-fit-text {
   display: block;
   min-width: 0;
@@ -91,152 +20,47 @@
   text-overflow: ellipsis;
 }
 
+/* ---- Screen ---- */
+.sisu-today-stack {
+  gap: calc(var(--sisu-space-grid) * 5);
+  padding-top: calc(var(--sisu-space-grid) * 2);
+  padding-bottom: var(--sisu-space-section);
+}
+
+/* A section that appears once its figures are in: a calm rise (a plain fade with Reduce Motion). */
+.sisu-today-enter {
+  animation: sisu-today-rise 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes sisu-today-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sisu-today-enter { animation: sisu-today-fade 200ms ease-out both; }
+}
+
+@keyframes sisu-today-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* ---- Header ---- */
+.sisu-today-header {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 2);
+  padding: calc(var(--sisu-space-grid) * 3) calc(var(--sisu-space-margin) + env(safe-area-inset-right, 0px))
+    calc(var(--sisu-space-grid) * 2) calc(var(--sisu-space-margin) + env(safe-area-inset-left, 0px));
+}
+
+.sisu-today-header-row {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+}
+
 .sisu-today-greeting {
   flex: 1 1 auto;
   margin: 0;
   font: var(--sisu-type-h1);
   color: var(--sisu-color-text);
 }
-
-.sisu-today-pills {
-  display: flex;
-  flex: none;
-  gap: calc(var(--sisu-space-grid) * 2);
-}
-
-/* ---- Hero ---- */
-.sisu-today-hero {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sisu-space-grid);
-}
-
-.sisu-today-hero-tap { cursor: pointer; }
-
-/* ---- Daily actions ---- */
-.sisu-today-steps-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: calc(var(--sisu-space-grid) * 2);
-}
-
-.sisu-today-steps-rows {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--sisu-space-grid) * 2);
-}
-
-/* ---- Baskets ---- */
-.sisu-today-baskets-art {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--sisu-space-grid) * 2);
-  padding-bottom: var(--sisu-space-grid);
-}
-
-/* The illustration leaves an empty band above the baskets' handles: pull it up under the subtitle. */
-.sisu-today-baskets-rive {
-  margin-top: -40px;
-  pointer-events: none;
-}
-
-.sisu-today-legend {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: calc(var(--sisu-space-grid) * 2);
-  justify-items: start;
-}
-
-.sisu-today-legend-item {
-  display: flex;
-  align-items: center;
-  gap: calc(var(--sisu-space-grid) * 2);
-  font: var(--sisu-type-label);
-  color: var(--sisu-color-text);
-}
-
-.sisu-today-dot {
-  flex: none;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-
-.sisu-today-dot-jars { box-shadow: inset 0 0 0 2px var(--sisu-green-500); }
-
-.sisu-today-basket-figure,
-.sisu-today-category-button {
-  flex-direction: column;
-  align-items: stretch;
-  gap: var(--sisu-space-grid);
-}
-
-.sisu-today-category {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--sisu-space-grid) * 3);
-}
-
-/* ---- Flagged bill ---- */
-.sisu-today-bill-figure {
-  align-items: baseline;
-  gap: calc(var(--sisu-space-grid) * 2);
-}
-
-.sisu-today-bill-figure .sisu-today-chevron-green { align-self: center; }
-
-.sisu-today-bill-facts {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sisu-space-grid);
-  font: var(--sisu-type-label);
-  color: var(--sisu-color-text);
-}
-
-.sisu-today-bill-actions {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--sisu-space-grid) * 3);
-}
-
-.sisu-today-form { margin: 0; }
-
-.sisu-input {
-  display: block;
-  width: 100%;
-  height: var(--sisu-space-touch-target);
-  padding: 0 calc(var(--sisu-space-grid) * 4);
-  border: 1px solid var(--sisu-neutral-400);
-  border-radius: var(--sisu-radius-button);
-  background: var(--sisu-color-input-fill);
-  color: var(--sisu-color-text);
-  font: var(--sisu-type-body);
-  /* 16 px or more keeps iOS Safari from zooming into the field. */
-  font-size: max(16px, 1em);
-  outline: none;
-  -webkit-appearance: none;
-  appearance: none;
-}
-
-.sisu-input::placeholder { color: var(--sisu-color-text-muted); opacity: 0.7; }
-.sisu-input:focus-visible { border-color: var(--sisu-green-700); }
-
-/* ---- Insights ---- */
-.sisu-today-insight {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--sisu-space-card);
-  padding: var(--sisu-space-margin);
-}
-
-.sisu-today-insight-text {
-  display: flex;
-  flex: 1 1 auto;
-  min-width: 0;
-  flex-direction: column;
-  gap: calc(var(--sisu-space-grid) * 2);
-  text-align: left;
-}
-
-.sisu-today-insight-chevron { padding-top: var(--sisu-space-grid); }

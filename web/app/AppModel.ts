@@ -1,13 +1,13 @@
-// The one model for the whole app: where the data comes from, which customer is shown, the loaded overview,
-// today's progress and the settings. Port of ios/Sisu/App/AppModel.swift. Views read its snapshot (AppState,
+// The one model for the whole app: where the data comes from, which customer is shown, the loaded overview
+// and the settings. Port of ios/Sisu/App/AppModel.swift. Views read its snapshot (AppState,
 // through useApp()/useAppSelector() in AppProvider.tsx) and call its methods; they hold no logic of their own.
 // The hooks and seams are listed in web/README.md ("App model"), with the Swift names they mirror.
 import { FixtureAPI, LiveAPI, SisuError, type SisuAPI } from "@/web/core/API";
 import { CoachClient } from "@/web/core/CoachClient";
 import type { DemoCustomer, EvidenceFilter, RecurringBill, ScenarioInput, ScenarioResponse, TransactionList } from "@/web/core/Models";
 import { Store } from "@/web/core/CoachSession";
-import { CoachBillMatch, CoachRewards } from "@/web/core/AppLogic/CoachAppLogic";
-import { DailyProgress, DayStamp, type DailyAction } from "@/web/core/AppLogic/DailyProgress";
+import { CoachBillMatch, type CoachRewards } from "@/web/core/AppLogic/CoachAppLogic";
+import { DailyProgress, DayStamp } from "@/web/core/AppLogic/DailyProgress";
 import { OnboardingFlow } from "@/web/core/AppLogic/Onboarding";
 import { SampleEvidence } from "@/web/core/AppLogic/SampleEvidence";
 import { Dates } from "@/web/core/Presentation";
@@ -34,7 +34,7 @@ export class AppModel extends Store<AppState> {
   constructor(launch: LaunchOptions = LaunchOptions.current(), now: () => Date = () => new Date(), timeZone: string = Dates.currentTimeZone()) {
     const defaults = launch.defaults;
     if (launch.onboarding === "reset") {
-      // As on a clean install: no progress, names, rewards, chosen customer, preferences or finished first run.
+      // As on a clean install: no names, old progress, chosen customer, preferences, conversations or finished first run.
       [Keys.progress, Keys.billNames, Keys.coachRewards, Keys.customer, Keys.onboarding, Keys.prefs, Keys.conversations].forEach((key) => defaults.remove(key));
     }
     const storedFlow = OnboardingFlow.decode(defaults.json(Keys.onboarding));
@@ -58,9 +58,7 @@ export class AppModel extends Store<AppState> {
       confirmedBillNames: stringDictionary(defaults.json(Keys.billNames)),
       approvedMonthlySaving: 0,
       investigationRequests: 0,
-      berryDrops: 0,
       celebration: null,
-      coachRewards: CoachRewards.decode(defaults.json(Keys.coachRewards)) ?? CoachRewards.make(),
       prefs: AppPrefs.decode(defaults.json(Keys.prefs)),
     };
     super(derive(stored, DayStamp.from(now(), timeZone)));
@@ -192,7 +190,6 @@ export class AppModel extends Store<AppState> {
   async choose(customer: DemoCustomer): Promise<void> {
     this.set({ customer });
     this.defaults.setString(Keys.customer, customer.customerId);
-    this.complete("checkIn");
     await this.loadOverview();
     await this.configureCoach();
   }
@@ -262,23 +259,6 @@ export class AppModel extends Store<AppState> {
     });
   }
 
-  // MARK: Progress
-
-  isDone(action: DailyAction): boolean { return DailyProgress.done(this.state.progress, this.today).includes(action); }
-  get todayProgress(): number { return DailyProgress.progress(this.state.progress, this.today); }
-
-  complete(action: DailyAction): void {
-    const today = this.today;
-    const { progress, earned } = DailyProgress.complete(this.state.progress, action, today);
-    const party = earned > 0 ? DailyProgress.celebration(progress, today) : null;
-    this.defaults.setJSON(Keys.progress, progress);
-    this.set({
-      progress,
-      berryDrops: earned > 0 ? this.state.berryDrops + 1 : this.state.berryDrops,
-      celebration: party ?? this.state.celebration,
-    });
-  }
-
   // MARK: Hooks (see web/README.md, "App model")
 
   get flaggedBill(): RecurringBill | null { return this.state.flaggedBill; }
@@ -296,7 +276,6 @@ export class AppModel extends Store<AppState> {
     const confirmedBillNames = { ...this.state.confirmedBillNames, [billKey(customer.customerId, bill.id)]: saved };
     this.defaults.setJSON(Keys.billNames, confirmedBillNames);
     this.set({ confirmedBillNames });
-    this.complete("confirmBill");
     // Save the name on the server and start offer research early, so offers are ready before the question.
     const session = this.coach.session;
     if (session) {
@@ -305,22 +284,25 @@ export class AppModel extends Store<AppState> {
     }
   }
 
-  /** "Look into my finances" on Today, or the third daily action: the Sisu tab, where the investigation's stage cards
-   *  arrive in the conversation. A hands-free conversation in progress ends first. */
+  /** "Look into my finances": the Sisu tab, where the investigation's stages arrive in the conversation.
+   *  A hands-free conversation in progress ends first. */
   startInvestigation(): void {
     this.coach.conversation?.end();
     this.set({ tab: "sisu", historyOpen: false, openProjectId: null, investigationRequests: this.state.investigationRequests + 1 });
     this.coach.investigate();
-    this.complete("investigate");
   }
 
-  /** A coach moment: answering a teaching question or deciding on an action. Earns its berries once. */
-  coachMoment(moment: CoachRewards.Moment, id: string): void {
-    const { rewards, earned } = CoachRewards.award(this.state.coachRewards, moment, id);
-    if (earned <= 0) return;
-    this.defaults.setJSON(Keys.coachRewards, rewards);
-    this.set({ coachRewards: rewards, berryDrops: this.state.berryDrops + 1 });
-  }
+  /** @deprecated The daily actions are gone (2026-11-15): every one counts as done, so callers skip `complete`. */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  isDone(_action: string): boolean { return true; }
+  /** @deprecated The daily actions are gone (2026-11-15): completing one does nothing. */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  complete(_action: string): void {}
+
+  /** @deprecated Rewards are gone (2026-11-15): a coach moment (quiz answered, action decided) earns nothing.
+   *  Kept as a no-op so callers in Ask still compile until they drop the call. */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  coachMoment(_moment: CoachRewards.Moment, _id: string): void {}
 
   resetDemo(): void {
     // The backend's demo state (actions, memory) and the conversation go too. A server that refuses the reset
@@ -332,8 +314,8 @@ export class AppModel extends Store<AppState> {
     if (client) void client.resetDemo().catch(() => null);
     [Keys.progress, Keys.billNames, Keys.coachRewards].forEach((key) => this.defaults.remove(key));
     this.set({
-      progress: DailyProgress.make(), coachRewards: CoachRewards.make(), confirmedBillNames: {},
-      approvedMonthlySaving: 0, berryDrops: 0, todaySheet: null,
+      progress: DailyProgress.make(), confirmedBillNames: {},
+      approvedMonthlySaving: 0, todaySheet: null,
     });
     this.switchCustomer();
     this.saveOnboarding(OnboardingFlow.restart(this.state.onboarding));

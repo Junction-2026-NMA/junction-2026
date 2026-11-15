@@ -1,0 +1,77 @@
+/* "Your buffer" sheet (BufferSheet.tsx). */
+
+.sisu-buffer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sisu-space-card);
+  padding: 0 var(--sisu-space-margin) var(--sisu-space-section);
+}
+
+.sisu-buffer-text {
+  margin: 0;
+  font: var(--sisu-type-body);
+  color: var(--sisu-color-text);
+}
+
+.sisu-buffer-note,
+.sisu-buffer-label {
+  margin: 0;
+  font: var(--sisu-type-label);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-buffer-field { display: flex; flex-direction: column; gap: calc(var(--sisu-space-grid) * 2); }
+
+.sisu-buffer-input {
+  display: block;
+  width: 100%;
+  height: var(--sisu-space-touch-target);
+  padding: 0 calc(var(--sisu-space-grid) * 4);
+  border: 1px solid var(--sisu-neutral-400);
+  border-radius: var(--sisu-radius-button);
+  background: var(--sisu-color-input-fill);
+  color: var(--sisu-color-text);
+  font: var(--sisu-type-body);
+  /* 16 px or more keeps iOS Safari from zooming into the field. */
+  font-size: max(16px, 1em);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.sisu-buffer-input:focus-visible { border-color: var(--sisu-green-700); }
+.sisu-buffer-input[aria-invalid="true"] { border-color: var(--sisu-error-text); }
+
+.sisu-buffer-error {
+  margin: 0;
+  font: var(--sisu-type-label);
+  color: var(--sisu-error-text);
+}
+
+.sisu-buffer-presets { display: flex; flex-wrap: wrap; gap: calc(var(--sisu-space-grid) * 2); }
+
+button.sisu-buffer-preset {
+  min-height: 40px;
+  padding: 0 calc(var(--sisu-space-grid) * 4);
+  border: 1px solid var(--sisu-color-hairline);
+  border-radius: var(--sisu-radius-pill);
+  background: var(--sisu-color-card);
+  color: var(--sisu-color-text);
+  font: var(--sisu-type-button);
+  cursor: pointer;
+}
+
+button.sisu-buffer-preset[aria-pressed="true"] {
+  border-color: var(--sisu-green-700);
+  background: var(--sisu-green-50);
+  color: var(--sisu-green-700);
+}
+
+button.sisu-buffer-reset {
+  min-height: 44px;
+  border: 0;
+  background: none;
+  color: var(--sisu-green-700);
+  font: var(--sisu-type-button);
+  cursor: pointer;
+}
