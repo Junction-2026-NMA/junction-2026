@@ -21,9 +21,18 @@
 }
 
 /* ---- Screen ---- */
+/* Content scrolling up under the header fades out over the top 16 px instead of being cut mid-line. The mask sits
+   on the scroll view's own box, so it stays put while the content moves; the stack's top padding is as tall as the
+   fade, so nothing is faded at rest. The header stays transparent over the app texture. */
+.sisu-today-screen > .sisu-screen-scroll {
+  --sisu-today-fade: calc(var(--sisu-space-grid) * 4);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--sisu-today-fade));
+  mask-image: linear-gradient(to bottom, transparent 0, #000 var(--sisu-today-fade));
+}
+
 .sisu-today-stack {
   gap: calc(var(--sisu-space-grid) * 5);
-  padding-top: calc(var(--sisu-space-grid) * 2);
+  padding-top: calc(var(--sisu-space-grid) * 4);
   padding-bottom: var(--sisu-space-section);
 }
 

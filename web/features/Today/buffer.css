@@ -51,7 +51,8 @@
 .sisu-buffer-presets { display: flex; flex-wrap: wrap; gap: calc(var(--sisu-space-grid) * 2); }
 
 button.sisu-buffer-preset {
-  min-height: 40px;
+  min-height: 44px;
+  min-width: 44px;
   padding: 0 calc(var(--sisu-space-grid) * 4);
   border: 1px solid var(--sisu-color-hairline);
   border-radius: var(--sisu-radius-pill);

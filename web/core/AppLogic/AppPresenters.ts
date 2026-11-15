@@ -133,10 +133,23 @@ export namespace TodayPresenter {
     };
   }
 
-  /** The figure title and the total line of a transactions sheet. */
-  export function transactionsTotal(list: TransactionList): string {
-    const total = Number.isFinite(list.total) ? Math.abs(list.total) : 0;
-    return list.count === 1 ? `${money(total)} in 1 payment` : `${money(total)} in ${list.count} payments`;
+  /** The total line of a transactions sheet, true for the rows it lists. Never a net figure: the API's `total` adds
+   *  income and spending together, so the sums come from the rows, split by sign.
+   *  - Only spending: `€412 in 9 payments`.
+   *  - Only money in: `€2,400 received in 2 payments`.
+   *  - Both: `Spent €21,546 · received €21,400`, with `172 transactions` as the detail.
+   *  - Fewer rows than `count` (a cut list): the sums are not known, so only `406 transactions`. */
+  export function transactionsTotal(list: TransactionList): { headline: string; detail: string | null } {
+    const rows = list.transactions.filter((row) => Number.isFinite(row.amount));
+    const count = Math.max(list.count, rows.length);
+    const counted = (noun: "payment" | "transaction") => `${count} ${noun}${count === 1 ? "" : "s"}`;
+    if (rows.length < count) return { headline: counted("transaction"), detail: null };
+    const cents = (amounts: number[]) => roundAway(amounts.reduce((sum, amount) => sum + amount, 0) * 100) / 100;
+    const spent = cents(rows.filter((row) => row.amount < 0).map((row) => -row.amount));
+    const received = cents(rows.filter((row) => row.amount > 0).map((row) => row.amount));
+    if (received === 0) return { headline: `${money(spent)} in ${counted("payment")}`, detail: null };
+    if (spent === 0) return { headline: `${money(received)} received in ${counted("payment")}`, detail: null };
+    return { headline: `Spent ${money(spent)} · received ${money(received)}`, detail: counted("transaction") };
   }
 
   /** One transaction row. */

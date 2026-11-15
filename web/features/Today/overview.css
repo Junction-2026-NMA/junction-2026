@@ -24,6 +24,14 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* "Bills before payday are covered": a sentence, not a figure (WeeklyBudget.covered). */
+.sisu-overview-covered {
+  margin: var(--sisu-space-grid) 0 0;
+  font: var(--sisu-type-h2);
+  color: var(--sisu-color-text);
+  text-wrap: balance;
+}
+
 .sisu-overview-unit {
   font: var(--sisu-type-body);
   color: var(--sisu-color-text-muted);
@@ -78,7 +86,8 @@
 
 button.sisu-overview-link,
 button.sisu-overview-chip {
-  min-height: 40px;
+  /* 44 px tap targets. */
+  min-height: 44px;
   border: 0;
   font: var(--sisu-type-button);
   font-size: 14px;
@@ -95,7 +104,6 @@ button.sisu-overview-link {
 }
 
 button.sisu-overview-chip {
-  min-height: 36px;
   padding: 0 calc(var(--sisu-space-grid) * 3);
   border-radius: var(--sisu-radius-pill);
   background: var(--sisu-green-50);

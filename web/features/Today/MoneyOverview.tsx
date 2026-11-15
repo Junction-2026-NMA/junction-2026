@@ -28,13 +28,7 @@ export function MoneyOverview({ overview, budget, onMaths, onBuffer }: {
             <span>Checking the bills due before payday</span>
           </div>
         ) : budget.kind === "ready" ? (
-          <>
-            <p className="sisu-overview-figure">
-              <span className="sisu-overview-amount" data-testid="today.budget.amount">{money(budget.weeklyEur)}</span>
-              <span className="sisu-overview-unit">{WeeklyBudgetText.unit}</span>
-            </p>
-            <p className="sisu-overview-basis">{WeeklyBudgetText.basis(budget)}</p>
-          </>
+          <Headline headline={WeeklyBudgetText.headline(budget)} />
         ) : (
           <p className="sisu-overview-missing" data-testid="today.budget.missing">{WeeklyBudgetText.missing(budget)}</p>
         )}
@@ -60,6 +54,28 @@ export function MoneyOverview({ overview, budget, onMaths, onBuffer }: {
       ) : null}
       <p className="sisu-overview-date">{TodayPresenter.dataDate(overview)}</p>
     </SisuCard>
+  );
+}
+
+/** The weekly figure, or "Bills before payday are covered" when that figure is far above the usual pace (it would
+ *  be most of the balance). The full working stays in "How this is worked out". */
+function Headline({ headline }: { headline: WeeklyBudgetText.Headline }) {
+  if (headline.kind === "covered") {
+    return (
+      <>
+        <p className="sisu-overview-covered" data-testid="today.budget.covered">{headline.title}</p>
+        <p className="sisu-overview-basis">{headline.detail}</p>
+      </>
+    );
+  }
+  return (
+    <>
+      <p className="sisu-overview-figure">
+        <span className="sisu-overview-amount" data-testid="today.budget.amount">{headline.amount}</span>
+        <span className="sisu-overview-unit">{headline.unit}</span>
+      </p>
+      <p className="sisu-overview-basis">{headline.detail}</p>
+    </>
   );
 }
 

@@ -117,6 +117,17 @@ export namespace WeeklyBudget {
     return projectedEur < bufferEur ? "belowBuffer" : "onTrack";
   }
 
+  /** Above this many times the usual everyday spending a week, a weekly figure stops being a budget anyone would
+   *  spend: it is most of the balance. Today then says the bills before payday are covered instead. */
+  export const coveredFactor = 3;
+
+  /** True when there is money left after the bills and the buffer and the weekly budget is more than
+   *  `coveredFactor` times the usual everyday spending a week. The figure itself is not capped (the maths sheet keeps
+   *  the full working); only Today's headline changes. False when the usual pace is not known. */
+  export function covered(ready: Ready): boolean {
+    return ready.usualWeeklyEur !== null && ready.leftEur > 0 && ready.weeklyEur > coveredFactor * ready.usualWeeklyEur;
+  }
+
   /** "Spend €X less on everyday spending this week": X and what would then be left just before payday. */
   export function adjustment(ready: Ready): { cutEur: number; leftEur: number } | null {
     if (ready.usualWeeklyEur === null || ready.projectedEur === null || !(ready.usualWeeklyEur >= 5)) return null;
@@ -135,6 +146,21 @@ export namespace WeeklyBudgetText {
 
   export const title = "Estimated weekly budget";
   export const unit = "a week until payday";
+  export const coveredTitle = "Bills before payday are covered";
+
+  /** Today's headline: the weekly figure with its basis, or, when that figure is far above the usual pace
+   *  (`WeeklyBudget.covered`), "Bills before payday are covered" with what is left and the usual pace. */
+  export type Headline =
+    | { readonly kind: "weekly"; readonly amount: string; readonly unit: string; readonly detail: string }
+    | { readonly kind: "covered"; readonly title: string; readonly detail: string };
+
+  export function headline(ready: WeeklyBudget.Ready): Headline {
+    if (!WeeklyBudget.covered(ready)) return { kind: "weekly", amount: money(ready.weeklyEur), unit, detail: basis(ready) };
+    const buffer = ready.bufferIsDefault ? "the assumed buffer" : "your buffer";
+    const usual = ready.usualWeeklyEur ?? 0;
+    const pace = Math.round(usual) >= 1 ? ` · you usually spend about ${money(usual)} a week on everyday things` : "";
+    return { kind: "covered", title: coveredTitle, detail: `About ${money(ready.leftEur)} left after bills and ${buffer}${pace}` };
+  }
 
   export function payday(ready: WeeklyBudget.Ready): string {
     if (ready.daysToPayday === 0) return "Payday today";
@@ -168,13 +194,17 @@ export namespace WeeklyBudgetText {
 
   /** The maths, one line per step: balance, each bill, the buffer, what is left, the weeks, the weekly budget. */
   export function lines(ready: WeeklyBudget.Ready, dataDate: string): BudgetLine[] {
-    const weeks = ready.daysToPayday < 7 ? "under a week: all of it is this week's" : `${ready.daysToPayday} days ≈ ${(Math.round(ready.weeks * 10) / 10).toFixed(1)} weeks`;
+    const underWeek = ready.daysToPayday < 7;
+    const tenths = Math.round(ready.weeks * 10) / 10;
+    const weeks = underWeek ? "÷ 1 week" : `÷ ${Number.isInteger(tenths) ? tenths : tenths.toFixed(1)} weeks`;
+    const weeksBasis = underWeek ? "under a week: all of it is this week's"
+      : `${ready.daysToPayday} days to ${date(ready.nextPayday)} (${ready.daysToPayday} ÷ 7)`;
     return [
       line("balance", "Balance", money(ready.balanceEur), `bank data, ${date(dataDate)}`),
       ...ready.bills.map((bill, index) => line(`bill-${index}`, bill.label, `−${money(bill.amountEur)}`, `usually due ${date(bill.expectedOn)} (12-month average; the name is Sisu's guess)`)),
       line("buffer", "Protected buffer", `−${money(ready.bufferEur)}`, ready.bufferIsDefault ? "a default assumption: set your own" : "your setting"),
       line("left", "Left until payday", money(Math.max(ready.leftEur, 0)), ready.leftEur < 0 ? `the bills and buffer need ${money(-ready.leftEur)} more than the balance` : `for everything else until ${date(ready.nextPayday)}`, true),
-      line("weeks", "Weeks until payday", "÷", weeks),
+      line("weeks", "Weeks until payday", weeks, weeksBasis),
       line("weekly", WeeklyBudgetText.title, money(ready.weeklyEur), "a week", true),
     ];
   }

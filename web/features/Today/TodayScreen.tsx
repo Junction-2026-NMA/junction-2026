@@ -46,7 +46,7 @@ export default function TodayScreen() {
 
   return (
     <>
-      <Screen header={<TodayHeader />} testId="screen.today">
+      <Screen header={<TodayHeader />} className="sisu-today-screen" testId="screen.today">
         {overviewState.kind === "failed" ? (
           <ErrorState message={overviewState.message} retry={() => void model.retry()} />
         ) : overviewState.kind === "loaded" ? (

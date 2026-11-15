@@ -21,10 +21,19 @@ export function parseBuffer(text: string): number | null {
   return Number.isFinite(value) && value >= 0 && value <= maxBuffer ? value : null;
 }
 
+/** Below this window height half a screen cannot hold the field and "Save buffer" together, so the sheet opens
+ *  at the large detent (a 375x667 phone shows only the field and half the quick amounts at medium). */
+const mediumMinHeight = 740;
+const tallDetents = ["medium", "large"] as const;
+const shortDetents = ["large"] as const;
+
 /** `defaultEur`: the buffer assumed until one is set (`WeeklyBudget.defaultBuffer(cashFlow)`). */
 export function BufferSheet({ open, onClose, defaultEur = WeeklyBudget.defaultBufferEur }: { open: boolean; onClose: () => void; defaultEur?: number }) {
+  // Read when the sheet renders; the sheet itself only mounts in the browser (BottomSheet), so the server's value
+  // never reaches the page.
+  const short = typeof window !== "undefined" && window.innerHeight < mediumMinHeight;
   return (
-    <SheetFrame open={open} onClose={onClose} title="Your buffer" detents={["medium", "large"]} testId="sheet.buffer">
+    <SheetFrame open={open} onClose={onClose} title="Your buffer" detents={short ? shortDetents : tallDetents} testId="sheet.buffer">
       {open ? <BufferForm onClose={onClose} defaultEur={defaultEur} /> : null}
     </SheetFrame>
   );
@@ -64,6 +73,8 @@ function BufferForm({ onClose, defaultEur }: { onClose: () => void; defaultEur: 
           }} />
       </label>
       {invalid ? <p className="sisu-buffer-error" role="alert">Type a whole amount in euros, for example 150.</p> : null}
+      {/* Save sits right under the field, so the two show together at the medium detent. */}
+      <SisuButton label="Save buffer" enabled={value !== null} action={() => { if (value !== null) save(value); }} />
       <div className="sisu-buffer-presets" role="group" aria-label="Quick amounts">
         {presets.map((amount) => (
           <button key={amount} type="button" className="sisu-buffer-preset" aria-pressed={value === amount}
@@ -72,7 +83,6 @@ function BufferForm({ onClose, defaultEur }: { onClose: () => void; defaultEur: 
           </button>
         ))}
       </div>
-      <SisuButton label="Save buffer" enabled={value !== null} action={() => { if (value !== null) save(value); }} />
       {current !== null ? (
         <button type="button" className="sisu-buffer-reset" onClick={() => save(null)}>
           Use the default ({TodayPresenter.money(defaultEur)})

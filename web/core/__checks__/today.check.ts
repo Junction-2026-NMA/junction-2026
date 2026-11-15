@@ -79,13 +79,41 @@ group("Recorded profiles", () => {
   }
 });
 
+group("Covered headline: a weekly figure far above the usual pace is not shown as spending money", () => {
+  const headline = (id: string, buffer: number | null = null) =>
+    WeeklyBudgetText.headline(ready(WeeklyBudget.compute(WeeklyBudget.inputs(overview(id), cashFlow(id), buffer))));
+  // Sanna: €27,162 balance, €948 of bills, about €3.48 a day of everyday spending. Not capped, just said plainly.
+  const sanna = ready(WeeklyBudget.compute(WeeklyBudget.inputs(overview("CUST02003"), cashFlow("CUST02003"), 250)));
+  ok(WeeklyBudget.covered(sanna), "Sanna: covered");
+  near(sanna.leftEur, 27161.81 - 948.09 - 250, "Sanna: what is left is not capped");
+  eq(WeeklyBudgetText.headline(sanna), {
+    kind: "covered", title: "Bills before payday are covered",
+    detail: "About €25,964 left after bills and your buffer · you usually spend about €24 a week on everyday things",
+  }, "Sanna: covered headline with her usual pace");
+  eq(headline("CUST02003").kind === "covered" && headline("CUST02003").detail.includes("the assumed buffer"), true, "an assumed buffer is called assumed");
+  eq(headline("CUST04414").kind, "covered", "Eetu: about €1,590 a week against about €459 of usual spending");
+  const aino = headline("CUST04974");
+  eq(aino, { kind: "weekly", amount: "€202", unit: "a week until payday", detail: "After €687 of bills due before payday and a €100 buffer (assumed)." }, "Aino: the weekly figure");
+  const r = ready(WeeklyBudget.compute(base));
+  eq(WeeklyBudget.covered(r), false, "€150 against €140 a week: a weekly figure");
+  eq(WeeklyBudget.covered(ready(WeeklyBudget.compute({ ...base, balanceEur: 1600 }))), true, "€450 a week against €140: covered (above 3x)");
+  eq(WeeklyBudget.covered(ready(WeeklyBudget.compute({ ...base, balanceEur: 1540 }))), false, "€420 a week against €140: exactly 3x is still a weekly figure");
+  eq(WeeklyBudget.covered(ready(WeeklyBudget.compute({ ...base, balanceEur: 5000, averageDailyEverydayEur: null }))), false, "unknown pace: a weekly figure");
+  eq(WeeklyBudget.covered(ready(WeeklyBudget.compute({ ...base, balanceEur: 650 }))), false, "nothing left: never covered");
+  const still = WeeklyBudgetText.headline(ready(WeeklyBudget.compute({ ...base, balanceEur: 5000, averageDailyEverydayEur: 0 })));
+  eq(still, { kind: "covered", title: "Bills before payday are covered", detail: "About €4,300 left after bills and the assumed buffer" }, "no everyday spending: no pace clause");
+});
+
 group("Budget text", () => {
   const r = ready(WeeklyBudget.compute(base));
   eq(WeeklyBudgetText.title, "Estimated weekly budget", "title");
   ok(!/safe to spend/i.test(JSON.stringify([WeeklyBudgetText.lines(r, "2026-09-30"), WeeklyBudgetText.basis(r), WeeklyBudgetText.pace(r)])), "never 'safe to spend'");
   eq(WeeklyBudgetText.basis(r), "After €600 of bills due before payday and a €100 buffer (assumed).", "basis");
   eq(WeeklyBudgetText.payday(r), "Payday in 14 days", "payday");
-  eq(WeeklyBudgetText.lines(r, "2026-09-30").map((l) => l.amount), ["€1,000", "−€600", "−€100", "€300", "÷", "€150"], "maths lines");
+  eq(WeeklyBudgetText.lines(r, "2026-09-30").map((l) => l.amount), ["€1,000", "−€600", "−€100", "€300", "÷ 2 weeks", "€150"], "maths lines");
+  const weeksLine = (days: number) => WeeklyBudgetText.lines(ready(WeeklyBudget.compute({ ...base, daysToPayday: days })), "2026-09-30").find((l) => l.id === "weeks");
+  eq([weeksLine(15)?.amount, weeksLine(15)?.basis], ["÷ 2.1 weeks", "15 days to 15 Oct 2026 (15 ÷ 7)"], "the divisor sits in the value column");
+  eq([weeksLine(3)?.amount, weeksLine(3)?.basis], ["÷ 1 week", "under a week: all of it is this week's"], "under a week");
   eq(WeeklyBudget.adjustment(r), { cutEur: 30, leftEur: 150 }, "adjustment: a fifth of €140, rounded up to €5");
   eq(WeeklyBudgetText.adjustment(r), "Spend €30 less on everyday spending this week → about €150 left just before payday.", "adjustment text");
 });
@@ -107,6 +135,26 @@ group("Primary insight", () => {
   eq(noFlow?.title.startsWith("Helen"), true, "without a cash flow: the bill, with the confirmed name");
   const quiet = TodayFocus.primary({ ...aino, recurringBills: [], insights: [{ id: "over-peers", title: "p", body: "b", evidence: { from: "a", to: "b" } }] }, null, null, null);
   eq(quiet, null, "a peer comparison is never the primary insight");
+});
+
+group("Transactions total: never a net figure called payments", () => {
+  const row = (amount: number, category = "Restaurants") => ({ date: "2026-09-30", time: "12:00", amount, category, mcc: "5812", balanceAfter: 100, channel: "card" });
+  const list = (amounts: number[], count = amounts.length) => ({
+    customerId: "CUST04974", dataTimestamp: "2026-09-30", currency: "EUR", count, truncated: false,
+    total: amounts.reduce((a, b) => a + b, 0), transactions: amounts.map((amount) => row(amount)),
+  }) as unknown as Parameters<typeof TodayPresenter.transactionsTotal>[0];
+  eq(TodayPresenter.transactionsTotal(list([-100.5, -20.25])), { headline: "€121 in 2 payments", detail: null }, "only spending");
+  eq(TodayPresenter.transactionsTotal(list([-9.99])), { headline: "€10 in 1 payment", detail: null }, "one payment");
+  eq(TodayPresenter.transactionsTotal(list([2000, 400])), { headline: "€2,400 received in 2 payments", detail: null }, "only money in");
+  // The live "All transactions" list for Aino: −€21,546.00 of spending and +€21,399.93 of income, net −€146.07.
+  const mixed = list([-21000, -546, 21399.93]);
+  eq(TodayPresenter.transactionsTotal({ ...mixed, count: 3 }), { headline: "Spent €21,546 · received €21,400", detail: "3 transactions" }, "mixed: both sums, never the net");
+  ok(!TodayPresenter.transactionsTotal(mixed).headline.includes("€146"), "the net €146 never shows");
+  eq(TodayPresenter.transactionsTotal(list([-10, -20], 406)), { headline: "406 transactions", detail: null }, "a cut list: only the count");
+  const all = read<Parameters<typeof TodayPresenter.transactionsTotal>[0]>("transactions-CUST04974-all.json");
+  eq(TodayPresenter.transactionsTotal(all).headline, "406 transactions", "recorded file holds 300 of 406 rows: count only");
+  const narrowed = { ...all, count: all.transactions.length };
+  ok(TodayPresenter.transactionsTotal(narrowed).headline.startsWith("Spent €"), "recorded rows mix salary and spending: split by sign");
 });
 
 group("Basket wording", () => {

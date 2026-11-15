@@ -77,10 +77,12 @@ function TransactionsContent({ request }: { request: EvidenceRequest }) {
 
 function Rows({ list }: { list: TransactionList }) {
   const note = TodayPresenter.truncatedNote(list);
+  const total = TodayPresenter.transactionsTotal(list);
   return (
     <div className="sisu-tx">
       <div className="sisu-tx-summary">
-        <p className="sisu-sheet-h3">{TodayPresenter.transactionsTotal(list)}</p>
+        <p className="sisu-sheet-h3" data-testid="transactions.total">{total.headline}</p>
+        {total.detail ? <p className="sisu-sheet-caption">{total.detail}</p> : null}
         {note ? <p className="sisu-sheet-caption">{note}</p> : null}
       </div>
       <ul className="sisu-tx-list sisu-card-surface">
