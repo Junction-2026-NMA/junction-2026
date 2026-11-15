@@ -114,6 +114,19 @@ describe("HTTP routes: validation, approval and isolation", () => {
     assert.equal((await prepare(request("/p", { customerId: AINO, kind: "standing_transfer", monthlyAmountEur: 999999 }))).status, 400);
   });
 
+  it("prepare reads an amount only from a JSON number, never from a string or a list", async () => {
+    // Found by an automated QA pass: [100], "100" and "1e2" were all prepared as "Move €100 to savings now".
+    for (const amountEur of [[100], "100", "1e2", null, true, { value: 100 }]) {
+      const response = await prepare(request("/p", { customerId: EETU, kind: "one_off_transfer", amountEur }));
+      assert.equal(response.status, 400, JSON.stringify(amountEur));
+      assert.match((await json<{ error: string }>(response)).error, /as a number of euros/);
+    }
+    const ok = await prepare(request("/p", { customerId: EETU, kind: "one_off_transfer", amountEur: 100 }));
+    assert.equal(ok.status, 201);
+    assert.equal((await json<{ action: AgentAction }>(ok)).action.monthlyAmountEur, 100);
+    assert.equal((await prepare(request("/p", { customerId: EETU, kind: "standing_transfer", monthlyAmountEur: 20 }))).status, 201, "the older field still works");
+  });
+
   it("memory: confirm a bill in the app, read it back, forget it", async () => {
     const saved = await json<CustomerMemory>(await memoryPost(request("/api/memory", { customerId: AINO, kind: "bill_name", key: "utilities-1", value: "Helen", billType: "electricity" })));
     assert.deepEqual(saved.items.map((i) => [i.kind, i.key, i.value, i.source]), [["bill_name", "utilities-1", "Helen", "user-confirmed-in-app"]]);

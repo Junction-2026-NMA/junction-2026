@@ -16,13 +16,17 @@ export const POST = withVisitor(async function POST(request: Request) {
   if (!customerId || !findCustomer(customerId)) return jsonError("Choose a customer first.", 400);
 
   const billType = parseBillType(body.billType);
+  // An amount must be a JSON number: "100", [100] or "1e2" are refused rather than read as €100.
+  const amount = body.amountEur ?? body.monthlyAmountEur;
   const built =
     body.kind === "switch_contract"
       ? billType
         ? buildSwitchDraft(customerId, billType, { provider: typeof body.provider === "string" ? body.provider.slice(0, 60) : undefined, preparedBy: "user" })
         : null
       : body.kind === "standing_transfer" || body.kind === "one_off_transfer"
-        ? buildTransferDraft(customerId, Number(body.amountEur ?? body.monthlyAmountEur), { preparedBy: "user", once: body.kind === "one_off_transfer", destination: body.destination === "investments" ? "investments" : "savings" })
+        ? typeof amount === "number"
+          ? buildTransferDraft(customerId, amount, { preparedBy: "user", once: body.kind === "one_off_transfer", destination: body.destination === "investments" ? "investments" : "savings" })
+          : ({ ok: false, status: 400, reason: "Send amountEur as a number of euros, for example 50. Nothing was prepared." } as const)
         : null;
   if (!built) return jsonError("Send kind: switch_contract (with billType), or standing_transfer or one_off_transfer (with amountEur and, optionally, destination: savings or investments).", 400);
   if (!built.ok) return jsonError(built.reason, built.status);
