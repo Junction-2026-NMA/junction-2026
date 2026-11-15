@@ -87,7 +87,7 @@ export namespace LessonFollowUps {
           question: "Which basket can you change fastest, starting this week?",
           options: ["Regular essentials, like rent", "Occasional essentials, like a repair", "Everyday spending, like food and outings"],
           correctIndex: 2,
-          explanation: `Everyday spending: it is decided day by day${everyday !== null ? `, and for you it is about ${euros(everyday)} a month` : ""}. That does not make it wasted, food is in it too. It is simply where a small change shows soonest.`,
+          explanation: `Everyday spending: it is decided day by day${everyday !== null ? `, and for you it is about ${euros(everyday)} a month` : ""}. That does not make it wasted: food is in it too. It is simply where a small change shows soonest.`,
           whyWrong: ["Rent and contracts are fixed for months at a time, so they change slowly.", "Occasional essentials arrive when they arrive. You can plan for them, but rarely change them this week.", null],
         };
       }

@@ -107,7 +107,7 @@ group("voice prefs: two languages, the session language, voices offered", () => 
   eq([VoiceLanguages.sessionLanguage({ speak: "fi", reply: "same" }), VoiceLanguages.sessionLanguage({ speak: "auto", reply: "en" })], ["fi", "en"], "session language");
   eq(VoiceLanguages.decode({ speak: "<b>", reply: 3 }), { speak: "auto", reply: "same" }, "invalid values fall back");
   eq(voicesOffered(null).map((v) => v.id), [null], "only the default voice without the server's list");
-  eq(voicesOffered({ voices: [{ id: "SAz9YHcvj6GT2YYXdXww", name: "River" }], languages: [] }).map((v) => v.name), ["Sarah", "River"], "curated voices the server has");
+  eq(voicesOffered({ voices: [{ id: "SAz9YHcvj6GT2YYXdXww", name: "River" }], languages: [] }).map((v) => v.name), ["Sisu’s usual voice", "River"], "curated voices the server has");
   ok(["en", "fi", "sv", "de", "xx"].every((l) => previewSentence(l).text.length <= 240), "preview sentences fit the TTS cache");
   eq(previewSentence("xx").language, null, "an unknown language previews in English without a language code");
 });

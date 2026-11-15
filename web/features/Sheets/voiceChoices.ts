@@ -9,7 +9,7 @@ export interface VoiceChoice {
 }
 
 /** The server's default voice (ElevenLabs "Sarah" on the hosted backend), always offered. */
-export const defaultVoice: VoiceChoice = { id: null, name: "Sarah", detail: "Sisu’s usual voice. Calm and clear." };
+export const defaultVoice: VoiceChoice = { id: null, name: "Sisu’s usual voice", detail: "Calm and clear. The one the server uses by default." };
 
 /** A few voices that suit a coach. Offered only when the backend's account lists them (GET /api/voice/tts). */
 export const curatedVoices: readonly VoiceChoice[] = [

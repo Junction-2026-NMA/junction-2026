@@ -37,6 +37,11 @@
   will-change: transform;
 }
 
+/* Focus moves to the sheet when it opens; the ring is for controls inside it, not the sheet itself. */
+.sisu-sheet-layer .sisu-sheet:focus-visible {
+  outline: none;
+}
+
 .sisu-sheet-grab {
   position: relative;
   flex: none;

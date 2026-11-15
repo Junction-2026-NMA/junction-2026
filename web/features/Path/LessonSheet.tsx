@@ -116,7 +116,7 @@ function LessonContent({ lesson, path, autoAnswer, onAskSisu }: {
       {attempt.first !== null ? (
         <SisuCard className={entrance}>
           <p className="sisu-lesson-feedback" data-testid="lesson.feedback">
-            {firstRight ? "Spot on." : "Not quite, and it is a common guess. Here is how it works out for you."}
+            {firstRight ? "Spot on." : "Not quite. Here is how it works out for you."}
           </p>
           {!firstRight && LessonFollowUps.whyWrong(card, attempt.first) ? (
             <p className="sisu-lesson-reveal">{LessonFollowUps.whyWrong(card, attempt.first)}</p>

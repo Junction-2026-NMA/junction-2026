@@ -85,7 +85,10 @@
   flex-direction: column;
   gap: calc(var(--sisu-space-grid) * 2);
   padding: 0 var(--sisu-space-margin) calc(var(--sisu-space-grid) * 3);
-  background: var(--sisu-color-background);
+  /* Opaque over the scrolling list, with the same grain as the sheet (seamless noise, so no visible edge). */
+  background-color: var(--sisu-color-background);
+  background-image: var(--sisu-texture);
+  background-size: var(--sisu-texture-size);
 }
 
 .sisu-tx-list {
@@ -207,7 +210,10 @@
   gap: calc(var(--sisu-space-grid) * 2);
   margin: 0;
   padding-left: calc(var(--sisu-space-grid) * 5);
+  list-style: disc;
 }
+
+.sisu-settings-list > li::marker { color: var(--sisu-green-700); }
 
 .sisu-settings-select-row {
   display: flex;

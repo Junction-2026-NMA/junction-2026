@@ -76,7 +76,7 @@ export function VoiceSettings({ testPrefix = "settings" }: { testPrefix?: string
       : "Sisu works out the language from what you say or type, and answers in it.";
 
   return (
-    <div className="sisu-settings-voice" data-testid={`${testPrefix}.voice`}>
+    <div className="sisu-settings-voice" data-testid={`${testPrefix}.voicesettings`}>
       <LanguageSelect id={`${testPrefix}-speak`} label="I speak" value={languages.speak} first={{ value: "auto", label: "Automatic" }}
         more={more} onChange={(speak) => setLanguage({ speak })} />
       <LanguageSelect id={`${testPrefix}-reply`} label="Sisu answers in" value={languages.reply} first={{ value: "same", label: "Same as I speak" }}

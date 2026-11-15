@@ -328,7 +328,8 @@
 }
 
 .sisu-lesson-principle-text {
-  font: var(--sisu-type-h3);
+  font: var(--sisu-type-body-large);
+  font-weight: 600;
   color: var(--sisu-green-900);
 }
 

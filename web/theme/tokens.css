@@ -164,12 +164,16 @@ html:has(.sisu-root) body {
   overscroll-behavior: none;
 }
 
-.sisu-root {
-  color-scheme: light;
-  /* Every screen sits on this: screens leave their own background transparent; cards and sheets stay solid. */
+/* The app background with its grain. Every screen sits on it: screens leave their own background transparent;
+   cards and sheets stay solid. `html .sisu-root` outranks web/gate/shell.css's plain `.sisu-root { background }`. */
+html .sisu-root {
   background-color: var(--sisu-color-background);
   background-image: var(--sisu-texture);
   background-size: var(--sisu-texture-size);
+}
+
+.sisu-root {
+  color-scheme: light;
   color: var(--sisu-color-text);
   font: var(--sisu-type-body);
   -webkit-font-smoothing: antialiased;
