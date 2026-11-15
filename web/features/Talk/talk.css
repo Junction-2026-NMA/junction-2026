@@ -196,6 +196,27 @@ button.sisu-talk-logo:focus-visible {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Text scrolled up under the header fades out instead of being cut mid-glyph (both scrolling areas). */
+.sisu-talk-empty-scroll,
+.sisu-talk-scroll {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 16px);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 16px);
+}
+
+/* With the keyboard up the greeting and the suggestions must still fit: Liito is smaller (TalkScreen), the hint goes. */
+.sisu-talk[data-keyboard="true"] .sisu-talk-empty-hero {
+  gap: var(--sisu-space-grid);
+  padding-top: calc(var(--sisu-space-grid) * 2);
+}
+
+.sisu-talk[data-keyboard="true"] .sisu-talk-empty-line {
+  margin-top: 0;
+}
+
+.sisu-talk[data-keyboard="true"] .sisu-talk-empty-hint {
+  display: none;
+}
+
 .sisu-talk-empty {
   display: flex;
   flex-direction: column;
@@ -337,7 +358,7 @@ button.sisu-talk-suggest-item:focus-visible {
   flex-direction: column;
   align-items: stretch;
   gap: var(--sisu-space-card);
-  padding: calc(var(--sisu-space-grid) * 2) var(--sisu-space-margin) var(--sisu-space-card);
+  padding: calc(var(--sisu-space-grid) * 4) var(--sisu-space-margin) var(--sisu-space-card);
 }
 
 /* Under the newest turn: room for its question to sit at the top (height set by TalkTranscript). */
@@ -351,24 +372,25 @@ button.sisu-talk-suggest-item:focus-visible {
   height: 1px;
 }
 
+/* "Jump to latest": a small round button in the bottom right corner (44 x 44), so it never sits over the middle of
+   a line, a chip or an Approve button. TalkTranscript shows it only when new content arrived below the view. */
 button.sisu-talk-jump {
   position: absolute;
-  left: 50%;
+  right: calc(var(--sisu-space-grid) * 2);
   bottom: calc(var(--sisu-space-grid) * 3);
   z-index: 3;
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 6px;
-  min-height: 40px;
-  padding: 0 calc(var(--sisu-space-grid) * 4);
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
   border: 1px solid var(--sisu-color-hairline);
-  border-radius: var(--sisu-radius-pill);
+  border-radius: 50%;
   background: var(--sisu-color-card);
   color: var(--sisu-color-primary);
-  font: var(--sisu-type-label);
-  box-shadow: 0 8px 24px rgba(24, 33, 28, 0.14);
+  box-shadow: 0 6px 18px rgba(24, 33, 28, 0.16);
   cursor: pointer;
-  translate: -50% 0;
   animation: sisu-talk-pill-in 260ms var(--sisu-motion-ease-out) both;
   -webkit-tap-highlight-color: transparent;
 }
@@ -485,12 +507,16 @@ button.sisu-talk-strip-type {
   color: var(--sisu-color-text);
 }
 
+/* Up to two lines, so the instruction (tap Stop, tap End) is never cut off on a narrow phone. */
 .sisu-talk-strip-detail {
   font: var(--sisu-type-caption);
   color: var(--sisu-color-text-muted);
-  white-space: nowrap;
+  white-space: normal;
   overflow: hidden;
-  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 button.sisu-talk-strip-stop {

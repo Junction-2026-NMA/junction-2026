@@ -4,7 +4,9 @@
 import { SisuActivity } from "@/web/core/Activity";
 import { ConversationFlow, ConversationPresenter, SpeechEndpointer, type ConversationCommand } from "@/web/core/AppLogic/Conversation";
 import { VoiceText } from "@/web/core/AppLogic/VoiceLogic";
-import type { CoachClient } from "@/web/core/CoachClient";
+import { CoachClient } from "@/web/core/CoachClient";
+import { CoachSession } from "@/web/core/CoachSession";
+import { SpokenText } from "@/web/core/SpokenText";
 import { SpeechPlayer } from "@/web/voice/SpeechPlayer";
 
 // MARK: - A tiny harness
@@ -525,6 +527,36 @@ group("speech: a stopped answer is a drained answer (14 Nov QA: Talk stuck on Th
   eq(drained, 1, "a second stop says nothing more");
 });
 
+group("speech: dates and amounts are worded for the ear, the screen keeps its own (15 Nov QA: 'payday on 2026-10-15')", () => {
+  const now = new Date("2026-11-15T12:00:00Z");
+  const say = (text: string, language: string | null = "en") => SpokenText.format(text, language, now, "Europe/Helsinki");
+  eq(say("Your bank data shows you are expected to have 177.12 euros just before the next payday on 2026-10-15."),
+    "Your bank data shows you are expected to have 177.12 euros just before the next payday on 15 October.", "an ISO date this year: day and month");
+  eq(say("Rent is due on 2027-01-03."), "Rent is due on 3 January 2027.", "another year: with the year");
+  eq(say("Checked 2026-10-15T09:30:00Z."), "Checked 15 October.", "a date with a time: the day only");
+  eq(say("Checked 2026-10-15T22:30:00Z."), "Checked 16 October.", "the day where the person is (Helsinki)");
+  eq(say("Next check 2026-10-15 09:30."), "Next check 15 October.", "a time without a zone: the date");
+  eq(say("You are at €-12 and then −€12.50, once -€1."), "You are at minus 12 euros and then minus 12.50 euros, once minus 1 euro.", "negative euros");
+  eq(say("Palkkapäivä on 2026-10-15, saldo −12 €.", "fi"), "Palkkapäivä on 15. lokakuuta, saldo miinus 12 euroa.", "Finnish words in a Finnish answer");
+  eq(say("Payday 2026-10-15.", null), "Payday 15 October.", "no language (auto, nothing heard yet): English");
+  eq(say("Between 10-12 € a week, or €12, by 2026-13-40."), "Between 10-12 € a week, or €12, by 2026-13-40.", "a range, a plain amount and a non-date stay");
+});
+
+const sessionSpeech = (async () => {
+  // The session speaks the worded sentence; the reply on screen keeps the server's text.
+  const sse = 'data: {"type":"sentence","index":0,"text":"Payday is on 2026-10-15."}\n\ndata: {"type":"done","text":"Payday is on 2026-10-15.","citations":[]}\n\n';
+  const fetchImpl = (async () => new Response(sse, { status: 200, headers: { "Content-Type": "text/event-stream" } })) as typeof fetch;
+  const spoken: string[] = [];
+  const session = new CoachSession("CUST04974", CoachClient.live("", fetchImpl), { speech: { speak: (text) => { spoken.push(text); }, stop: () => {} } });
+  session.language = "en";
+  await session.ask("When is payday?");
+  const year = new Date().getFullYear();
+  group("speech: the session says the worded sentence, the screen shows the server's", () => {
+    eq(spoken, [year === 2026 ? "Payday is on 15 October." : "Payday is on 15 October 2026."], "spoken");
+    eq(session.messages[1].text, "Payday is on 2026-10-15.", "on screen (CardText.humanize formats it there)");
+  });
+})();
+
 group("presenter: clock, counts, ring", () => {
   eq([0, 5.9, 65, 720, 3723, -3].map((s) => ConversationPresenter.clock(s)), ["0:00", "0:05", "1:05", "12:00", "1:02:03", "0:00"], "clock");
   eq([0, 1, 4].map((n) => ConversationPresenter.questions(n)), ["no questions", "1 question", "4 questions"], "counts");
@@ -536,5 +568,7 @@ group("presenter: clock, counts, ring", () => {
 
 // The checks of Liito's task moods and their sequencer are in liito.check.ts.
 
-console.log(`\n${passes} passed, ${failures} failed`);
-if (failures > 0) process.exit(1);
+void sessionSpeech.catch((error) => { failures += 1; console.error("  FAIL session speech threw", error); }).then(() => {
+  console.log(`\n${passes} passed, ${failures} failed`);
+  if (failures > 0) process.exit(1);
+});

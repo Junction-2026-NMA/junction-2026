@@ -33,6 +33,8 @@ export namespace ConversationHistory {
   const titleLength = 56;
   const investigateText = "Look into my finances and find the best thing I can do.";
   const unheard = new Set(["", "(nothing heard)", "(voice question)"]);
+  /** The sentence of a reply stopped before any of it arrived (CoachErrors.stopped): its card offers Try again. */
+  export const stoppedReply = "Stopped before Sisu answered.";
 
   /** The stored archive, every entry checked. */
   export function decodeArchive(json: unknown): ConversationArchive {
@@ -77,11 +79,23 @@ export namespace ConversationHistory {
     return `${(space > 24 ? cut.slice(0, space) : cut).replace(/[\s,.;:!?-]+$/, "")}…`;
   }
 
-  /** The messages worth keeping: settled copies (nothing pending), without unheard voice questions left empty. */
+  /** The messages worth keeping: settled copies (nothing pending), without unheard voice questions left empty (nor
+   *  their empty replies). A reply in which nothing arrived is never kept blank: it is saved as stopped. */
   export function storable(messages: readonly CoachMessage[]): CoachMessage[] {
-    return messages
-      .filter((m) => !(m.role === "user" && m.pending && m.text === ""))
-      .map((m) => (m.pending ? { ...m, pending: false, runningTool: null } : m));
+    const unheardIds = new Set(messages.filter((m) => m.role === "user" && m.pending && m.text === "").map((m) => m.id));
+    return messages.flatMap((m, index) => {
+      if (unheardIds.has(m.id)) return [];
+      const settled = m.pending ? { ...m, pending: false, runningTool: null } : m;
+      if (m.role !== "assistant" || !isBlank(m)) return [settled];
+      const question = index > 0 ? messages[index - 1] : null;
+      return question && unheardIds.has(question.id) ? [] : [{ ...settled, error: stoppedReply }];
+    });
+  }
+
+  /** A reply in which nothing has arrived: no words, error, filler, steps, cards or action. */
+  export function isBlank(m: CoachMessage): boolean {
+    return m.role === "assistant" && m.text === "" && m.error === null && m.filler === null && m.stages.length === 0
+      && m.steps.length === 0 && m.visuals.length === 0 && m.tools.length === 0 && m.action === null && m.teaching === null;
   }
 
   /** The entry to save for the conversation on screen, or null when it has no answer yet. Keeps the quiz picks of

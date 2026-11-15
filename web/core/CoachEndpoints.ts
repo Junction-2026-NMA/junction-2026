@@ -277,13 +277,15 @@ export class CoachEndpoints {
   }
 
   /** `POST {base}/api/voice/turn`: fields `audio`, `customerId`, `history` (JSON array of `{ role, content }`),
-   * `focusBill` (only when set) and `language`. Answers with the event stream. */
+   * `focusBill` (only when set), `language` and `bufferEur` (the person's protected buffer in euros, only when set).
+   * Answers with the event stream. */
   static voiceTurn(baseURL: string, customerId: string, audio: FormBytes, fileName: string, mimeType: string,
-    history: ChatTurn[] = [], focusBill: BillType | null = null, language = "auto"): SisuRequest {
+    history: ChatTurn[] = [], focusBill: BillType | null = null, language = "auto", bufferEur: number | null = null): SisuRequest {
     const form = new MultipartForm().file("audio", fileName, mimeType, audio).field("customerId", customerId)
       .field("history", Endpoints.encode(history));
     if (focusBill != null) form.field("focusBill", focusBill);
     form.field("language", language);
+    if (bufferEur != null && Number.isFinite(bufferEur) && bufferEur >= 0) form.field("bufferEur", CoachEndpoints.number(bufferEur));
     const request = CoachEndpoints.multipart(baseURL, "/api/voice/turn", form, CoachEndpoints.streamTimeout);
     return { ...request, headers: { ...request.headers, Accept: "text/event-stream" } };
   }

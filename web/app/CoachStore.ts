@@ -65,6 +65,11 @@ export class CoachStore extends Store<CoachStoreState> {
   private restoring = false;
   /** The answer language for every session (AppPrefs.language): `auto` or a code such as `fi`. */
   private language = "auto";
+  /** The protected buffer for every session (AppPrefs.bufferEur), in euros; null when none was set. */
+  private bufferEur: number | null = null;
+  /** The Sisu tab's unsent text, by conversation id: it outlives a tab switch (the screen unmounts). Not state, so
+   *  typing re-renders only the field. */
+  private drafts = new Map<string, string>();
 
   constructor() {
     super({
@@ -109,6 +114,15 @@ export class CoachStore extends Store<CoachStoreState> {
   }
 
   isDeciding(actionId: string): boolean { return this.state.deciding.includes(actionId); }
+
+  /** The unsent text of a conversation (the one on screen by default), "" when there is none. */
+  draft(conversationId: string = this.state.conversationId): string { return this.drafts.get(conversationId) ?? ""; }
+
+  /** Keeps the unsent text of a conversation; "" forgets it (sent, or cleared). */
+  setDraft(text: string, conversationId: string = this.state.conversationId): void {
+    if (text === "") this.drafts.delete(conversationId);
+    else this.drafts.set(conversationId, text);
+  }
 
   setCheering(cheering: boolean): void {
     if (cheering !== this.state.cheering) this.update({ cheering });
@@ -167,6 +181,14 @@ export class CoachStore extends Store<CoachStoreState> {
     if (session) session.language = language;
   }
 
+  /** The person's protected buffer (AppPrefs.bufferEur), for this session and the next ones: every typed and spoken
+   *  question carries it, so Sisu's answer keeps the buffer Today uses. Null leaves it out. */
+  setBuffer(bufferEur: number | null): void {
+    this.bufferEur = CoachSession.validBuffer(bufferEur);
+    const session = this.state.session;
+    if (session) session.bufferEur = this.bufferEur;
+  }
+
   /**
    * Makes (or keeps) the session for this customer and source. `baseURL` null means the bundled sample.
    * @param unreachable the app already found the backend unreachable and fell back to the sample.
@@ -197,10 +219,11 @@ export class CoachStore extends Store<CoachStoreState> {
 
   // MARK: History
 
-  /** "New chat": the conversation on screen is kept in the history and a fresh one starts. A hands-free
+  /** "New chat": the conversation on screen is kept in the history (its unsent draft goes) and a fresh one starts. A hands-free
    *  conversation keeps listening; an answer on its way stops. */
   newConversation(): void {
     this.saveConversation();
+    this.drafts.delete(this.state.conversationId);
     const session = this.state.session;
     if (this.state.conversation) this.state.conversation.newConversation();
     else session?.reset();
@@ -304,6 +327,7 @@ export class CoachStore extends Store<CoachStoreState> {
     this.state.voice?.dispose();
     this.watcher?.();
     next.language = this.language;
+    next.bufferEur = this.bufferEur;
     const fixture = VoiceLaunch.current().voiceFixture;
     const voice = new VoiceController(next, fixture ? fixtureRecording() : null);
     const conversation = new ConversationController(next, voice.player, fixture ? fixtureRecording() : null);

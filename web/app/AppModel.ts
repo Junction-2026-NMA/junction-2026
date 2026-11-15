@@ -40,6 +40,7 @@ export class AppModel extends Store<AppState> {
       [Keys.customer, Keys.onboarding].forEach((key) => defaults.remove(key));
     }
     const storedFlow = OnboardingFlow.decode(defaults.json(Keys.onboarding));
+    const onboarding = OnboardingFlow.atLaunch(storedFlow, launch.onboarding, LaunchOptions.skipsOnboardingByDefault(launch));
     const stored: AppStored = {
       baseURLString: launch.baseURL ?? defaults.string(Keys.baseURL) ?? AppModel.defaultBaseURL,
       sampleOnly: launch.sampleOnly ?? defaults.bool(Keys.sample),
@@ -48,12 +49,13 @@ export class AppModel extends Store<AppState> {
       customers: [],
       customersState: LoadState.idle,
       customer: null,
+      restoringCustomer: !OnboardingFlow.isActive(onboarding) && (launch.customerId ?? defaults.string(Keys.customer)) !== null,
       overview: null,
       overviewState: LoadState.idle,
       tab: launch.tab ?? "sisu",
       historyOpen: false,
       openProjectId: null,
-      onboarding: OnboardingFlow.atLaunch(storedFlow, launch.onboarding, LaunchOptions.skipsOnboardingByDefault(launch)),
+      onboarding,
       evidence: null,
       todaySheet: null,
       confirmedBillNames: stringDictionary(defaults.json(Keys.billNames)),
@@ -69,6 +71,7 @@ export class AppModel extends Store<AppState> {
     this.timeZone = timeZone;
     this.coach.attachDefaults(defaults);
     this.coach.setLanguage(stored.prefs.language);
+    this.coach.setBuffer(stored.prefs.bufferEur);
     this.coach.onApprovedSaving = (saving) => {
       if (this.state.approvedMonthlySaving !== saving) this.set({ approvedMonthlySaving: saving });
     };
@@ -106,13 +109,15 @@ export class AppModel extends Store<AppState> {
     this.set({ sampleOnly: value });
   }
 
-  /** Changes some preferences (each value checked; an invalid one is ignored) and stores them. A new language
-   *  applies to the coach session at once; the conversation and projects stay. */
+  /** Changes some preferences (each value checked; an invalid one is ignored) and stores them. A new language or
+   *  buffer applies to the coach session at once (the buffer goes with every question); the conversation and
+   *  projects stay. */
   setPrefs(change: Partial<AppPrefs>): void {
     const prefs = AppPrefs.merge(this.state.prefs, change);
     if (AppPrefs.equals(prefs, this.state.prefs)) return;
     this.defaults.setJSON(Keys.prefs, prefs);
     if (prefs.language !== this.state.prefs.language) this.coach.setLanguage(prefs.language);
+    if (prefs.bufferEur !== this.state.prefs.bufferEur) this.coach.setBuffer(prefs.bufferEur);
     this.set({ prefs });
   }
 
@@ -151,17 +156,23 @@ export class AppModel extends Store<AppState> {
   // MARK: Loading
 
   /** Loads the customers (live, falling back to the bundled sample), then the chosen customer if one is set.
-   * Runs once; later calls return the same promise. */
+   * Runs once; later calls return the same promise. `restoringCustomer` ends once that customer's overview and coach
+   * session are there (`choose`), or when it turns out to be missing. */
   start(): Promise<void> {
     this.started ??= (async () => {
       await this.loadCustomers();
       // While the first run is on screen the user chooses the customer in it.
-      if (OnboardingFlow.isActive(this.state.onboarding)) return;
+      if (OnboardingFlow.isActive(this.state.onboarding)) return this.endRestoring();
       const id = this.launch.customerId ?? this.defaults.string(Keys.customer);
       const match = id === null ? undefined : this.state.customers.find((c) => c.customerId === id);
-      if (match) await this.choose(match);
+      if (!match) return this.endRestoring();
+      await this.choose(match);
     })();
     return this.started;
+  }
+
+  private endRestoring(): void {
+    if (this.state.restoringCustomer) this.set({ restoringCustomer: false });
   }
 
   async loadCustomers(): Promise<void> {
@@ -192,7 +203,10 @@ export class AppModel extends Store<AppState> {
     this.set({ customer });
     this.defaults.setString(Keys.customer, customer.customerId);
     await this.loadOverview();
-    await this.configureCoach();
+    // The coach session is made at once (before the server is warmed): a restore can show the main screen now.
+    const coach = this.configureCoach();
+    this.endRestoring();
+    await coach;
   }
 
   /** Points the coach at the chosen customer and the data source in use (live or the bundled sample). */
@@ -256,7 +270,7 @@ export class AppModel extends Store<AppState> {
     this.coach.clear();
     this.defaults.remove(Keys.customer);
     this.set({
-      customer: null, overview: null, overviewState: LoadState.idle, historyOpen: false, openProjectId: null, tab: "sisu",
+      customer: null, restoringCustomer: false, overview: null, overviewState: LoadState.idle, historyOpen: false, openProjectId: null, tab: "sisu",
     });
   }
 
@@ -304,6 +318,7 @@ export class AppModel extends Store<AppState> {
     clearPersonalData(this.defaults);
     const prefs = AppPrefs.defaults;
     if (prefs.language !== this.state.prefs.language) this.coach.setLanguage(prefs.language);
+    this.coach.setBuffer(prefs.bufferEur);
     this.set({ confirmedBillNames: {}, approvedMonthlySaving: 0, todaySheet: null, prefs });
     this.switchCustomer();
     this.saveOnboarding(OnboardingFlow.restart(this.state.onboarding));

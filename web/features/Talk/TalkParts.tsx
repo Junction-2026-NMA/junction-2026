@@ -80,7 +80,7 @@ export function LiitoBadge({ mood, target, talk, listening, diameter, liito, fil
 }
 
 /** The Sisu logo at the top left: Liito's face in a small circle. It opens the chat history drawer; a small dot
- *  says a saved project has findings not read yet. */
+ *  says a saved project has findings not read yet (and the button's name says so too, for screen readers). */
 export function SisuLogoButton({ open, unread, onPress, buttonRef }: {
   open: boolean;
   unread: boolean;
@@ -88,7 +88,7 @@ export function SisuLogoButton({ open, unread, onPress, buttonRef }: {
   buttonRef?: Ref<HTMLButtonElement>;
 }) {
   return (
-    <button ref={buttonRef} type="button" className="sisu-talk-logo" aria-label="Open chat history" aria-expanded={open}
+    <button ref={buttonRef} type="button" className="sisu-talk-logo" aria-label={unread ? "Open chat history, new project findings" : "Open chat history"} aria-expanded={open}
       aria-controls="sisu-history" aria-haspopup="dialog" data-testid="history.open" data-unread={unread ? "true" : "false"} onClick={onPress}>
       <span className="sisu-talk-logo-face" aria-hidden="true" />
       <span className="sisu-talk-logo-lines" aria-hidden="true"><HistoryLinesIcon /></span>

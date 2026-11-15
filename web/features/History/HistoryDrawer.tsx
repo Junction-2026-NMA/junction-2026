@@ -123,12 +123,13 @@ export function HistoryDrawer({ open, onClose, onSettings, returnFocus }: {
   );
 }
 
+/** A toothed cog (eight teeth around a hole), like the Settings buttons on Today and Path: not the Today tab's sun. */
 function GearGlyph() {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-      <circle cx="10" cy="10" r="2.6" fill="none" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4"
-        fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M8.19 4.07L8.70 1.80L11.30 1.80L11.81 4.07A6.2 6.2 0 0 1 12.91 4.53L14.88 3.29L16.71 5.12L15.47 7.09A6.2 6.2 0 0 1 15.93 8.19L18.20 8.70L18.20 11.30L15.93 11.81A6.2 6.2 0 0 1 15.47 12.91L16.71 14.88L14.88 16.71L12.91 15.47A6.2 6.2 0 0 1 11.81 15.93L11.30 18.20L8.70 18.20L8.19 15.93A6.2 6.2 0 0 1 7.09 15.47L5.12 16.71L3.29 14.88L4.53 12.91A6.2 6.2 0 0 1 4.07 11.81L1.80 11.30L1.80 8.70L4.07 8.19A6.2 6.2 0 0 1 4.53 7.09L3.29 5.12L5.12 3.29L7.09 4.53A6.2 6.2 0 0 1 8.19 4.07Z"
+        fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <circle cx="10" cy="10" r="2.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
     </svg>
   );
 }

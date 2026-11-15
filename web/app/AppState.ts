@@ -25,6 +25,10 @@ export interface AppStored {
   readonly customers: readonly DemoCustomer[];
   readonly customersState: LoadState;
   readonly customer: DemoCustomer | null;
+  /** True from launch until the stored (or `customer=`) profile is chosen again with its overview and coach session,
+   *  or found missing: the root shows only the background then, never the profile chooser or a half-loaded Sisu tab
+   *  (RootView's "restoring" route). */
+  readonly restoringCustomer: boolean;
   readonly overview: Overview | null;
   readonly overviewState: LoadState;
   // Navigation

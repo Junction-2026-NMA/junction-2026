@@ -25,9 +25,10 @@ export namespace VoiceBarText {
   export const thinking = "Thinking";
   export const answering = "Answering";
   export const firstQuestion = "Ask about your money, then pause.";
-  export const followUp = "Ask a follow-up, or tap End.";
+  /** Short enough for one line at 375 px (the strip wraps to two at most). */
+  export const followUp = "Ask more, or tap End.";
   export const pause = "Pause when you are done.";
-  export const answeringDetail = "Tap Stop or Liito to interrupt.";
+  export const answeringDetail = "Tap Stop to interrupt.";
   export const waitingForAnswer = "The microphone opens after this answer.";
   export const stopAnswer = "Stop Sisu";
   export const endVoice = "End voice";

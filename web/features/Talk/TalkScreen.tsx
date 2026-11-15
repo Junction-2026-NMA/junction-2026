@@ -5,9 +5,11 @@
 // - Header: the Sisu logo (opens the chat history drawer, web/features/History, with a dot for unread project
 //   findings), the title, the live status while voice is on, and once the chat has started the small Liito badge.
 // - A project opened from the drawer (openProjectId) is shown in place of the conversation; the conversation stays
-//   mounted under it (hidden), so its reading position, draft and voice state come back with Back.
+//   mounted under it (hidden), so its reading position, draft and voice state come back with Back. Leaving the tab
+//   unmounts it: the draft is kept per conversation in CoachStore, the reading position in TalkTranscript.
 // - Settings opens from the drawer's last row (the same sheet as on Today and Path).
-// - Empty: Liito, larger, one friendly line and the suggested questions (web/core/AppLogic/SisuSuggestions.ts).
+// - Empty: Liito, larger, one friendly line and the suggested questions (web/core/AppLogic/SisuSuggestions.ts). With
+//   the keyboard up Liito is smaller and the hint goes, so the greeting and the suggestions still fit.
 // - The transcript keeps the reading position (TalkTranscript.tsx). The composer is pinned at the bottom: the text
 //   field, Send and the microphone; while voice is on it shows the live state with a stop control (VoiceStrip.tsx).
 // The hands-free logic is web/voice/ConversationController.ts and web/core (ConversationFlow, VoiceBar, LiitoTask).
@@ -91,7 +93,15 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
   const logo = useRef<HTMLButtonElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   const transcript = useRef<TranscriptHandle | null>(null);
-  const [draft, setDraft] = useState("");
+  // The unsent text, per conversation (CoachStore.draft): it survives a tab switch and goes on Send or New chat.
+  const conversationId = coach.conversationId;
+  const [typed, setTyped] = useState(() => ({ id: conversationId, text: store.draft(conversationId) }));
+  if (typed.id !== conversationId) setTyped({ id: conversationId, text: store.draft(conversationId) });
+  const draft = typed.id === conversationId ? typed.text : store.draft(conversationId);
+  const setDraft = (text: string) => {
+    store.setDraft(text, conversationId);
+    setTyped({ id: conversationId, text });
+  };
 
   const flow = conversation?.flow ?? talk.flow;
   const messages = state?.messages ?? [];
@@ -188,16 +198,17 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
   const notice = conversation?.notice ?? voice?.notice ?? null;
   const suggestions = SisuSuggestions.make(overview, flaggedBill ? model.confirmedName(flaggedBill) : null);
   const keyboardStyle = { "--sisu-talk-kb": `${keyboard.bottom}px`, "--sisu-talk-vv-top": `${keyboard.top}px` } as CSSProperties;
+  const keyboardUp = keyboard.bottom > 0;
   const liitoBadge = (size: "small" | "hero") => (
     <LiitoBadge badgeRef={badge} mood={mood} target={target} talk={talk} listening={flow.micOpen}
-      diameter={size === "small" ? 44 : 124} liito={size === "small" ? 52 : 140} filled={size === "small"}
+      diameter={size === "small" ? 44 : keyboardUp ? 60 : 124} liito={size === "small" ? 52 : keyboardUp ? 68 : 140} filled={size === "small"}
       canInterrupt={canInterrupt} onInterrupt={interrupt} />
   );
 
   return (
     <div className="sisu-talk" style={keyboardStyle} data-testid="screen.talk" data-phase={flow.phase} data-chatting={chatting ? "true" : "false"}
       data-project={openProjectId ? "true" : "false"}
-      data-voice={flow.isOn ? "true" : "false"} data-mood={mood} data-mood-target={target} data-keyboard={keyboard.bottom > 0 ? "true" : "false"}>
+      data-voice={flow.isOn ? "true" : "false"} data-mood={mood} data-mood-target={target} data-keyboard={keyboardUp ? "true" : "false"}>
       <header className="sisu-talk-header">
         <SisuLogoButton buttonRef={logo} open={historyOpen} unread={unread} onPress={() => model.setHistoryOpen(true)} />
         <div className="sisu-talk-titles">
@@ -208,7 +219,7 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
       </header>
       <FallbackNotice session={session} notice={state?.fallbackNotice ?? null} fellBackToSample={coach.fellBackToSample} />
       {chatting && state ? (
-        <TalkTranscript session={session} state={state} store={store} reduceMotion={reduceMotion}
+        <TalkTranscript key={conversationId} session={session} state={state} store={store} conversationId={conversationId} reduceMotion={reduceMotion}
           handle={(next) => { transcript.current = next; }}
           onUserDrag={() => { if (document.activeElement === input.current) input.current?.blur(); }} />
       ) : (

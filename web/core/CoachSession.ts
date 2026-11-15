@@ -36,6 +36,7 @@ import { SisuEventStreamParser } from "./ServerSentEvents";
 import { ReplayTransport } from "./Transport";
 import { JSONRead } from "./Models";
 import { ConversationHistory } from "./ConversationHistory";
+import { SpokenText } from "./SpokenText";
 
 /** Plays Sisu's voice. The app implements it (web/voice); this package has no audio code. */
 export interface SpeechOutput {
@@ -244,6 +245,8 @@ export interface CoachSessionOptions {
   speakReplies?: boolean;
   language?: string;
   focusBill?: BillType | null;
+  /** The protected buffer the person set (AppPrefs.bufferEur), in euros. Null: none said, the server assumes one. */
+  bufferEur?: number | null;
   /** Makes message ids. Inject a counter in tests. */
   makeId?: () => string;
 }
@@ -269,6 +272,9 @@ export class CoachSession extends Store<CoachSessionState> {
   speakReplies: boolean;
   /** `auto` (answer in the language asked in) or an ISO 639-1 code such as `fi`. */
   language: string;
+  /** The person's protected buffer in euros (AppPrefs.bufferEur), sent with every typed and spoken question so the
+   *  answer keeps the same buffer as Today. Null when none was set (the field is left out). */
+  bufferEur: number | null;
   speech: SpeechOutput | null;
 
   private history: ChatTurn[] = [];
@@ -285,6 +291,7 @@ export class CoachSession extends Store<CoachSessionState> {
     this.speakReplies = options.speakReplies ?? this.speech !== null;
     this.language = options.language ?? "auto";
     this.focusBill = options.focusBill ?? null;
+    this.bufferEur = CoachSession.validBuffer(options.bufferEur ?? null);
     this.makeId = options.makeId ?? makeUUID;
   }
 
@@ -369,8 +376,14 @@ export class CoachSession extends Store<CoachSessionState> {
     return this.runTurn({ kind: "voice", audio, fileName, mimeType, language: language ?? this.language });
   }
 
+  /** A buffer worth sending: a finite number of euros, zero or more. Anything else is null (none said). */
+  static validBuffer(value: number | null | undefined): number | null {
+    return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
+  }
+
   /** Stops whatever Sisu is doing: aborts the stream, stops speech, and leaves what has arrived on screen. A voice
-   *  question stopped before its words came back leaves nothing: no empty bubble, no empty answer. */
+   *  question stopped before its words came back leaves nothing: no empty bubble, no empty answer. A question that
+   *  was asked but stopped before any of its answer arrived keeps a "stopped" reply with Try again. */
   cancel(): void {
     this.turnToken += 1;
     this.turnAbort?.abort();
@@ -386,21 +399,19 @@ export class CoachSession extends Store<CoachSessionState> {
   }
 
   /** The messages with nothing pending: an unheard voice question (still waiting for its words) goes, with its reply
-   *  when nothing has arrived in it yet. */
+   *  when nothing has arrived in it yet. Any other reply in which nothing arrived says it was stopped (the answer card
+   *  then offers Try again), so no empty card is left on screen or saved. */
   private static settled(messages: CoachMessage[]): CoachMessage[] {
     const unheard = new Set(messages.filter((m) => m.role === "user" && m.pending && m.text === "").map((m) => m.id));
     return messages.flatMap((m, index) => {
       if (unheard.has(m.id)) return [];
       const question = index > 0 ? messages[index - 1] : null;
-      if (m.role === "assistant" && question && unheard.has(question.id) && CoachSession.isBlank(m)) return [];
+      if (m.role === "assistant" && ConversationHistory.isBlank(m)) {
+        if (question && unheard.has(question.id)) return [];
+        return [{ ...m, pending: false, runningTool: null, error: CoachErrors.stopped }];
+      }
       return [m.pending ? { ...m, pending: false } : m];
     });
-  }
-
-  /** A reply in which nothing has arrived yet. */
-  private static isBlank(m: CoachMessage): boolean {
-    return m.text === "" && m.error === null && m.filler === null && m.stages.length === 0 && m.steps.length === 0
-      && m.visuals.length === 0 && m.tools.length === 0 && m.action === null && m.teaching === null;
   }
 
   /** Clears the conversation. Actions and memory belong to the customer and stay. */
@@ -440,14 +451,15 @@ export class CoachSession extends Store<CoachSessionState> {
     const controller = new AbortController();
     this.turnAbort = controller;
     const { customerId, client, history, focusBill } = this;
+    const bufferEur = CoachSession.validBuffer(this.bufferEur);
 
     const userText = input.kind === "typed" ? input.text : input.kind === "investigate" ? CoachSession.investigateText : "";
     const stream =
       input.kind === "typed"
-        ? client.ask(AgentRequest.make({ customerId, text: input.text, mode, history, focusBill, language: chosen }), controller.signal)
+        ? client.ask({ ...AgentRequest.make({ customerId, text: input.text, mode, history, focusBill, language: chosen }), ...(bufferEur === null ? {} : { bufferEur }) }, controller.signal)
         : input.kind === "investigate"
           ? client.investigate(InvestigateRequest.make({ customerId, mode, text: input.focus, language: chosen }), controller.signal)
-          : client.voiceTurn(customerId, input.audio, input.fileName, input.mimeType, history, focusBill, input.language === "" ? "auto" : input.language, controller.signal);
+          : client.voiceTurn(customerId, input.audio, input.fileName, input.mimeType, history, focusBill, input.language === "" ? "auto" : input.language, controller.signal, bufferEur);
 
     const userId = this.makeId();
     const replyId = this.makeId();
@@ -494,9 +506,13 @@ export class CoachSession extends Store<CoachSessionState> {
     if (next !== messages[index]) this.update({ messages: messages.map((m, i) => (i === index ? next : m)) });
   }
 
+  /** Speaks one sentence, worded for the ear (SpokenText: "15 October", not "2026-10-15"). */
   private say(text: string, spoken: boolean, turn: { spokenOrder: number }): void {
     if (!spoken || !this.speech || text === "") return;
-    this.speech.speak(text, turn.spokenOrder);
+    const language = this.language === "auto" || this.language === "" ? this.state.heardLanguage : this.language;
+    const words = SpokenText.format(text, language);
+    if (words === "") return;
+    this.speech.speak(words, turn.spokenOrder);
     turn.spokenOrder += 1;
   }
 
@@ -665,6 +681,8 @@ export class CoachSession extends Store<CoachSessionState> {
 /** Friendly sentences for errors: calm, one next step, no blame. */
 export class CoachErrors {
   static readonly generic = "Sisu could not answer just now. Please try again.";
+  /** A reply stopped (Stop, or a new question) before any of it arrived. */
+  static readonly stopped = ConversationHistory.stoppedReply;
   static readonly offline = "The connection dropped. Please try again.";
   static readonly expired = "Prices may have changed. Ask Sisu to prepare it again.";
   static readonly alreadyDecided = "That has already been decided.";

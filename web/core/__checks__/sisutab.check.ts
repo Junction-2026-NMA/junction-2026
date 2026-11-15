@@ -1,5 +1,6 @@
 // Checks for the Sisu tab: saved conversations (web/core/ConversationHistory.ts, CoachSession.restore, CoachStore's
-// history), the suggested questions (SisuSuggestions) and the voice strip's words (VoiceBar).
+// history), the suggested questions (SisuSuggestions), the voice strip's words (VoiceBar), the buffer sent with every
+// question, a reply stopped before it began, drafts kept per conversation and the launch restore (no chooser flash).
 // Run: npx tsx web/core/__checks__/sisutab.check.ts
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -8,7 +9,8 @@ import { FixtureAPI } from "@/web/core/API";
 import { ConversationFlow } from "@/web/core/AppLogic/Conversation";
 import { SisuSuggestions } from "@/web/core/AppLogic/SisuSuggestions";
 import { VoiceBar } from "@/web/core/AppLogic/VoiceBar";
-import { CoachMessage, CoachSession } from "@/web/core/CoachSession";
+import { CoachClient } from "@/web/core/CoachClient";
+import { CoachErrors, CoachMessage, CoachSession } from "@/web/core/CoachSession";
 import { ConversationHistory, type SavedConversation } from "@/web/core/ConversationHistory";
 import type { Overview } from "@/web/core/Models";
 import { AppModel } from "@/web/app/AppModel";
@@ -58,7 +60,10 @@ async function main() {
     const many = Array.from({ length: 10 }, (_, i) => [user(`q${i}`, `q${i}`), reply(`r${i}`, `r${i}`)]).flat();
     eq(ConversationHistory.chatTurns(many).length, 12, "the last 12 entries, as the server keeps");
     const pending = [user("u", "", { pending: true }), reply("a", "", { pending: true }), user("v", "Hi"), reply("b", "Hello", { pending: true, runningTool: "x" })];
-    eq(ConversationHistory.storable(pending).map((m) => [m.id, m.pending, m.runningTool]), [["a", false, null], ["v", false, null], ["b", false, null]], "settled copies, no empty voice question");
+    eq(ConversationHistory.storable(pending).map((m) => [m.id, m.pending, m.runningTool]), [["v", false, null], ["b", false, null]], "settled copies, no empty voice question nor its empty reply");
+    const stopped = ConversationHistory.storable([user("q", "Will my money last until payday?"), reply("r", "")]);
+    eq(stopped.map((m) => [m.id, m.text, m.error]), [["q", "Will my money last until payday?", null], ["r", "", CoachErrors.stopped]], "a blank reply is saved as stopped, never blank");
+    eq(CoachErrors.stopped, ConversationHistory.stoppedReply, "one sentence for a stopped reply");
     eq(ConversationHistory.entry("c1", [user("u", "Hi")], {}, null, new Date()), null, "no answer yet: nothing to save");
   });
 
@@ -131,9 +136,12 @@ async function main() {
       "Will my money last until payday?", "What would spending 20% less at restaurants save?", "Could I afford to move to Espoo?", "Find a cheaper plan that meets my needs.",
     ], "Aino (Helsinki, restaurants)");
     eq(a.slice(4).map((s) => [s.question, s.synthetic]), [
-      ["Why is my restaurant spending higher than others my age?", true],
       ["Why does my balance go below zero, and how do I stop it?", false],
-    ], "Aino: two from the overview; the peer comparison is marked synthetic");
+    ], "Aino: the restaurant comparison is not repeated, the 20% restaurant question covers it");
+    const peers = { ...aino, baskets: aino.baskets.map((b) => (b.id !== "everyday" ? b : { ...b, categories: b.categories.filter((c) => c.category !== "Restaurants") })) };
+    const comparison = SisuSuggestions.make(peers, null).find((s) => s.synthetic);
+    eq(comparison?.question, "Why is my restaurant spending higher than other profiles in the demo data?", "a comparison not covered above says it is with the demo data");
+    ok(!SisuSuggestions.make(peers, null).some((s) => /my age|people your age/i.test(s.question)), "no suggestion compares with real people of an age");
     const e = SisuSuggestions.make(eetu, "Electricity");
     eq([e[1].question, e[2].question, e[3].question], [
       "What would spending 20% less on entertainment save?", "Could I afford to move to Helsinki?", "Find a cheaper electricity plan that meets my needs.",
@@ -162,6 +170,122 @@ async function main() {
     const waiting = new ConversationFlow();
     waiting.start(0, false);
     eq(VoiceBar.state(waiting, SisuActivity.make("thinking"), false).detail, "The microphone opens after this answer.", "a typed answer runs first");
+    flow.phase = "speaking";
+    eq(VoiceBar.state(flow, idle, false).detail, "Tap Stop to interrupt.", "the answering hint fits at 375 px");
+    const asked = new ConversationFlow();
+    asked.start(0);
+    asked.questions = 1;
+    eq(VoiceBar.state(asked, idle, false).detail, "Ask more, or tap End.", "the follow-up hint fits at 375 px");
+  });
+
+  await group("buffer: the person's buffer goes with every typed and spoken question (15 Nov QA: Sisu assumed €247)", async () => {
+    const bodies: unknown[] = [];
+    const recorder = (async (_url: string | URL | Request, init?: RequestInit) => {
+      bodies.push(init?.body);
+      return new Response('data: {"type":"done","text":"About €109 a week.","citations":[]}\n\n', { status: 200, headers: { "Content-Type": "text/event-stream" } });
+    }) as typeof fetch;
+    const defaults = memoryDefaults();
+    const model = new AppModel(LaunchOptions.parse(new URLSearchParams("sample=1&customer=CUST04974"), defaults));
+    const session = new CoachSession("CUST04974", CoachClient.live("", recorder));
+    (model.coach as unknown as { use(next: CoachSession): void }).use(session);
+    await session.ask("What can I spend this week?");
+    eq(JSON.parse(String(bodies[0])).bufferEur, undefined, "no buffer set: the field is left out");
+    model.setPrefs({ bufferEur: 300 });
+    eq(session.bufferEur, 300, "Settings and Today's buffer reach the session at once");
+    await session.ask("I keep running short before payday. What can I spend this week without missing my bills?");
+    eq(JSON.parse(String(bodies[1])).bufferEur, 300, "typed: bufferEur in the body");
+    await session.sendVoice(new Uint8Array([1, 2, 3]), "speech.webm", "audio/webm");
+    eq((bodies[2] as FormData).get("bufferEur"), "300", "spoken: bufferEur in the form");
+    model.setPrefs({ bufferEur: null });
+    await session.ask("And now?");
+    eq(JSON.parse(String(bodies[3])).bufferEur, undefined, "cleared: left out again");
+    model.setPrefs({ bufferEur: 150 });
+    const next = new CoachSession("CUST04974", CoachClient.live("", recorder));
+    (model.coach as unknown as { use(next: CoachSession): void }).use(next);
+    eq(next.bufferEur, 150, "a new session (another profile) gets the buffer too");
+    eq([CoachSession.validBuffer(-5), CoachSession.validBuffer(Number.NaN), CoachSession.validBuffer(0)], [null, null, 0], "only a real amount is sent");
+  });
+
+  await group("stop: a reply stopped before anything arrived says so, with Try again, also after reopening (15 Nov QA)", async () => {
+    const slow = (async (_url: string | URL | Request, init?: RequestInit) => new Promise<Response>((_, reject) => {
+      init?.signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+    })) as typeof fetch;
+    const typed = new CoachSession("CUST04974", CoachClient.live("", slow));
+    const turn = typed.ask("Will my money last until payday?");
+    typed.cancel();
+    await turn;
+    eq(typed.messages.map((m) => [m.role, m.text, m.pending, m.error]), [
+      ["user", "Will my money last until payday?", false, null], ["assistant", "", false, CoachErrors.stopped],
+    ], "typed: the empty card becomes a stopped reply");
+    // A voice question whose words came back, stopped while Sisu was thinking.
+    const voice = new CoachSession("CUST04974", CoachClient.live("", slow));
+    const spoken = voice.sendVoice(new Uint8Array([1]), "speech.webm", "audio/webm");
+    const [question] = voice.messages;
+    (voice as unknown as { patch(id: string, change: (m: CoachMessage) => CoachMessage): void })
+      .patch(question.id, (m) => ({ ...m, text: "Will my money last until payday?", pending: false }));
+    voice.cancel();
+    await spoken;
+    eq(voice.messages.map((m) => [m.role, m.error]), [["user", null], ["assistant", CoachErrors.stopped]], "heard voice question: a stopped reply");
+    const unheard = new CoachSession("CUST04974", CoachClient.live("", slow));
+    const silent = unheard.sendVoice(new Uint8Array([1]), "speech.webm", "audio/webm");
+    unheard.cancel();
+    await silent;
+    eq(unheard.messages.length, 0, "an unheard voice question still leaves nothing");
+    const partly = new CoachSession("CUST04974", CoachClient.sample(0));
+    partly.restore([user("q", "Hi"), reply("r", "Hello, I was saying", { pending: true })]);
+    eq(partly.messages[1].error, null, "a reply that had begun keeps its words, no error");
+    const reopened = CoachSession.sample("CUST04974", 0);
+    reopened.restore([user("q", "Will my money last until payday?"), reply("r", "")]);
+    eq(reopened.messages[1].error, CoachErrors.stopped, "an old blank reply comes back as stopped");
+  });
+
+  await group("drafts: the unsent text is kept per conversation and goes on New chat", async () => {
+    const model = new AppModel(LaunchOptions.parse(new URLSearchParams("sample=1&customer=CUST04974"), memoryDefaults()));
+    const store = model.coach;
+    await store.configure("CUST04974", null);
+    const first = store.getSnapshot().conversationId;
+    store.setDraft("draft about rent");
+    eq(store.draft(), "draft about rent", "kept (a tab switch remounts the screen; the store stays)");
+    store.setDraft("");
+    eq(store.draft(), "", "sent: gone");
+    store.setDraft("draft about rent");
+    store.newConversation();
+    eq([store.draft(), store.draft(first)], ["", ""], "New chat: the new one is empty and the old draft is gone");
+  });
+
+  await group("launch: a returning person goes straight to Sisu, never through the chooser (15 Nov QA)", async () => {
+    const returning = (customerId: string) => {
+      const defaults = memoryDefaults();
+      defaults.setJSON(Keys.onboarding, { step: "reading", isComplete: true, firstInsightPending: false });
+      defaults.setString(Keys.customer, customerId);
+      return defaults;
+    };
+    const model = new AppModel(LaunchOptions.parse(new URLSearchParams("sample=1"), returning("CUST04974")));
+    const route = () => {
+      const s = model.getSnapshot();
+      return s.onboardingActive ? "onboarding" : s.restoringCustomer ? "restoring" : s.customer !== null ? "main" : "chooser";
+    };
+    eq(route(), "restoring", "at launch: restoring, not the chooser");
+    const seen: string[] = [route()];
+    const sessionAtMain: boolean[] = [];
+    model.subscribe(() => {
+      const now = route();
+      if (seen[seen.length - 1] !== now) {
+        seen.push(now);
+        if (now === "main") sessionAtMain.push(model.coach.session !== null && model.getSnapshot().overview !== null);
+      }
+    });
+    await model.start();
+    eq(seen, ["restoring", "main"], "restoring, then the main screen, with no chooser in between");
+    eq(sessionAtMain, [true], "the overview and the coach session are there when it shows");
+    const fresh = new AppModel(LaunchOptions.parse(new URLSearchParams("sample=1"), memoryDefaults()));
+    ok(!fresh.getSnapshot().restoringCustomer, "no stored profile: the chooser (or onboarding) at once");
+    const missing = new AppModel(LaunchOptions.parse(new URLSearchParams("sample=1"), returning("CUST00000")));
+    eq(missing.getSnapshot().restoringCustomer, true, "a stored profile: restoring until it is looked up");
+    await missing.start();
+    eq([missing.getSnapshot().restoringCustomer, missing.getSnapshot().customer], [false, null], "a stored profile that is gone: the chooser");
+    model.switchCustomer();
+    eq(route(), "chooser", "Switch customer shows the chooser");
   });
 
   console.log(`\n${passes} passed, ${failures} failed`);

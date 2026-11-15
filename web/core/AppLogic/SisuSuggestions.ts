@@ -44,8 +44,12 @@ export namespace SisuSuggestions {
 
   /** "What would spending 20% less at restaurants save?", or the customer's biggest everyday choice instead. */
   export function spendingQuestion(overview: Overview | null): string {
-    const category = biggestChoice(overview);
-    return `What would spending 20% less ${category === null ? "at restaurants" : phrase(category)} save?`;
+    return `What would spending 20% less ${phrase(spendingCategory(overview))} save?`;
+  }
+
+  /** The category the standard "20% less" question is about: the biggest everyday choice, else restaurants. */
+  function spendingCategory(overview: Overview | null): string {
+    return biggestChoice(overview) ?? "Restaurants";
   }
 
   /** Espoo, or Helsinki for someone who already lives in Espoo (postal codes 02xxx). */
@@ -84,7 +88,10 @@ export namespace SisuSuggestions {
     if (category.toLowerCase() === "utilities" || category.toLowerCase() === "housing") return null;
     const synthetic = /dataset|people your age|others your age/i.test(`${insight.title} ${insight.body}`);
     if (synthetic) {
-      const question = `Why is my ${noun(category)} spending higher than others my age?`;
+      // The standard "20% less" question already covers this category: one suggestion about it is enough.
+      if (category.toLowerCase() === spendingCategory(overview).toLowerCase()) return null;
+      // The comparison is with the other synthetic demo profiles, not with real people of this age: the question says so.
+      const question = `Why is my ${noun(category)} spending higher than other profiles in the demo data?`;
       return { id, question, noticed: insight.title, synthetic: true };
     }
     if (essentials.has(category.toLowerCase()) || biggestChoice(overview) === category) return null;

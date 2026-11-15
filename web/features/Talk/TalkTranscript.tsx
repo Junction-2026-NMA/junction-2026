@@ -3,8 +3,10 @@
 // Reading position comes first: a new question is scrolled to the top of the view once, and the answer then grows
 // underneath it without the view moving (a spacer under the newest turn keeps it at least one view tall, so there is
 // room; it shrinks as the answer grows, so the scroll height does not change under the reader). It never
-// jumps to the bottom of a long answer and never fights the person's scrolling. When there is more below what is
-// visible, a "Jump to latest" pill brings the end into view.
+// jumps to the bottom of a long answer and never fights the person's scrolling. When new content arrives below what is
+// visible (more of the answer, a new card), a small round "Jump to latest" button at the bottom right brings the end
+// into view; a Details section the person opens is not new content, and the button goes once the end is in view.
+// Leaving the tab and coming back (the transcript remounts) returns to where the person was reading, per conversation.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { CoachStore } from "@/web/app/CoachStore";
 import { CoachSession, type CoachMessage, type CoachSessionState } from "@/web/core/CoachSession";
@@ -15,18 +17,24 @@ import { COACH_BOTTOM } from "@/web/features/Ask/askLaunch";
 
 /** Space kept above a question scrolled to the top. */
 const TOP_GAP = 12;
-/** More than this much content below the visible area shows the pill. */
+/** More than this much content below the visible area counts as out of view. */
 const UNSEEN = 32;
+
+/** Where each conversation was being read (by conversation id), kept when the transcript unmounts (a tab switch) so
+ *  it comes back there. `questionId` is the newest question the view had been brought to. */
+const readingPositions = new Map<string, { questionId: string | null; scrollTop: number }>();
 
 export interface TranscriptHandle {
   /** Scroll so the element with `data-anchor={id}` sits at the top or the bottom (launch options). */
   scrollToAnchor: (id: string, anchor: "top" | "bottom") => boolean;
 }
 
-export function TalkTranscript({ session, state, store, reduceMotion, onUserDrag, handle }: {
+export function TalkTranscript({ session, state, store, conversationId, reduceMotion, onUserDrag, handle }: {
   session: CoachSession;
   state: CoachSessionState;
   store: CoachStore;
+  /** The conversation on screen (CoachStore.conversationId): its reading position is kept across tab switches. */
+  conversationId: string;
   reduceMotion: boolean;
   /** The person dragged the chat (lets the keyboard go). */
   onUserDrag?: () => void;
@@ -37,6 +45,10 @@ export function TalkTranscript({ session, state, store, reduceMotion, onUserDrag
   const spacer = useRef<HTMLDivElement>(null);
   const [viewHeight, setViewHeight] = useState(0);
   const [showJump, setShowJump] = useState(false);
+  /** New content arrived while the end was out of view, and the end has not been in view since. */
+  const unseen = useRef(false);
+  /** The newest question the view has been brought to (null until the first one). */
+  const shownQuestion = useRef<string | null>(null);
   const messages = state.messages;
   const lastQuestionIndex = findLastIndex(messages, (m) => m.role === "user");
   const lastQuestion = lastQuestionIndex >= 0 ? messages[lastQuestionIndex] : null;
@@ -46,23 +58,27 @@ export function TalkTranscript({ session, state, store, reduceMotion, onUserDrag
     [m.id, ...m.stages.map((s) => `${m.id}/${s.id}`), ...m.visuals.map((v) => `${m.id}/visual/${v.id}`)])));
   const isNew = useCallback((id: string) => !initial.has(id), [initial]);
 
-  /** Sizes the spacer under the newest turn (so its question can sit at the top), then says whether there is content
-   *  below the visible area (the pill). Layout offsets only, so rows still rising in are measured where they land. */
-  const measure = useCallback(() => {
+  /** Sizes the spacer under the newest turn (so its question can sit at the top), then decides the "Jump to latest"
+   *  button: it shows only when content `arrived` while the end was out of view, and goes once the end is in view.
+   *  Layout offsets only, so rows still rising in are measured where they land. */
+  const measure = useCallback((arrived = false) => {
     const element = scroller.current, stack = content.current;
     if (!element || !stack) return;
     const rows = stack.querySelectorAll<HTMLElement>("[data-anchor]");
     const last = rows[rows.length - 1] ?? null;
     const questions = stack.querySelectorAll<HTMLElement>('[data-role="user"]');
     const question = questions[questions.length - 1] ?? null;
-    if (!last) { setShowJump(false); return; }
+    if (!last) { unseen.current = false; setShowJump(false); return; }
     const end = offsetWithin(last, element) + last.offsetHeight;
     if (spacer.current) {
       const turn = question ? end - offsetWithin(question, element) : 0;
       const room = Math.max(0, element.clientHeight - TOP_GAP - turn - 24);
       if (spacer.current.style.height !== `${room}px`) spacer.current.style.height = `${room}px`;
     }
-    setShowJump(end - (element.scrollTop + element.clientHeight) > UNSEEN);
+    const endOutOfView = end - (element.scrollTop + element.clientHeight) > UNSEEN;
+    if (!endOutOfView) unseen.current = false;
+    else if (arrived) unseen.current = true;
+    setShowJump(unseen.current);
   }, []);
 
   const scrollToAnchor = useCallback((id: string, anchor: "top" | "bottom", smooth = false) => {
@@ -95,22 +111,47 @@ export function TalkTranscript({ session, state, store, reduceMotion, onUserDrag
     return () => observer.disconnect();
   }, [measure]);
 
-  // Content grew (an answer streaming in): the spacer and the pill follow, never the position.
+  // Content arrived (an answer streaming in, a new card): the spacer and the button follow, never the position. A new
+  // question is not "below": the view is about to bring it to the top. The view's own size changing is not new content.
   const newest = messages[messages.length - 1];
-  const growth = newest ? `${messages.length}|${newest.text.length}|${newest.stages.length}|${newest.steps.length}|${newest.visuals.length}|${newest.pending ? 1 : 0}` : "";
-  useLayoutEffect(() => { measure(); }, [growth, measure, viewHeight]);
+  const growth = newest ? `${messages.length}|${newest.text.length}|${newest.stages.length}|${newest.steps.length}|${newest.visuals.length}` : "";
+  const lastGrowth = useRef(growth);
+  useLayoutEffect(() => {
+    if (growth === lastGrowth.current) return;
+    lastGrowth.current = growth;
+    measure((lastQuestion?.id ?? null) === shownQuestion.current);
+  }, [growth, measure, lastQuestion?.id]);
+  useLayoutEffect(() => { measure(); }, [measure, viewHeight, newest?.pending]);
 
-  // On appearing: the newest question at the top, at once. A new question: brought to the top once, smoothly.
-  const shownQuestion = useRef<string | null>(null);
+  // On appearing: back where this conversation was being read (after a tab switch), else the newest question at the
+  // top, at once. A new question: brought to the top once, smoothly.
   useLayoutEffect(() => {
     const id = lastQuestion?.id ?? null;
+    const element = scroller.current;
     // Wait for the view's height: until then the spacer cannot make room to bring the question up.
-    if (id === shownQuestion.current || viewHeight === 0) return;
+    if (id === shownQuestion.current || viewHeight === 0 || !element) return;
     const first = shownQuestion.current === null;
     shownQuestion.current = id;
     measure();
-    if (id) scrollToAnchor(id, "top", !first);
-  }, [lastQuestion?.id, scrollToAnchor, viewHeight, measure]);
+    const saved = first ? readingPositions.get(conversationId) : undefined;
+    if (saved && saved.questionId === id) element.scrollTop = Math.min(saved.scrollTop, element.scrollHeight - element.clientHeight);
+    else if (id) scrollToAnchor(id, "top", !first);
+    measure();
+  }, [lastQuestion?.id, scrollToAnchor, viewHeight, measure, conversationId]);
+
+  // The reading position, kept for when the transcript comes back (on every scroll, and when it goes).
+  useLayoutEffect(() => {
+    const element = scroller.current;
+    if (!element) return;
+    const save = () => {
+      if (shownQuestion.current !== null) readingPositions.set(conversationId, { questionId: shownQuestion.current, scrollTop: element.scrollTop });
+    };
+    element.addEventListener("scroll", save, { passive: true });
+    return () => {
+      save();
+      element.removeEventListener("scroll", save);
+    };
+  }, [conversationId]);
 
   // The person's own scrolling: the pill follows what is visible; a drag lets the keyboard go.
   const dragCallback = useRef(onUserDrag);
@@ -173,8 +214,8 @@ export function TalkTranscript({ session, state, store, reduceMotion, onUserDrag
         <div className="sisu-talk-bottom" data-anchor={COACH_BOTTOM} aria-hidden="true" />
       </div>
       {showJump ? (
-        <button type="button" className="sisu-talk-jump" onClick={jumpToLatest} data-testid="talk.jump">
-          <DownArrow /> Jump to latest
+        <button type="button" className="sisu-talk-jump" onClick={jumpToLatest} data-testid="talk.jump" aria-label="Jump to latest" title="Jump to latest">
+          <DownArrow />
         </button>
       ) : null}
     </div>
@@ -199,7 +240,7 @@ function findLastIndex<T>(items: readonly T[], test: (item: T) => boolean): numb
 
 function DownArrow() {
   return (
-    <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" focusable="false">
+    <svg width="18" height="18" viewBox="0 0 14 14" aria-hidden="true" focusable="false">
       <path d="M7 2.5v8.2M3.2 7.2 7 11l3.8-3.8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );

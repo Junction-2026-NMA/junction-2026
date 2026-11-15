@@ -390,10 +390,11 @@ export class CoachClient implements SisuAPI {
     return { data: response.body, contentType: TransportResponse.contentType(response) ?? "application/octet-stream" };
   }
 
-  /** `POST /api/voice/turn` as a stream of events. It starts with `transcript` (what was heard). */
+  /** `POST /api/voice/turn` as a stream of events. It starts with `transcript` (what was heard). `bufferEur` is the
+   *  person's protected buffer (left out when null). */
   voiceTurn(customerId: string, audio: FormBytes, fileName: string, mimeType: string, history: ChatTurn[] = [],
-    focusBill: BillType | null = null, language = "auto", signal?: AbortSignal | null) {
-    return this.events(CoachEndpoints.voiceTurn(this.baseURL, customerId, audio, fileName, mimeType, history, focusBill, language), signal);
+    focusBill: BillType | null = null, language = "auto", signal?: AbortSignal | null, bufferEur: number | null = null) {
+    return this.events(CoachEndpoints.voiceTurn(this.baseURL, customerId, audio, fileName, mimeType, history, focusBill, language, bufferEur), signal);
   }
 
   // MARK: SisuAPI (the four data routes through the same transport)
