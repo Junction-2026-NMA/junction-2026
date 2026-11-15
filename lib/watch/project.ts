@@ -9,8 +9,11 @@ import { withAudit } from "@/lib/store/audit";
 import { readState, updateState } from "@/lib/store/state";
 import type { Listing, ProjectStatus, PropertyWatch, WatchNotification, WatchProject, WatchRequirements } from "@/lib/types";
 import { fits, ruleFor, withCurrentRequirements } from "./detect";
+import { currentSession } from "@/lib/store/session";
 import { findWatch, lastSuccessOf, listNotifications, nextCheckOf, replaceWatch, watchSubject } from "./index";
+import { REVIEW_FALLBACK_MS } from "./health";
 import { closeMonitors, openMonitors } from "./monitoring";
+import { publicOrigin, webhookUrl } from "./webhook";
 import { mergeRequirements } from "./requirements";
 import { watchScheduler } from "./scheduler";
 
@@ -25,8 +28,22 @@ export function projectStatusOf(watch: PropertyWatch): ProjectStatus {
 }
 
 // The watch as the API answers it: every Project field set, for watches stored before they existed too.
+// v2 push: the webhook secrets never leave the server; the status fields are always set.
+export const withoutSecrets = (watch: PropertyWatch): PropertyWatch => {
+  const { searchWebhookSecret: _search, ...rest } = watch;
+  void _search;
+  return { ...rest, pages: watch.pages.map(({ webhookSecret: _secret, ...page }) => (void _secret, { ...page, lastChange: page.lastChange ?? null })) };
+};
+
 export const asProject = (watch: PropertyWatch): PropertyWatch => ({
-  ...watch,
+  ...withoutSecrets(watch),
+  phase: watch.phase ?? "monitoring",
+  initialReadyAt: watch.initialReadyAt ?? null,
+  nextReviewAt: watch.status === "active" ? (watch.nextReviewAt ?? watch.nextCheckAt ?? nextCheckOf(watch.pages)) : null,
+  failedChecks: watch.failedChecks ?? 0,
+  lastFailure: watch.lastFailure ?? null,
+  retryAt: watch.status === "active" ? (watch.retryAt ?? null) : null,
+  webhooks: watch.webhooks ?? false,
   goal: watch.goal ?? null,
   requirements: watch.requirements ?? {},
   projectStatus: projectStatusOf(watch),
@@ -78,21 +95,23 @@ export async function pauseWatch(customerId: string, watchId: string, now: Date 
   if (watch.status === "stopped") return { ok: false, status: 409, reason: "This project has been stopped. Ask Sisu to start a new one." };
   if (watch.status === "paused") return { ok: true, watch: asProject(watch) };
   const { removed, failed } = await closeMonitors(watch);
-  const paused: PropertyWatch = { ...watch, status: "paused", pausedAt: now.toISOString(), nextCheckAt: null, pages: watch.pages.map((page) => ({ ...page, monitorId: null, monitorNextRunAt: null })), searchMonitorId: null, problems: failed ? [`${failed} Context.dev monitor${failed === 1 ? "" : "s"} could not be removed.`] : [] };
+  const paused: PropertyWatch = { ...watch, status: "paused", pausedAt: now.toISOString(), nextCheckAt: null, nextReviewAt: null, retryAt: null, webhooks: false, searchWebhookSecret: null, pages: watch.pages.map((page) => ({ ...page, monitorId: null, monitorNextRunAt: null, webhookSecret: null })), searchMonitorId: null, problems: failed ? [`${failed} Context.dev monitor${failed === 1 ? "" : "s"} could not be removed.`] : [] };
   updateState((state) => withAudit(replaceWatch(state, paused), { customerId, type: "watch_paused", actor: "user", actionId: watch.actionId, detail: `Paused watching ${watchSubject(watch)}; ${removed} Context.dev monitor${removed === 1 ? "" : "s"} removed.` }, now));
   return { ok: true, watch: asProject(paused) };
 }
 
 // Resume: new Context.dev monitors are created for the same pages; the last reading stays the baseline.
-export async function resumeWatch(customerId: string, watchId: string, now: Date = new Date()): Promise<Controlled> {
+export async function resumeWatch(customerId: string, watchId: string, now: Date = new Date(), origin: string | null = null): Promise<Controlled> {
   const watch = findWatch(customerId, watchId);
   if (!watch) return missing;
   if (watch.status === "stopped") return { ok: false, status: 409, reason: "This project has been stopped. Ask Sisu to start a new one." };
   if (watch.status === "active") return { ok: true, watch: asProject(watch) };
-  const opened = await openMonitors(watch, watch.pages.map((page) => page.url));
-  const pages = watch.pages.map((page, index) => ({ ...page, monitorId: opened.monitorIds[index], lastChangeAt: null, lastError: opened.errors[index], monitorNextRunAt: null }));
+  const hook = webhookUrl(publicOrigin(origin ?? undefined), { sessionId: currentSession(), customerId, watchId });
+  const opened = await openMonitors(watch, watch.pages.map((page) => page.url), { webhookUrl: hook });
+  const pages = watch.pages.map((page, index) => ({ ...page, monitorId: opened.monitorIds[index], lastChangeAt: null, lastError: opened.errors[index], monitorNextRunAt: null, webhookSecret: opened.webhookSecrets[index] }));
   // Changes are counted from now, so whatever happened while paused is not reported as a burst of old news.
-  const resumed: PropertyWatch = { ...watch, status: "active", mode: opened.mode, pages, searchMonitorId: opened.searchMonitorId, pausedAt: null, problems: opened.problems, visitorSeenAt: now.toISOString(), lastCheckedAt: now.toISOString() };
+  const webhooks = !!hook && [...opened.webhookSecrets, opened.searchWebhookSecret].some(Boolean);
+  const resumed: PropertyWatch = { ...watch, status: "active", mode: opened.mode, pages, searchMonitorId: opened.searchMonitorId, searchWebhookSecret: opened.searchWebhookSecret, webhooks, pausedAt: null, problems: opened.problems, visitorSeenAt: now.toISOString(), lastCheckedAt: now.toISOString(), phase: watch.phase === "researching" ? "researching" : "monitoring", failedChecks: 0, lastFailure: null, retryAt: null, nextReviewAt: new Date(now.getTime() + REVIEW_FALLBACK_MS).toISOString() };
   updateState((state) => withAudit(replaceWatch(state, resumed), { customerId, type: "watch_resumed", actor: "user", actionId: watch.actionId, detail: `Resumed watching ${watchSubject(watch)}: ${opened.monitorIds.filter(Boolean).length} Context.dev monitor${opened.monitorIds.filter(Boolean).length === 1 ? "" : "s"} created.` }, now));
   return { ok: true, watch: asProject(resumed) };
 }

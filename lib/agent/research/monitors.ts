@@ -34,26 +34,33 @@ async function call(method: "GET" | "POST" | "DELETE", path: string, body?: Json
 }
 
 const schedule = { type: "interval", frequency: CHECK_EVERY_HOURS, unit: "hours" };
+// v2 push: a project's own pages are checked every 15 minutes (Context.dev's minimum is 10) and each run is sent to
+// Sisu's webhook, so findings are made while the app is closed.
+export const PROJECT_CHECK_EVERY_MINUTES = 15;
+export type MonitorOptions = { everyMinutes?: number; webhookUrl?: string | null };
+const scheduleOf = (options: MonitorOptions) => (options.everyMinutes ? { type: "interval", frequency: Math.max(10, options.everyMinutes), unit: "minutes" } : schedule);
+const webhookOf = (options: MonitorOptions) => (options.webhookUrl ? { webhook: { url: options.webhookUrl, events: ["change.detected", "run.completed"], retry: {} } } : {});
+const secretOf = (created: Json): string | null => text((created.webhook as Json | undefined)?.secret);
 
 export const FLAT_PAGE_INSTRUCTIONS = "Report a change to the monthly rent of any flat, and flats added to or removed from the list. Ignore adverts, counters, sorting, dates and navigation.";
 export const PRICE_PAGE_INSTRUCTIONS = "Report a change to the price of any item offered, and offers added to or removed from the page. Ignore adverts, counters, sorting, dates, reviews and navigation.";
 
 // Watches one page. With instructions, Context.dev's judge reports only differences that matter to a buyer or renter.
 // `name` is shown in the Context.dev dashboard: a city or a topic, never anything about the customer.
-export async function createPageMonitor(url: string, name: string, instructions: string, signal?: AbortSignal): Promise<{ id: string; initialRunId: string | null }> {
-  const created = await call("POST", "/monitors", { name: name.slice(0, 200), target: { type: "page", url, instructions }, schedule, tags: TAGS }, signal);
+export async function createPageMonitor(url: string, name: string, instructions: string, signal?: AbortSignal, options: MonitorOptions = {}): Promise<{ id: string; initialRunId: string | null; webhookSecret: string | null }> {
+  const created = await call("POST", "/monitors", { name: name.slice(0, 200), target: { type: "page", url, instructions }, schedule: scheduleOf(options), tags: TAGS, ...webhookOf(options) }, signal);
   const id = text(created.id);
   if (!id) throw new Error("Context.dev created no monitor.");
-  return { id, initialRunId: text(created.initial_run_id) };
+  return { id, initialRunId: text(created.initial_run_id), webhookSecret: secretOf(created) };
 }
 
 // Watches the web for rental listings in the city that were not there before. Every new result is reported
 // ("exact"); code decides afterwards which of them it will read (lib/watch).
-export async function createSearchMonitor(city: string, signal?: AbortSignal): Promise<{ id: string }> {
-  const created = await call("POST", "/monitors", { name: `Sisu new flats: ${city}`.slice(0, 200), target: { type: "search", query: `vuokra-asunto ${city} vuokrattavana` }, change_detection: { type: "exact" }, schedule, tags: TAGS }, signal);
+export async function createSearchMonitor(city: string, signal?: AbortSignal, options: MonitorOptions = {}): Promise<{ id: string; webhookSecret: string | null }> {
+  const created = await call("POST", "/monitors", { name: `Sisu new flats: ${city}`.slice(0, 200), target: { type: "search", query: `vuokra-asunto ${city} vuokrattavana` }, change_detection: { type: "exact" }, schedule, tags: TAGS, ...webhookOf({ webhookUrl: options.webhookUrl }) }, signal);
   const id = text(created.id);
   if (!id) throw new Error("Context.dev created no monitor.");
-  return { id };
+  return { id, webhookSecret: secretOf(created) };
 }
 
 export async function getMonitor(id: string, signal?: AbortSignal): Promise<MonitorState> {

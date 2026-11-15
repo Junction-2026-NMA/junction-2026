@@ -789,6 +789,9 @@ export type WatchedPage = {
   title?: string | null; // added 15 Nov: the page's title when it was found
   monitorLastRunAt?: string | null; // added 15 Nov: when Context.dev last ran the monitor (from getMonitor)
   monitorNextRunAt?: string | null; // added 15 Nov: when Context.dev will run it next (from getMonitor)
+  // v2 push
+  webhookSecret?: string | null; // the monitor's webhook signing secret (whsec_...). Server state only: never in an API answer
+  lastChange?: PageChange | null; // Context.dev's own words for the last change it reported on the page
 };
 
 export type PropertyWatch = {
@@ -817,6 +820,15 @@ export type PropertyWatch = {
   pausedAt?: string | null;
   stoppedAt?: string | null;
   stoppedBecause?: "user" | "inactive" | "demo-reset" | null;
+  // v2 push
+  phase?: WatchPhase; // researching (the background job runs), initial_ready (first results saved), monitoring (later checks)
+  initialReadyAt?: string | null; // when the first results were saved
+  nextReviewAt?: string | null; // the next scheduled check: earliest monitor run, or the last check + 15 min
+  failedChecks?: number; // consecutive checks that had a problem; 0 after a clean one
+  lastFailure?: { at: string; message: string } | null;
+  retryAt?: string | null; // when a failed check is retried (backoff 1, 5, 15 min)
+  webhooks?: boolean; // true when Context.dev tells Sisu about each run (webhook); false: Sisu only polls
+  searchWebhookSecret?: string | null; // the search monitor's webhook secret. Server state only: never in an API answer
 };
 
 export type WatchNotification = {
@@ -839,6 +851,8 @@ export type WatchNotification = {
   readAt?: string | null; // added 15 Nov: when the visitor marked it read (POST /api/watch/:id/read); null or absent = unread
   housing?: HousingEffect | null; // added 15 Nov: flats only, the total effect of moving in
   research?: Citation[]; // added 15 Nov: background reading from Exa (district, commute), links only, no figures taken from it
+  // v2 push
+  pushedAt?: string | null; // when a phone notification about it was sent; never sent twice
 };
 
 // GET /api/watch/:id. `currentMatches`: the listings last read that meet the requirements now, each with its housing effect.
@@ -846,3 +860,11 @@ export type WatchProject = { customerId: string; watch: PropertyWatch; notificat
 
 export type WatchList = { customerId: string; watches: PropertyWatch[]; notifications: WatchNotification[]; scheduler?: WatchScheduler };
 export type WatchCheck = { customerId: string; checked: number; changesSeen: number; pagesReread: number; notifications: WatchNotification[]; problems: string[] };
+
+// v2 push: background research, phone notifications (lib/push, lib/watch/background.ts, app/api/push, app/api/watch/webhook)
+export type WatchPhase = "researching" | "initial_ready" | "monitoring";
+export type PageChange = { title: string; summary: string; detectedAt: string; simulated?: boolean };
+// A browser push subscription as PushSubscription.toJSON() gives it, kept in the visitor's session state.
+export type StoredPushSubscription = { endpoint: string; keys: { p256dh: string; auth: string }; customerId: string; createdAt: string };
+// What a push carries. Never anything financial: the details stay in the app.
+export type PushMessage = { title: string; body: string; url: string; tag: string };

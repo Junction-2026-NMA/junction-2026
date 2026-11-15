@@ -4,9 +4,12 @@ import { TOO_MANY, allowRequest, jsonError, parseCustomerId } from "@/lib/agent/
 import { withVisitor } from "@/lib/agent/visitor";
 import { isWatchKind, startWatch } from "@/lib/watch";
 import { asProject } from "@/lib/watch/project";
+import { finishStart } from "@/lib/watch/start";
+import { later } from "@/lib/background";
 import { watchScheduler } from "@/lib/watch/scheduler";
 
 export const runtime = "nodejs";
+export const maxDuration = 60; // the first research continues after the answer (after()), within this limit
 
 // The ONLY way an action is approved: a request that names the customer and says confirm: true, sent by the
 // Approve button. The agent has no tool that reaches this. Even then the action is simulated, and logged.
@@ -22,6 +25,9 @@ export const POST = withVisitor(async function POST(request: Request, { params }
   if (!result.ok) return jsonError(result.reason, result.status);
   // A property watch is the one action that is not a simulation: the approval just stored is what starts it.
   // The watch comes back as a Project (projectStatus, lastSuccessAt, nextCheckAt...), like GET /api/watch/:id.
-  const watch = isWatchKind(result.action.kind) ? await startWatch(customerId, result.action) : null;
+  // v2 push: the watch is stored now (phase "researching") and its monitors are made after the answer has left, so
+  // the research goes on if the phone is locked or the app closed (lib/watch/start.ts).
+  const watch = isWatchKind(result.action.kind) ? await startWatch(customerId, result.action, new Date(), { background: true }) : null;
+  if (watch?.phase === "researching") later("first research", () => finishStart(customerId, watch.id, { origin: new URL(request.url).origin }));
   return Response.json({ action: result.action, ...(watch ? { watch: asProject(watch), scheduler: watchScheduler() } : {}) });
 });

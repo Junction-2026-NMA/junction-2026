@@ -8,6 +8,7 @@ import { WeeklyBudget } from "@/web/core/AppLogic/WeeklyBudget";
 import { SisuButton, SisuCard } from "@/web/shared/SisuStyle";
 import { DataSourcesCard, useBackendStatus } from "./DataSourcesCard";
 import { SheetFrame } from "./SheetFrame";
+import { PushControls } from "@/web/features/Projects/PushControls";
 import { SettingsSwitch, VoiceSettings } from "./VoiceSettings";
 import "./sheets.css";
 
@@ -24,10 +25,20 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () =>
         <Section title="Data and privacy">
           <DataSourcesCard />
         </Section>
+        <Section title="Notifications">
+          <NotificationsSetting />
+        </Section>
         <DemoControls onClose={onClose} />
       </div>
     </SheetFrame>
   );
+}
+
+/** v2 push: whether this phone gets project notifications, and the buttons to turn them on and test them. */
+function NotificationsSetting() {
+  const baseURL = useAppSelector((s) => s.baseURLString);
+  const customerId = useAppSelector((s) => s.customer?.customerId ?? null);
+  return <PushControls baseURL={baseURL} customerId={customerId} />;
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {

@@ -2,8 +2,10 @@ import { TOO_MANY, allowRequest } from "@/lib/agent/http";
 import { withVisitor } from "@/lib/agent/visitor";
 import { DEMO_CUSTOMERS } from "@/lib/finance/data";
 import { listWatches, simulatePriceDrop } from "@/lib/watch";
+import { scheduleSimulatedChange } from "@/lib/watch/simulate";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 // For filming and the booth: a link that triggers the simulated price drop for the visitor who opens it.
 // A watch belongs to one visitor's session, so the drop has to be asked for from the same browser as the app.
@@ -24,6 +26,14 @@ export const GET = withVisitor(async function GET(request: Request) {
     .filter((watch) => watch.status === "active")
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   if (!running.length) return page("No watch is running in this browser", "Start one in the app first (ask Sisu to watch a price and tap Approve), in this same browser.", 404);
+  // v2 push: ?delay=30 makes the simulated change on the server 30 s from now and pushes it to the phone.
+  const delay = Number(new URL(request.url).searchParams.get("delay"));
+  if (Number.isFinite(delay) && delay >= 1 && delay <= 50) {
+    for (const watch of running) {
+      const scheduled = scheduleSimulatedChange(watch.customerId, watch.id, Math.round(delay));
+      if (scheduled.ok) return page("Simulated change scheduled", `In ${Math.round(delay)} seconds Sisu will record a simulated change (labelled as simulated) and send a notification. Lock the phone now.`);
+    }
+  }
   for (const watch of running) {
     const result = simulatePriceDrop(watch.customerId, watch.id);
     if (result.ok) return page("Simulated price drop sent", `${escape(result.notification.title)}. ${escape(result.notification.summary)}`);

@@ -3,25 +3,44 @@
 // Pausing deletes the monitors and resuming creates new ones: Context.dev's own pause call is not verified, and a
 // deleted monitor costs nothing while the Project waits.
 import { getConfig } from "@/lib/agent/config";
-import { FLAT_PAGE_INSTRUCTIONS, PRICE_PAGE_INSTRUCTIONS, createPageMonitor, createSearchMonitor, deleteMonitor } from "@/lib/agent/research/monitors";
+import { FLAT_PAGE_INSTRUCTIONS, type MonitorOptions, PRICE_PAGE_INSTRUCTIONS, PROJECT_CHECK_EVERY_MINUTES, createPageMonitor, createSearchMonitor, deleteMonitor } from "@/lib/agent/research/monitors";
 import type { PropertyWatch } from "@/lib/types";
 
-export type Opened = { monitorIds: (string | null)[]; errors: (string | null)[]; searchMonitorId: string | null; problems: string[]; mode: PropertyWatch["mode"] };
+export type Opened = { monitorIds: (string | null)[]; errors: (string | null)[]; searchMonitorId: string | null; problems: string[]; mode: PropertyWatch["mode"]; webhookSecrets: (string | null)[]; searchWebhookSecret: string | null };
+// v2 push: webhookUrl makes every monitor report its runs to Sisu (lib/watch/webhook.ts); pages run every 15 minutes.
+export type OpenOptions = { webhookUrl?: string | null };
 
-export async function openMonitors(watch: Pick<PropertyWatch, "city" | "topic">, urls: string[]): Promise<Opened> {
+type Created = { id: string; webhookSecret: string | null };
+// A monitor that cannot be made with a webhook is made without one (then Sisu polls it), never not at all.
+const withFallback = async (make: (options: MonitorOptions) => Promise<Created>, options: MonitorOptions): Promise<Created> => {
+  if (!options.webhookUrl) return make(options);
+  try {
+    return await make(options);
+  } catch {
+    return make({ ...options, webhookUrl: null });
+  }
+};
+
+export async function openMonitors(watch: Pick<PropertyWatch, "city" | "topic">, urls: string[], open: OpenOptions = {}): Promise<Opened> {
   const mock = getConfig().isMock;
   const name = watch.topic ? `Sisu price watch: ${watch.topic}` : `Sisu flat watch: ${watch.city}`;
-  const monitors = mock ? [] : await Promise.allSettled(urls.map((url) => createPageMonitor(url, name, watch.topic ? PRICE_PAGE_INSTRUCTIONS : FLAT_PAGE_INSTRUCTIONS)));
+  const options: MonitorOptions = { everyMinutes: PROJECT_CHECK_EVERY_MINUTES, webhookUrl: open.webhookUrl ?? null };
+  const monitors = mock ? [] : await Promise.allSettled(urls.map((url) => withFallback((o) => createPageMonitor(url, name, watch.topic ? PRICE_PAGE_INSTRUCTIONS : FLAT_PAGE_INSTRUCTIONS, undefined, o), options)));
   // Listings that appear on other sites are looked for by a search monitor. Flats only: the pages it finds are
   // read only if they are on a known rental site, and there is no such list for "anything with a price".
-  const search = mock || !watch.city || watch.topic ? null : await createSearchMonitor(watch.city).catch((error: Error) => error);
-  const monitorIds = urls.map((_, index) => (monitors[index]?.status === "fulfilled" ? (monitors[index] as PromiseFulfilledResult<{ id: string }>).value.id : null));
+  const city = watch.city;
+  const search = mock || !city || watch.topic ? null : await withFallback((o) => createSearchMonitor(city, undefined, o), { webhookUrl: options.webhookUrl }).catch((error: Error) => error);
+  const made = (index: number): Created | null => (monitors[index]?.status === "fulfilled" ? (monitors[index] as PromiseFulfilledResult<Created>).value : null);
+  const monitorIds = urls.map((_, index) => made(index)?.id ?? null);
+  const webhookSecrets = urls.map((_, index) => made(index)?.webhookSecret ?? null);
   const errors = urls.map((_, index) => (monitors[index]?.status === "rejected" ? ((monitors[index] as PromiseRejectedResult).reason as Error).message : null));
   const monitored = monitorIds.filter(Boolean).length;
   return {
     monitorIds,
     errors,
+    webhookSecrets,
     searchMonitorId: search && !(search instanceof Error) ? search.id : null,
+    searchWebhookSecret: search && !(search instanceof Error) ? search.webhookSecret : null,
     mode: monitored > 0 ? "monitor" : "reread",
     problems: [
       ...(mock ? ["Example data: no key is set, so nothing is being watched on the web."] : []),

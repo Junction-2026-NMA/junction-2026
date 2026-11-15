@@ -13,7 +13,7 @@ export const POST = withVisitor(async function POST(request: Request, { params }
   const body = ((await request.json().catch(() => null)) ?? {}) as Record<string, unknown>;
   const customerId = parseCustomerId(body.customerId);
   if (!customerId || !findCustomer(customerId)) return jsonError("Choose a customer first.", 400);
-  const result = await resumeWatch(customerId, id);
+  const result = await resumeWatch(customerId, id, new Date(), new URL(request.url).origin);
   if (!result.ok) return jsonError(result.reason, result.status);
   return Response.json({ watch: result.watch });
 });
