@@ -1,6 +1,8 @@
 // Every listing judged against the requirements the customer confirmed, in code. A listing that fails one is
-// excluded, with the reason. A listing that does not state a fact a requirement needs (size, move-in date, commute)
-// is not a pass: it goes under "Needs checking" and can never be the best match. Only a listing that meets every
+// excluded, with the reason. A listing that does not state a fact a requirement needs (size, move-in date)
+// is not a pass: it goes under "Needs checking" and can never be the best match. The commute is the one exception:
+// Sisu cannot time a journey, so it is never a pass or a fail; it stays flagged "not measured" on every listing,
+// best match included, and the card says to check it in a journey planner. Only a listing that meets every
 // requirement, checked, is "fits", and the cheapest of those is the best match.
 import { listingKey } from "@/lib/agent/research/listings";
 import { housingEffect } from "@/lib/finance/housing";
@@ -17,7 +19,7 @@ const hostOf = (url: string): string => {
   }
 };
 
-export const BEST_MATCH_RULE = "A best match meets every requirement you confirmed, each one checked against what the listing states. A listing that leaves a requirement unknown is listed under Needs checking, never as the best match.";
+export const BEST_MATCH_RULE = "A best match meets every requirement you confirmed, each one checked against what the listing states. A listing that leaves a requirement unknown is listed under Needs checking, never as the best match. The commute is not measured by Sisu, so check it in a journey planner.";
 
 function checksFor(listing: Listing, criteria: HousingCriteria, overview: Overview, today: string): HousingCheck[] {
   const req = criteria.requirements;
@@ -87,6 +89,7 @@ export function evaluateListing(overview: Overview, listing: Listing, criteria: 
   const housing = housingEffect(overview, listing, criteria.requirements, `${prefix}:${key}`);
   const failed = checks.filter((check) => check.status === "fail");
   const unknown = checks.filter((check) => check.status === "unknown");
+  const blocking = unknown.filter((check) => check.id !== "commute"); // see the note at the top
   const charges = typeof listing.utilitiesPerMonthEur === "number" ? listing.utilitiesPerMonthEur : null;
   const recurring: HousingCost[] = [
     { label: "Rent", eur: listing.priceEur, per: "month", note: null },
@@ -104,7 +107,7 @@ export function evaluateListing(overview: Overview, listing: Listing, criteria: 
     key,
     listing,
     host: hostOf(listing.url),
-    verdict: failed.length ? "excluded" : unknown.length ? "needs_checking" : "fits",
+    verdict: failed.length ? "excluded" : blocking.length ? "needs_checking" : "fits",
     checks,
     reasons: failed.map((check) => `${check.label}: ${check.detail}`),
     unknowns: unknown.map((check) => `${check.label}: ${check.detail}`),

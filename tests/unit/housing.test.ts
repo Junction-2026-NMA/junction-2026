@@ -70,10 +70,10 @@ describe("housing v2", () => {
     const onlyUnknown = evaluateListings(overview, [unknownSize], criteria({}, { minAreaM2: 40 }), TODAY);
     assert.equal(onlyUnknown.best, null);
     assert.equal(onlyUnknown.closest?.listing.title, "Ei kokoa 3");
-    // A commute limit can never be measured, so it keeps every listing under Needs checking.
+    // A commute limit can never be measured: it does not block a best match, but stays flagged "not measured".
     const commute = evaluateListings(overview, [flat()], criteria({}, { maxCommuteMinutes: 30, commuteTo: "Aalto University" }), TODAY);
-    assert.equal(commute.best, null);
-    assert.match(commute.needsChecking[0].unknowns.join(" "), /not measured/);
+    assert.equal(commute.best?.listing.title, "Tapiontori 1");
+    assert.match(commute.best!.unknowns.join(" "), /not measured/);
   });
 
   it("a rent that breaks the month or the savings goal is excluded, also by fits()", () => {
