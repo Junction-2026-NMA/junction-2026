@@ -39,12 +39,15 @@ export const ProjectText = {
     return "Project";
   },
 
-  /** Active / Paused / Stopped / Needs attention (a failing status, a page that could not be read, or a problem). */
+  /** Active / Paused / Stopped / Needs attention (a failing status or a page that could not be read). A newer
+   *  backend derives `projectStatus` itself, and its `problems` can be notes on a working watch ("Example data: no
+   *  key is set", one page re-read instead of monitored), so they count as trouble only from a backend without it. */
   status(w: PropertyWatch): { label: string; tone: ProjectTone } {
     const status = projectStatusOf(w);
     if (status === WatchStatus.stopped) return { label: "Stopped", tone: "stopped" };
     if (status === WatchStatus.paused) return { label: "Paused", tone: "paused" };
-    const troubled = status === WatchStatus.failing || w.problems.length > 0 || w.pages.some((p) => !!p.lastError);
+    const oldBackendProblem = w.projectStatus == null && w.problems.length > 0;
+    const troubled = status === WatchStatus.failing || oldBackendProblem || w.pages.some((p) => !!p.lastError);
     return troubled ? { label: "Needs attention", tone: "attention" } : { label: "Active", tone: "active" };
   },
 

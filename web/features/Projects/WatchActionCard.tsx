@@ -94,8 +94,11 @@ export function WatchActionCard({ action }: WatchActionCardProps) {
         </>
       ) : null}
       <p className="sisu-project-muted">
-        Context.dev re-checks these pages about every 6 hours. Sisu reviews the changes when you open the app and shows
-        matches in the project. {rent ? "Nothing is rented or paid, and no landlord is contacted." : "Nothing is bought or paid, and no seller is contacted."}
+        {/* Example data starts no Context.dev monitor (the server says so), so it never promises one. */}
+        {dataTag
+          ? "Sisu re-reads these pages itself when you open the app and shows matches in the project. Nothing checks them while the app is closed."
+          : `Context.dev re-checks these pages about every 6 hours. Sisu reviews the changes ${state?.scheduler ? "once a day on its server and " : ""}when you open the app and shows matches in the project.`}
+        {" "}{rent ? "Nothing is rented or paid, and no landlord is contacted." : "Nothing is bought or paid, and no seller is contacted."}
       </p>
 
       {waiting ? (

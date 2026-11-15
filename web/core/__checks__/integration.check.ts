@@ -56,6 +56,9 @@ group("offers: the shipped backend's field names", () => {
 group("projects: status, scheduler, read, housing", () => {
   const watch = PropertyWatch.decode({ id: "w1", status: "active", projectStatus: "failing", pages: [], problems: [] })!;
   eq([projectStatusOf(watch), ProjectText.status(watch).label], ["failing", "Needs attention"], "projectStatus drawn");
+  const mockNote = PropertyWatch.decode({ id: "w3", status: "active", projectStatus: "active", pages: [], problems: ["Example data: no key is set, so nothing is being watched on the web."] })!;
+  eq(ProjectText.status(mockNote).label, "Active", "a note on a watch the server calls active is not trouble");
+  eq(ProjectText.status({ ...mockNote, projectStatus: null }).label, "Needs attention", "without projectStatus a problem still is");
   eq(projectStatusOf(PropertyWatch.decode({ id: "w2", status: "paused", pages: [] })!), "paused", "status when no projectStatus");
   eq(projectStatusOf({}), "active", "neither: active");
   eq([schedulerRuns({ watchScheduler: "cron" }), schedulerRuns({ watchScheduler: "on-open" }), schedulerRuns({}), schedulerRuns(null),
@@ -76,10 +79,16 @@ group("projects: status, scheduler, read, housing", () => {
     sentence: "x", facts: [],
   };
   const view = HousingText.view({ ...n, housing, leftOverAfterEur: 200 }, true)!;
-  eq(view.monthly.map((l) => l.label), ["Rent", "Your housing today"], "monthly rows (unknown changes left out)");
+  eq(view.monthly.map((l) => l.label), ["Rent", "Your housing today", "Compared with your housing today"],
+    "monthly rows, the change with them (unknown changes and what a month leaves are not repeated)");
   eq(view.upfront.map((l) => `${l.label}: ${l.value}`), ["Deposit (assumed): €900 to €2,700", "Moving costs (your estimate): €300"], "upfront rows");
-  eq(view.totals.map((l) => l.label), ["Compared with your housing today", "Once, before moving in", "Your balance after the upfront costs",
-    "The €1,500 you want to keep", "Months to your €2,000 savings goal"], "totals (what a month leaves is not repeated)");
+  eq(view.totals.map((l) => l.label), ["Upfront in total", "Your balance after the upfront costs",
+    "The €1,500 you want to keep", "Months to your €2,000 savings goal"], "totals after the upfront rows");
+  const depositOnly = { ...housing, upfront: { ...housing.upfront, movingCostEur: null, knownEur: 0, rangeEur: { low: 900, high: 2700 } } };
+  const single = HousingText.view({ ...n, housing: depositOnly, leftOverAfterEur: 200 }, true)!;
+  eq(single.totals.map((l) => l.label)[0], "Your balance after the upfront costs", "one upfront item: its total is not repeated");
+  const noLeftOver = HousingText.view({ ...n, housing, leftOverAfterEur: null }, true)!;
+  eq(noLeftOver.monthly.at(-1)?.label, "An average month would leave you", "what a month leaves, with the monthly rows when the finding lacks it");
   eq(view.missing, housing.missing, "missing sentences as sent");
   eq(view.note, "Assumption, not from the listing: deposits are usually 1 to 3 months' rent.", "only the assumption as the note");
   eq(HousingText.view({ ...n, housing: null }, true)?.fromServer, false, "no housing: only what is missing");

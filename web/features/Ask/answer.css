@@ -282,6 +282,12 @@
   color: var(--sisu-color-text-muted);
 }
 
+.sisu-answer-offers-apart {
+  margin: calc(var(--sisu-space-grid) * 2) 0 0;
+  padding-top: calc(var(--sisu-space-grid) * 2);
+  border-top: 1px solid var(--sisu-neutral-200);
+}
+
 .sisu-answer-offer-top {
   display: flex;
   align-items: baseline;

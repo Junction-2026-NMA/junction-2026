@@ -82,7 +82,7 @@ function ProjectBody({ watch, store, state, fresh }: { watch: PropertyWatch; sto
           {dataTag ? <Chip tone="attention">{`${dataTag}: nothing on the web is watched`}</Chip> : null}
           {findings.length ? <Chip tone="plain">{`${findings.length} finding${findings.length === 1 ? "" : "s"}`}</Chip> : null}
         </div>
-        {problems.length > 0 ? <Note title="What needs attention" lines={[...new Set(problems)]} /> : null}
+        {problems.length > 0 ? <Note title={status.tone === "attention" ? "What needs attention" : "Good to know"} lines={[...new Set(problems)]} /> : null}
       </SisuCard>
 
       <SisuCard>

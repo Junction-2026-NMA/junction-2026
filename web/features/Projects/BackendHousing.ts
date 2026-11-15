@@ -46,11 +46,12 @@ export const BackendHousing = {
     if (utilities !== null) monthly.push({ label: "Water and other charges", value: signedMonth(utilities) });
     const transport = num(recurring, "transportChangeEur");
     if (transport !== null) monthly.push({ label: "Transport", value: signedMonth(transport) });
+    // The monthly change sits with the monthly rows: drawn after "Once, before moving in", it read as a one-off.
     const change = num(recurring, "knownChangeEur");
-    if (change !== null) totals.push({ label: "Compared with your housing today", value: signedMonth(change) });
+    if (change !== null) monthly.push({ label: "Compared with your housing today", value: signedMonth(change) });
     const leftAfter = num(recurring, "leftOverAfterEur");
     if (leftAfter !== null && n.leftOverAfterEur == null) {
-      totals.push(leftAfter >= 0
+      monthly.push(leftAfter >= 0
         ? { label: "An average month would leave you", value: `about ${money(leftAfter)}` }
         : { label: "An average month would be short by", value: `about ${money(-leftAfter)}` });
     }
@@ -61,8 +62,11 @@ export const BackendHousing = {
     else if (assumed !== null) once.push({ label: "Deposit (assumed)", value: assumed });
     const moving = num(upfront, "movingCostEur");
     if (moving !== null) once.push({ label: "Moving costs (your estimate)", value: money(moving) });
+    // The total only when it adds something: with one upfront item it repeats that item's figure.
     const upfrontTotal = range(upfront?.rangeEur);
-    if (upfrontTotal !== null) totals.push({ label: "Once, before moving in", value: upfrontTotal });
+    if (upfrontTotal !== null && !(once.length === 1 && once[0].value === upfrontTotal)) {
+      totals.push({ label: once.length > 0 ? "Upfront in total" : "Once, before moving in", value: upfrontTotal });
+    }
 
     const after = range(buffer?.afterUpfrontEur);
     if (after !== null) totals.push({ label: "Your balance after the upfront costs", value: after });
