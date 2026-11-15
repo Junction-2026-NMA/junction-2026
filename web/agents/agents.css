@@ -1,0 +1,956 @@
+/* The beUI agent components (web/agents, https://beui.dev, MIT) in the Sisu look: every colour, type style, radius
+   and space is a Sisu token (web/theme/tokens.css). beUI ships Tailwind classes; this app styles with plain CSS and
+   its global `.sisu-root button` reset outranks single classes, so button rules are written `button.sisu-agent-x`.
+   Light only, like the rest of the app. */
+
+.sisu-agent-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Message: one row of the conversation. The person's rows sit at the trailing edge. */
+.sisu-agent-message {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  gap: calc(var(--sisu-space-grid) * 2);
+}
+
+.sisu-agent-message[data-from="user"] {
+  flex-direction: row-reverse;
+}
+
+.sisu-agent-message-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 1.5);
+}
+
+.sisu-agent-message-content[data-from="user"] {
+  align-items: flex-end;
+}
+
+/* Sisu's answers are cards: they keep the full width. */
+.sisu-agent-message-content[data-from="assistant"] {
+  align-items: stretch;
+}
+
+/* MessageBubble: the surface is its own layer, so it can pop in and follow the text's size. At least 64 px stay
+   free at the leading edge, as before. */
+.sisu-agent-bubble {
+  position: relative;
+  z-index: 0;
+  min-width: 44px;
+  max-width: calc(100% - var(--sisu-space-section) * 2);
+  padding: calc(var(--sisu-space-grid) * 3) var(--sisu-space-card);
+  border-radius: var(--sisu-radius-card);
+  font: var(--sisu-type-body);
+  color: var(--sisu-color-text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.sisu-agent-bubble[data-variant="solid"] {
+  color: var(--sisu-color-on-primary);
+}
+
+.sisu-agent-bubble-surface {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  transform-origin: 0% 100%;
+  background: var(--sisu-green-50);
+}
+
+.sisu-agent-bubble[data-from="user"] .sisu-agent-bubble-surface {
+  transform-origin: 100% 100%;
+}
+
+.sisu-agent-bubble[data-variant="solid"] .sisu-agent-bubble-surface {
+  background: var(--sisu-color-primary);
+}
+
+.sisu-agent-bubble-text {
+  position: relative;
+}
+
+/* MessageTyping. */
+.sisu-agent-typing {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sisu-space-grid);
+  height: 22px;
+  vertical-align: middle;
+}
+
+.sisu-agent-typing-dot {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ThinkingShimmer: a light passing over muted text, in the brand's green. */
+@keyframes sisu-agent-shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+.sisu-agent-shimmer {
+  display: inline-block;
+  font: var(--sisu-type-label);
+  color: transparent;
+  background-image: linear-gradient(110deg, var(--sisu-color-text-muted) 30%, var(--sisu-green-500) 50%, var(--sisu-color-text-muted) 70%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation-name: sisu-agent-shimmer;
+  animation-duration: 1.8s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sisu-agent-shimmer {
+    animation: none;
+    color: var(--sisu-color-text-muted);
+    background-image: none;
+  }
+}
+
+/* AgentActivity: what Sisu is doing (and, folded, what it did) above the answer. */
+.sisu-agent-activity {
+  width: 100%;
+  padding: 0 var(--sisu-space-grid);
+}
+
+.sisu-agent-activity-status {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 32px;
+}
+
+button.sisu-agent-activity-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 1.5);
+  max-width: 100%;
+  min-height: 44px; /* a touch target at the booth */
+  margin: -6px 0;
+  border-radius: var(--sisu-radius-button);
+  color: var(--sisu-color-text-muted);
+  font: var(--sisu-type-label);
+  text-align: left;
+  transition: color 150ms ease;
+}
+
+button.sisu-agent-activity-toggle:active {
+  color: var(--sisu-color-text);
+}
+
+@media (hover: hover) {
+  button.sisu-agent-activity-toggle:hover {
+    color: var(--sisu-color-text);
+  }
+}
+
+.sisu-agent-activity-summary {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sisu-agent-activity-chevron {
+  flex: none;
+  display: inline-flex;
+}
+
+.sisu-agent-activity-viewport {
+  overflow-y: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.sisu-agent-activity-viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.sisu-agent-activity-viewport[data-scroll="true"] {
+  overflow-y: auto;
+}
+
+.sisu-agent-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: calc(var(--sisu-space-grid) * 1.5) 0 calc(var(--sisu-space-grid) * 2);
+  list-style: none;
+}
+
+.sisu-agent-step {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(var(--sisu-space-grid) * 2.5);
+  min-height: 28px;
+  padding: var(--sisu-space-grid) 0;
+}
+
+.sisu-agent-step-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
+  color: var(--sisu-neutral-400);
+}
+
+.sisu-agent-step-mark[data-status="complete"] {
+  color: var(--sisu-green-700);
+}
+
+.sisu-agent-step-mark[data-status="failed"] {
+  color: var(--sisu-amber-mark);
+}
+
+.sisu-agent-step-pulse {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 12px;
+  height: 12px;
+}
+
+.sisu-agent-step-pulse-halo {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--sisu-green-100);
+}
+
+.sisu-agent-step-pulse-core {
+  position: relative;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--sisu-green-700);
+}
+
+.sisu-agent-step-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sisu-agent-step-top {
+  display: flex;
+  align-items: baseline;
+  gap: calc(var(--sisu-space-grid) * 2);
+}
+
+.sisu-agent-step-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: var(--sisu-type-body);
+  color: var(--sisu-color-text);
+  overflow-wrap: anywhere;
+}
+
+.sisu-agent-step[data-status="pending"] .sisu-agent-step-label {
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-agent-step-meta,
+.sisu-agent-step-detail {
+  font: var(--sisu-type-caption);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-agent-step-meta {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+/* PromptInput: the white pill of the ask box, Send inside it. */
+.sisu-agent-prompt {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sisu-space-grid);
+  min-height: 52px;
+  margin: 0;
+  padding: 3px 3px 3px 0;
+  border: 1px solid var(--sisu-color-hairline);
+  border-radius: 26px;
+  background: var(--sisu-color-card);
+  box-shadow: 0 6px 20px rgba(24, 33, 28, 0.06);
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.sisu-agent-prompt:focus-within {
+  border-color: var(--sisu-color-outline);
+  box-shadow: 0 0 0 3px rgba(153, 213, 159, 0.35), 0 6px 20px rgba(24, 33, 28, 0.06);
+}
+
+/* Bare: the caller draws the pill and its focus ring around the field (the Sisu tab's dock). */
+.sisu-agent-prompt[data-variant="bare"],
+.sisu-agent-prompt[data-variant="bare"]:focus-within {
+  min-height: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.sisu-agent-prompt-fieldwrap {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sisu-agent-prompt-field,
+.sisu-agent-prompt-mirror {
+  width: 100%;
+  margin: 0;
+  padding: 10px 4px 10px 18px;
+  border: 0;
+  font: var(--sisu-type-body); /* 16 px: iOS does not zoom into the field */
+  overflow-wrap: break-word;
+}
+
+.sisu-agent-prompt-mirror {
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  pointer-events: none;
+  white-space: pre-wrap;
+}
+
+.sisu-agent-prompt-field {
+  display: block;
+  min-height: 44px; /* Apple's touch size: the demo is used standing at a booth */
+  background: transparent;
+  color: var(--sisu-color-text);
+  resize: none;
+  overflow-y: hidden;
+  outline: none;
+  scrollbar-width: none;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* The box shows focus (:focus-within); the field itself draws no second ring. */
+textarea.sisu-agent-prompt-field:focus-visible {
+  outline: none;
+}
+
+.sisu-agent-prompt-field::placeholder {
+  color: var(--sisu-color-text-muted);
+  opacity: 1;
+}
+
+button.sisu-agent-prompt-send {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--sisu-color-hairline);
+  color: var(--sisu-color-text-muted);
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+button.sisu-agent-prompt-send[data-variant="ready"],
+button.sisu-agent-prompt-send[data-variant="stop"] {
+  background: var(--sisu-color-primary);
+  color: var(--sisu-color-on-primary);
+}
+
+button.sisu-agent-prompt-send:disabled {
+  cursor: default;
+}
+
+/* On the green fill a light gap keeps the ring apart from the button. */
+button.sisu-agent-prompt-send:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--sisu-color-outline);
+}
+
+button.sisu-agent-prompt-send[data-variant="ready"]:focus-visible,
+button.sisu-agent-prompt-send[data-variant="stop"]:focus-visible {
+  box-shadow: 0 0 0 2px var(--sisu-color-card), 0 0 0 4px var(--sisu-color-outline);
+}
+
+.sisu-agent-prompt-icon {
+  display: grid;
+  place-items: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button.sisu-agent-prompt-send,
+  .sisu-agent-prompt {
+    transition: none;
+  }
+}
+
+/* VoiceOrb: fills its box; the caller sizes and places it. */
+.sisu-agent-orb {
+  display: block;
+  aspect-ratio: 1;
+  pointer-events: none;
+}
+
+.sisu-agent-orb-body,
+.sisu-agent-orb-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* AgentDisclosure: the shared reveal. */
+.sisu-agent-disclosure {
+  overflow: hidden;
+}
+
+@keyframes sisu-agent-spin {
+  to { transform: rotate(360deg); }
+}
+
+.sisu-agent-spin {
+  animation: sisu-agent-spin 0.9s linear infinite;
+}
+
+/* MessageBubbleCollapsible: a long question, clamped with a fade, "Show more" under it. */
+.sisu-agent-collapsible-content {
+  overflow-wrap: anywhere;
+}
+
+.sisu-agent-collapsible[data-state="closed"] .sisu-agent-collapsible-content {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* The fade only when lines are actually hidden. */
+.sisu-agent-collapsible[data-state="closed"][data-overflow="true"] .sisu-agent-collapsible-content {
+  -webkit-mask-image: linear-gradient(to bottom, #000 68%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 68%, transparent 100%);
+}
+
+button.sisu-agent-collapsible-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sisu-space-grid);
+  min-height: 32px;
+  margin-top: var(--sisu-space-grid);
+  padding: 0 calc(var(--sisu-space-grid) * 3);
+  border-radius: var(--sisu-radius-pill);
+  background: rgba(255, 255, 255, 0.16);
+  color: inherit;
+  font: var(--sisu-type-label);
+}
+
+.sisu-agent-collapsible-chevron {
+  display: inline-flex;
+}
+
+/* AgentProgress: the live status line of the activity (grid, words, elapsed time). */
+.sisu-agent-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2.5);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.sisu-agent-progress-grid {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  width: 16px;
+  height: 16px;
+}
+
+.sisu-agent-progress-cell {
+  border-radius: 1px;
+  background: var(--sisu-green-500);
+}
+
+.sisu-agent-progress-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sisu-agent-progress-time {
+  flex: none;
+  font: var(--sisu-type-caption);
+  color: var(--sisu-color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* AgentActivity search rows: the query as sent, then the pages that came back. */
+.sisu-agent-search {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--sisu-space-grid) 0;
+}
+
+.sisu-agent-search-query {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2.5);
+  min-height: 28px;
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-agent-search-icon {
+  flex: none;
+}
+
+.sisu-agent-search-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: var(--sisu-type-label);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sisu-agent-search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: calc(var(--sisu-space-grid) * 6.5);
+}
+
+.sisu-agent-search-result {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+  min-height: 32px;
+  min-width: 0;
+  border-radius: var(--sisu-space-grid);
+  color: var(--sisu-color-text);
+  text-decoration: none;
+}
+
+a.sisu-agent-search-result:active .sisu-agent-search-title {
+  color: var(--sisu-color-primary);
+}
+
+.sisu-agent-search-globe {
+  flex: none;
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-agent-search-title {
+  min-width: 0;
+  font: var(--sisu-type-label);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sisu-agent-search-domain,
+.sisu-agent-search-more {
+  flex: none;
+  max-width: 45%;
+  font: var(--sisu-type-caption);
+  color: var(--sisu-color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sisu-agent-search-more {
+  padding-left: calc(var(--sisu-space-grid) * 5.5);
+}
+
+/* ToolApproval (and ApprovalQuestion, which shares its head): a white card in the Sisu look. */
+.sisu-agent-approval,
+.sisu-agent-question {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 3);
+  width: 100%;
+  padding: var(--sisu-space-margin);
+  border: 1px solid var(--sisu-color-hairline);
+  border-radius: var(--sisu-radius-card);
+  background: var(--sisu-color-card);
+  overflow: hidden;
+}
+
+.sisu-agent-approval-head {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(var(--sisu-space-grid) * 3);
+}
+
+.sisu-agent-approval-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--sisu-color-hairline);
+  border-radius: 12px;
+  background: var(--sisu-color-background);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-agent-approval-icon[data-status="pending"] {
+  color: var(--sisu-amber-mark);
+}
+
+.sisu-agent-approval-icon[data-status="approving"] {
+  color: var(--sisu-info-text);
+}
+
+.sisu-agent-approval-icon[data-status="approved"] {
+  border-color: var(--sisu-green-100);
+  background: var(--sisu-green-50);
+  color: var(--sisu-green-700);
+}
+
+.sisu-agent-question-icon {
+  display: grid;
+  place-items: center;
+}
+
+.sisu-agent-approval-titles {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 2);
+}
+
+/* A question whose words are already in the answer: the badge alone, centred on the icon. */
+.sisu-agent-approval-titles[data-centred="true"] {
+  justify-content: center;
+  min-height: 36px;
+}
+
+.sisu-agent-approval-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 1.5);
+}
+
+.sisu-agent-approval-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font: var(--sisu-type-h3);
+  color: var(--sisu-color-text);
+  overflow-wrap: anywhere;
+}
+
+/* The kind of action under the title: "Simulated, no real switch" stays plain to see. */
+.sisu-agent-approval-tool {
+  padding: 3px calc(var(--sisu-space-grid) * 2);
+  border-radius: var(--sisu-radius-pill);
+  background: var(--sisu-amber-background);
+  color: var(--sisu-amber-text);
+  font: var(--sisu-type-caption);
+}
+
+.sisu-agent-approval-badge {
+  padding: 2px calc(var(--sisu-space-grid) * 2);
+  border: 1px solid var(--sisu-color-hairline);
+  border-radius: var(--sisu-radius-pill);
+  background: var(--sisu-color-background);
+  color: var(--sisu-color-text-muted);
+  font: var(--sisu-type-caption);
+  text-align: center;
+  transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
+}
+
+.sisu-agent-approval-badge[data-status="pending"] {
+  border-color: rgba(207, 131, 0, 0.3);
+  background: var(--sisu-amber-background);
+  color: var(--sisu-amber-text);
+}
+
+.sisu-agent-approval-badge[data-status="approving"] {
+  border-color: rgba(0, 110, 135, 0.25);
+  background: var(--sisu-info-background);
+  color: var(--sisu-info-text);
+}
+
+.sisu-agent-approval-badge[data-status="approved"] {
+  border-color: var(--sisu-green-100);
+  background: var(--sisu-green-50);
+  color: var(--sisu-green-900);
+}
+
+.sisu-agent-approval-description {
+  margin: 0;
+  font: var(--sisu-type-body);
+  color: var(--sisu-color-text);
+  overflow-wrap: anywhere;
+}
+
+button.sisu-agent-approval-details {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 1.5);
+  min-height: 44px;
+  margin: -6px 0;
+  color: var(--sisu-color-primary);
+  font: var(--sisu-type-label);
+  text-align: left;
+}
+
+.sisu-agent-approval-chevron {
+  flex: none;
+  display: inline-flex;
+}
+
+.sisu-agent-approval-details-body {
+  padding: calc(var(--sisu-space-grid) * 3);
+  border: 1px solid var(--sisu-color-hairline);
+  border-radius: var(--sisu-radius-button);
+  background: var(--sisu-color-background);
+}
+
+.sisu-agent-approval-actions,
+.sisu-agent-approval-result {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 3);
+  margin: 0 calc(var(--sisu-space-margin) * -1);
+  padding: var(--sisu-space-card) var(--sisu-space-margin) 0;
+  border-top: 1px solid var(--sisu-color-hairline);
+}
+
+/* ApprovalQuestion: the options as a radio group. */
+.sisu-agent-question-options {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 2);
+}
+
+button.sisu-agent-question-option {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 3);
+  width: 100%;
+  min-height: 52px;
+  padding: calc(var(--sisu-space-grid) * 2) calc(var(--sisu-space-grid) * 3);
+  border: 1px solid var(--sisu-color-hairline);
+  border-radius: var(--sisu-radius-button);
+  background: var(--sisu-color-card);
+  color: var(--sisu-color-text);
+  font: var(--sisu-type-body);
+  text-align: left;
+  transition: background-color 200ms ease, border-color 200ms ease, opacity 200ms ease;
+}
+
+button.sisu-agent-question-option[data-locked="true"] {
+  cursor: default;
+}
+
+button.sisu-agent-question-option[data-locked="true"][data-state="idle"] {
+  opacity: 0.55;
+}
+
+button.sisu-agent-question-option[data-state="correct"] {
+  border-color: var(--sisu-green-300);
+  background: var(--sisu-green-50);
+}
+
+button.sisu-agent-question-option[data-state="wrong"] {
+  border-color: rgba(207, 131, 0, 0.35);
+  background: var(--sisu-amber-background);
+}
+
+.sisu-agent-question-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--sisu-neutral-400);
+  border-radius: 50%;
+  color: var(--sisu-white);
+  transition: background-color 200ms ease, border-color 200ms ease;
+}
+
+.sisu-agent-question-mark[data-state="correct"] {
+  border-color: var(--sisu-green-700);
+  background: var(--sisu-green-700);
+}
+
+.sisu-agent-question-mark[data-state="wrong"] {
+  border-color: var(--sisu-amber-mark);
+  background: var(--sisu-amber-mark);
+}
+
+.sisu-agent-question-mark-glyph {
+  display: grid;
+  place-items: center;
+}
+
+.sisu-agent-question-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.sisu-agent-question-result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sisu-space-grid);
+  padding: calc(var(--sisu-space-grid) * 3);
+  border-radius: var(--sisu-radius-button);
+  background: var(--sisu-color-background);
+}
+
+/* CitationList: numbered sources. */
+.sisu-agent-citations {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sisu-agent-citation {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(var(--sisu-space-grid) * 2.5);
+  min-height: 44px;
+  padding: calc(var(--sisu-space-grid) * 1.5) var(--sisu-space-grid);
+  border-radius: calc(var(--sisu-space-grid) * 3);
+  color: var(--sisu-color-text);
+  text-decoration: none;
+  transition: background-color 150ms ease;
+}
+
+a.sisu-agent-citation:active {
+  background: var(--sisu-green-25);
+}
+
+.sisu-agent-citation-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-agent-citation-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sisu-agent-citation-title {
+  font: var(--sisu-type-label);
+  overflow-wrap: anywhere;
+}
+
+.sisu-agent-citation-domain,
+.sisu-agent-citation-meta {
+  font: var(--sisu-type-caption);
+  color: var(--sisu-color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.sisu-agent-citation-end {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 1.5);
+  min-height: 20px;
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-agent-citation-index {
+  display: grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  border-radius: 6px;
+  background: var(--sisu-green-50);
+  color: var(--sisu-green-900);
+  font: var(--sisu-type-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+/* StreamingResponse's completion actions, under a finished answer. */
+.sisu-agent-response-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 var(--sisu-space-grid);
+}
+
+button.sisu-agent-response-action {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 1.5);
+  min-height: 36px;
+  padding: 0 calc(var(--sisu-space-grid) * 2.5);
+  border-radius: var(--sisu-radius-pill);
+  color: var(--sisu-color-text-muted);
+  font: var(--sisu-type-caption);
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+button.sisu-agent-response-action:active {
+  background: var(--sisu-green-50);
+  color: var(--sisu-color-text);
+}
+
+@media (hover: hover) {
+  button.sisu-agent-response-action:hover {
+    background: var(--sisu-green-50);
+    color: var(--sisu-color-text);
+  }
+}
+
+.sisu-agent-response-icon {
+  display: grid;
+  place-items: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sisu-agent-spin { animation: none; }
+  .sisu-agent-approval-badge,
+  button.sisu-agent-question-option,
+  .sisu-agent-question-mark { transition: none; }
+}

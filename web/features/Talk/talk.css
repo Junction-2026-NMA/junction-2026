@@ -328,78 +328,6 @@ button.sisu-talk-jump:focus-visible {
   padding: calc(var(--sisu-space-grid) * 2) var(--sisu-space-margin) calc(var(--sisu-space-grid) * 3);
 }
 
-/* The voice-first dock (VoiceLauncher.tsx): the microphone centred, the keyboard button at the trailing edge. */
-.sisu-talk-launcher {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  min-height: 64px;
-  animation: sisu-talk-fade 240ms var(--sisu-motion-ease-out) both;
-}
-
-button.sisu-talk-launcher-mic {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 64px;
-  height: 64px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: var(--sisu-color-primary);
-  color: var(--sisu-color-on-primary);
-  box-shadow: 0 8px 24px rgba(0, 70, 40, 0.22);
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  transition: transform 160ms var(--sisu-motion-ease-out);
-}
-
-button.sisu-talk-launcher-mic svg {
-  width: 28px;
-  height: 28px;
-}
-
-button.sisu-talk-launcher-mic:active:not(:disabled) {
-  transform: scale(0.92);
-}
-
-button.sisu-talk-launcher-mic:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-
-button.sisu-talk-launcher-type {
-  justify-self: end;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  padding: 0;
-  border: 1px solid var(--sisu-color-hairline);
-  border-radius: 50%;
-  background: var(--sisu-color-card);
-  color: var(--sisu-color-text);
-  box-shadow: 0 4px 14px rgba(24, 33, 28, 0.06);
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  transition: transform 160ms var(--sisu-motion-ease-out);
-}
-
-button.sisu-talk-launcher-type:active {
-  transform: scale(0.92);
-}
-
-button.sisu-talk-launcher-type:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--sisu-color-outline);
-}
-
-button.sisu-talk-launcher-mic:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--sisu-color-background), 0 0 0 5px var(--sisu-color-outline);
-}
-
 /* A voice problem (speech failed, the microphone refused or interrupted): one calm line, never red. */
 .sisu-talk-notice {
   margin: 0;
@@ -411,49 +339,24 @@ button.sisu-talk-launcher-mic:focus-visible {
   text-align: center;
 }
 
-.sisu-talk-strip {
+/* Under the title while voice is on (VoiceStrip.tsx): the live dot, the state and the clock. */
+.sisu-talk-voice-status {
   display: flex;
   align-items: center;
   gap: calc(var(--sisu-space-grid) * 2);
-  min-height: 60px;
-  box-sizing: border-box;
-  padding: 4px;
-  border: 1px solid rgba(0, 120, 65, 0.18);
-  border-radius: 30px;
-  background: var(--sisu-color-card);
-  box-shadow: 0 6px 20px rgba(0, 70, 40, 0.1);
-  animation: sisu-talk-fade 240ms var(--sisu-motion-ease-out) both;
-}
-
-button.sisu-talk-strip-type {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 50px;
-  height: 50px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: var(--sisu-color-background);
-  color: var(--sisu-color-text);
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.sisu-talk-strip-status {
-  flex: 1 1 auto;
   min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: calc(var(--sisu-space-grid) * 3);
+  margin: 0;
+  font: var(--sisu-type-label);
+  font-variant-numeric: tabular-nums;
+  color: var(--sisu-color-text-muted);
+  white-space: nowrap;
 }
 
 .sisu-talk-strip-dot {
   position: relative;
   flex: none;
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
 }
 
 .sisu-talk-strip-halo,
@@ -469,44 +372,26 @@ button.sisu-talk-strip-type {
 }
 
 .sisu-talk-strip-core {
-  inset: 6px;
+  inset: 5px;
   background: var(--sisu-green-500);
 }
 
-.sisu-talk-strip[data-tone="listening"] .sisu-talk-strip-core {
+.sisu-talk-voice-status[data-tone="listening"] .sisu-talk-strip-core {
   animation: sisu-talk-breathe 1.8s ease-in-out infinite;
 }
 
-.sisu-talk-strip[data-tone="thinking"] .sisu-talk-strip-core {
+.sisu-talk-voice-status[data-tone="thinking"] .sisu-talk-strip-core {
   background: var(--sisu-green-700);
   animation: sisu-talk-breathe 0.9s ease-in-out infinite;
 }
 
-.sisu-talk-strip[data-tone="answering"] .sisu-talk-strip-core {
+.sisu-talk-voice-status[data-tone="answering"] .sisu-talk-strip-core {
   background: var(--sisu-color-primary);
 }
 
-.sisu-talk-strip-text {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.sisu-talk-strip-label {
-  font: 700 16px/1.25 var(--sisu-font-text);
-  color: var(--sisu-color-text);
-}
-
-/* Up to two lines, so the instruction (tap Stop, tap End) is never cut off on a narrow phone. */
-.sisu-talk-strip-detail {
-  font: var(--sisu-type-caption);
-  color: var(--sisu-color-text-muted);
-  white-space: normal;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+.sisu-talk-voice-status[data-muted="true"] .sisu-talk-strip-core {
+  background: var(--sisu-amber-mark);
+  animation: none;
 }
 
 button.sisu-talk-strip-stop {
@@ -514,10 +399,10 @@ button.sisu-talk-strip-stop {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 50px;
-  padding: 0 18px 0 16px;
+  min-height: 44px;
+  padding: 0 16px 0 14px;
   border: 0;
-  border-radius: 25px;
+  border-radius: 22px;
   background: var(--sisu-color-text);
   color: var(--sisu-color-card);
   font: var(--sisu-type-label);
@@ -541,7 +426,6 @@ button.sisu-talk-strip-stop:active {
   background: currentColor;
 }
 
-button.sisu-talk-strip-type:focus-visible,
 button.sisu-talk-strip-stop:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px var(--sisu-color-outline);
@@ -634,8 +518,7 @@ button.sisu-talk-strip-stop[data-kind="interrupt"]:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .sisu-talk-empty-hero,
   .sisu-talk-project,
-  button.sisu-talk-jump,
-  .sisu-talk-strip {
+  button.sisu-talk-jump {
     animation: sisu-talk-fade 200ms ease both;
   }
 

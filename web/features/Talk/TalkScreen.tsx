@@ -10,10 +10,11 @@
 // - Settings opens from the drawer's last row (the same sheet as on Today and Path).
 // - Empty: Liito, larger, and one friendly line, centred above the ask box (no suggestion list). With the keyboard
 //   up Liito is smaller, so the greeting still fits.
-// - The transcript keeps the reading position (TalkTranscript.tsx). The dock is pinned at the bottom and voice first:
-//   a large microphone in the middle and a small keyboard button beside it (VoiceLauncher.tsx). The keyboard button
-//   opens the text field with Send and the microphone (Ask/Composer.tsx); leaving it empty goes back. While voice is
-//   on the dock shows the live state with a stop control (VoiceStrip.tsx).
+// - The transcript keeps the reading position (TalkTranscript.tsx). The dock is pinned at the bottom and voice first
+//   (SisuDock.tsx): a large microphone in the middle and a round keyboard button beside it. The keyboard button
+//   stretches into the text field (Send inside) while the microphone glides to its side; leaving the field empty
+//   goes back the same way. While voice is on, the header shows the live state and Stop/End in place of the small
+//   Liito (VoiceStrip.tsx), and the dock's microphone shows the orb (tap to mute).
 // The hands-free logic is web/voice/ConversationController.ts and web/core (ConversationFlow, VoiceBar, LiitoTask).
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { flushSync } from "react-dom";
@@ -29,8 +30,6 @@ import { unlockAudio } from "@/web/voice/AudioUnlock";
 import type { ConversationController } from "@/web/voice/ConversationController";
 import { FallbackNotice } from "@/web/features/Ask/AskParts";
 import { runLaunch } from "@/web/features/Ask/askLaunch";
-import { Composer } from "@/web/features/Ask/Composer";
-import { VoiceLauncher } from "./VoiceLauncher";
 import { PlaceholderScreen } from "@/web/features/Ask/PlaceholderScreen";
 import { useKeyboardInset } from "@/web/features/Ask/useKeyboardInset";
 import { HistoryDrawer } from "@/web/features/History/HistoryDrawer";
@@ -38,10 +37,11 @@ import { ProjectScreen } from "@/web/features/Projects/ProjectScreen";
 import { useProjectsUnread } from "@/web/features/Projects/useProjects";
 import { SettingsSheet } from "@/web/features/Sheets/SettingsSheet";
 import { SisuEmptyState } from "./SisuEmptyState";
-import { LiitoBadge, SisuLogoButton, StatusLine } from "./TalkParts";
+import { LiitoBadge, SisuLogoButton } from "./TalkParts";
 import { TalkLaunch } from "./TalkLaunch";
 import { TalkTranscript, type TranscriptHandle } from "./TalkTranscript";
-import { VoiceStrip } from "./VoiceStrip";
+import { SisuDock, type DockMode } from "./SisuDock";
+import { VoiceStatus, VoiceStopButton } from "./VoiceStrip";
 import "@/web/features/Ask/ask.css";
 import "./talk.css";
 
@@ -105,7 +105,7 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
     setTyped({ id: conversationId, text });
   };
 
-  // The dock is voice first (VoiceLauncher); the keyboard button switches to the text field. An unsent draft or a
+  // The dock is voice first (SisuDock); the keyboard button switches to the text field. An unsent draft or a
   // typed question Sisu is still working on keeps the field (and its Stop) on screen.
   const [typing, setTyping] = useState(() => draft.trim() !== "");
 
@@ -116,6 +116,7 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
   const bar = VoiceBar.state(flow, session.activity, conversation?.answerReady ?? false);
   const isThinking = state?.isThinking ?? false;
   const showComposer = typing || isThinking || draft.trim() !== "";
+  const dockMode: DockMode = flow.isOn ? "live" : showComposer ? "typing" : "voice";
 
   // Liito's mood: the presenter's, corrected while Sisu answers with what the session really does (real work beats
   // a filler sentence), then sequenced so each real task can be read (useLiitoMood). An approval cheers.
@@ -192,10 +193,13 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
     input.current?.blur();
     talk.start();
   };
+  /** The keyboard button during voice: voice ends and the field opens; it takes focus inside the tap when it can
+   *  (so iOS raises the keyboard), else just after. */
   const typeInstead = () => {
     talk.end();
-    setTyping(true);
-    window.setTimeout(() => input.current?.focus(), 60);
+    flushSync(() => setTyping(true));
+    input.current?.focus();
+    if (document.activeElement !== input.current) window.setTimeout(() => input.current?.focus(), 60);
   };
   /** The keyboard button: the text field appears and takes focus inside the tap, so iOS raises the keyboard. */
   const openKeyboard = () => {
@@ -224,9 +228,11 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
         <SisuLogoButton buttonRef={logo} open={historyOpen} unread={unread} onPress={() => model.setHistoryOpen(true)} />
         <div className="sisu-talk-titles">
           <h1 className="sisu-talk-title" data-testid="talk.title">Sisu</h1>
-          {flow.isOn ? <StatusLine flow={flow} live statusLine={screen.statusLine} detail={null} compact /> : null}
+          {flow.isOn ? <VoiceStatus bar={bar} flow={flow} talk={talk} /> : null}
         </div>
-        {chatting ? <div className="sisu-talk-header-liito">{liitoBadge("small")}</div> : null}
+        {flow.isOn ? (
+          <VoiceStopButton bar={bar} onStop={() => (bar.stop === "interrupt" ? talk.interrupt() : talk.end())} />
+        ) : chatting ? <div className="sisu-talk-header-liito">{liitoBadge("small")}</div> : null}
       </header>
       <FallbackNotice session={session} notice={state?.fallbackNotice ?? null} fellBackToSample={coach.fellBackToSample} />
       {chatting && state ? (
@@ -240,14 +246,10 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
       )}
       <div className="sisu-talk-dock" data-clips={voice?.clipsPlayed ?? 0} data-testid={`talk.clips.${voice?.clipsPlayed ?? 0}`}>
         {notice ? <p className="sisu-talk-notice" role="status" data-testid="talk.notice">{notice}</p> : null}
-        {flow.isOn ? (
-          <VoiceStrip bar={bar} talk={talk} onType={typeInstead} onStop={() => (bar.stop === "interrupt" ? talk.interrupt() : talk.end())} />
-        ) : showComposer ? (
-          <Composer draft={draft} setDraft={setDraft} thinking={isThinking} onSend={send} onStop={() => session.cancel()}
-            onVoice={startVoice} inputRef={input} onFocusChange={(focused) => { if (!focused) leaveTypingIfEmpty(); }} />
-        ) : (
-          <VoiceLauncher onVoice={startVoice} onType={openKeyboard} />
-        )}
+        <SisuDock mode={dockMode} draft={draft} setDraft={setDraft} thinking={isThinking} onSend={send} onStop={() => session.cancel()}
+          inputRef={input} onFocusChange={(focused) => { if (!focused) leaveTypingIfEmpty(); }}
+          onVoice={startVoice} onKeyboard={openKeyboard} onTypeInstead={typeInstead}
+          flow={flow} talk={talk} micLabel={screen.micLabel} />
       </div>
       <HistoryDrawer open={historyOpen} onClose={() => model.setHistoryOpen(false)} returnFocus={logo}
         onSettings={() => { model.setHistoryOpen(false); setSettingsOpen(true); }} />

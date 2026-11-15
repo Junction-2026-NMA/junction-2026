@@ -1,0 +1,216 @@
+/* The Sisu tab's dock (SisuDock.tsx): one microphone and one keyboard control that change shape between voice,
+   typing and live voice. Everything moves with CSS transitions on elements that stay mounted: the grid's leading
+   track closes (the microphone glides from the middle to the leading side), the microphone goes from 64 to 52 px,
+   and the round keyboard button stretches into the text field from the trailing edge while the field's content
+   fades in. Drawer timing, no overshoot (a grid track cannot go below 0). Reduce Motion: a fade only. */
+
+.sisu-dock {
+  --sisu-dock-move: var(--sisu-motion-sheet-duration) var(--sisu-motion-sheet-easing);
+  display: grid;
+  grid-template-columns: 1fr 64px 1fr;
+  align-items: center;
+  min-height: 64px;
+  transition: grid-template-columns var(--sisu-dock-move);
+}
+
+.sisu-dock[data-mode="typing"] {
+  grid-template-columns: 0fr 52px 1fr;
+  align-items: end;
+}
+
+.sisu-dock-spacer {
+  min-width: 0;
+}
+
+/* The microphone: the same control in every mode. */
+button.sisu-dock-mic {
+  position: relative;
+  justify-self: center;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--sisu-color-primary);
+  color: var(--sisu-color-on-primary);
+  box-shadow: 0 8px 24px rgba(0, 70, 40, 0.22);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    width var(--sisu-dock-move),
+    height var(--sisu-dock-move),
+    box-shadow 200ms ease,
+    background-color 200ms ease,
+    color 200ms ease,
+    transform 160ms var(--sisu-motion-ease-out);
+}
+
+.sisu-dock[data-mode="typing"] button.sisu-dock-mic {
+  width: 52px;
+  height: 52px;
+  box-shadow: 0 6px 18px rgba(0, 70, 40, 0.18);
+}
+
+.sisu-dock-mic-glyph {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  transition: width var(--sisu-dock-move), height var(--sisu-dock-move);
+}
+
+.sisu-dock[data-mode="typing"] .sisu-dock-mic-glyph {
+  width: 24px;
+  height: 24px;
+}
+
+button.sisu-dock-mic:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+button.sisu-dock-mic:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+button.sisu-dock-mic:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--sisu-color-background), 0 0 0 5px var(--sisu-color-outline);
+}
+
+/* Live voice: a halo that follows the level, beUI's VoiceOrb filling the button and a little beyond, the glyph on
+   top with a soft shadow so it reads on the orb's light patches. */
+.sisu-dock-mic-halo {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--sisu-color-primary);
+  opacity: 0.22;
+  transition: transform 120ms ease-out;
+}
+
+.sisu-dock-orb {
+  position: absolute;
+  inset: -8px;
+  animation: sisu-dock-fade 280ms var(--sisu-motion-ease-out) both;
+}
+
+button.sisu-dock-mic[data-live="true"][data-muted="false"] .sisu-dock-mic-glyph {
+  filter: drop-shadow(0 1px 3px rgba(0, 70, 40, 0.55));
+}
+
+/* Muted: the same circle, white, the glyph crossed out. */
+button.sisu-dock-mic[data-muted="true"] {
+  background: var(--sisu-color-card);
+  color: var(--sisu-color-text-muted);
+  box-shadow: inset 0 0 0 1px var(--sisu-color-hairline), 0 4px 14px rgba(24, 33, 28, 0.06);
+}
+
+.sisu-dock-mic-slash {
+  position: absolute;
+  width: 34px;
+  height: 2.5px;
+  border-radius: 2px;
+  background: currentColor;
+  transform: rotate(-45deg);
+}
+
+/* The keyboard button and the text field are one shape: a 52 px circle at the trailing edge that stretches into
+   the field. Its right edge stays put, so it grows towards the microphone. The field's content is pinned to that
+   edge too (Send sits where the keyboard glyph was) and is never narrower than one line of placeholder, so it
+   unfolds from the trailing edge instead of reflowing. */
+.sisu-dock-field {
+  position: relative;
+  justify-self: end;
+  display: flex;
+  justify-content: flex-end;
+  width: 52px;
+  min-width: 0;
+  border: 1px solid var(--sisu-color-hairline);
+  border-radius: 26px;
+  background: var(--sisu-color-card);
+  box-shadow: 0 4px 14px rgba(24, 33, 28, 0.06);
+  overflow: hidden;
+  transition:
+    width var(--sisu-dock-move),
+    border-color 200ms ease,
+    box-shadow 200ms ease,
+    transform 160ms var(--sisu-motion-ease-out);
+}
+
+.sisu-dock[data-mode="typing"] .sisu-dock-field {
+  width: calc(100% - var(--sisu-space-grid) * 2);
+  box-shadow: 0 6px 20px rgba(24, 33, 28, 0.06);
+}
+
+.sisu-dock[data-mode="typing"] .sisu-dock-field:focus-within,
+.sisu-dock-field:has(button.sisu-dock-keyboard:focus-visible) {
+  border-color: var(--sisu-color-outline);
+  box-shadow: 0 0 0 3px rgba(153, 213, 159, 0.35), 0 6px 20px rgba(24, 33, 28, 0.06);
+}
+
+.sisu-dock-field:has(button.sisu-dock-keyboard:active) {
+  transform: scale(0.92);
+}
+
+/* The keyboard glyph sits at the trailing end: it leaves at once when the field opens and comes back once the
+   field's content has gone, so the glyph and Send never show on top of each other. */
+button.sisu-dock-keyboard {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 50px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--sisu-color-text);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 160ms ease 140ms;
+}
+
+button.sisu-dock-keyboard:focus-visible {
+  outline: none;
+}
+
+.sisu-dock[data-mode="typing"] button.sisu-dock-keyboard {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 90ms ease;
+}
+
+/* The text field's content arrives once the field has most of its room, and leaves first when it closes. */
+.sisu-dock-prompt {
+  flex: none;
+  width: 100%;
+  min-width: 240px;
+  opacity: 0;
+  transition: opacity 90ms ease;
+}
+
+.sisu-dock[data-mode="typing"] .sisu-dock-prompt {
+  opacity: 1;
+  transition: opacity var(--sisu-motion-fade-duration) ease 140ms;
+}
+
+@keyframes sisu-dock-fade { from { opacity: 0; } to { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .sisu-dock,
+  button.sisu-dock-mic,
+  .sisu-dock-mic-glyph,
+  .sisu-dock-field,
+  .sisu-dock-mic-halo {
+    transition: none;
+  }
+
+  .sisu-dock[data-mode="typing"] .sisu-dock-prompt,
+  button.sisu-dock-keyboard {
+    transition: opacity 200ms ease;
+  }
+}

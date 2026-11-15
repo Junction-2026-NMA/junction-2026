@@ -1,7 +1,9 @@
 "use client";
-// The approval card of a prepared action: a clear "Simulated" tag (a switch or a transfer here never happens for
+// The approval card of a prepared action, drawn with beUI's ToolApproval (web/agents): an icon and a badge that
+// follow the decision, a clear "Simulated" tag under the title (a switch or a transfer here never happens for
 // real), what it does, the warning, what it frees (a switch) or moves (a transfer: `€50` once, never "a month"),
-// what a real switch or transfer takes (closed at first) and Approve / Decline. Once approved, a switch's
+// what a real switch or transfer takes (closed at first) and the action row with Approve / Decline (Sisu's own
+// buttons), which gives way to the outcome once decided. Once approved, a switch's
 // five-year projection stays behind a closed "If you keep the saving for 5 years" (the person asked about a
 // monthly saving, not about investing, so the invest line is left out); a transfer shows the server's sentence.
 // Its assumptions and sources are in the answer's Details, said once there.
@@ -12,9 +14,9 @@ import type { AgentAction } from "@/web/core/CoachModels";
 import type { ActionImpact } from "@/web/core/CoachModels";
 import { SourceTags } from "@/web/core/AnswerPresentation";
 import { ActionPresenter, CoachText, FuturesPresenter } from "@/web/core/CoachPresentation";
-import { RiveBindings } from "@/web/core/RiveContract";
-import { RiveComponent } from "@/web/rive/RiveComponent";
-import { SisuButton, SisuCard, riveAccessible } from "@/web/shared/SisuStyle";
+import { rawOf } from "@/web/core/Presentation";
+import { ToolApproval, type ToolApprovalStatus } from "@/web/agents/ToolApproval";
+import { SisuButton } from "@/web/shared/SisuStyle";
 import { decideAction } from "./answerActions";
 import { Footnote, Note } from "./CardParts";
 import { Disclosure } from "./Disclosure";
@@ -40,6 +42,16 @@ function tagText(action: AgentAction): { text: string; tone: "amber" | "neutral"
   return { text: CoachText.simulatedTag(language, action.kind), tone: "amber" };
 }
 
+/** Where the decision stands, for the card's icon and badge. */
+function approvalStatus(action: AgentAction, busy: boolean): { status: ToolApprovalStatus; badge: string } {
+  const raw = rawOf(action.status);
+  if (raw === "awaiting_approval") return busy ? { status: "approving", badge: "Approving…" } : { status: "pending", badge: "Needs your approval" };
+  if (raw === "executed_simulated") return { status: "approved", badge: "Approved" };
+  if (raw === "declined") return { status: "denied", badge: "Declined" };
+  if (raw === "expired") return { status: "expired", badge: "Expired" };
+  return { status: "other", badge: raw };
+}
+
 function SimulatedActionCard({ action, mismatch }: { action: AgentAction; mismatch: boolean }) {
   const model = useAppModel();
   const store = useCoachStore();
@@ -57,11 +69,42 @@ function SimulatedActionCard({ action, mismatch }: { action: AgentAction; mismat
     void decideAction(action, approve, store, model).finally(() => { inFlight.current = false; });
   };
 
+  const decision = approvalStatus(action, busy);
   return (
-    <SisuCard>
-      <RiveComponent component="Tag" values={RiveBindings.tag(tag.text, tag.tone)} {...riveAccessible(tag.text)} />
-      <h2 className="sisu-ask-h3">{card.title}</h2>
-      <p className="sisu-ask-body">{card.summary}</p>
+    <ToolApproval
+      status={decision.status}
+      badge={decision.badge}
+      title={card.title}
+      tool={tag.tone === "amber" ? tag.text : undefined}
+      description={card.summary}
+      testId="ask.action"
+      detailsLabel={card.checklistLabel}
+      details={card.checklist.length > 0 ? (
+        <ol className="sisu-ask-checklist">
+          {card.checklist.map((step, index) => (
+            <li key={index} className="sisu-ask-checklist-step">
+              <span className="sisu-ask-label sisu-ask-primary" aria-hidden="true">{`${index + 1}.`}</span>
+              <span className="sisu-ask-body">{step}</span>
+            </li>
+          ))}
+        </ol>
+      ) : undefined}
+      actions={card.canDecide ? (
+        <>
+          <p className="sisu-ask-caption sisu-ask-muted" role="status">{card.statusSentence}</p>
+          <SisuButton label="Approve" style="primary" enabled={!busy} loading={busy} action={() => decide(true)} />
+          <SisuButton label="Decline" style="secondary" enabled={!busy} action={() => decide(false)} />
+          {card.validUntil ? <Footnote text={card.validUntil} /> : null}
+        </>
+      ) : undefined}
+      result={(
+        <>
+          <p className="sisu-ask-button-text" role="status">{card.statusSentence}</p>
+          {card.confirmation ? <p className="sisu-ask-body">{card.confirmation}</p> : null}
+          {action.impact ? <ImpactAfterApproval impact={action.impact} summary={card.impactSummary ?? action.impact.summary} /> : null}
+        </>
+      )}
+    >
       {mismatch ? <Note text="This offer does not meet the requirements you gave. Ask Sisu to keep looking before you approve anything." /> : null}
       {/* The server asks for the warning to be shown prominently, never hidden. */}
       {card.warning ? <Note text={card.warning} /> : null}
@@ -69,30 +112,8 @@ function SimulatedActionCard({ action, mismatch }: { action: AgentAction; mismat
         <span className="sisu-ask-h3">{card.monthly}</span>
         <span className="sisu-ask-body sisu-ask-muted">{card.amountNote}</span>
       </div>
-      {card.checklist.length > 0 ? (
-        <Disclosure label={card.checklistLabel} testId="checklist">
-          <ol className="sisu-ask-checklist">
-            {card.checklist.map((step, index) => (
-              <li key={index} className="sisu-ask-checklist-step">
-                <span className="sisu-ask-label sisu-ask-primary" aria-hidden="true">{`${index + 1}.`}</span>
-                <span className="sisu-ask-body">{step}</span>
-              </li>
-            ))}
-          </ol>
-        </Disclosure>
-      ) : null}
-      <p className="sisu-ask-button-text" role="status">{card.statusSentence}</p>
-      {card.confirmation ? <p className="sisu-ask-body">{card.confirmation}</p> : null}
       {notice ? <Note text={notice} /> : null}
-      {card.validUntil ? <Footnote text={card.validUntil} /> : null}
-      {card.canDecide ? (
-        <>
-          <SisuButton label="Approve" style="primary" enabled={!busy} loading={busy} action={() => decide(true)} />
-          <SisuButton label="Decline" style="secondary" enabled={!busy} action={() => decide(false)} />
-        </>
-      ) : null}
-      {action.impact ? <ImpactAfterApproval impact={action.impact} summary={card.impactSummary ?? action.impact.summary} /> : null}
-    </SisuCard>
+    </ToolApproval>
   );
 }
 

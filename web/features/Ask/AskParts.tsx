@@ -1,9 +1,10 @@
 "use client";
 // Pieces of the conversation shared by the Sisu tab: the one-time fallback notice and the user's bubble. Port of
-// `fallbackNotice` and UserBubble in AskScreen.swift.
+// `fallbackNotice` and UserBubble in AskScreen.swift; the bubble is beUI's MessageBubble since 15 Nov.
 import { useEffect, useRef } from "react";
 import type { CoachSession } from "@/web/core/CoachSession";
 import { TransientNotice } from "@/web/shared/Notice";
+import { MessageBubble, MessageBubbleCollapsible, MessageTyping } from "@/web/agents/Message";
 
 /**
  * Said once, in place, when Sisu switches from the live server to the recorded answers (or starts on them because
@@ -45,16 +46,27 @@ function DismissOnLeave({ onLeave }: { onLeave: () => void }) {
   return null;
 }
 
-/** The user's message: right-aligned, deep green. A question asked out loud carries a small microphone mark (the
- *  same bubble otherwise: typed and spoken turns are one conversation). */
-export function UserBubble({ text, pending, spoken = false }: { text: string; pending: boolean; spoken?: boolean }) {
-  const shown = text === "" && pending ? "Listening…" : text;
+/** The user's message: a beUI MessageBubble (web/agents), right-aligned in Sisu green. A question asked out loud
+ *  carries a small microphone mark (the same bubble otherwise: typed and spoken turns are one conversation); one
+ *  still being heard shows beUI's typing dots, and the bubble grows smoothly to the words once they arrive. A long
+ *  question (a spoken one can run on) is clamped to five lines with "Show more" (beUI MessageBubbleCollapsible); the
+ *  control appears only when lines are hidden. */
+export function UserBubble({ text, pending, spoken = false, animateIn = false }: { text: string; pending: boolean; spoken?: boolean; animateIn?: boolean }) {
+  const listening = text === "" && pending;
   return (
-    <div className="sisu-ask-user" aria-label={`${spoken ? "You said" : "You asked"}: ${text}`} role="group">
-      <p className="sisu-ask-user-bubble" aria-hidden="true" data-selectable data-spoken={spoken ? "true" : "false"}>
-        {spoken ? <SpokenMark /> : null}{shown}
-      </p>
-    </div>
+    <MessageBubble variant="solid" animateIn={animateIn} layoutKey={text} role="group" aria-label={`${spoken ? "You said" : "You asked"}: ${listening ? "Listening…" : text}`}
+      data-spoken={spoken ? "true" : "false"} data-testid="ask.user">
+      {listening ? (
+        <span aria-hidden="true">
+          {spoken ? <SpokenMark /> : null}
+          <MessageTyping label="Listening…" />
+        </span>
+      ) : (
+        <MessageBubbleCollapsible lines={5} contentHidden>
+          {spoken ? <SpokenMark /> : null}{text}
+        </MessageBubbleCollapsible>
+      )}
+    </MessageBubble>
   );
 }
 
