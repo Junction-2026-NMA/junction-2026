@@ -171,7 +171,8 @@ export function toResult(raw: RawResearch, baselineMonthlyEur: number | null, st
     citations: raw.citations,
     assumptions: [
       ...assumptionsFor(raw.billType, baselineMonthlyEur, usage, energyPart),
-      ...(raw.billType === "electricity" && unique.some(isSeasonalOffer) ? ["Seasonal and day/night contracts are listed but not ranked: their cost depends on when you use electricity, which your bank data does not show."] : []),
+      // Only when an offer really is left unranked for its seasons (a spot offer is unranked as spot already).
+      ...(raw.billType === "electricity" && unique.some((offer) => !isSpot(offer) && isSeasonalOffer(offer)) ? ["Seasonal and day/night contracts are listed but not ranked: their cost depends on when you use electricity, which your bank data does not show."] : []),
       ...(stated ? [`Only offers that meet what you asked for (${stated}) can be the best offer. An offer whose page does not state one of these counts as not meeting it.`] : []),
       ...(best?.feesUnknown ? [`${best.provider}'s page does not state its ${raw.billType === "electricity" ? "monthly fee" : "setup fee"}, so the cost leaves it out and the saving is incomplete: the real saving is likely smaller.`] : []),
     ],

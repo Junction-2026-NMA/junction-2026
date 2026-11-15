@@ -1,3 +1,4 @@
+import { billsCovered } from "@/lib/finance/budget";
 import { buildCashFlow } from "@/lib/finance/cashflow";
 import { DATA_AS_OF } from "@/lib/finance/data";
 import { mortgageFor } from "@/lib/finance/mortgage";
@@ -36,7 +37,7 @@ export function customerSummary(overview: Overview, city: string, bufferEur: num
     howTheAveragesBudgetIsWorkedOut: [...overview.safeToSpend.steps.map((step) => `${step.label}: ${step.amount}`), `Left for everyday spending per month: ${overview.safeToSpend.perMonth}`, `Divided by weeks in a month (52/12): ${overview.safeToSpend.perWeek} per week`],
     // What can be spent each week until payday after the bills due and a protected buffer (lib/finance/budget.ts).
     ...(cashFlow.weeklyBudget
-      ? { estimatedWeeklyBudgetUntilPayday: { perWeekEur: cashFlow.weeklyBudget.perWeekEur, weeksToPayday: cashFlow.weeklyBudget.weeksToPayday, protectedBufferEur: cashFlow.weeklyBudget.bufferEur, bufferIs: bufferEur === null ? "an assumption: one week of essentials" : "set by the customer in the app: call it 'the amount you set in the app' and do not ask them to set one", usualEverydaySpendingPerWeekEur: cashFlow.weeklyBudget.usualEverydayPerWeekEur, budgetMinusUsualPerWeekEur: cashFlow.weeklyBudget.differencePerWeekEur } }
+      ? { estimatedWeeklyBudgetUntilPayday: { perWeekEur: cashFlow.weeklyBudget.perWeekEur, weeksToPayday: cashFlow.weeklyBudget.weeksToPayday, protectedBufferEur: cashFlow.weeklyBudget.bufferEur, bufferIs: bufferEur === null ? "an assumption: one week of essentials" : "set by the customer in the app: call it 'the amount you set in the app' and do not ask them to set one", usualEverydaySpendingPerWeekEur: cashFlow.weeklyBudget.usualEverydayPerWeekEur, budgetMinusUsualPerWeekEur: cashFlow.weeklyBudget.differencePerWeekEur, ...(billsCovered(cashFlow.weeklyBudget) ? { billsBeforePaydayCovered: true, leftAfterBillsAndBufferEur: cashFlow.weeklyBudget.leftForSpendingEur } : {}) } }
       : {}),
     // What could go to savings without running short: a one-off today, and every month.
     roomToSave: { couldMoveTodayEur: room.nowEur, couldMoveEveryMonthEur: room.perMonthEur, basis: room.basis },
@@ -82,7 +83,7 @@ const RULES = [
   "",
   "Which tool:",
   "- If CUSTOMER SUMMARY already holds the answer, answer at once with no tool. It has averages, baskets, other demo profiles of the same age, bills, last month's spending by category, the payday outlook, the estimated weekly budget, room to save, and how long the balance would last (ifIncomeStopped). So 'do I spend more than others my age on X' and 'what did I spend on X last month' need no tool.",
-  "- 'What can I spend this week', 'will my money last until payday', 'I keep running short before payday': get_cash_flow, so the working is on screen. Lead with the estimated weekly budget until payday; never call any figure 'safe to spend'. Running out before payday and having no savings are different things: say which one the numbers show.",
+  "- 'What can I spend this week', 'will my money last until payday', 'I keep running short before payday': get_cash_flow, so the working is on screen. Lead with the estimated weekly budget until payday; never call any figure 'safe to spend'. When billsBeforePaydayCovered is true (the weekly figure is more than three times their usual week), say instead that the bills before payday are covered and about leftAfterBillsAndBufferEur is left after them; do not headline the weekly figure. Running out before payday and having no savings are different things: say which one the numbers show.",
   "- Asked to see, show, draw or visualise something (a pie chart of my budget, me against other profiles, my months, how the weekly budget is built): call show_chart, then say in one sentence what the picture shows. A scenario, an offer search and an advice scan put their own chart on screen: mention that it is there.",
   "- If the customer states a figure about their own money that differs from their bank data (an income, a balance, a bill), say in one sentence what the bank data shows, then answer the question with the bank data's figure. Do not search the web for it.",
   "- Asked how you worked a figure out: give the steps with their numbers, from the tool's workings or howTheAveragesBudgetIsWorkedOut. Not a general description.",
@@ -90,7 +91,7 @@ const RULES = [
   "- How bills changed: list_bills. Why money runs short, pay-cycle detail: get_cash_flow.",
   "- Open questions (where does my money go, what should I change, how can I save, what should I do with my money): find_patterns, lead with the largest finding and recommend one concrete step. Not for a question about one category or one figure.",
   "- A one-off cost with an amount ('can I afford X', a bill that just arrived, 'what does X do to my month'): always check_affordability. Never subtract it yourself.",
-  "- Cutting one category by a percentage ('reduce dining out by 20%', 'spend a third less on entertainment'): run_scenario with category and categoryCutPct. Code works out the euros from the 12-month average. Never take 20% of one month yourself.",
+  "- Cutting one category by a percentage ('reduce dining out by 20%', 'spend a third less on entertainment'): run_scenario with category and categoryCutPct. Code works out the euros from the 12-month average. Never take 20% of one month yourself. Answer per month (and per year if useful). Talk about the years ahead or investing only if they asked about them; the tool projects only then.",
   "- What-if, what a monthly saving or a lump sum adds up to, 'how long until I have X': run_scenario. Use freedPerMonthEur with the monthly figure from the finding you are talking about (for example the 64 euros a month above peers), not a percentage of all spending.",
   "- Moving money to savings or to their investment account, once or every month: prepare_action with one_off_transfer or standing_transfer and the amount they said. If they gave no amount, suggest one from roomToSave and ask. If the result carries a warning, say it plainly and name the safer amount.",
   "- If they name an amount to move, set it up even when it is more than roomToSave. It is their money: the tool adds a warning, and you say the warning and the safer amount. Never refuse to set up a transfer the account can cover.",

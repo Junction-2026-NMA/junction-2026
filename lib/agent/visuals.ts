@@ -1,6 +1,7 @@
 // Pictures the agent can put on screen. Each one is built in code from the same figures the answer uses, and
 // carries a receipt for every number in it, so a chart can never show something the customer's data does not.
 // The screen draws them (see app/visuals/); the model only chooses which one to show.
+import { billsCovered, coveredText } from "@/lib/finance/budget";
 import { buildCashFlow } from "@/lib/finance/cashflow";
 import { categoryAverages } from "@/lib/finance/categories";
 import { peerAverage } from "@/lib/finance/data";
@@ -92,17 +93,19 @@ export function monthsVisual(overview: Overview): Visual {
 export function safeToSpendVisual(overview: Overview): Visual {
   const budget = buildCashFlow(overview).weeklyBudget;
   if (budget) {
+    // Far above the usual week, the weekly figure is not a budget: the picture ends at what is left after the bills.
+    const covered = billsCovered(budget);
     return {
       id: "safe_to_spend",
       kind: "waterfall",
-      title: "Your estimated weekly budget until payday",
-      caption: `Balance, less bills due before ${budget.nextPayday} and a protected buffer, over ${budget.weeksToPayday} weeks. An estimate from your history.`,
-      summary: `About ${eur(budget.perWeekEur)} a week until payday on ${budget.nextPayday}, after the bills due before it and a buffer of ${eur(budget.bufferEur)}.`,
+      title: covered ? "Bills before payday are covered" : "Your estimated weekly budget until payday",
+      caption: `Balance, less bills due before ${budget.nextPayday} and a protected buffer${covered ? "" : `, over ${budget.weeksToPayday} weeks`}. An estimate from your history.`,
+      summary: covered ? coveredText(budget) : `About ${eur(budget.perWeekEur)} a week until payday on ${budget.nextPayday}, after the bills due before it and a buffer of ${eur(budget.bufferEur)}.`,
       source: "calculation",
       facts: [...budget.steps.map((step, index) => fact(`chart:budget-week:${index}`, step.label, step.amount, "EUR", step.basis, { source: "calculation" })), fact("chart:safe:week", "Estimated weekly budget until payday", budget.perWeekEur, "EUR", step0(budget.weeksToPayday), { source: "calculation" })],
       steps: budget.steps.slice(0, 3), // the parts that add up; the result divides what is left by the weeks to payday
-      resultLabel: "Estimated weekly budget",
-      resultValue: budget.perWeekEur,
+      resultLabel: covered ? "Left for spending until payday" : "Estimated weekly budget",
+      resultValue: covered ? budget.leftForSpendingEur : budget.perWeekEur,
     };
   }
   const safe = overview.safeToSpend;
