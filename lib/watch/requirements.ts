@@ -37,9 +37,15 @@ export function cleanRequirements(input: unknown, said: (value: number) => boole
     }
     return value;
   };
-  for (const [key, label] of [["maxDepositEur", "deposit limit"], ["movingCostEur", "moving cost"], ["bufferToKeepEur", "buffer to keep"], ["savingsGoalEur", "savings goal"]] as const) {
+  for (const [key, label] of [["maxDepositEur", "deposit limit"], ["movingCostEur", "moving cost"], ["bufferToKeepEur", "buffer to keep"], ["savingsGoalEur", "savings goal"], ["monthlySavingsEur", "monthly savings"]] as const) {
     const value = own(key, label);
     if (value !== undefined) out[key] = value;
+  }
+  if ("minAreaM2" in raw) {
+    const area = raw.minAreaM2;
+    if (area === null) out.minAreaM2 = null;
+    else if (typeof area === "number" && area >= 10 && area <= 300) out.minAreaM2 = Math.round(area);
+    else dropped.push("minimum floor area (10 to 300 m²)");
   }
   if ("districts" in raw) {
     const list = Array.isArray(raw.districts) ? raw.districts.map((name) => safeName(name, 40)).filter((name): name is string => !!name && /^[\p{L} .'-]+$/u.test(name)) : [];
@@ -93,6 +99,10 @@ export function checkRequirements(listing: Listing, requirements: WatchRequireme
   if (typeof req.maxDepositEur === "number") {
     if (typeof listing.depositEur !== "number") unchecked.push("deposit not stated");
     else if (listing.depositEur > req.maxDepositEur) reasons.push(`deposit €${Math.round(listing.depositEur)} is over €${req.maxDepositEur}`);
+  }
+  if (typeof req.minAreaM2 === "number") {
+    if (typeof listing.areaM2 !== "number") unchecked.push("floor area not stated");
+    else if (listing.areaM2 < req.minAreaM2) reasons.push(`${listing.areaM2} m² is under ${req.minAreaM2} m²`);
   }
   if (typeof req.maxCommuteMinutes === "number") unchecked.push("commute time not measured");
   return { ok: reasons.length === 0, reasons, unchecked };

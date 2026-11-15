@@ -761,6 +761,8 @@ export type WatchRequirements = {
   movingCostEur?: number | null; // the customer's own estimate
   bufferToKeepEur?: number | null; // money they want to keep in the account after moving
   savingsGoalEur?: number | null; // a savings target they named
+  minAreaM2?: number | null; // v3: the smallest floor area they accept; a listing without a stated area needs verification
+  monthlySavingsEur?: number | null; // v3: money they want to keep saving every month: a constraint on the rent, never a transfer
 };
 export type ProjectStatus = "active" | "paused" | "stopped" | "failing"; // failing: active, but no page could be read or watched on the last check
 export type WatchScheduler = "cron" | "on-open"; // cron: Sisu also reviews changes once a day on its own; on-open: only when the app checks in
@@ -816,14 +818,22 @@ export type PropertyWatch = {
   visitorSeenAt?: string | null; // the last time the visitor's own app checked in; after 14 days without it the watch stops itself
   pausedAt?: string | null;
   stoppedAt?: string | null;
-  stoppedBecause?: "user" | "inactive" | "demo-reset" | null;
+  stoppedBecause?: "user" | "inactive" | "demo-reset" | "ended" | null; // "ended" (v3): its schedule.monitorUntil passed
+  // v3, all optional:
+  schedule?: ProjectSchedule; // when to notify and when monitoring ends
+  nextScheduledCheckAt?: string | null; // Sisu's own next scheduled check (from SchedulerInfo); not Context.dev's
+  initialResearch?: "running" | "done" | "failed"; // the first search and check after approval, run on the server
+  discovery?: ProjectEvidence["exa"]; // the Exa search that found the pages
+  changes?: MonitorChange[]; // what changed on the watched pages, newest first
+  deliveredDeadlineAt?: string | null; // deadline mode: when the final summary was sent
+  lastDigestAt?: string | null; // daily_summary: when the last summary went out
 };
 
 export type WatchNotification = {
   id: string;
   watchId: string;
   customerId: string;
-  kind: "price_drop" | "new_listing";
+  kind: "price_drop" | "new_listing" | "initial_match"; // initial_match (v3): it met the requirements on the first check
   title: string;
   summary: string;
   listing: Listing;
@@ -839,10 +849,99 @@ export type WatchNotification = {
   readAt?: string | null; // added 15 Nov: when the visitor marked it read (POST /api/watch/:id/read); null or absent = unread
   housing?: HousingEffect | null; // added 15 Nov: flats only, the total effect of moving in
   research?: Citation[]; // added 15 Nov: background reading from Exa (district, commute), links only, no figures taken from it
+  verdict?: ListingVerdict; // v3: match or needs_verification (a listing that fails is never a finding)
+  checks?: RequirementCheck[]; // v3: each requirement against this listing
+  changeId?: string | null; // v3: the MonitorChange that produced it
+  alertedAt?: string | null; // v3: when a phone notification (or the in-app fallback) covered it, so it is never sent twice
 };
 
 // GET /api/watch/:id. `currentMatches`: the listings last read that meet the requirements now, each with its housing effect.
-export type WatchProject = { customerId: string; watch: PropertyWatch; notifications: WatchNotification[]; unread: number; currentMatches: { listing: Listing; housing: HousingEffect | null }[]; scheduler: WatchScheduler };
+export type WatchProject = { customerId: string; watch: PropertyWatch; notifications: WatchNotification[]; unread: number; currentMatches: { listing: Listing; housing: HousingEffect | null }[]; scheduler: WatchScheduler; evaluated?: EvaluatedListing[]; evidence?: ProjectEvidence; alerts?: ProjectAlert[]; schedulerInfo?: SchedulerInfo };
 
-export type WatchList = { customerId: string; watches: PropertyWatch[]; notifications: WatchNotification[]; scheduler?: WatchScheduler };
+export type WatchList = { customerId: string; watches: PropertyWatch[]; notifications: WatchNotification[]; scheduler?: WatchScheduler; schedulerInfo?: SchedulerInfo; alerts?: ProjectAlert[] };
 export type WatchCheck = { customerId: string; checked: number; changesSeen: number; pagesReread: number; notifications: WatchNotification[]; problems: string[] };
+
+// --- v3 (added 15 Nov, morning): notification timing, listing verdicts, "How Sisu found this", phone notifications.
+// All additive and optional, so older clients and stored watches still read.
+
+// When Sisu tells the customer about a Project. Separate from how long the Project runs (monitorUntil).
+// on_match: after a completed check finds a new result that meets the confirmed requirements.
+// daily_summary: findings are grouped into one notification at dailyAt (one of SchedulerInfo.dailyTimes).
+// deadline: Sisu keeps checking until deadlineAt, then sends the best findings so far, or says nothing matched.
+export type NotifyMode = "on_match" | "daily_summary" | "deadline";
+export type ProjectSchedule = {
+  notify: NotifyMode;
+  dailyAt?: string | null; // "HH:MM", Europe/Helsinki. daily_summary only
+  deadlineAt?: string | null; // ISO. deadline only
+  monitorUntil: string; // ISO: monitoring and notifications end here (the Project's duration)
+};
+// What the server can really run, so the app offers only timings it can keep. GET /api/watch `schedulerInfo`.
+export type SchedulerInfo = {
+  kind: WatchScheduler; // "cron": Sisu checks on its own schedule while the app is closed; "on-open": only when the app checks in
+  checkEveryMinutes: number | null; // how often the scheduled check runs; null when there is none
+  dailyTimes: string[]; // the times ("HH:MM", Europe/Helsinki) a daily summary can be delivered at; empty = not offered
+  deadline: boolean; // whether "By a chosen deadline" can be offered
+  push: boolean; // phone notifications can be sent (VAPID keys are set on the server)
+  timeZone: "Europe/Helsinki";
+};
+
+// One requirement checked against one listing, so a card can say why it matches, fails or needs verification.
+export type RequirementCheck = { requirement: string; status: "met" | "failed" | "unknown"; detail: string };
+export type ListingVerdict = "match" | "needs_verification" | "fails";
+export type EvaluatedListing = { listing: Listing; verdict: ListingVerdict; checks: RequirementCheck[]; housing: HousingEffect | null };
+
+// "How Sisu found this": what each tool really did for this Project, from stored tool results.
+export type ProjectEvidence = {
+  exa: { query: string; searchedAt: string; sources: Citation[]; mock: boolean } | null; // the search that found the pages
+  extraction: { url: string; title: string | null; readAt: string; listingsRead: number; problem: string | null }[]; // Context.dev page reads
+  monitoring: MonitorChange[]; // what changed on a watched page, newest first
+  research: { query: string; sources: Citation[]; affects: string }[]; // extra Exa reading after a change, and what it is used for
+};
+// A change on a watched page: which source, when, and the previous versus current information.
+export type MonitorChange = {
+  id: string;
+  pageUrl: string;
+  pageTitle: string | null;
+  detectedAt: string;
+  detectedBy: WatchNotification["detectedBy"];
+  simulated: boolean; // a demo change, labelled everywhere it is shown
+  listingTitle: string;
+  before: { priceEur: number | null; areaM2: number | null; availableFrom: string | null } | null; // null: not on the page before
+  after: { priceEur: number; areaM2: number | null; availableFrom: string | null };
+  findingId: string | null; // the WatchNotification it produced, if it now qualifies
+};
+
+// A phone notification Sisu sent (or would have sent): the in-app fallback lists these when push is off.
+export type ProjectAlert = {
+  id: string;
+  watchId: string;
+  customerId: string;
+  findingIds: string[]; // the WatchNotifications it is about; the first one is opened on tap
+  title: string; // never financial details: "Sisu"
+  body: string; // "Your Espoo housing search has an update."
+  reason: "initial_findings" | "match" | "daily_summary" | "deadline" | "deadline_nothing";
+  createdAt: string;
+  pushed: "sent" | "no-subscription" | "failed" | "push-off";
+  simulated: boolean;
+  readAt?: string | null;
+};
+
+// The Web Push subscription of one device, stored in the visitor's own session (POST /api/push/subscribe).
+export type PushSubscriptionRecord = { endpoint: string; keys: { p256dh: string; auth: string }; createdAt: string };
+
+// POST /api/watch/create: a Project started from "New project" or "Make this a project", after the customer
+// approved its summary. The search, the first check and the first notification then run on the server.
+export type ProjectCreateRequest = {
+  customerId: string;
+  confirm: true;
+  goal: string;
+  city: string;
+  budgetEur: number; // maximum rent per month
+  minRooms?: number | null;
+  minAreaM2?: number | null;
+  requirements?: WatchRequirements;
+  schedule: ProjectSchedule;
+  fromConversation?: boolean;
+};
+// POST /api/watch/draft-from-conversation: requirements read in code from the customer's own messages.
+export type ProjectDraft = { goal: string | null; city: string | null; budgetEur: number | null; minRooms: number | null; minAreaM2: number | null; requirements: WatchRequirements; found: string[]; missing: string[] };
