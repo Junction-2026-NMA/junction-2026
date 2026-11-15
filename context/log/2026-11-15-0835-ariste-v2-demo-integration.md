@@ -8,11 +8,14 @@
 - Fixes at integration: an unmeasured commute no longer blocks a Best match (it stays flagged "not measured" on every listing); the housing budget sentence no longer says "plus €-12"; monitoring copy says what really runs (Context.dev every 15 minutes, reported to Sisu's server by webhook when `SISU_WEBHOOK_KEY` is set).
 - Checked locally (mock model, file store, per-visitor sessions, throwaway VAPID keys): `npm test` 499/499, tsc 0, eslint 0 errors, all 11 web checks, `npm run build`. Phone-sized Chrome walkthroughs of both flows with no console errors. API: payday €286.37 (€133.64/week); payday 20 Oct + €80 bill → €136.18; 20% restaurants €55.30, "What about 10%?" €27.65 from the same €276.52 baseline; the recorded housing question → `housing_intake` (Rent, suggested rent €595); search → listings with exclusion reasons + project proposal; approve → `researching` → `initial_ready` in the background; delayed simulated change → labelled finding, `pushedAt` set, push signed and sent (Apple rejected the fake test endpoint, as expected).
 
+## Deployed
+- sisu-demo (web app + `/sw.js`) redeployed from a clean `git archive` of `6e81f80` (15 Nov ~08:45 EET, Wiktor's yes). Checked live: `/app` 200, `/sw.js` served, phone-sized payday walkthrough with no console errors. sisu-api is unchanged, so live answers are still the old backend's ("Estimated weekly budget", `/api/push/key` 404) until Nicholas redeploys.
+
 ## Redeploy steps for Nicholas (sisu-api)
 1. Deploy `feat/v2-demo` (or merge it into main first).
 2. Env on sisu-api: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (`npx web-push generate-vapid-keys`), `SISU_WEBHOOK_KEY` (`openssl rand -hex 32`), `SISU_PUBLIC_API_ORIGIN=https://sisu-api.vercel.app`. Optional `VAPID_SUBJECT` (default `https://sisu-demo.vercel.app`). No new SQL.
 3. Deployment Protection must let Context.dev reach `POST /api/watch/webhook`.
-4. sisu-demo is redeployed from the same branch (it serves `/sw.js`; `/api` still forwards to sisu-api).
+4. sisu-demo already runs this branch (it serves `/sw.js`; `/api` still forwards to sisu-api).
 
 ## Filming checklist (iPhone, iOS 16.4+, after both deploys)
 1. Safari → sisu-demo.vercel.app/app → Share → Add to Home Screen → open Sisu from the Home Screen.
