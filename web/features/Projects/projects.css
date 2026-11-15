@@ -1,0 +1,105 @@
+/* Projects: the drawer list, the project view and the watch approval card. Every class is sisu-project-*. */
+
+.sisu-project-h1 { font: var(--sisu-type-h2); color: var(--sisu-color-text); margin: 0; }
+.sisu-project-h2 { font: var(--sisu-type-h3); color: var(--sisu-color-text); margin: 0; }
+.sisu-project-body { font: var(--sisu-type-body); color: var(--sisu-color-text); margin: 0; }
+.sisu-project-muted { font: var(--sisu-type-caption); color: var(--sisu-color-text-muted); margin: 0; }
+.sisu-project-label { font: var(--sisu-type-label); color: var(--sisu-color-text-muted); margin: 0; letter-spacing: 0.01em; }
+
+/* Status and provenance chips */
+.sisu-project-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.sisu-project-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: var(--sisu-radius-pill);
+  font: var(--sisu-type-label); white-space: nowrap; background: var(--sisu-green-50); color: var(--sisu-green-900);
+}
+.sisu-project-chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.8; }
+.sisu-project-chip[data-tone="paused"] { background: var(--sisu-info-background); color: var(--sisu-info-text); }
+.sisu-project-chip[data-tone="stopped"] { background: var(--sisu-neutral-200); color: var(--sisu-neutral-600); }
+.sisu-project-chip[data-tone="attention"],
+.sisu-project-chip[data-tone="simulated"] { background: var(--sisu-amber-background); color: var(--sisu-amber-text); }
+.sisu-project-chip[data-tone="new"] { background: var(--sisu-color-primary); color: var(--sisu-color-on-primary); }
+.sisu-project-chip[data-tone="plain"] { background: var(--sisu-green-25); color: var(--sisu-green-700); }
+.sisu-project-chip[data-tone="plain"]::before,
+.sisu-project-chip[data-tone="new"]::before { display: none; }
+
+/* Label/value rows */
+.sisu-project-rows { display: flex; flex-direction: column; gap: 8px; margin: 0; }
+.sisu-project-row-line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.sisu-project-row-line dt { font: var(--sisu-type-body); color: var(--sisu-color-text-muted); }
+.sisu-project-row-line dd { font: var(--sisu-type-label); color: var(--sisu-color-text); margin: 0; text-align: right; }
+
+.sisu-project-note {
+  display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 14px;
+  background: var(--sisu-amber-background); color: var(--sisu-amber-text); font: var(--sisu-type-caption);
+}
+.sisu-project-note strong { font: var(--sisu-type-label); }
+.sisu-project-error { font: var(--sisu-type-caption); color: var(--sisu-error-text); background: var(--sisu-error-background); padding: 8px 12px; border-radius: 12px; margin: 0; }
+
+/* Links and small buttons. `[type]` (every button here has one) outranks the `.sisu-root button` reset of tokens.css. */
+.sisu-project-links { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.sisu-project-link { font: var(--sisu-type-label); color: var(--sisu-green-700); text-decoration: underline; text-underline-offset: 3px; word-break: break-word; }
+.sisu-project-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.sisu-project-small,
+.sisu-project-small[type] {
+  appearance: none; border: 1px solid var(--sisu-color-hairline); background: var(--sisu-color-card); color: var(--sisu-green-900);
+  font: var(--sisu-type-label); padding: 0 14px; min-height: 40px; border-radius: var(--sisu-radius-pill); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+  transition: background-color var(--sisu-motion-state-duration) var(--sisu-motion-state-easing), transform 120ms var(--sisu-motion-ease-out);
+}
+.sisu-project-small:active { transform: scale(0.97); background: var(--sisu-green-25); }
+.sisu-project-small[data-kind="primary"] { background: var(--sisu-color-primary); color: var(--sisu-color-on-primary); border-color: transparent; }
+.sisu-project-small[data-kind="danger"] { color: var(--sisu-error-text); }
+.sisu-project-small:disabled { opacity: 0.55; cursor: default; }
+
+/* The drawer section */
+.sisu-project-section { display: flex; flex-direction: column; gap: 8px; }
+.sisu-project-section-head { display: flex; align-items: baseline; justify-content: space-between; }
+.sisu-project-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.sisu-project-item,
+.sisu-project-item[type] {
+  appearance: none; width: 100%; text-align: left; border: 1px solid var(--sisu-color-hairline); background: var(--sisu-color-card);
+  border-radius: 18px; padding: 12px 14px; display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; cursor: pointer;
+  transition: transform 140ms var(--sisu-motion-ease-out), background-color var(--sisu-motion-state-duration) var(--sisu-motion-state-easing);
+}
+.sisu-project-item:active { transform: scale(0.985); background: var(--sisu-green-25); }
+.sisu-project-item-title { font: var(--sisu-type-label); color: var(--sisu-color-text); grid-column: 1; }
+.sisu-project-item-meta { grid-column: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font: var(--sisu-type-caption); color: var(--sisu-color-text-muted); }
+.sisu-project-badge {
+  grid-column: 2; grid-row: 1 / span 2; align-self: center; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 12px;
+  background: var(--sisu-color-primary); color: var(--sisu-color-on-primary); font: var(--sisu-type-label);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+/* The project view */
+.sisu-project-top { display: flex; align-items: center; gap: 8px; padding: 6px var(--sisu-space-margin) 4px; }
+.sisu-project-back,
+.sisu-project-back[type] {
+  appearance: none; border: 1px solid var(--sisu-color-hairline); background: var(--sisu-color-card); color: var(--sisu-green-900);
+  font: var(--sisu-type-label); min-height: 40px; padding: 0 14px 0 10px; border-radius: var(--sisu-radius-pill);
+  display: inline-flex; align-items: center; gap: 4px; cursor: pointer;
+}
+.sisu-project-back:active { background: var(--sisu-green-25); }
+.sisu-project-head { display: flex; flex-direction: column; gap: 8px; }
+.sisu-project-finding { display: flex; flex-direction: column; gap: 10px; }
+.sisu-project-finding[data-new="true"] { box-shadow: inset 3px 0 0 var(--sisu-color-primary); }
+.sisu-project-subhead { font: var(--sisu-type-label); color: var(--sisu-color-text); margin: 4px 0 0; }
+.sisu-project-list-plain { margin: 0; padding-left: 18px; font: var(--sisu-type-caption); color: var(--sisu-color-text-muted); display: flex; flex-direction: column; gap: 2px; }
+.sisu-project-enquiry {
+  width: 100%; box-sizing: border-box; min-height: 168px; resize: vertical; border: 1px solid var(--sisu-color-hairline);
+  border-radius: 14px; padding: 10px 12px; font: var(--sisu-type-body); color: var(--sisu-color-text); background: var(--sisu-color-input-fill);
+  user-select: text; -webkit-user-select: text;
+}
+.sisu-project-input {
+  width: 100%; box-sizing: border-box; border: 1px solid var(--sisu-color-hairline); border-radius: 12px; padding: 8px 10px;
+  font: var(--sisu-type-body); color: var(--sisu-color-text); background: var(--sisu-color-input-fill);
+}
+.sisu-project-field { display: flex; flex-direction: column; gap: 4px; }
+.sisu-project-confirm { scroll-margin-bottom: var(--sisu-tabbar-room); display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 16px; background: var(--sisu-error-background); }
+.sisu-project-confirm p { font: var(--sisu-type-label); color: var(--sisu-error-text); margin: 0; }
+.sisu-project-section-title { font: var(--sisu-type-h3); color: var(--sisu-color-text); margin: 8px 4px 0; }
+.sisu-project-enter { animation: sisu-project-rise var(--sisu-motion-state-duration) var(--sisu-motion-state-easing) both; }
+@keyframes sisu-project-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .sisu-project-enter { animation: none; }
+  .sisu-project-item, .sisu-project-small { transition: none; }
+}
