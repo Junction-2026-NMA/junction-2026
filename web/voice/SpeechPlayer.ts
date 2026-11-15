@@ -11,7 +11,8 @@ import type { CoachClient } from "@/web/core/CoachClient";
 import type { CoachSession, SpeechOutput } from "@/web/core/CoachSession";
 import { SpeechRequest, type SpeechAudio } from "@/web/core/CoachModels";
 import { VoiceAudioFormat, VoiceClipQueue, VoiceText } from "@/web/core/AppLogic/VoiceLogic";
-import { audioContext } from "./AudioUnlock";
+import { audioContext, unlockAudio } from "./AudioUnlock";
+import { VoicePrefs } from "./VoicePrefs";
 
 /** One downloaded and decoded sentence. */
 export type SpeechClip = AudioBuffer;
@@ -66,7 +67,7 @@ export class SpeechPlayer implements SpeechOutput {
   speak(text: string, order: number): void {
     if (this.isMuted) return;
     const generation = this.queue.generation;
-    const request = SpeechRequest.make({ text, format: "mp3", previousText: this.previousText });
+    const request = SpeechRequest.make({ text, format: "mp3", previousText: this.previousText, ...SpeechPlayer.voiceFields(this.session) });
     this.previousText = text;
     const abort = new AbortController();
     this.downloads = [...this.downloads, abort];
@@ -111,6 +112,45 @@ export class SpeechPlayer implements SpeechOutput {
     this.session?.setSpeaking(false);
     if (wasBusy) this.onDrained?.();
   }
+
+  /** The chosen voice and, when a language is chosen (not automatic), that language, for `POST /api/voice/tts`.
+   *  The backend ignores a voice id it does not accept and uses its default voice, so this is always safe to send. */
+  static voiceFields(session: CoachSession | null): { voiceId?: string; language?: string } {
+    const prefs = VoicePrefs.prefs();
+    const chosen = session?.language && session.language !== "auto" ? session.language : null;
+    return { ...(prefs.voiceId ? { voiceId: prefs.voiceId } : {}), ...(chosen ? { language: chosen } : {}) };
+  }
+
+  /** Plays one short sample (the voice preview in Settings and onboarding) through the shared audio context.
+   *  Call inside the tap. Resolves to "played", or why not: "unavailable" (no live voice: sample mode, offline,
+   *  an error) or "blocked" (the browser kept the sound off). Never throws. */
+  static async preview(client: CoachClient, text: string, voiceId: string | null, language: string | null, signal?: AbortSignal): Promise<"played" | "unavailable" | "blocked"> {
+    unlockAudio();
+    let clip: SpeechClip | null = null;
+    try {
+      const request = SpeechRequest.make({ text, format: "mp3", ...(voiceId ? { voiceId } : {}), ...(language ? { language } : {}) });
+      clip = await SpeechPlayer.playable(await client.speech(request, signal ?? null));
+    } catch {
+      return "unavailable";
+    }
+    const ctx = audioContext();
+    if (!clip || !ctx) return "unavailable";
+    if (ctx.state !== "running") await Promise.race([ctx.resume().catch(() => undefined), new Promise((r) => setTimeout(r, RESUME_WAIT_MS))]);
+    if (ctx.state !== "running") return "blocked";
+    try {
+      SpeechPlayer.previewSource?.stop();
+    } catch {
+      // Already ended.
+    }
+    const source = ctx.createBufferSource();
+    source.buffer = clip;
+    source.connect(ctx.destination);
+    source.start();
+    SpeechPlayer.previewSource = source;
+    return "played";
+  }
+
+  private static previewSource: AudioBufferSourceNode | null = null;
 
   // MARK: Playback
 

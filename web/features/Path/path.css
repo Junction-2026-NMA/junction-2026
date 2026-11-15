@@ -18,7 +18,6 @@
   padding: calc(var(--sisu-space-grid) * 2) var(--sisu-space-margin) calc(var(--sisu-space-grid) * 3);
   padding-left: calc(var(--sisu-space-margin) + env(safe-area-inset-left, 0px));
   padding-right: calc(var(--sisu-space-margin) + env(safe-area-inset-right, 0px));
-  background: var(--sisu-color-background);
 }
 
 .sisu-path-header-row {
@@ -61,6 +60,8 @@
   font: var(--sisu-type-label);
   color: var(--sisu-color-text);
 }
+
+.sisu-path-header-row > .sisu-rive { flex: none; }
 
 /* Loading and error: centred in the room above the tab bar. */
 .sisu-path-fill {
@@ -150,8 +151,21 @@
   pointer-events: none;
 }
 
-.sisu-path-node[data-state="upcoming"] .sisu-path-node-sticker {
-  opacity: 0.55;
+.sisu-path-node[data-state="locked"] .sisu-path-node-sticker {
+  opacity: 0.45;
+  filter: saturate(0.4);
+}
+
+.sisu-path-node {
+  transition: transform var(--sisu-motion-press-duration) var(--sisu-motion-ease-standard);
+}
+
+.sisu-path-node:active .sisu-path-node-badge {
+  transform: scale(0.96);
+}
+
+.sisu-path-node-badge {
+  transition: transform var(--sisu-motion-press-duration) var(--sisu-motion-ease-standard);
 }
 
 /* Circle().stroke(green500, lineWidth: 6): the stroke is centred on the box's edge. */
@@ -211,8 +225,51 @@
   font: var(--sisu-type-button);
 }
 
-.sisu-path-node[data-state="upcoming"] .sisu-path-node-title {
+.sisu-path-node[data-state="locked"] .sisu-path-node-title {
   color: var(--sisu-color-text-muted);
+}
+
+.sisu-path-node-lock {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--sisu-white);
+  border: 1px solid var(--sisu-color-hairline);
+  color: var(--sisu-neutral-600);
+}
+
+/* Why a locked lesson did not open: a calm pill above the tab bar. */
+.sisu-path-locked-region {
+  position: fixed;
+  left: var(--sisu-space-margin);
+  right: var(--sisu-space-margin);
+  bottom: calc(var(--sisu-tabbar-room, 96px) + var(--sisu-space-grid) * 2);
+  z-index: 45;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.sisu-path-locked-region .sisu-path-locked {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+  max-width: 100%;
+  padding: calc(var(--sisu-space-grid) * 3) calc(var(--sisu-space-grid) * 4);
+  border-radius: var(--sisu-radius-pill);
+  background: var(--sisu-green-900);
+  color: var(--sisu-white);
+  font: var(--sisu-type-label);
+  text-align: left;
+  box-shadow: 0 6px 20px rgba(0, 70, 40, 0.18);
+  pointer-events: auto;
+  animation: sisu-enter-soft-kf var(--sisu-motion-enter-duration) var(--sisu-motion-ease-emphasized) both;
 }
 
 /* The lesson sheet: 20 px sides, 32 px top and bottom, rows 16 px apart. */
@@ -258,6 +315,66 @@
   color: var(--sisu-color-text);
 }
 
-.sisu-lesson-done {
+.sisu-lesson-hint {
+  font: var(--sisu-type-body);
+  color: var(--sisu-amber-text);
+}
+
+.sisu-lesson-principle {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 2);
+  background: var(--sisu-green-50);
+}
+
+.sisu-lesson-principle-text {
+  font: var(--sisu-type-body-large);
+  font-weight: 600;
+  color: var(--sisu-green-900);
+}
+
+.sisu-lesson-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: calc(var(--sisu-space-grid) * 3);
   padding-top: calc(var(--sisu-space-grid) * 2);
+}
+
+.sisu-lesson .sisu-lesson-ask {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+  min-height: var(--sisu-space-touch-target);
+  border-radius: var(--sisu-radius-button);
+  border: 1px solid var(--sisu-color-hairline);
+  background: var(--sisu-white);
+  font: var(--sisu-type-button);
+  color: var(--sisu-green-700);
+  transition: transform var(--sisu-motion-press-duration) var(--sisu-motion-ease-standard),
+    background-color var(--sisu-motion-press-duration) var(--sisu-motion-ease-standard);
+}
+
+.sisu-lesson .sisu-lesson-ask:active {
+  transform: translateY(1px) scale(0.99);
+  background: var(--sisu-green-25);
+}
+
+.sisu-lesson-ask-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--sisu-green-100);
+  color: var(--sisu-green-900);
+  font: 700 12px/1 var(--sisu-font-text);
+}
+
+.sisu-lesson-ask-note {
+  font: var(--sisu-type-caption);
+  color: var(--sisu-color-text-muted);
+  text-align: center;
 }

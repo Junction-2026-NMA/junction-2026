@@ -5,7 +5,7 @@
   inset: 0;
   display: flex;
   flex-direction: column;
-  background: var(--sisu-color-background);
+  /* Transparent: the app's textured background shows through. */
   padding-top: env(safe-area-inset-top, 0px);
   padding-left: env(safe-area-inset-left, 0px);
   padding-right: env(safe-area-inset-right, 0px);
@@ -284,4 +284,29 @@
   position: sticky;
   bottom: 0;
   z-index: 1;
+}
+
+/* The voice step (VoiceStep.tsx): a scrolling column over a fixed Continue button. */
+.sisu-onb-voice-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sisu-onb-voice-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sisu-space-card);
+  padding: calc(var(--sisu-space-grid) * 4) 0 var(--sisu-space-card);
+}
+
+.sisu-onb-voice-content > p { margin: 0; }
+
+.sisu-onb-voice-card {
+  padding: var(--sisu-space-card);
+  border-radius: var(--sisu-radius-card);
+  border: 1px solid var(--sisu-color-hairline);
+  background: var(--sisu-color-card);
 }

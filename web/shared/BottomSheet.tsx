@@ -48,7 +48,9 @@ export function BottomSheet(props: BottomSheetProps) {
 
 const subscribeNothing = () => () => {};
 
-const EASE = "cubic-bezier(0.32, 0.72, 0, 1)";
+/** The motion tokens (web/theme/tokens.css): a soft decelerating rise in, a quicker accelerating slide out. */
+const EASE_IN = "var(--sisu-motion-sheet-easing, cubic-bezier(0.32, 0.72, 0, 1))";
+const EASE_OUT = "var(--sisu-motion-ease-exit, cubic-bezier(0.3, 0, 0.8, 0.15))";
 
 function SheetLayer(props: BottomSheetProps & { onGone: () => void }) {
   const { open, onClose, detents = ["large"], grabber = true, scroll = true } = props;
@@ -66,18 +68,19 @@ function SheetLayer(props: BottomSheetProps & { onGone: () => void }) {
     latest.current = { onClose, onClosed: props.onClosed, onGone: props.onGone };
   });
 
-  const duration = () => (prefersReducedMotion() ? 200 : 480);
+  const duration = (leaving = false) => (prefersReducedMotion() ? 200 : leaving ? 300 : 420);
   const height = () => sheet.current?.offsetHeight ?? window.innerHeight;
   const offsetOf = (which: SheetDetent) => (which === "large" ? 0 : Math.max(height() - window.innerHeight * 0.5, 0));
 
-  const place = (offset: number, animated: boolean) => {
+  const place = (offset: number, animated: boolean, leaving = false) => {
     const element = sheet.current;
     if (!element) return;
-    element.style.transition = animated ? `transform ${duration()}ms ${EASE}` : "none";
+    const timing = `${duration(leaving)}ms ${leaving ? EASE_OUT : EASE_IN}`;
+    element.style.transition = animated ? `transform ${timing}` : "none";
     element.style.transform = `translate3d(0, ${offset}px, 0)`;
     const fade = backdrop.current;
     if (fade) {
-      fade.style.transition = animated ? `opacity ${duration()}ms ${EASE}` : "none";
+      fade.style.transition = animated ? `opacity ${timing}` : "none";
       const rest = offsetOf(hasMedium ? "medium" : "large");
       fade.style.opacity = String(Math.min(Math.max(1 - (offset - rest) / Math.max(height() - rest, 1), 0), 1));
     }
@@ -99,11 +102,11 @@ function SheetLayer(props: BottomSheetProps & { onGone: () => void }) {
       const frame = requestAnimationFrame(() => requestAnimationFrame(() => settle(detent.current)));
       return () => cancelAnimationFrame(frame);
     }
-    place(height(), true);
+    place(height(), true, true);
     const timer = window.setTimeout(() => {
       latest.current.onGone();
       latest.current.onClosed?.();
-    }, duration());
+    }, duration(true));
     return () => window.clearTimeout(timer);
     // place/settle/offsetOf read refs only.
     // eslint-disable-next-line react-hooks/exhaustive-deps

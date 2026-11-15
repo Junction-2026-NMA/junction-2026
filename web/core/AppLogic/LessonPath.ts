@@ -1,30 +1,25 @@
 /* eslint-disable @typescript-eslint/no-namespace -- namespaces mirror Swift's caseless enums and nested types (see web/README.md). */
-// Port of SisuCore/AppLogic/LessonPath.swift. The teaching path: which lessons are done, the berries they earned,
-// and what the path screen shows. Pure and immutable; the JSON shape of `LessonProgress` is Swift's Codable one.
+// The teaching path: which lessons are done, which one is open to start, and what the path screen shows. Lessons
+// unlock one after another; a lesson counts as done only after a right answer (see LessonFollowUps.ts). No points,
+// berries or streaks. Pure and immutable. Stored as `{ done: [...] }` (an old stored `berries` is ignored).
 import type { ConceptId, TeachingCard } from "@/web/core/CoachModels";
-import { TeachingQuiz } from "@/web/core/CoachPresentation";
 import { rawOf } from "@/web/core/Presentation";
-import type { DailyProgress } from "@/web/core/AppLogic/DailyProgress";
 
-/** The lessons a customer has finished. A lesson counts once; berries only ever go up. */
+/** The lessons a customer has finished. A lesson counts once. */
 export interface LessonProgress {
   /** Concept ids (`three-baskets`…) in the order they were finished. */
   readonly done: readonly string[];
-  readonly berries: number;
 }
 
 export namespace LessonProgress {
-  /** Berries for one finished lesson. */
-  export const reward = 15;
-
-  export function make(): LessonProgress { return { done: [], berries: 0 }; }
+  export function make(): LessonProgress { return { done: [] }; }
 
   export function isDone(progress: LessonProgress, concept: ConceptId): boolean { return progress.done.includes(rawOf(concept)); }
 
-  /** Marks a lesson finished. Returns the next state and the berries earned now: `reward` the first time, 0 after that. */
-  export function complete(progress: LessonProgress, concept: ConceptId): { progress: LessonProgress; earned: number } {
-    if (isDone(progress, concept)) return { progress, earned: 0 };
-    return { progress: { done: [...progress.done, rawOf(concept)], berries: progress.berries + reward }, earned: reward };
+  /** Marks a lesson finished. `added` is false when it was already done. */
+  export function complete(progress: LessonProgress, concept: ConceptId): { progress: LessonProgress; added: boolean } {
+    if (isDone(progress, concept)) return { progress, added: false };
+    return { progress: { done: [...progress.done, rawOf(concept)] }, added: true };
   }
 
   /** How many of these lessons are done. */
@@ -32,7 +27,7 @@ export namespace LessonProgress {
     return concepts.filter((concept) => isDone(progress, concept)).length;
   }
 
-  /** The lesson the path suggests: the first one not done. Null when all are done. */
+  /** The lesson to do now: the first one not done. Null when all are done. */
   export function next(progress: LessonProgress, concepts: readonly ConceptId[]): ConceptId | null {
     return concepts.find((concept) => !isDone(progress, concept)) ?? null;
   }
@@ -42,12 +37,19 @@ export namespace LessonProgress {
     return concepts.length > 0 && concepts.every((concept) => isDone(progress, concept));
   }
 
-  /** Decodes a stored value (Swift `JSONDecoder`); null when it is not a `LessonProgress`. */
+  /** A lesson can be opened when it is done (to look again) or it is the next one. Later ones wait. */
+  export function isOpen(progress: LessonProgress, concepts: readonly ConceptId[], concept: ConceptId): boolean {
+    if (isDone(progress, concept)) return true;
+    const upNext = next(progress, concepts);
+    return upNext !== null && rawOf(upNext) === rawOf(concept);
+  }
+
+  /** Decodes a stored value; null when it is not a `LessonProgress`. Older values with `berries` still decode. */
   export function decode(value: unknown): LessonProgress | null {
     if (!value || typeof value !== "object") return null;
     const v = value as Record<string, unknown>;
-    if (!Array.isArray(v.done) || !v.done.every((id) => typeof id === "string") || typeof v.berries !== "number") return null;
-    return { done: v.done as string[], berries: v.berries };
+    if (!Array.isArray(v.done) || !v.done.every((id) => typeof id === "string")) return null;
+    return { done: [...new Set(v.done as string[])] };
   }
 }
 
@@ -63,14 +65,16 @@ export interface LessonNode {
   readonly sway: number;
   /** The short text inside the node's sticker: `Done`, or `Lesson 4`. */
   readonly badge: string;
+  /** Why a locked lesson cannot be opened yet (`Finish "Three baskets" first.`); null when it can. */
+  readonly lockedReason: string | null;
 }
 
 export namespace LessonNode {
-  export type State = "done" | "current" | "upcoming";
+  export type State = "done" | "current" | "locked";
 
   /** The node's accessibility label, for example `Lesson 2 of 7, Safe to spend, done`. */
   export function accessibilityLabel(node: LessonNode, total: number): string {
-    const status = node.state === "done" ? "done" : node.state === "current" ? "next up" : "not started";
+    const status = node.state === "done" ? "done" : node.state === "current" ? "next up" : `locked. ${node.lockedReason ?? ""}`.trim();
     return `Lesson ${node.index + 1} of ${total}, ${node.title}, ${status}`;
   }
 }
@@ -82,23 +86,28 @@ export namespace LessonPathPresenter {
 
   const conceptsOf = (cards: readonly TeachingCard[]) => cards.map((card) => card.concept);
 
+  /** `Finish "Three baskets" first.` */
+  export function lockedReason(waitingFor: string): string { return `Finish “${waitingFor}” first.`; }
+
   /** The nodes, in the order of the cards. */
   export function nodes(cards: readonly TeachingCard[], progress: LessonProgress): LessonNode[] {
-    const next = LessonProgress.next(progress, conceptsOf(cards));
+    const upNext = LessonProgress.next(progress, conceptsOf(cards));
+    const upNextTitle = cards.find((card) => upNext !== null && rawOf(card.concept) === rawOf(upNext))?.title ?? null;
     return cards.map((card, index) => {
       const state: LessonNode.State = LessonProgress.isDone(progress, card.concept) ? "done"
-        : next != null && rawOf(card.concept) === rawOf(next) ? "current" : "upcoming";
+        : upNext != null && rawOf(card.concept) === rawOf(upNext) ? "current" : "locked";
       return {
         id: rawOf(card.concept), concept: card.concept, title: card.title, state, index,
         sway: swayPattern[index % swayPattern.length],
         badge: state === "done" ? "Done" : `Lesson ${index + 1}`,
+        lockedReason: state === "locked" && upNextTitle ? lockedReason(upNextTitle) : null,
       };
     });
   }
 
-  /** `3 of 7 done`. */
+  /** `3 of 7 lessons`. */
   export function progressText(cards: readonly TeachingCard[], progress: LessonProgress): string {
-    return `${LessonProgress.doneCount(progress, conceptsOf(cards))} of ${cards.length} done`;
+    return `${LessonProgress.doneCount(progress, conceptsOf(cards))} of ${cards.length} lessons`;
   }
 
   /** The share done, 0...1, for the Rive `ProgressBar`. */
@@ -107,32 +116,56 @@ export namespace LessonPathPresenter {
     return LessonProgress.doneCount(progress, conceptsOf(cards)) / cards.length;
   }
 
-  /** The berries pill: the day's berries plus those the lessons earned. */
-  export function berriesText(daily: DailyProgress, lessons: LessonProgress): string {
-    return `${daily.berries + lessons.berries}`;
-  }
-
   /** The line under the path's title. */
   export function subtitle(cards: readonly TeachingCard[], progress: LessonProgress): string {
-    if (LessonProgress.allDone(progress, conceptsOf(cards))) return "Every lesson done. Open any one again.";
-    return "Short lessons built from your own numbers. Any order is fine.";
+    if (LessonProgress.allDone(progress, conceptsOf(cards))) return "Every lesson done. Open any one to look again.";
+    return "Short lessons built from your own numbers, one after another.";
   }
 
-  /** `+15 berries` on the Done step, or null when this lesson was already counted. */
-  export function rewardText(earned: number): string | null { return earned > 0 ? `+${earned} berries` : null; }
-
-  /** The celebration after the last lesson. */
-  export function celebration(cards: readonly TeachingCard[]): { headline: string; detail: string } {
-    return { headline: "Path complete.", detail: `All ${cards.length} lessons done. Liito is proud of you.` };
-  }
-
-  /** The quiz feedback line. It praises the guess and never blames a miss. */
-  export function feedback(quiz: TeachingQuiz): string | null {
-    const correct = TeachingQuiz.isCorrect(quiz);
-    if (correct == null) return null;
-    return correct ? "Spot on." : "Close. Here is how it works out for you.";
+  /** The line on the last lesson's finish. */
+  export function pathFinished(cards: readonly TeachingCard[]): string {
+    return `That was the last of the ${cards.length} lessons. The whole path is done.`;
   }
 
   /** The empty state, when the backend has no cards for this customer. */
   export const emptyText = "No lessons for this profile yet. Try again in a moment.";
+}
+
+/** The lessons' words, brought in line with the app's names for the baskets and the weekly budget. Only phrases
+ *  change; every figure stays exactly as the backend computed it. */
+export namespace LessonWording {
+  const replacements: readonly (readonly [RegExp, string])[] = [
+    [/what you must pay every month, what you must pay now and then, and everyday choices/g,
+      "regular essentials you pay every month, occasional essentials you pay now and then, and everyday spending"],
+    [/Must pay, every month/g, "Regular essentials"],
+    [/Must pay, now and then/g, "Occasional essentials"],
+    [/monthly must-pays/g, "regular essentials"],
+    [/now-and-then costs/g, "occasional essentials"],
+    [/must-pay costs/g, "essential costs"],
+    [/Must-pay costs/g, "Essential costs"],
+    [/must-pays?/gi, "essentials"],
+    [/Everyday choices/g, "Everyday spending"],
+    [/everyday choices/g, "everyday spending"],
+    [/^Safe to spend$/g, "Estimated weekly budget"],
+    [/Safe to spend is what is left/g, "Your estimated weekly budget is what is left"],
+    [/Safe to spend per (week|month)/g, "Estimated budget per $1"],
+    [/€-(\d[\d,]*) a month over/g, "€$1 a month over"],
+  ];
+
+  export function text(value: string): string {
+    return replacements.reduce((current, [pattern, replacement]) => current.replace(pattern, replacement), value);
+  }
+
+  /** The card with its words renamed (figures untouched). */
+  export function card(card: TeachingCard): TeachingCard {
+    return {
+      ...card,
+      title: text(card.title),
+      explanation: text(card.explanation),
+      question: text(card.question),
+      options: card.options.map(text),
+      reveal: text(card.reveal),
+      facts: card.facts.map((fact) => ({ ...fact, label: text(fact.label) })),
+    };
+  }
 }

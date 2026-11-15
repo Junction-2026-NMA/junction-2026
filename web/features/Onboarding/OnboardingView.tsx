@@ -17,11 +17,15 @@ import { OnboardingMotion } from "./OnboardingMotion";
 import { OnboardingTopBar } from "./OnboardingTopBar";
 import { PromiseStep, ReadingStep, WelcomeStep } from "./OnboardingSteps";
 import { ProfileStep } from "./ProfileStep";
+import { VoiceStep } from "./VoiceStep";
 import "./onboarding.css";
+
+/** The screens on show: the flow's steps plus the voice step, shown before the profile until it is passed. */
+export type OnboardingViewStep = OnboardingStep | "voice";
 
 interface PageLayer {
   readonly id: number;
-  readonly step: OnboardingStep;
+  readonly step: OnboardingViewStep;
   /** "shown" sits still; "entering" and "leaving" play their slide. */
   readonly phase: "shown" | "entering" | "leaving";
   readonly forward: boolean;
@@ -46,8 +50,11 @@ export default function OnboardingView() {
   /** The sorting moment shows only when the load takes longer than a blink; until then the chosen profile card
    *  stays on screen. Nothing waits for this: Today opens the moment the overview is loaded. */
   const [showReading, setShowReading] = useState(false);
+  /** The voice step comes before the profile choice; Continue or Skip passes it, Back from the profile returns. */
+  const [voicePassed, setVoicePassed] = useState(false);
   /** The screen on show: the profile choice stays up for the first moments of a load. */
-  const shownStep: OnboardingStep = flow.step === "reading" && !showReading ? "profile" : flow.step;
+  const flowStep: OnboardingStep = flow.step === "reading" && !showReading ? "profile" : flow.step;
+  const shownStep: OnboardingViewStep = flow.step === "profile" && !voicePassed ? "voice" : flowStep;
 
   // Leaving the sorting moment forgets it (adjusting state while rendering, as React recommends over an effect).
   if (flow.step !== "reading" && showReading) setShowReading(false);
@@ -96,8 +103,9 @@ export default function OnboardingView() {
 
   const layers = usePageLayers(shownStep, pendingRef, reduceMotion, (page?.durationMs ?? 0) + 300);
 
-  const screen = (step: OnboardingStep): ReactNode => {
+  const screen = (step: OnboardingViewStep): ReactNode => {
     switch (step) {
+      case "voice": return <VoiceStep next={() => move(true, () => setVoicePassed(true))} />;
       case "welcome": return <WelcomeStep next={() => move(true, () => model.onboardingContinue())} />;
       case "promise": return <PromiseStep next={() => move(true, () => model.onboardingContinue())} />;
       case "profile":
@@ -112,8 +120,8 @@ export default function OnboardingView() {
         flow={flow}
         shownStep={shownStep}
         page={page}
-        onBack={() => move(false, () => model.onboardingBack())}
-        onSkip={() => move(true, () => model.onboardingSkip())}
+        onBack={() => move(false, () => (shownStep === "profile" && flow.step === "profile" ? setVoicePassed(false) : model.onboardingBack()))}
+        onSkip={() => move(true, () => (shownStep === "voice" ? setVoicePassed(true) : model.onboardingSkip()))}
       />
       <div className="sisu-onb-pages">
         {layers.list.map((layer) => (
@@ -145,7 +153,7 @@ function shift(layer: PageLayer): string {
 }
 
 /** The ZStack with `.id(shownStep).transition(...)`: the screen on show, plus the one sliding out. */
-function usePageLayers(shownStep: OnboardingStep, pendingRef: { current: PendingMove | null }, reduceMotion: boolean, fallbackMs: number) {
+function usePageLayers(shownStep: OnboardingViewStep, pendingRef: { current: PendingMove | null }, reduceMotion: boolean, fallbackMs: number) {
   const [list, setList] = useState<readonly PageLayer[]>(() => [{ id: 0, step: shownStep, phase: "shown", forward: true }]);
   const nextId = useRef(1);
 
