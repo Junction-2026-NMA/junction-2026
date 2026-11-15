@@ -403,3 +403,33 @@ describe("orchestrator: one turn, driven by a scripted model", () => {
     assert.equal(seen.length, 0);
   });
 });
+
+describe("a pointer to Path is kept only when it names the lesson that fits", () => {
+  beforeEach(() => freshState());
+  after(() => setMockScript(null));
+  const sentencesOf = (events: SisuEvent[]) => ofType(events, "sentence").map((e) => e.text).join(" ");
+
+  it("drops a lesson stretched onto a question no lesson covers", async () => {
+    const { script } = scriptedModel(['Inflation means prices rise, so the same money buys less. The "Buffer before investing" lesson in Path walks through this with your own numbers.']);
+    setMockScript(script);
+    const events = await collect(runTurn(ask("What is inflation?")));
+    assert.equal(ofType(events, "done")[0].text, "Inflation means prices rise, so the same money buys less.");
+    assert.doesNotMatch(sentencesOf(events), /Path/);
+  });
+
+  it("keeps the lesson code picked for a learning question", async () => {
+    const { script } = scriptedModel(['Build a buffer first. The "Buffer before investing" lesson in Path walks through this with your own numbers.']);
+    setMockScript(script);
+    const events = await collect(runTurn(ask("Should I start investing or build savings first?")));
+    assert.match(ofType(events, "done")[0].text, /"Buffer before investing" lesson in Path/);
+  });
+
+  it("keeps the lesson explain_concept just taught, and drops a different one", async () => {
+    const { script } = scriptedModel([[call("explain_concept", { concept: "compound-growth" })], 'Growth earns growth. It is the "Growth on growth" lesson in Path. The "Three baskets" lesson in Path is next. How much do you think it becomes?']);
+    setMockScript(script);
+    const done = ofType(await collect(runTurn(ask("Explain compound growth to me"))), "done")[0].text;
+    assert.match(done, /"Growth on growth" lesson in Path/);
+    assert.doesNotMatch(done, /Three baskets/);
+    assert.match(done, /How much do you think it becomes\?$/);
+  });
+});
