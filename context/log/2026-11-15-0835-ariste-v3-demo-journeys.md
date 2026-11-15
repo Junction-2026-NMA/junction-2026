@@ -20,5 +20,5 @@
 
 ## Next / open questions
 - Nicholas: deploy sisu-api from this branch with `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (`npx web-push generate-vapid-keys`) and optionally `VAPID_SUBJECT`. Without `CRON_SECRET`, the only server checks while the app is closed are the first check after approval and the delayed simulation.
-- Then redeploy sisu-demo and test push on the filming iPhone (app opened from the Home Screen, iOS 16.4+), locked.
+- sisu-demo already runs this branch (deployed 15 Nov ~08:36 EET from a clean `git archive` of 4d1be41; Ready, `/app` and `/sisu-sw.js` 200). Until sisu-api is updated it uses the fallbacks (old approve route, in-app updates, no push). After the sisu-api deploy, test push on the filming iPhone (app opened from the Home Screen, iOS 16.4+), locked. PR: #27.
 - Live Exa/Context.dev and the live model were not tested (no keys on this Mac); mock mode only.
