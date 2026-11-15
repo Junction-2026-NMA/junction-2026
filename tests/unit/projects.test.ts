@@ -117,9 +117,9 @@ describe("the Project proposal asks for consent and says exactly what will run",
     const built = buildWatchDraft(AINO, { city: "Espoo", budgetEur: 900, minRooms: null, search: searchOf([flat()]), preparedBy: "sisu-agent" });
     assert.ok(built.ok);
     assert.match(built.draft.summary, /once a day on its own schedule and whenever you open the app/);
-    assert.equal(((await (await health()).json()) as HealthReport).watchScheduler, "cron");
+    assert.equal(((await (await health(new Request("http://localhost/api/health"))).json()) as HealthReport).watchScheduler, "cron");
     delete process.env.CRON_SECRET;
-    assert.equal(((await (await health()).json()) as HealthReport).watchScheduler, "on-open");
+    assert.equal(((await (await health(new Request("http://localhost/api/health"))).json()) as HealthReport).watchScheduler, "on-open");
   });
 });
 

@@ -144,6 +144,9 @@ async function checkSearch(watch: PropertyWatch): Promise<{ events: FitEvent[]; 
 // Stores what a check found: the pages as they are now, a notification for each flat that fits, and the audit lines.
 function record(watch: PropertyWatch, next: PropertyWatch, notes: WatchNotification[], detail: string | null, now: Date): void {
   updateState((state) => {
+    // Re-check inside the reducer too: hosted CAS retries replay it over newer state.
+    const current = (state.watches ?? []).find((item) => item.id === watch.id && item.customerId === watch.customerId);
+    if (!current || current.status !== "active") return state;
     const stored = { ...replaceWatch(state, next), notifications: [...notes, ...(state.notifications ?? [])].slice(0, MAX_NOTIFICATIONS) };
     const checked = detail ? withAudit(stored, { customerId: watch.customerId, type: "watch_checked", actor: "system", actionId: watch.actionId, detail }, now) : stored;
     return notes.reduce((current, note) => withAudit(current, { customerId: watch.customerId, type: "watch_notified", actor: "system", actionId: watch.actionId, detail: `${note.simulated ? "SIMULATED (demo button), not a real change. " : ""}${note.title}, €${Math.round(note.underBudgetByEur)} under the limit of €${Math.round(note.budgetEur)}.` }, now), checked);
@@ -185,6 +188,8 @@ export async function checkWatches(customerId: string, options: CheckOptions = {
     const pages = results.map((result) => result.page);
     const next: PropertyWatch = { ...watch, pages, lastCheckedAt: now.toISOString(), problems, lastSuccessAt: lastSuccessOf(pages) ?? watch.lastSuccessAt ?? null, nextCheckAt: nextCheckOf(pages), ...(options.trigger === "schedule" ? {} : { visitorSeenAt: now.toISOString() }) };
     const who = options.trigger === "schedule" ? "Scheduled check" : "Checked";
+    // A stop, pause or reset can finish while the provider requests above are in flight.
+    if (ownWatch(customerId, watch.id)?.status !== "active") continue;
     record(watch, next, notes, rereadCount || changes ? `${who} the watch for ${watchSubject(watch)}: Context.dev reported ${changes} change${changes === 1 ? "" : "s"}, ${rereadCount} page${rereadCount === 1 ? "" : "s"} read again, ${notes.length} new within the limit.` : null, now);
     summary.changesSeen += changes;
     summary.pagesReread += rereadCount;

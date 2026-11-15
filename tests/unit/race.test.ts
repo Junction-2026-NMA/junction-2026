@@ -7,12 +7,13 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import { EETU, freshState, stubFetch } from "./helpers";
 import { POST as approveRoute } from "@/app/api/actions/[id]/approve/route";
 import { POST as approveAllRoute } from "@/app/api/actions/approve-all/route";
-import { accountsFor, approveActionStored, declineActionStored, saveDraft } from "@/lib/actions";
+import { accountsFor, listActions, approveActionStored, declineActionStored, saveDraft } from "@/lib/actions";
 import { buildTransferDraft, impactOf } from "@/lib/actions/drafts";
 import { verifyChain } from "@/lib/store/audit";
 import { inSession, newSessionId } from "@/lib/store/session";
-import { type SisuState, forgetStoredState, openSession, settleSession } from "@/lib/store/state";
+import { type SisuState, forgetStoredState, openSession, settleSession, updateState } from "@/lib/store/state";
 import { buildOverview } from "@/lib/finance/overview";
+import { runPlan } from "@/lib/agent/plan";
 import type { AgentAction } from "@/lib/types";
 
 const STORE_ENV = ["SISU_STORE", "SISU_STORE_TOKEN", "SISU_SESSIONS", "SUPABASE_URL", "SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"];
@@ -99,6 +100,28 @@ describe("hosted: two decisions at the same moment", () => {
   }
   const stored = () => supabase.rows.get(session)!.state;
   const count = (type: string, actionId: string) => stored().audit.filter((event) => event.type === type && event.actionId === actionId).length;
+
+  it("competing switches on separate instances execute only one offer for the same bill", async () => {
+    await inSession(session, async () => {
+      updateState((state) => ({ ...state, actions: [], audit: [] }));
+      for await (const event of runPlan(EETU, { fresh: false })) void event;
+      first = listActions(EETU).find((action) => action.kind === "switch_contract")!;
+      assert.ok(first?.offer);
+      const alternate = saveDraft(EETU, { ...first, offer: { ...first.offer!, provider: "Competing provider" } });
+      assert.ok(alternate.ok);
+      second = alternate.action;
+      await settleSession();
+    });
+    waiting = structuredClone(supabase.rows.get(session)!);
+    assert.ok((await inSession(session, () => approveActionStored(EETU, first.id, impactOf))).ok);
+    await secondInstanceSeesOldState();
+    const late = await inSession(session, () => approveActionStored(EETU, second.id, impactOf));
+    assert.ok(!late.ok && late.status === 409, JSON.stringify(late));
+    assert.equal(stored().actions.find((action) => action.id === second.id)?.status, "awaiting_approval");
+    assert.equal(count("action_executed_simulated", first.id), 1);
+    assert.equal(count("action_approved", second.id), 0);
+    assert.ok(verifyChain(stored().audit));
+  });
 
   it("a transfer the first approval already spent is refused, and the account is not overdrawn", async () => {
     const one = await inSession(session, () => approveActionStored(EETU, first.id, impactOf));

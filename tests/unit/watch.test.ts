@@ -17,6 +17,7 @@ import { forgetStoredState, readState } from "@/lib/store/state";
 import type { AgentAction, Listing } from "@/lib/types";
 import { checkWatches, listNotifications, listWatches, simulatePriceDrop, startWatch, stopWatch } from "@/lib/watch";
 import { detectFits, fits, ruleFor } from "@/lib/watch/detect";
+import { pauseWatch } from "@/lib/watch/project";
 import { GET as watchRoute } from "@/app/api/watch/route";
 import { POST as approveRoute } from "@/app/api/actions/[id]/approve/route";
 import { POST as simulateRoute } from "@/app/api/watch/[id]/simulate-drop/route";
@@ -190,6 +191,28 @@ describe("a property watch starts only with the user's approval", () => {
     assert.ok(audit.chainValid);
     // The same watch is not offered twice.
     assert.ok(!buildWatchDraft(AINO, { city: "helsinki", budgetEur: 900, minRooms: null, search: searchOf([flat()]), preparedBy: "sisu-agent" }).ok);
+  });
+
+  it("a pending check cannot reactivate a watch stopped while it was awaiting I/O", async () => {
+    const watch = (await startWatch(AINO, approve(prepareWatch())))!;
+    const pending = checkWatches(AINO);
+    await stopWatch(AINO, watch.id);
+    const result = await pending;
+    assert.equal(listWatches(AINO)[0].status, "stopped");
+    assert.deepEqual(result.notifications, []);
+    assert.deepEqual(listNotifications(AINO), []);
+    assert.equal(auditFor(AINO).events.at(-1)?.type, "watch_stopped");
+  });
+
+  it("a pending check cannot resume a Project paused while it was awaiting I/O", async () => {
+    const watch = (await startWatch(AINO, approve(prepareWatch())))!;
+    const pending = checkWatches(AINO);
+    assert.ok((await pauseWatch(AINO, watch.id)).ok);
+    const result = await pending;
+    assert.equal(listWatches(AINO)[0].status, "paused");
+    assert.deepEqual(result.notifications, []);
+    assert.deepEqual(listNotifications(AINO), []);
+    assert.equal(auditFor(AINO).events.at(-1)?.type, "watch_paused");
   });
 
   it("a simulated price drop produces one notification, marked as simulated, with a receipt for every number", async () => {
