@@ -320,6 +320,27 @@
   color: var(--sisu-amber-text);
 }
 
+/* The live regions stay in the page before an answer; empty, they take no room (the column's gap is undone). */
+.sisu-lesson-result:empty {
+  margin-top: calc(-1 * var(--sisu-space-card));
+}
+
+.sisu-lesson-followup-result {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 3);
+}
+
+.sisu-lesson-followup-result:empty {
+  margin-top: calc(-3 * var(--sisu-space-grid));
+}
+
+/* After an answer the sheet scrolls to the new feedback; this keeps its first line clear of the sheet's top edge. */
+.sisu-lesson-result,
+.sisu-lesson-followup {
+  scroll-margin-top: 32px;
+}
+
 .sisu-lesson-principle {
   display: flex;
   flex-direction: column;

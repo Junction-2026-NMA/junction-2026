@@ -170,6 +170,16 @@
 
 .sisu-settings-toggle-row > .sisu-rive { flex: none; }
 
+/* The switch's hit area: 44 px tall around the 64 x 36 Rive toggle. A press on the extra edge toggles too. */
+.sisu-settings-switch {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 0 0 calc(var(--sisu-space-grid) * 2);
+  cursor: pointer;
+}
+
 /* ---- Settings sections ---- */
 .sisu-settings-section {
   display: flex;
@@ -177,9 +187,10 @@
   gap: calc(var(--sisu-space-grid) * 2);
 }
 
+/* Lined up with the sheet's title and the captions: no side padding of its own. */
 .sisu-settings-heading {
   margin: 0;
-  padding: 0 calc(var(--sisu-space-grid) * 1);
+  padding: 0;
   font: var(--sisu-type-h3);
   color: var(--sisu-color-text);
 }
@@ -221,6 +232,12 @@
   justify-content: space-between;
   gap: var(--sisu-space-card);
   min-height: var(--sisu-space-touch-target);
+}
+
+/* The label keeps one line ("Sisu answers in" never breaks); the select gives way instead. */
+.sisu-settings-select-row > .sisu-sheet-text {
+  flex: none;
+  white-space: nowrap;
 }
 
 .sisu-settings-select {
@@ -302,7 +319,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 calc(var(--sisu-space-grid) * 3);
   border-radius: var(--sisu-radius-pill);
   background: var(--sisu-green-50);
@@ -375,7 +392,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: calc(var(--sisu-space-grid) * 3) calc(var(--sisu-space-grid) * 1);
+  padding: calc(var(--sisu-space-grid) * 3) 0;
   list-style: none;
   cursor: pointer;
 }

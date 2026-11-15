@@ -3,7 +3,9 @@
 // guess completes the lesson. A wrong one gets a kind explanation and one short follow-up question; the lesson
 // completes only when that is answered right. It ends with one principle to keep. "Ask Sisu" opens the Sisu tab
 // with a question about this lesson; the place in the lesson is kept and the lesson reopens on the way back.
-// Logic: web/core/AppLogic/LessonFollowUps.ts. In a BottomSheet (large detent, grabber).
+// Logic: web/core/AppLogic/LessonFollowUps.ts. In a BottomSheet (large detent, grabber). The feedback after each
+// answer sits in a polite live region, so a screen reader hears it, and the sheet scrolls to show what came next
+// without pushing the feedback's first line out of view.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { TeachingQuiz } from "@/web/core/CoachPresentation";
 import { LessonAttempt, LessonFollowUps, type LessonQuestion } from "@/web/core/AppLogic/LessonFollowUps";
@@ -54,6 +56,7 @@ function LessonContent({ lesson, path, autoAnswer, onAskSisu }: {
   const [attempt, setAttempt] = useState(lesson.attempt);
   const [finishedPath, setFinishedPath] = useState(false);
   const end = useRef<HTMLDivElement>(null);
+  const root = useRef<HTMLDivElement>(null);
   const phase = LessonAttempt.phase(attempt, card, followUp);
   const firstRight = attempt.first !== null && attempt.first === card.correctIndex;
 
@@ -74,15 +77,21 @@ function LessonContent({ lesson, path, autoAnswer, onAskSisu }: {
     onAskSisu(LessonFollowUps.askQuestion(card));
   };
 
-  // After each answer, bring what came next into view (250 ms, once it has started to arrive).
+  // After each answer, bring what came next into view (250 ms, once it has started to arrive): as far as the end,
+  // but never past the top of the new feedback (the first answer's card, or the follow-up), less its scroll margin.
   const step = `${attempt.first}|${attempt.followUpPicks.length}`;
   useEffect(() => {
     if (attempt.first === null) return;
     const timer = window.setTimeout(() => {
       const element = end.current;
       const scroller = element?.closest<HTMLElement>(".sisu-sheet-body");
+      const anchor = root.current?.querySelector<HTMLElement>(attempt.followUpPicks.length === 0 ? ".sisu-lesson-result" : ".sisu-lesson-followup");
       if (!element || !scroller) return;
-      const delta = element.getBoundingClientRect().bottom - scroller.getBoundingClientRect().bottom;
+      const box = scroller.getBoundingClientRect();
+      const toEnd = element.getBoundingClientRect().bottom - box.bottom;
+      const margin = anchor ? parseFloat(getComputedStyle(anchor).scrollMarginTop) || 0 : 0;
+      const toAnchor = anchor ? anchor.getBoundingClientRect().top - box.top - margin : toEnd;
+      const delta = Math.min(toEnd, toAnchor);
       if (delta <= 0) return;
       scroller.scrollTo({ top: scroller.scrollTop + delta, behavior: prefersReducedMotion() ? "auto" : "smooth" });
     }, 250);
@@ -107,23 +116,26 @@ function LessonContent({ lesson, path, autoAnswer, onAskSisu }: {
 
   const entrance = SisuMotion.entrance(reduceMotion);
   return (
-    <div className="sisu-lesson" data-phase={phase}>
+    <div ref={root} className="sisu-lesson" data-phase={phase}>
       <h1 className="sisu-lesson-title">{card.title}</h1>
       <p className="sisu-lesson-explanation">{card.explanation}</p>
 
       <FirstQuestion card={card} first={attempt.first} choose={chooseFirst} />
 
-      {attempt.first !== null ? (
-        <SisuCard className={entrance}>
-          <p className="sisu-lesson-feedback" data-testid="lesson.feedback">
-            {firstRight ? "Spot on." : "Not quite. Here is how it works out for you."}
-          </p>
-          {!firstRight && LessonFollowUps.whyWrong(card, attempt.first) ? (
-            <p className="sisu-lesson-reveal">{LessonFollowUps.whyWrong(card, attempt.first)}</p>
-          ) : null}
-          <p className="sisu-lesson-reveal">{card.reveal}</p>
-        </SisuCard>
-      ) : null}
+      {/* Always present, so a screen reader announces the card when it arrives. */}
+      <div className="sisu-lesson-result" role="status" aria-live="polite" data-testid="lesson.result">
+        {attempt.first !== null ? (
+          <SisuCard className={entrance}>
+            <p className="sisu-lesson-feedback" data-testid="lesson.feedback">
+              {firstRight ? "Spot on." : "Not quite. Here is how it works out for you."}
+            </p>
+            {!firstRight && LessonFollowUps.whyWrong(card, attempt.first) ? (
+              <p className="sisu-lesson-reveal">{LessonFollowUps.whyWrong(card, attempt.first)}</p>
+            ) : null}
+            <p className="sisu-lesson-reveal">{card.reveal}</p>
+          </SisuCard>
+        ) : null}
+      </div>
 
       {attempt.first !== null && !firstRight ? (
         <FollowUp followUp={followUp} attempt={attempt} choose={chooseFollowUp} entrance={entrance} />
@@ -186,7 +198,7 @@ function FollowUp({ followUp, attempt, choose, entrance }: {
   const solved = attempt.followUpPicks.includes(followUp.correctIndex);
   const hint = LessonAttempt.followUpHint(attempt, followUp);
   return (
-    <div className={`sisu-lesson-quiz ${entrance}`} data-testid="lesson.followup">
+    <div className={`sisu-lesson-quiz sisu-lesson-followup ${entrance}`} data-testid="lesson.followup">
       <Eyebrow text="One more question to check it" />
       <p className="sisu-lesson-question">{followUp.question}</p>
       {followUp.options.map((option, index) => {
@@ -207,13 +219,16 @@ function FollowUp({ followUp, attempt, choose, entrance }: {
           />
         );
       })}
-      {hint ? <p className="sisu-lesson-hint" role="status">{hint}</p> : null}
-      {solved ? (
-        <SisuCard className={entrance}>
-          <p className="sisu-lesson-feedback">That is it.</p>
-          <p className="sisu-lesson-reveal">{followUp.explanation}</p>
-        </SisuCard>
-      ) : null}
+      {/* One live region for the follow-up's hint and its answer, present before either. */}
+      <div className="sisu-lesson-followup-result" role="status" aria-live="polite">
+        {hint ? <p className="sisu-lesson-hint">{hint}</p> : null}
+        {solved ? (
+          <SisuCard className={entrance}>
+            <p className="sisu-lesson-feedback">That is it.</p>
+            <p className="sisu-lesson-reveal">{followUp.explanation}</p>
+          </SisuCard>
+        ) : null}
+      </div>
     </div>
   );
 }

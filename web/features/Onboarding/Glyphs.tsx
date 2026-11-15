@@ -31,3 +31,22 @@ export function ChevronRightGlyph({ size = 12 }: { size?: number }) {
     </svg>
   );
 }
+
+/** The basket icons of the Rive BasketChip: "anchor" (regular essentials), "bolt.fill" (occasional essentials) and
+ *  "drop.fill" (everyday spending). */
+export function BasketGlyph({ kind, size = 16 }: { kind: "fixed" | "curveballs" | "leaks"; size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      {kind === "fixed" ? (
+        <g fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="8" cy="3.2" r="1.7" />
+          <path d="M8 4.9v9.6M5.2 7.4h5.6M2.4 9.4a5.6 5.1 0 0 0 11.2 0" />
+        </g>
+      ) : kind === "curveballs" ? (
+        <path d="M9.4 1 3.2 9.1h4.2L6.6 15l6.2-8.1H8.6L9.4 1Z" fill="currentColor" />
+      ) : (
+        <path d="M8 1.4S3.4 6.6 3.4 10a4.6 4.6 0 0 0 9.2 0C12.6 6.6 8 1.4 8 1.4Z" fill="currentColor" />
+      )}
+    </svg>
+  );
+}

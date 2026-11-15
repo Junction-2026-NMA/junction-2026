@@ -72,7 +72,7 @@ export interface LessonNode {
 export namespace LessonNode {
   export type State = "done" | "current" | "locked";
 
-  /** The node's accessibility label, for example `Lesson 2 of 7, Safe to spend, done`. */
+  /** The node's accessibility label, for example `Lesson 3 of 7, Fixed price or spot price, done`. */
   export function accessibilityLabel(node: LessonNode, total: number): string {
     const status = node.state === "done" ? "done" : node.state === "current" ? "next up" : `locked. ${node.lockedReason ?? ""}`.trim();
     return `Lesson ${node.index + 1} of ${total}, ${node.title}, ${status}`;
@@ -131,8 +131,11 @@ export namespace LessonPathPresenter {
   export const emptyText = "No lessons for this profile yet. Try again in a moment.";
 }
 
-/** The lessons' words, brought in line with the app's names for the baskets and the weekly budget. Only phrases
- *  change; every figure stays exactly as the backend computed it. */
+/** The lessons' words, brought in line with the app's names for the baskets. Only phrases change; every figure
+ *  stays exactly as the backend computed it. The averages lesson (`safe-to-spend`) gets its own name, "Weekly room in
+ *  an average month", because "Estimated weekly budget" is Today's payday figure (balance minus bills before payday):
+ *  one name, one figure. Older backends called the averages figure "Safe to spend", newer ones "Estimated weekly
+ *  budget"; both read the same here. */
 export namespace LessonWording {
   const replacements: readonly (readonly [RegExp, string])[] = [
     [/what you must pay every month, what you must pay now and then, and everyday choices/g,
@@ -146,26 +149,59 @@ export namespace LessonWording {
     [/must-pays?/gi, "essentials"],
     [/Everyday choices/g, "Everyday spending"],
     [/everyday choices/g, "everyday spending"],
-    [/^Safe to spend$/g, "Estimated weekly budget"],
-    [/Safe to spend is what is left/g, "Your estimated weekly budget is what is left"],
-    [/Safe to spend per (week|month)/g, "Estimated budget per $1"],
     [/€-(\d[\d,]*) a month over/g, "€$1 a month over"],
   ];
+
+  /** The averages lesson's own name, kept apart from Today's "Estimated weekly budget". */
+  export const averagesTitle = "Weekly room in an average month";
+  /** Added to the averages lesson's explanation, so the two figures are not mistaken for each other. */
+  export const averagesNote = "Today’s estimated weekly budget is a different figure: it starts from your balance and the bills due before payday.";
+
+  const averages: readonly (readonly [RegExp, string])[] = [
+    [/^(Safe to spend|Estimated weekly budget)$/, averagesTitle],
+    [/^(Safe to spend per week|Estimated weekly budget from averages)$/, averagesTitle],
+    [/^(Safe to spend per month|Estimated monthly budget from averages)$/, "Room in an average month"],
+    [/(Safe to spend|Your estimated weekly budget) is what is left/g, "Your weekly room in an average month is what is left"],
+    [/[Ee]stimated (weekly|monthly) budget/g, "$1 room"],
+    [/([Ww]eekly|[Mm]onthly) budget/g, "$1 room"],
+    [/\bthe budget\b/g, "the room"],
+    [/safe to spend/gi, "the room"],
+  ];
+
+  const isAverages = (card: TeachingCard): boolean => rawOf(card.concept) === "safe-to-spend";
 
   export function text(value: string): string {
     return replacements.reduce((current, [pattern, replacement]) => current.replace(pattern, replacement), value);
   }
 
+  /** The averages lesson's words: the shared renames, then its own name. */
+  export function averagesText(value: string): string {
+    return averages.reduce((current, [pattern, replacement]) => current.replace(pattern, replacement), text(value));
+  }
+
+  /** A newer backend's extras (`whyWrong`, `followUp`) with their words renamed the same way; other values as sent. */
+  function extras(value: unknown, rename: (value: string) => string): unknown {
+    if (typeof value === "string") return rename(value);
+    if (Array.isArray(value)) return value.map((item) => (typeof item === "string" ? rename(item) : item));
+    if (!value || typeof value !== "object") return value;
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, key === "correctIndex" ? item : extras(item, rename)]));
+  }
+
   /** The card with its words renamed (figures untouched). */
   export function card(card: TeachingCard): TeachingCard {
+    const rename = isAverages(card) ? averagesText : text;
+    const raw = card as unknown as Record<string, unknown>;
+    const explanation = rename(card.explanation.replace(` ${averagesNote}`, ""));
     return {
       ...card,
-      title: text(card.title),
-      explanation: text(card.explanation),
-      question: text(card.question),
-      options: card.options.map(text),
-      reveal: text(card.reveal),
-      facts: card.facts.map((fact) => ({ ...fact, label: text(fact.label) })),
-    };
+      title: rename(card.title),
+      explanation: isAverages(card) ? `${explanation} ${averagesNote}` : explanation,
+      question: rename(card.question),
+      options: card.options.map(rename),
+      reveal: rename(card.reveal),
+      facts: card.facts.map((fact) => ({ ...fact, label: rename(fact.label), ...(typeof fact.basis === "string" ? { basis: rename(fact.basis) } : {}) })),
+      ...("whyWrong" in raw ? { whyWrong: extras(raw.whyWrong, rename) } : {}),
+      ...("followUp" in raw ? { followUp: extras(raw.followUp, rename) } : {}),
+    } as TeachingCard;
   }
 }

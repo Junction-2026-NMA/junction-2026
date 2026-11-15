@@ -7,10 +7,9 @@ import { RiveBindings } from "@/web/core/RiveContract";
 import { OnboardingCopy, OnboardingReading, type OnboardingBasketRow } from "@/web/core/AppLogic/OnboardingCopy";
 import { useAppModel, useAppSelector } from "@/web/app/AppProvider";
 import { RiveComponent } from "@/web/rive/RiveComponent";
-import { RiveValues } from "@/web/shared/RiveValues";
-import { LiitoView, SisuButton, SisuCard, riveAccessible } from "@/web/shared/SisuStyle";
+import { LiitoView, SisuButton, SisuCard } from "@/web/shared/SisuStyle";
 import { prefersReducedMotion } from "@/web/theme/motion";
-import { CheckGlyph } from "./Glyphs";
+import { BasketGlyph, CheckGlyph } from "./Glyphs";
 import { OnboardingMotion, type MotionTiming } from "./OnboardingMotion";
 
 // MARK: 1. Welcome
@@ -91,11 +90,22 @@ function BasketRowGroup({ first, children }: { first: boolean; children: ReactNo
   );
 }
 
+/** The basket's green, as on the Rive chip (tokens.css: dark to light). */
+const basketGreen = {
+  fixed: "var(--sisu-color-basket-fixed)",
+  curveballs: "var(--sisu-color-basket-curveballs)",
+  leaks: "var(--sisu-color-basket-leaks)",
+} as const;
+
 function BasketRow({ row }: { row: OnboardingBasketRow }) {
   return (
     <div className="sisu-onb-basket-row">
-      <RiveComponent component="BasketChip" values={RiveValues.chip(row.kind)}
-        {...riveAccessible(`${BasketKind.label(row.kind, "en")} basket`)} />
+      {/* The Rive BasketChip shrinks its text to a fixed width, so the three names came out at three sizes; this
+          chip keeps one text size and grows (or wraps) with the name. */}
+      <span className="sisu-onb-chip" role="img" aria-label={`${BasketKind.label(row.kind, "en")} basket`}>
+        <span className="sisu-onb-chip-icon" style={{ color: basketGreen[row.kind] }}><BasketGlyph kind={row.kind} /></span>
+        <span aria-hidden="true">{BasketKind.label(row.kind, "en")}</span>
+      </span>
       <p className="sisu-onb-h3">{row.examples}</p>
       <p className="sisu-onb-label-muted">{row.meaning}</p>
     </div>

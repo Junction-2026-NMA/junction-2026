@@ -233,6 +233,25 @@
   gap: calc(var(--sisu-space-grid) * 2);
 }
 
+/* A basket's name chip: one text size for all three (the label style), the icon in the basket's green. */
+.sisu-onb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+  max-width: 100%;
+  min-height: 32px;
+  padding: calc(var(--sisu-space-grid) * 1) calc(var(--sisu-space-grid) * 4) calc(var(--sisu-space-grid) * 1) calc(var(--sisu-space-grid) * 3);
+  border-radius: var(--sisu-radius-pill);
+  background: var(--sisu-green-100);
+  color: var(--sisu-green-900);
+  font: var(--sisu-type-label);
+}
+
+.sisu-onb-chip-icon {
+  display: inline-flex;
+  flex: none;
+}
+
 .sisu-onb-then {
   display: flex;
   flex-direction: column;
@@ -295,11 +314,18 @@
   -webkit-overflow-scrolling: touch;
 }
 
+/* Like the promise step: the column and the button row each take the side margins, so Continue is as wide as the
+   other steps' buttons. */
+.sisu-onb-voice {
+  padding-left: 0;
+  padding-right: 0;
+}
+
 .sisu-onb-voice-content {
   display: flex;
   flex-direction: column;
   gap: var(--sisu-space-card);
-  padding: calc(var(--sisu-space-grid) * 4) 0 var(--sisu-space-card);
+  padding: calc(var(--sisu-space-grid) * 4) var(--sisu-space-margin) var(--sisu-space-card);
 }
 
 .sisu-onb-voice-content > p { margin: 0; }

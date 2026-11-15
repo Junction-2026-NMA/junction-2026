@@ -114,6 +114,12 @@ button.sisu-ask-mic:focus-visible {
   box-shadow: 0 0 0 3px var(--sisu-color-outline);
 }
 
+/* On the green fill a light gap keeps the ring apart from the button. */
+button.sisu-ask-send[data-variant="ready"]:focus-visible,
+button.sisu-ask-send[data-variant="stop"]:focus-visible {
+  box-shadow: 0 0 0 2px var(--sisu-color-card), 0 0 0 4px var(--sisu-color-outline);
+}
+
 /* The microphone: the way into the hands-free conversation. Green-tinted, the brand's green glyph. */
 button.sisu-ask-mic {
   flex: none;

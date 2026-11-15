@@ -557,6 +557,11 @@ button.sisu-talk-strip-stop:focus-visible {
   box-shadow: 0 0 0 3px var(--sisu-color-outline);
 }
 
+/* On the green fill a light gap keeps the ring apart from the button. */
+button.sisu-talk-strip-stop[data-kind="interrupt"]:focus-visible {
+  box-shadow: 0 0 0 2px var(--sisu-color-card), 0 0 0 4px var(--sisu-color-outline);
+}
+
 /* MARK: A project in place of the conversation (web/features/Projects/ProjectScreen.tsx). The project paints no
    background, so the conversation under it is hidden (not unmounted: its scroll position and draft stay), and
    hidden content is out of the tab order and the accessibility tree too. */

@@ -119,6 +119,11 @@
   border-color: #cf8300;
 }
 
+/* A wrong code: the focus ring turns amber too (the darker amber, 3:1 or more on the page), one error state. */
+.sisu-gate .sisu-gate-code-input[aria-invalid="true"]:focus-visible {
+  outline-color: #885600;
+}
+
 .sisu-gate .sisu-gate-code-button {
   flex: none;
   height: 48px;

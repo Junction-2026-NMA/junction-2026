@@ -38,7 +38,8 @@
   --sisu-color-hairline: #e3e8e5;
   --sisu-color-press-edge: #dce3df;
   --sisu-color-input-fill: #f6f8f7;
-  --sisu-color-outline: #99d59f;
+  /* Focus rings: green-700, at least 3:1 on white and the screen colour (WCAG 1.4.11), like the tab bar's outline. */
+  --sisu-color-outline: #007841;
   --sisu-color-text: #18211c;
   --sisu-color-text-muted: #5e6662;
   --sisu-color-primary: #007841;

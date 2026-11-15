@@ -79,7 +79,7 @@ export function VoiceSettings({ testPrefix = "settings" }: { testPrefix?: string
     <div className="sisu-settings-voice" data-testid={`${testPrefix}.voicesettings`}>
       <LanguageSelect id={`${testPrefix}-speak`} label="I speak" value={languages.speak} first={{ value: "auto", label: "Automatic" }}
         more={more} onChange={(speak) => setLanguage({ speak })} />
-      <LanguageSelect id={`${testPrefix}-reply`} label="Sisu answers in" value={languages.reply} first={{ value: "same", label: "Same as I speak" }}
+      <LanguageSelect id={`${testPrefix}-reply`} label={"Sisu answers\u00a0in"} value={languages.reply} first={{ value: "same", label: "Same as I speak" }}
         more={more} onChange={(reply) => setLanguage({ reply })} />
       <p className="sisu-sheet-caption">{languageNote}</p>
 
@@ -116,13 +116,25 @@ export function VoiceSettings({ testPrefix = "settings" }: { testPrefix?: string
       <div className="sisu-settings-toggle-row">
         <span className="sisu-settings-toggle-text">
           <span className="sisu-sheet-text">Speak replies</span>
-          <span className="sisu-sheet-caption">Off: Sisu answers in text only. Typing always works.</span>
+          <span className="sisu-sheet-caption" data-testid={`${testPrefix}.speak.caption`}>
+            {prefs.speakReplies ? "Sisu reads its answers aloud. Typing always works." : "Sisu answers in text only. Typing always works."}
+          </span>
         </span>
-        <RiveComponent component="Toggle" values={RiveValues.toggle(prefs.speakReplies)} testId={`${testPrefix}.speak`}
-          onTrigger={(trigger) => { if (trigger === "toggled") toggleSpeak(); }}
-          {...riveAccessible("Speak replies", { isButton: true, value: prefs.speakReplies ? "On" : "Off", action: toggleSpeak })} />
+        <SettingsSwitch label="Speak replies" on={prefs.speakReplies} testId={`${testPrefix}.speak`} toggle={toggleSpeak} />
       </div>
     </div>
+  );
+}
+
+/** The Rive toggle in a 44 px tall hit area. A press on the edge around the toggle flips it too; a press on the
+ *  toggle itself is the toggle's own (its `toggled` trigger), so it never counts twice. */
+export function SettingsSwitch({ label, on, testId, toggle }: { label: string; on: boolean; testId: string; toggle: () => void }) {
+  return (
+    <span className="sisu-settings-switch" onClick={(event) => { if (event.target === event.currentTarget) toggle(); }}>
+      <RiveComponent component="Toggle" values={RiveValues.toggle(on)} testId={testId}
+        onTrigger={(trigger) => { if (trigger === "toggled") toggle(); }}
+        {...riveAccessible(label, { isButton: true, value: on ? "On" : "Off", action: toggle })} />
+    </span>
   );
 }
 

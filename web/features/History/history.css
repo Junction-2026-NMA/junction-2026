@@ -88,6 +88,11 @@ button.sisu-history-settings:focus-visible {
   box-shadow: 0 0 0 3px var(--sisu-color-outline);
 }
 
+/* On the green fill a light gap keeps the ring apart from the button. */
+button.sisu-history-new:focus-visible {
+  box-shadow: 0 0 0 2px var(--sisu-color-card), 0 0 0 4px var(--sisu-color-outline);
+}
+
 .sisu-history-scroll {
   flex: 1 1 auto;
   min-height: 0;

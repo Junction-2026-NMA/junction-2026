@@ -41,6 +41,9 @@ export function RiveCanvas({ file, artboard, sizing, outTriggers, model, request
       autoBind: true,
       layout: riveLayout(sizing),
       isTouchScrollEnabled: touchScroll,
+      // The wrapper (RiveComponent) is the one focusable, named control. Without this the runtime gives the
+      // canvas tabindex 0 when the artboard has focus nodes: an extra, unnamed tab stop inside aria-hidden.
+      tabIndex: -1,
       // Load fires before the first advance: values written here are on the first frame.
       onRiveReady: (instance) => {
         loaded.current = true;
@@ -62,6 +65,7 @@ export function RiveCanvas({ file, artboard, sizing, outTriggers, model, request
   const attachCanvas = useCallback((canvas: HTMLCanvasElement | null) => {
     canvasRef.current = canvas;
     setCanvasRef(canvas);
+    if (canvas) canvas.tabIndex = -1;
   }, [setCanvasRef]);
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -98,7 +102,7 @@ export function RiveCanvas({ file, artboard, sizing, outTriggers, model, request
 
   return (
     <div ref={setContainerRef} className="sisu-rive-canvas">
-      <canvas ref={attachCanvas} aria-hidden="true" />
+      <canvas ref={attachCanvas} aria-hidden="true" tabIndex={-1} />
     </div>
   );
 }

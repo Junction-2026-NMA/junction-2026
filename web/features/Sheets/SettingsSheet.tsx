@@ -4,12 +4,10 @@
 // language or the voice keeps the conversation and projects. Opened from Today and from Path.
 import { useState, type FormEvent } from "react";
 import { useAppModel, useAppSelector } from "@/web/app/AppProvider";
-import { RiveComponent } from "@/web/rive/RiveComponent";
-import { RiveValues } from "@/web/shared/RiveValues";
-import { SisuButton, SisuCard, riveAccessible } from "@/web/shared/SisuStyle";
+import { SisuButton, SisuCard } from "@/web/shared/SisuStyle";
 import { DataSourcesCard, useBackendStatus } from "./DataSourcesCard";
 import { SheetFrame } from "./SheetFrame";
-import { VoiceSettings } from "./VoiceSettings";
+import { SettingsSwitch, VoiceSettings } from "./VoiceSettings";
 import "./sheets.css";
 
 export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -99,9 +97,7 @@ function DemoControls({ onClose }: { onClose: () => void }) {
           <hr className="sisu-sheet-divider" />
           <div className="sisu-settings-toggle-row">
             <span className="sisu-sheet-text">Use sample data only</span>
-            <RiveComponent component="Toggle" values={RiveValues.toggle(sampleOnly)} testId="settings.sample"
-              onTrigger={(trigger) => { if (trigger === "toggled") toggleSample(); }}
-              {...riveAccessible("Use sample data only", { isButton: true, value: sampleOnly ? "On" : "Off", action: toggleSample })} />
+            <SettingsSwitch label="Use sample data only" on={sampleOnly} testId="settings.sample" toggle={toggleSample} />
           </div>
         </SisuCard>
         <SisuButton label="Switch profile" style="secondary" action={() => {

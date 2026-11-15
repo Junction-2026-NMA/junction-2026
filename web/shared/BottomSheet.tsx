@@ -10,10 +10,17 @@
 //
 // The parent owns `open` (like `.sheet(item:)`); onClose asks it to set `open` false, and the slide-out plays
 // before the sheet unmounts (onClosed then runs, like onDisappear).
+//
+// A modal dialog: Tab stays inside the topmost sheet, the app behind it is inert while it is open, and focus goes
+// back to the control that opened it (sheetFocus.ts). With the on-screen keyboard up, the sheet rides up with it,
+// the content gets that much bottom padding, and a focused field, with the primary button after it, scrolls into
+// the part left visible.
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useKeyboardInset } from "@/web/features/Ask/useKeyboardInset";
 import { prefersReducedMotion } from "@/web/theme/motion";
 import { useSheetDrag, type SheetDragHandlers } from "./sheetDrag";
+import { SheetStack, muteBehind, openerOf, revealFocusedField, trackPointerPresses, trapTab } from "./sheetFocus";
 import "./sheet.css";
 
 export type SheetDetent = "medium" | "large";
@@ -40,6 +47,7 @@ export interface BottomSheetProps {
 export function BottomSheet(props: BottomSheetProps) {
   const [mounted, setMounted] = useState(props.open);
   const client = useSyncExternalStore(subscribeNothing, () => true, () => false);
+  useEffect(trackPointerPresses, []);
   if (props.open && !mounted) setMounted(true);
   if (!mounted || !client) return null;
   const host = document.querySelector<HTMLElement>(".sisu-root") ?? document.body;
@@ -61,6 +69,10 @@ function SheetLayer(props: BottomSheetProps & { onGone: () => void }) {
   const hasMedium = detents.includes("medium");
   const hasLarge = detents.includes("large") || !hasMedium;
   const detent = useRef<SheetDetent>(hasMedium ? "medium" : "large");
+  /** The part of the sheet below the screen's edge at the current detent, in px. */
+  const below = useRef(0);
+  const keyboard = useKeyboardInset();
+  const keyboardBottom = useRef(0);
   /** False until the first slide-in started: a re-open during the slide-out turns around without a jump. */
   const entered = useRef(false);
   const latest = useRef({ onClose, onClosed: props.onClosed, onGone: props.onGone });
@@ -86,12 +98,25 @@ function SheetLayer(props: BottomSheetProps & { onGone: () => void }) {
     }
   };
 
+  /** Where the sheet rests at a detent: lifted by the on-screen keyboard (a SwiftUI sheet rides up with it), never
+   *  above the large detent. */
+  const restOf = (which: SheetDetent) => Math.max(offsetOf(which) - keyboardBottom.current, 0);
+
   /** Rests at a detent. The part of the sheet below the screen's edge (at the medium detent) becomes bottom padding
    *  of the body, so the end of the content can still be scrolled into view, as in a SwiftUI medium sheet. */
   const settle = (which: SheetDetent) => {
-    const offset = offsetOf(which);
-    if (body.current) body.current.style.paddingBottom = offset > 0 ? `calc(env(safe-area-inset-bottom, 0px) + ${offset}px)` : "";
+    const offset = restOf(which);
+    below.current = offset;
+    pad();
     place(offset, true);
+  };
+  /** Bottom padding of the body: the part below the screen's edge, plus the keyboard when it is up. */
+  const pad = () => {
+    const element = body.current;
+    if (!element) return;
+    const offset = below.current, keys = keyboardBottom.current;
+    element.style.paddingBottom = keys > 0 ? `${offset + keys}px`
+      : offset > 0 ? `calc(env(safe-area-inset-bottom, 0px) + ${offset}px)` : "";
   };
 
   // In on mount, out when `open` turns false.
@@ -112,34 +137,72 @@ function SheetLayer(props: BottomSheetProps & { onGone: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // Focus the sheet, give focus back on close, Escape closes.
+  // Focus the sheet and make the app behind it inert; Tab wraps and Escape closes (topmost sheet only). On close
+  // the app comes back first, then focus returns to the opener.
   useEffect(() => {
     if (!open) return;
-    const previous = document.activeElement as HTMLElement | null;
+    const token = {};
+    const previous = openerOf(document.activeElement);
+    const unmute = muteBehind(sheet.current?.parentElement ?? null);
+    SheetStack.push(token);
     sheet.current?.focus({ preventScroll: true });
     const key = (event: KeyboardEvent) => {
+      if (!SheetStack.isTop(token) || !sheet.current) return;
       if (event.key === "Escape") latest.current.onClose();
+      else if (event.key === "Tab") trapTab(event, sheet.current);
     };
     document.addEventListener("keydown", key);
     return () => {
       document.removeEventListener("keydown", key);
-      previous?.focus?.({ preventScroll: true });
+      SheetStack.remove(token);
+      unmute();
+      if (previous?.isConnected) previous.focus({ preventScroll: true });
     };
   }, [open]);
+
+  // The on-screen keyboard: lift the sheet and pad its content by it, then (once the lift has played) keep the
+  // focused field and its button in view.
+  const keyboardTop = useRef(0);
+  const lastKeys = useRef(0);
+  const reveal = () => {
+    const element = sheet.current;
+    if (!element || keyboardBottom.current === 0) return;
+    const visibleBottom = (document.documentElement.clientHeight || window.innerHeight) - keyboardBottom.current;
+    // Mid-slide, measure against where the sheet lands.
+    const transform = getComputedStyle(element).transform;
+    const now = transform && transform !== "none" ? new DOMMatrixReadOnly(transform).m42 : 0;
+    revealFocusedField(element, keyboardTop.current, visibleBottom, below.current - now);
+  };
+  useEffect(() => {
+    keyboardBottom.current = open ? keyboard.bottom : 0;
+    keyboardTop.current = keyboard.top;
+    if (!open) {
+      lastKeys.current = 0;
+      return;
+    }
+    const moved = keyboardBottom.current !== lastKeys.current;
+    lastKeys.current = keyboardBottom.current;
+    if (moved) settle(detent.current);
+    if (keyboardBottom.current === 0) return;
+    const timer = window.setTimeout(reveal, 60);
+    return () => window.clearTimeout(timer);
+    // settle/reveal read refs only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, keyboard.bottom, keyboard.top]);
 
   const handlers = useRef<SheetDragHandlers>({ onMove: () => {}, onRelease: () => {} });
   const dragHandlers: SheetDragHandlers = {
     onMove: (dy) => {
-      const base = offsetOf(detent.current);
+      const base = restOf(detent.current);
       const offset = base + dy;
       // Above the top detent the sheet resists (rubber band).
       place(offset < 0 ? offset * 0.25 : offset, false);
     },
     onRelease: (dy, velocity) => {
-      const projected = offsetOf(detent.current) + dy + velocity * 180;
+      const projected = restOf(detent.current) + dy + velocity * 180;
       const stops: { at: number; to: SheetDetent | "close" }[] = [
         ...(hasLarge ? [{ at: 0, to: "large" as const }] : []),
-        ...(hasMedium ? [{ at: offsetOf("medium"), to: "medium" as const }] : []),
+        ...(hasMedium ? [{ at: restOf("medium"), to: "medium" as const }] : []),
         { at: height(), to: "close" },
       ];
       const nearest = stops.reduce((best, stop) =>
@@ -171,6 +234,7 @@ function SheetLayer(props: BottomSheetProps & { onGone: () => void }) {
         aria-label={props.ariaLabel}
         tabIndex={-1}
         style={style}
+        onFocus={() => window.setTimeout(reveal, 60)}
       >
         <div ref={grab} className="sisu-sheet-grab">
           {grabber ? <div className="sisu-sheet-grabber" aria-hidden="true" /> : null}

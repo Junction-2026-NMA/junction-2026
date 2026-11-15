@@ -4,6 +4,8 @@
 // backend's `followUp` when it sends a valid one, else the local question below); only a right answer to that
 // completes the lesson. Each lesson ends with one principle to keep. Figures come from the card's own facts
 // (computed by the backend's lib/finance), never invented here; without a fact the sentence leaves the figure out.
+// The local follow-ups' options are shuffled with a seed from the concept, so the right one is not always first,
+// and the order stays the same across reloads and kept attempts (which store option indexes).
 import type { ConceptId, Fact, TeachingCard } from "@/web/core/CoachModels";
 import { rawOf } from "@/web/core/Presentation";
 
@@ -25,6 +27,39 @@ const fact = (card: TeachingCard, id: string): number | null => {
 const raw = (card: TeachingCard): Record<string, unknown> => card as unknown as Record<string, unknown>;
 const strings = (value: unknown): (string | null)[] =>
   Array.isArray(value) ? value.map((v) => (typeof v === "string" && v.trim() !== "" ? v : null)) : [];
+
+/** FNV-1a: a small, stable 32-bit hash of the seed text. */
+const hash = (text: string): number =>
+  [...text].reduce((h, ch) => Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0, 2166136261);
+
+/** The order to show `count` options in, the same every time for the same seed (Fisher-Yates on mulberry32). */
+export function stableOrder(count: number, seed: string): number[] {
+  let state = hash(seed);
+  const random = () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  return Array.from({ length: count }, (_, i) => i).reduceRight((order, _, i) => {
+    const j = Math.floor(random() * (i + 1));
+    const next = [...order];
+    [next[i], next[j]] = [next[j], next[i]];
+    return next;
+  }, Array.from({ length: count }, (_, i) => i));
+}
+
+/** The question with its options in a stable shuffled order; the right answer and each whyWrong move with theirs. */
+function shuffled(question: LessonQuestion, seed: string): LessonQuestion {
+  const order = stableOrder(question.options.length, seed);
+  return {
+    ...question,
+    options: order.map((from) => question.options[from]),
+    correctIndex: order.indexOf(question.correctIndex),
+    whyWrong: order.map((from) => question.whyWrong[from] ?? null),
+  };
+}
 
 export namespace LessonFollowUps {
   /** Why the picked first option is wrong, from the backend (`whyWrong`), or null when it sent none. */
@@ -78,8 +113,20 @@ export namespace LessonFollowUps {
     }
   }
 
-  /** The local follow-up for each concept. */
+  /** The local follow-up for each concept, its options in a stable shuffled order (the card's own question as is). */
   export function local(card: TeachingCard): LessonQuestion {
+    const question = written(card);
+    return question ? shuffled(question, `follow-up/${rawOf(card.concept)}`) : {
+      question: card.question,
+      options: card.options,
+      correctIndex: card.correctIndex,
+      explanation: card.reveal,
+      whyWrong: [],
+    };
+  }
+
+  /** The local follow-up as written, right answer first where the order does not matter; null for an unknown concept. */
+  function written(card: TeachingCard): LessonQuestion | null {
     switch (rawOf(card.concept)) {
       case "three-baskets": {
         const everyday = fact(card, "teach:baskets:everyday");
@@ -98,18 +145,18 @@ export namespace LessonFollowUps {
         if (budget !== null && actual !== null && gap !== null) {
           const correctIndex = gap < -0.5 ? 0 : gap > 0.5 ? 1 : 2;
           const explanation = correctIndex === 0
-            ? `You spend about ${euros(gap)} a month more than the estimate, so that money has to come from somewhere else: savings, credit or next month.`
+            ? `You spend about ${euros(gap)} a month more than that room, so the money has to come from somewhere else: savings, credit or next month.`
             : correctIndex === 1
-              ? `You spend about ${euros(gap)} a month less than the estimate. That room could go to a buffer or to saving.`
+              ? `You spend about ${euros(gap)} a month less than that room. What is left could go to a buffer or to saving.`
               : "The two are about the same, so there is little room either way.";
           return {
-            question: `Your estimated budget is about ${euros(budget)} a month, and you spend about ${euros(actual)} on everyday things. What does that tell you?`,
-            options: ["You spend more than the estimate", "You spend less than the estimate", "The two are about the same"],
+            question: `In an average month you have about ${euros(budget)} of room for everyday spending, and you spend about ${euros(actual)} on everyday things. What does that tell you?`,
+            options: ["You spend more than that room", "You spend less than that room", "The two are about the same"],
             correctIndex, explanation, whyWrong: [null, null, null],
           };
         }
         return {
-          question: "Your estimated weekly budget comes from past monthly averages. What can it miss?",
+          question: "Your weekly room in an average month comes from past averages. What can it miss?",
           options: ["A bill that lands this week", "Your usual monthly income", "Your usual essentials"],
           correctIndex: 0,
           explanation: "Averages smooth out timing. A bill due this week or a late payday is not in them, so check those first.",
@@ -173,13 +220,7 @@ export namespace LessonFollowUps {
         };
       }
       default:
-        return {
-          question: card.question,
-          options: card.options,
-          correctIndex: card.correctIndex,
-          explanation: card.reveal,
-          whyWrong: [],
-        };
+        return null;
     }
   }
 }
