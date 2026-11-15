@@ -194,7 +194,7 @@ async function main() {
     eq(ProjectText.status({ ...w, status: "paused" }).label, "Paused", "paused");
     eq(ProjectText.status({ ...w, status: "stopped" }).label, "Stopped", "stopped");
     eq(ProjectText.lastSuccess(w), "2026-11-15T08:30:00.000Z", "last success is the newest page read, not the last poll");
-    eq(ProjectText.schedule(w, false), "Context.dev re-checks these pages about every 6 hours. Sisu reviews the changes when you open the app.", "monitor line");
+    eq(ProjectText.schedule(w, false), "Context.dev re-checks these pages every 15 minutes. Sisu reviews the changes when you open the app.", "monitor line");
     eq(ProjectText.schedule({ ...w, pages: [{ ...w.pages[0], monitorId: null }] }, false).startsWith("Sisu re-reads these pages itself"), true, "reread line");
     const now = new Date("2026-11-15T09:00:00.000Z");
     eq(ProjectText.schedule({ ...w, nextCheckAt: "2026-11-15T09:20:00.000Z" }, false, now), "Next check in 20 min.", "next check when sent");

@@ -71,10 +71,11 @@ export const ProjectText = {
     if (status === WatchStatus.paused) return "Paused. Nothing is checked until you resume.";
     if (w.nextCheckAt && !Number.isNaN(Date.parse(w.nextCheckAt))) {
       const next = `Next check ${ProjectText.when(w.nextCheckAt, now)}.`;
+      if (w.webhooks) return `${next} Context.dev reports each check to Sisu's server, which notifies you of a finding while the app is closed.`;
       return scheduler ? `${next} Sisu's server also reviews the changes once a day, while the app is closed.` : next;
     }
     if (scheduler) return "Sisu's server reviews these pages once a day, also while the app is closed.";
-    if (w.pages.some((p) => !!p.monitorId)) return "Context.dev re-checks these pages about every 6 hours. Sisu reviews the changes when you open the app.";
+    if (w.pages.some((p) => !!p.monitorId)) return w.webhooks ? "Context.dev re-checks these pages every 15 minutes and reports each check to Sisu's server, also while the app is closed." : "Context.dev re-checks these pages every 15 minutes. Sisu reviews the changes when you open the app.";
     return "Sisu re-reads these pages itself when you open the app, at most every 30 minutes. Nothing checks them while the app is closed.";
   },
 

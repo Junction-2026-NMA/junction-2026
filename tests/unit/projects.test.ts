@@ -105,7 +105,7 @@ describe("the Project proposal asks for consent and says exactly what will run",
     const { draft } = built;
     assert.match(draft.summary, /^Would you like me to keep checking for homes that match these requirements\?/);
     assert.match(draft.summary, /Goal: Move to Espoo\./);
-    assert.match(draft.summary, /every 6 hours on its own servers\. Sisu reviews what changed when you open the app; it does not check on its own/);
+    assert.match(draft.summary, /every 15 minutes on its own servers\. Sisu reviews what changed when you open the app; it does not check on its own/);
     assert.match(draft.summary, /The nearest, Tapiontori 1: Rent €940/);
     assert.ok(!/tells you when|The watching is real/.test(draft.summary + draft.title));
     assert.deepEqual([draft.watch?.goal, draft.watch?.requirements], ["Move to Espoo", { districts: ["Tapiola"] }]);

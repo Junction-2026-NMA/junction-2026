@@ -26,7 +26,7 @@ export function suggestedBudget(overview: Overview, savingsPerMonthEur: number =
   const short = leftOverNowEur < 0 ? ` Your average month already comes out ${eur(-leftOverNowEur)} short, so this is below what housing costs you today.` : "";
   const reasoning = maxRent === null
     ? `On your own figures no rent keeps the month balanced after saving ${eur(savings)} a month: housing today is ${eur(housingNowEur)} and an average month leaves ${leftOverNowEur < 0 ? `${eur(-leftOverNowEur)} short` : `${eur(leftOverNowEur)} over`}.`
-    : `Up to ${eur(maxRent)} a month keeps your average month balanced after saving ${eur(savings)}: housing today ${eur(housingNowEur)}, plus ${eur(leftOverNowEur)} left over, minus the savings.${short}`;
+    : `Up to ${eur(maxRent)} a month keeps your average month balanced after saving ${eur(savings)}: housing today ${eur(housingNowEur)}, ${leftOverNowEur < 0 ? `minus the ${eur(-leftOverNowEur)} your month is already short` : `plus ${eur(leftOverNowEur)} left over`}, minus the savings.${short}`;
   return {
     maxRentEur: maxRent,
     housingNowEur,
