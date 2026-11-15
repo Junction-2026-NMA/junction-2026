@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import DesktopPhone from "./DesktopPhone";
 import "./gate.css";
 
 export const QR_MESSAGE = "Scan this QR code with your phone to use the demo.";
 
-/** The demo code that opens the app on a computer, in an iPhone-sized frame. A demo convenience, not security. */
-const DEMO_CODE = "1234";
+/** Remembers, for the tab, that this computer chose to open the app here instead of on a phone. */
 const UNLOCK_KEY = "sisu.gate.desktopUnlocked";
 
 function readUnlocked(): boolean {
@@ -52,8 +51,6 @@ export default function DesktopQr({ serverQr }: { serverQr?: ServerQr }) {
   const [qr, setQr] = useState<QrState>(fromServer ?? { kind: "loading" });
   const hasServerQr = fromServer !== null;
   const [unlocked, setUnlocked] = useState(false);
-  const [code, setCode] = useState("");
-  const [wrong, setWrong] = useState(false);
 
   useEffect(() => {
     // The unlock is kept for the tab, so a reload stays in the app.
@@ -87,19 +84,13 @@ export default function DesktopQr({ serverQr }: { serverQr?: ServerQr }) {
     };
   }, [hasServerQr]);
 
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    if (code.trim() === DEMO_CODE) {
-      rememberUnlocked(true);
-      setUnlocked(true);
-    } else {
-      setWrong(true);
-      setCode("");
-    }
+  const openHere = () => {
+    rememberUnlocked(true);
+    setUnlocked(true);
   };
 
   if (unlocked) {
-    return <DesktopPhone onLeave={() => { rememberUnlocked(false); setUnlocked(false); setCode(""); setWrong(false); }} />;
+    return <DesktopPhone onLeave={() => { rememberUnlocked(false); setUnlocked(false); }} />;
   }
 
   return (
@@ -119,26 +110,12 @@ export default function DesktopQr({ serverQr }: { serverQr?: ServerQr }) {
         {qr.kind === "failed" ? (
           <p className="sisu-gate-qr-error">The QR code could not be drawn. Open {qr.url} on your phone.</p>
         ) : null}
-        <form className="sisu-gate-code" onSubmit={submit} data-testid="desktop.code">
-          <label className="sisu-gate-code-label" htmlFor="sisu-demo-code">Or try it on this computer with the demo code</label>
-          <div className="sisu-gate-code-row">
-            <input
-              id="sisu-demo-code"
-              className="sisu-gate-code-input"
-              type="password"
-              inputMode="numeric"
-              autoComplete="off"
-              maxLength={8}
-              placeholder="Code"
-              value={code}
-              aria-invalid={wrong || undefined}
-              aria-describedby={wrong ? "sisu-demo-code-error" : undefined}
-              onChange={(event) => { setCode(event.target.value); setWrong(false); }}
-            />
-            <button type="submit" className="sisu-gate-code-button" disabled={code.trim() === ""}>Open</button>
-          </div>
-          {wrong ? <p id="sisu-demo-code-error" className="sisu-gate-code-error" role="alert">That code is not right. Try again.</p> : null}
-        </form>
+        <div className="sisu-gate-open">
+          <span className="sisu-gate-open-label">No phone at hand?</span>
+          <button type="button" className="sisu-gate-open-button" onClick={openHere} data-testid="desktop.open">
+            Use it on this computer
+          </button>
+        </div>
       </div>
     </main>
   );

@@ -1,5 +1,5 @@
 "use client";
-// The demo on a computer, after the demo code: the app inside an iPhone-sized frame. The app runs in an iframe
+// The demo on a computer, after "Use it on this computer": the app inside an iPhone-sized frame. The app runs in an iframe
 // whose viewport is exactly an iPhone's screen (402 x 874 points, iPhone 16 Pro), so every fixed layer, sheet,
 // tab bar and media query behaves as on the phone. The frame scales down, never up, to fit a small window.
 import { useEffect, useState } from "react";
