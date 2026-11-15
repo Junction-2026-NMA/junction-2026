@@ -10,4 +10,4 @@
 - Checked in a 402x874 mobile Playwright viewport: both states render, the keyboard tap focuses `ask.field`, blur returns to the launcher. `tsc` and eslint clean.
 
 ## Next / open questions
-- Not deployed; sisu-demo still shows the previous dock until the next web deploy.
+- Deployed to https://sisu-demo.vercel.app (15 Nov ~07:50 EET) from a clean `git archive` of c2a07ee, project sisu-demo in Aristé's personal team. A push alone does not update sisu-demo: it has no Git link.
