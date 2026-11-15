@@ -4,6 +4,7 @@ import { AINO } from "./helpers";
 import { checkGrounding, correctNames, correctNumbers, matches, numbersIn, overviewFacts, spelledToDigits } from "@/lib/agent/grounding";
 import { fact } from "@/lib/finance/facts";
 import { buildOverview } from "@/lib/finance/overview";
+import { customerSummary } from "@/lib/agent/prompt";
 
 describe("number verifier", () => {
   it("reads numbers the way people write them, and skips dates and times", () => {
@@ -225,5 +226,51 @@ describe("number verifier: a count of things is not a euro figure", () => {
     assert.deepEqual(statusOf("It holds 25 companies.", ["the bill was 24.83 euros"]), [[25, "unverified", null]]);
     assert.deepEqual(statusOf("It holds 25 companies.", ["an index of 25 companies"]), [[25, "context", null]]);
     assert.deepEqual(correctNumbers("Around 95 people work there.", { facts: receipts, contextTexts: [], userTexts: [] }).corrections, []);
+  });
+});
+
+// Found by QA on the hosted demo (15 Nov): "That is about 12 euros a day for the 15 days until payday" was the model's
+// own 177.12 / 15, yet the card said "All 2 numbers have a source": the 12 was matched to the −€12.17 monthly gap.
+describe("number verifier: per-day and per-week figures, and negative receipts", () => {
+  const overview = buildOverview(AINO)!;
+  const receipts = overviewFacts(overview);
+  const summary = customerSummary(overview, "Helsinki");
+
+  it("a daily figure the model worked out itself is unverified, even beside the summary", () => {
+    assert.ok(receipts.some((f) => f.id === "overview:safe-gap" && Math.round(f.value) === -12), "Aino's monthly gap is about −12 euros");
+    const result = checkGrounding("That is about 12 euros a day for the 15 days until payday.", receipts, [summary], ["Thanks. So how much is that per day?"]);
+    assert.deepEqual(result.numbers.map((n) => [n.value, n.status]), [[12, "unverified"], [15, "receipt"]]);
+    assert.equal(result.ok, false);
+  });
+
+  it("a daily or weekly figure is checked only against daily or weekly receipts", () => {
+    const facts = [fact("spending:per-day", "Restaurants, average per day", 9.12, "EUR", "total divided by 30 days"), fact("budget:per-week", "Estimated weekly budget until payday", 133.64, "EUR", "test"), fact("bill", "Mobile plan, per month", 24.83, "EUR/month", "test")];
+    assert.equal(checkGrounding("You spend about 9.12 euros a day on restaurants.", facts, [], []).ok, true);
+    assert.equal(checkGrounding("Your estimated weekly budget is about €134 a week.", facts, [], []).ok, true);
+    assert.deepEqual(checkGrounding("That is 9.12 euros a month.", facts, [], []).unverified, [9.12], "a daily receipt said as monthly");
+    assert.deepEqual(checkGrounding("That is about 134 euros a month.", facts, [], []).unverified, [134], "a weekly receipt said as monthly");
+    assert.deepEqual(checkGrounding("That is about 25 euros a week.", facts, [], []).unverified, [25], "a monthly receipt said as weekly");
+    assert.deepEqual(checkGrounding("Viikossa se on noin 25 euroa päivässä.", facts, [], []).unverified, [25]);
+  });
+
+  it("a negative receipt stands for a figure only when the words say it is a shortfall or a difference", () => {
+    const gap = [fact("gap", "Gap between budget and spending", -12.17, "EUR/month", "budget minus actual", { source: "calculation" })];
+    assert.deepEqual(checkGrounding("You have about 12 euros a month to spare.", gap, [], []).unverified, [12]);
+    assert.equal(checkGrounding("You run about 12 euros a month short.", gap, [], []).ok, true);
+    assert.equal(checkGrounding("Your spending is 12.17 euros a month over that budget.", gap, [], []).ok, true);
+    assert.equal(checkGrounding("The gap is −12.17 euros a month.", gap, [], []).ok, true);
+    assert.equal(checkGrounding("Your spending sits 12 euros a month above it.", gap, [], []).ok, true);
+    assert.deepEqual(correctNumbers("You have 12.18 euros a month to spare.", { facts: gap, contextTexts: [], userTexts: [] }).corrections, [], "not 'corrected' to a negative receipt either");
+    // A deduction in a working is said as the amount taken off: "bills of 500 euros", "a buffer of €247".
+    const working = [fact("cash:step:1", "Bills expected before payday (2)", -500, "EUR", "test", { source: "calculation" }), fact("cash:step:3", "Expected balance just before payday", -120, "EUR", "test", { source: "calculation" })];
+    assert.equal(checkGrounding("Your bills before payday come to 500 euros.", working, [], []).ok, true);
+    assert.deepEqual(checkGrounding("Your balance just before payday would be about 120 euros.", working, [], []).unverified, [120], "a balance below zero is not said as a positive one");
+    assert.equal(checkGrounding("Your balance would end about 120 euros below zero.", working, [], []).ok, true);
+  });
+
+  it("a small amount of money needs a source, while a small count still does not", () => {
+    assert.deepEqual(checkGrounding("That leaves 5 euros a week.", [], [], []).unverified, [5]);
+    assert.equal(checkGrounding("I found 3 offers on 2 pages over 12 months.", [], [], []).ok, true);
+    assert.deepEqual(checkGrounding("That is 12 euros a day.", [], ["a 12-month average"], []).unverified, [12], "a duration in the context is not a euro figure");
   });
 });

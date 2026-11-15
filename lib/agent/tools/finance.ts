@@ -12,7 +12,7 @@ import { basketsVisual, futuresVisual } from "../visuals";
 import { CONCEPTS, teachingCard } from "@/lib/finance/teaching";
 import { filterTransactions } from "@/lib/finance/transactions";
 import { billLabel } from "@/lib/memory";
-import type { BasketId, BillType, ConceptId, EvidenceFilter, Fact, Transaction } from "@/lib/types";
+import type { BasketId, BillType, ConceptId, EvidenceFilter, Fact, SourceKind, Transaction } from "@/lib/types";
 import { CATEGORIES, GROUPINGS, MERCHANT_TYPES } from "./schemas";
 import { type ToolContext, type ToolOutcome, factsForModel, failure, outcome } from "./types";
 import { accountsFor } from "@/lib/actions";
@@ -124,15 +124,16 @@ export function listBills(ctx: ToolContext): ToolOutcome {
   });
 }
 
-// A buffer counts only if the customer said that amount in this conversation; otherwise the default assumption is used.
+// A buffer the model passes counts only if the customer said that amount in this conversation. Otherwise the
+// buffer they set in the app is used (ctx.cashFlow already carries it), and with neither, the default assumption.
 function statedBuffer(args: Record<string, unknown>, ctx: ToolContext): number | null {
   const buffer = parseBuffer(args.bufferEur);
   return buffer !== null && ctx.userTexts.some((text) => digitsOf(text).some((n) => Math.abs(n - buffer) < 0.005)) ? buffer : null;
 }
 
 export function getCashFlow(ctx: ToolContext, args: Record<string, unknown> = {}): ToolOutcome {
-  const buffer = statedBuffer(args, ctx);
-  const flow = buffer === null ? ctx.cashFlow() : buildCashFlow(ctx.overview, { bufferEur: buffer });
+  const said = statedBuffer(args, ctx);
+  const flow = said === null || said === ctx.bufferEur ? ctx.cashFlow() : buildCashFlow(ctx.overview, { bufferEur: said });
   const budget = flow.weeklyBudget ?? null;
   const recent = flow.cycles.slice(-6);
   const facts: Fact[] = [
@@ -166,7 +167,7 @@ export function getCashFlow(ctx: ToolContext, args: Record<string, unknown> = {}
       monthsBelowZeroInLast12: flow.negativeMonths,
       lastCycles: recent.map((cycle) => ({ payday: cycle.payday, lowestBalanceEur: cycle.lowestBalance, lowestOn: cycle.lowestOn, daysFromPaydayToLowest: cycle.daysToLowest })),
       estimatedWeeklyBudgetUntilPayday: budget
-        ? { perWeekEur: budget.perWeekEur, weeksToPayday: budget.weeksToPayday, leftForSpendingEur: budget.leftForSpendingEur, protectedBufferEur: budget.bufferEur, bufferIs: budget.bufferSource === "default" ? "an assumption: one week of essentials" : "what the customer said", usualEverydaySpendingPerWeekEur: budget.usualEverydayPerWeekEur, budgetMinusUsualPerWeekEur: budget.differencePerWeekEur, billsAlreadyReachIntoBuffer: budget.shortBeforePayday }
+        ? { perWeekEur: budget.perWeekEur, weeksToPayday: budget.weeksToPayday, leftForSpendingEur: budget.leftForSpendingEur, protectedBufferEur: budget.bufferEur, bufferIs: budget.bufferSource === "default" ? "an assumption: one week of essentials" : said === null || said === ctx.bufferEur ? "the amount the customer set in the app" : "what the customer said", usualEverydaySpendingPerWeekEur: budget.usualEverydayPerWeekEur, budgetMinusUsualPerWeekEur: budget.differencePerWeekEur, billsAlreadyReachIntoBuffer: budget.shortBeforePayday }
         : null,
       howToAnswer: budget
         ? "For 'what can I spend this week' or 'will my money last': lead with the estimated weekly budget (call it that, never 'safe to spend'), then one realistic step. If budgetMinusUsualPerWeekEur is negative, say usual spending runs above it and suggest one adjustment. If the buffer is an assumption, ask in a few words whether they want to keep a different amount. The card shows the working: do not list it."
@@ -207,6 +208,14 @@ export function findPatternsTool(ctx: ToolContext): ToolOutcome {
   });
 }
 
+// Where each line of the affordability working comes from: the cost is what the customer asked about, the projection
+// is worked out, and the balance, the bills and the everyday spending are read from their bank data.
+function affordStepSource(label: string): SourceKind {
+  if (label === "This cost") return "customer-stated";
+  if (/^Expected balance/.test(label)) return "calculation";
+  return "bank-data";
+}
+
 export function checkAffordabilityTool(args: Record<string, unknown>, ctx: ToolContext): ToolOutcome {
   // After an approved transfer the money is no longer in the current account, so the answer starts from what is left.
   const accounts = accountsFor(ctx.overview.customerId);
@@ -221,7 +230,7 @@ export function checkAffordabilityTool(args: Record<string, unknown>, ctx: ToolC
     ...(result.projectedLowPointEur === null ? [] : [fact("afford:low", "Expected balance just before payday", result.projectedLowPointEur, "EUR", "after the cost, bills due and usual spending", { source: "calculation" })]),
     fact("afford:buffer", "Months of essential costs still covered", result.bufferMonthsAfter, "months", "expected low point divided by monthly essential costs", { source: "calculation" }),
     ...(result.monthsToSaveUp === null ? [] : [fact("afford:save-up", "Months of saving needed", result.monthsToSaveUp, "months", "shortfall divided by the average monthly surplus", { source: "calculation" })]),
-    ...result.steps.map((step, index) => fact(`afford:step:${index}`, step.label, step.amount, "EUR", step.basis, { source: "calculation" })),
+    ...result.steps.map((step, index) => fact(`afford:step:${index}`, step.label, step.amount, "EUR", step.basis, { source: affordStepSource(step.label) })),
   ];
   return outcome({
     content: JSON.stringify({ what, amountEur: result.amountEur, verdict: result.verdict, verdictMeans: verdictText, balanceStraightAfterEur: result.balanceAfterEur, expectedBalanceJustBeforePaydayEur: result.projectedLowPointEur, monthsOfEssentialCostsStillCovered: result.bufferMonthsAfter, monthsOfSavingNeededFirst: result.monthsToSaveUp, workings: result.steps, thisIsAnEstimate: result.assumptions }),

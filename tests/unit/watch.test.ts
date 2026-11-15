@@ -180,7 +180,7 @@ describe("a property watch starts only with the user's approval", () => {
 
   it("approval starts it once, and the log says who approved and what was started", async () => {
     const approved = approve(prepareWatch());
-    assert.match(approved.confirmation ?? "", /^Approved\. The watch is starting\. Reference WATCH-/);
+    assert.match(approved.confirmation ?? "", /^Reference WATCH-[0-9A-F]{8}\.$/); // the card says "The project is set up"; this adds only the reference
     const watch = await startWatch(AINO, approved);
     assert.ok(watch && watch.status === "active" && watch.budgetEur === 900 && watch.pages[0].listings.length === 2);
     assert.equal((await startWatch(AINO, approved))?.id, watch.id);

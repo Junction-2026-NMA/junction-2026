@@ -106,8 +106,9 @@ function decideOn(state: SisuState, customerId: string, actionId: string, approv
     if (!done.ok) return refuse(done.status, done.reason);
     execution = done.execution;
   }
+  // A Project's card already says it is set up, so its confirmation is only the reference (no second, "watch" wording).
   const decided: AgentAction = approve
-    ? { ...action, status: "executed_simulated", decidedAt: now.toISOString(), impact: impactOf(action), confirmation: isWatch ? `Approved. The watch is starting. Reference WATCH-${reference}.` : `Done (simulation). Reference SIM-${reference}.`, execution }
+    ? { ...action, status: "executed_simulated", decidedAt: now.toISOString(), impact: impactOf(action), confirmation: isWatch ? `Reference WATCH-${reference}.` : `Done (simulation). Reference SIM-${reference}.`, execution }
     : { ...action, status: "declined", decidedAt: now.toISOString() };
   const carried = execution ? `Carried out in the demo bank, no real money moved. ${execution.steps.map((step) => step.detail).join(" ")}` : `Simulated only, nothing was sent or changed: ${action.title}`;
 

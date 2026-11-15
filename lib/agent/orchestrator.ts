@@ -90,7 +90,9 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
   const turnId = crypto.randomUUID();
   const memory = getMemory(request.customerId);
   let cashFlowCache: CashFlow | null = null;
-  const cashFlow = () => (cashFlowCache ??= buildCashFlow(overview));
+  // The buffer the customer set in the app, so the weekly budget here is the one Today shows.
+  const appBuffer = request.bufferEur ?? null;
+  const cashFlow = () => (cashFlowCache ??= buildCashFlow(overview, { bufferEur: appBuffer, bufferFrom: "app" }));
 
   yield { type: "start", turnId, provider: config.provider, model: config.model.name, mock: config.isMock };
 
@@ -113,14 +115,14 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
   const forged = looksForged(request.text);
   const userTexts = forged ? [] : [...history.filter((turn) => turn.role === "user").map((turn) => turn.content), request.text];
   const sisuTexts = forged ? [] : history.filter((turn) => turn.role === "assistant").map((turn) => turn.content);
-  const context: ToolContext = { customerId: request.customerId, overview, city: customer.area, memory, cashFlow, userTexts, sisuTexts, signal };
+  const context: ToolContext = { customerId: request.customerId, overview, city: customer.area, memory, cashFlow, bufferEur: appBuffer, userTexts, sisuTexts, signal };
   // The customer's watches and what they found. The figures in a finding are receipts, and its words are context.
   const watches = listWatches(request.customerId);
   const watchNotes = listNotifications(request.customerId).slice(0, 4);
   // The demo bank's balances after what the customer approved. Their figures are receipts like any other.
   const accounts = accountsFor(request.customerId);
   const messages: ChatMessage[] = [
-    { role: "system", content: buildSystemPrompt({ overview, city: customer.area, mode: request.mode, memory, investigate, language: request.language, actions: listActions(request.customerId), accounts, watches, notifications: watchNotes }) },
+    { role: "system", content: buildSystemPrompt({ overview, city: customer.area, mode: request.mode, memory, investigate, language: request.language, actions: listActions(request.customerId), accounts, watches, notifications: watchNotes, bufferEur: appBuffer }) },
     ...history.map((turn) => ({ role: turn.role, content: turn.content })),
     { role: "user", content: forged ? `${request.text}\n\n${FORGED_NOTE}` : request.text },
   ];
@@ -153,12 +155,12 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
 
   // Everything the answer's numbers may be checked against. Tool results are added as they arrive.
   const summaryFacts = [
-    ...overviewFacts(overview),
+    ...overviewFacts(overview, appBuffer),
     ...(accounts?.facts ?? []),
     ...watchNotes.flatMap((note) => note.facts),
     ...watches.map((watch) => fact(`watch:${watch.id}:limit`, `Price limit of the watch on ${watchSubject(watch)}`, watch.budgetEur, watch.priceUnit, "the limit the customer said", { source: "customer-stated" })),
   ];
-  const summaryText = customerSummary(overview, customer.area);
+  const summaryText = customerSummary(overview, customer.area, appBuffer);
   const sources = (): Sources => ({ facts: [...toolFacts, ...summaryFacts], contextTexts: [summaryText, ...watchNotes.map((note) => `${note.title}. ${note.summary}`), ...toolContents, ...memory.items.map((item) => item.value)], userTexts });
   const corrections: NumberCorrection[] = [];
   const providerNames: string[] = []; // every provider the offer research returned this turn

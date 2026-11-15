@@ -151,7 +151,7 @@ describe("room to save: worked out from the customer's own numbers", () => {
     assert.equal(summary.howTheAveragesBudgetIsWorkedOut.length, 6);
     assert.match(summary.howTheAveragesBudgetIsWorkedOut[0], /Money in per month: 1783\.33/);
     assert.match(summary.howTheAveragesBudgetIsWorkedOut.at(-1) ?? "", /164\.09 per week/);
-    assert.equal(summary.estimatedWeeklyBudgetUntilPayday.perWeekEur, 133.82); // (1220.35 - 686.53 - 247.45) / 2.14 weeks
+    assert.equal(summary.estimatedWeeklyBudgetUntilPayday.perWeekEur, 133.64); // (1220.35 - 686.53 - 247.45) / (15 / 7) weeks, as on Today
     assert.doesNotMatch(customerSummary(aino, "Helsinki"), /safeToSpend|people your age/i);
     assert.deepEqual(Object.keys(summary.roomToSave), ["couldMoveTodayEur", "couldMoveEveryMonthEur", "basis"]);
   });

@@ -10,6 +10,10 @@ export type RawOffer = {
   energyPriceCentsPerKwh: number | null;
   setupFeeEur: number | null;
   greenEnergy?: boolean | null; // electricity: renewable energy, as the page states it; null or missing when it does not say
+  // Electricity with two prices (kausisähkö: a winter price and one for the rest of the year; aikasähkö: day and night).
+  // Its cost depends on when the electricity is used, so it is listed but never ranked. Null or missing = one price.
+  winterPriceCentsPerKwh?: number | null;
+  otherPriceCentsPerKwh?: number | null;
   sourceUrl: string;
 };
 

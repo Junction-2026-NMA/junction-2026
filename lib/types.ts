@@ -196,6 +196,9 @@ export type Offer = {
   meetsRequirements?: boolean; // false when the offer misses a requirement the customer stated (see ResearchResult.requirements)
   misses?: string[]; // why it misses them, one short reason each ("24-month contract, you asked for 12 months or less")
   feesUnknown?: boolean; // true when a fee the cost depends on is not stated on the page: the cost leaves it out, so it is incomplete
+  winterPriceCentsPerKwh?: number | null; // electricity with a seasonal (kausisähkö) or day/night price: the higher price, as the page states it
+  otherPriceCentsPerKwh?: number | null; // and the price at other times
+  notComparableReason?: string | null; // when comparable is false: why the offer is listed but not ranked, in words for the card
 };
 
 // What the customer said a new contract must meet. Every field is optional: only what they asked for is set.
@@ -250,6 +253,7 @@ export type AgentRequest = {
   focusBill?: BillType; // the bill the user has open on screen, if any
   investigate?: boolean; // true = Sisu works through a whole investigation on its own (see POST /api/agent/investigate)
   language?: string; // ISO 639-1 code ("fi", "de", "hi") to answer in. Leave out to answer in whatever language the text is in
+  bufferEur?: number; // the protected buffer the customer set in the app (Today or Settings), 0 to 100,000 euros. Leave out for the default (one week of essentials)
 };
 
 export type ToolTrace = {

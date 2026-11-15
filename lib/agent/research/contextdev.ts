@@ -15,14 +15,16 @@ export const OFFER_SCHEMA = {
       type: "array",
       items: {
         type: "object",
-        required: ["provider", "plan", "contractType", "contractMonths", "monthlyPriceEur", "energyPriceCentsPerKwh", "setupFeeEur"],
+        required: ["provider", "plan", "contractType", "contractMonths", "monthlyPriceEur", "energyPriceCentsPerKwh", "setupFeeEur", "winterPriceCentsPerKwh", "otherPriceCentsPerKwh"],
         properties: {
           provider: { type: "string", description: "Company selling the contract" },
           plan: { type: ["string", "null"], description: "Plan or product name" },
-          contractType: { type: ["string", "null"], description: "fixed, spot, or other" },
+          contractType: { type: ["string", "null"], description: "fixed, spot, seasonal (kausisähkö: one price in winter, another the rest of the year), time-of-day (aikasähkö: day and night prices), or other" },
           contractMonths: { type: ["number", "null"], description: "Contract length in months" },
           monthlyPriceEur: { type: ["number", "null"], description: "Fixed monthly price or base fee in euros" },
-          energyPriceCentsPerKwh: { type: ["number", "null"], description: "Electricity only: energy price in cents per kWh. Null for other products." },
+          energyPriceCentsPerKwh: { type: ["number", "null"], description: "Electricity only: energy price in cents per kWh. If the price differs by season or time of day, the lower one, and fill winterPriceCentsPerKwh and otherPriceCentsPerKwh too. Null for other products." },
+          winterPriceCentsPerKwh: { type: ["number", "null"], description: "Electricity only, seasonal or time-of-day contracts: the winter (talvi) or daytime price in cents per kWh. Null when the contract has one price all the time." },
+          otherPriceCentsPerKwh: { type: ["number", "null"], description: "Electricity only, seasonal or time-of-day contracts: the price at other times (muu aika) or at night, in cents per kWh. Null when the contract has one price all the time." },
           setupFeeEur: { type: ["number", "null"], description: "One-off opening or setup fee in euros" },
           greenEnergy: { type: ["boolean", "null"], description: "Electricity only: true if the page says the energy is renewable (wind, solar, hydro), false if it says it is not, null if it does not say" },
         },
@@ -75,6 +77,8 @@ export function cleanOffers(extracted: Partial<RawOffer>[], url: string): { offe
         energyPriceCentsPerKwh: numberOrNull(o.energyPriceCentsPerKwh),
         setupFeeEur: numberOrNull(o.setupFeeEur),
         greenEnergy: typeof o.greenEnergy === "boolean" ? o.greenEnergy : null,
+        winterPriceCentsPerKwh: numberOrNull(o.winterPriceCentsPerKwh),
+        otherPriceCentsPerKwh: numberOrNull(o.otherPriceCentsPerKwh),
         sourceUrl: url,
       },
     ];

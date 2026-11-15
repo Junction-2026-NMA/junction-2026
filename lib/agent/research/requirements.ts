@@ -11,6 +11,14 @@ const inRange = (value: unknown, [lo, hi]: [number, number]): number | null => (
 
 export const isSpotOffer = (offer: Pick<RawOffer, "contractType" | "plan">): boolean => SPOT_PATTERN.test(`${offer.contractType ?? ""} ${offer.plan ?? ""}`);
 
+// Two prices by season or time of day: kausisähkö ("Talvi 12,46 c/kWh, Muu aika 8,82 c/kWh"), aikasähkö (day and night).
+const SEASONAL_PATTERN = /kausi|talvi|winter|season|aikasähkö|yösähkö|time[- ]of[- ](day|use)|day[- /]night|päivä[- /]yö/i;
+export const isSeasonalOffer = (offer: Pick<RawOffer, "contractType" | "plan" | "winterPriceCentsPerKwh" | "otherPriceCentsPerKwh">): boolean => {
+  const { winterPriceCentsPerKwh: winter, otherPriceCentsPerKwh: other } = offer;
+  const twoPrices = typeof winter === "number" && typeof other === "number" && Math.abs(winter - other) >= 0.01;
+  return twoPrices || SEASONAL_PATTERN.test(`${offer.contractType ?? ""} ${offer.plan ?? ""}`);
+};
+
 // From tool or route arguments. Unknown or out-of-range values are dropped; null when nothing was asked for.
 export function parseRequirements(args: Record<string, unknown> | null | undefined): OfferRequirements | null {
   if (!args) return null;

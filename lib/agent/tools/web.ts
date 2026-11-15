@@ -89,7 +89,7 @@ export async function searchOffers(args: Record<string, unknown>, ctx: ToolConte
     ...(name && !name.confirmed ? [`that "${name.label}" really is their ${billType} bill`] : []),
   ];
   const research = { ...toResult(raw, match?.bill.monthlyAvg ?? null, stated, requirements), bill: name ? { label: name.label, confirmed: name.confirmed } : null, toConfirm };
-  const compact = (o: Offer) => ({ provider: o.provider, plan: o.plan, contractType: o.contractType, contractMonths: o.contractMonths, estimatedMonthlyCostEur: o.estimatedMonthlyCostEur, estimatedYearlySavingEur: o.estimatedYearlySavingEur, comparable: o.comparable, meetsRequirements: o.meetsRequirements, misses: o.misses?.length ? o.misses : undefined, feesUnknown: o.feesUnknown || undefined, source: hostOf(o.sourceUrl) });
+  const compact = (o: Offer) => ({ provider: o.provider, plan: o.plan, contractType: o.contractType, contractMonths: o.contractMonths, estimatedMonthlyCostEur: o.estimatedMonthlyCostEur, estimatedYearlySavingEur: o.estimatedYearlySavingEur, comparable: o.comparable, meetsRequirements: o.meetsRequirements, misses: o.misses?.length ? o.misses : undefined, feesUnknown: o.feesUnknown || undefined, notRanked: o.comparable ? undefined : (o.notComparableReason ?? undefined), source: hostOf(o.sourceUrl) });
   const ok = research.offers.length > 0;
   const best = research.best;
   const noMatch = research.noMatch === true;
