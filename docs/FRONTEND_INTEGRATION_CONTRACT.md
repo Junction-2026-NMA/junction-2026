@@ -586,5 +586,52 @@ Without the hook: `GET /api/watch?customerId=` returns `{ watches, notifications
 `{ customerId, runNow? }` polls; `POST /api/watch/:id/stop` and `POST /api/watch/:id/simulate-drop` take
 `{ customerId }`. Send the visitor's `X-Sisu-Session` header as for every other call: a watch belongs to one visitor.
 
+### Any price, not only flats (added 14 Nov, late)
+
+The same watch now covers anything with a price. "Tell me when an iPhone 15 is under 450 euros" or "find me a used
+Corolla under 12,000" runs `search_prices`; when nothing is at the price, the message carries an `action` of kind
+`price_watch`. Treat it exactly like `property_watch`: same card, same `approve`, same `watches` and
+`notifications`. What tells them apart:
+
+| Field | Flat watch | Price watch |
+|---|---|---|
+| `action.kind` | `property_watch` | `price_watch` |
+| `watch.topic` | `null` | what the customer named, e.g. `"iPhone 15"` |
+| `watch.city` | the city | `null` |
+| `watch.priceUnit` | `"EUR/month"` | `"EUR"` (paid once) |
+| `notification.leftOverAfterEur` | what a month leaves over with that rent | `null` |
+| `notification.balanceAfterEur` | `null` | expected balance just before payday after paying |
+
+Draw the watch's heading as `watch.topic ?? "Flats in " + watch.city`, and add "a month" to the price only when
+`priceUnit` is `"EUR/month"`. `notification.title` and `summary` are already worded correctly for both.
+
+One rename since the first version: a listing's price is `listing.priceEur` (it was `pricePerMonthEur`), because it
+is a rent for a flat and a full price for anything else.
+
 The Swift client needs no change to keep working (`ActionKind` is an open enum); it shows a watch as an action
 with a kind it does not know until a case is added.
+
+## Voice: what the backend takes, checked live on 14 Nov
+
+Checked against the hosted backend with real recordings (`tests/gauntlet/voice-formats.mjs`).
+
+| | |
+|---|---|
+| Recording formats | AAC in MP4 (`audio/mp4`, iPhone Safari and the iOS app), Opus in WebM (`audio/webm`, Chrome and Android), Opus in Ogg (Firefox), WAV and MP3. A missing or generic content type works too. |
+| Languages | Detected from the speech; the answer comes back in the language spoken (checked: English, Finnish, Swedish). Send `language` only when the customer chose one. |
+| Size | At most 4 MB per recording. Over that the answer is 413 with `{ "error": … }`. Over 4.5 MB the host itself answers 413 in plain text, so stop recording well before that: a minute of compressed speech is under 1 MB. |
+| Nothing heard | Silence, noise or a very short clip ends the stream with one `error` event: "Sisu did not catch any words. Hold the button while you speak." |
+| Speed | Speech to text about 0.5 s; first sentence of the answer 1.1 to 2.3 s after the upload; first audio of a spoken sentence about 0.3 s. |
+| Speaking an answer | `POST /api/voice/tts` per sentence, `format: "pcm"` to stream or `"mp3"` for a file, at most 600 characters. Five sentences at once are fine. |
+
+## 18. Short answers and next-step buttons (new 15 Nov)
+
+Sisu's written answers are now one or two sentences (about 20-60 words). The cards, charts, offer lists, sources and workings carry the detail, so the answer text no longer repeats them.
+
+**Buttons under every answer.** Each turn sends `{ type: "suggestions", items: Suggestion[] }` (2-3 items) just before `grounding`. With `useSisu`, read `message.suggestions`. Show them as chips under the answer. On tap: `sisu.ask(item.prompt)`, or `sisu.investigate()` when `item.kind === "investigate"`. `item.agentic` is true when tapping makes Sisu do something (search offers, set up a transfer, start a watch); give those a distinct look.
+
+**Buttons on an empty Talk screen.** `GET /api/agent/suggestions?customerId=…[&language=fi]` returns `{ customerId, suggestions }` (4 items, no model call). `useSisu` exposes them as `sisu.starters` and refreshes them after every turn, so a bill already switched or a watch already running is replaced by what comes next.
+
+**Watch actions.** `monthlyAmountEur` is now 0 for `property_watch` and `price_watch`: a watch frees no money. Its limit is `action.watch.budgetEur`. Do not show "freed" or "Simulated, no real switch" on a watch: `action.simulated` is false because the monitors are real.
+
+Fields are additive; nothing existing changed shape.

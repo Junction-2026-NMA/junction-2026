@@ -1,8 +1,8 @@
-import { approveAction } from "@/lib/actions";
+import { approveActionStored } from "@/lib/actions";
 import { impactOf } from "@/lib/actions/drafts";
 import { TOO_MANY, allowRequest, jsonError, parseCustomerId } from "@/lib/agent/http";
 import { withVisitor } from "@/lib/agent/visitor";
-import { startWatch } from "@/lib/watch";
+import { isWatchKind, startWatch } from "@/lib/watch";
 
 export const runtime = "nodejs";
 
@@ -15,9 +15,10 @@ export const POST = withVisitor(async function POST(request: Request, { params }
   const customerId = parseCustomerId(body.customerId);
   if (!customerId) return jsonError("Choose a customer first.", 400);
   if (body.confirm !== true) return jsonError("Approval needs confirm: true. Nothing was done.", 400);
-  const result = approveAction(customerId, id, impactOf);
+  // Answers with the decision as stored: if another tap reached another server instance first, it is checked again.
+  const result = await approveActionStored(customerId, id, impactOf);
   if (!result.ok) return jsonError(result.reason, result.status);
   // A property watch is the one action that is not a simulation: the approval just stored is what starts it.
-  const watch = result.action.kind === "property_watch" ? await startWatch(customerId, result.action) : undefined;
+  const watch = isWatchKind(result.action.kind) ? await startWatch(customerId, result.action) : undefined;
   return Response.json({ action: result.action, ...(watch ? { watch } : {}) });
 });

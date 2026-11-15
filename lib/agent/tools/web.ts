@@ -12,6 +12,9 @@ import { BILL_TYPES } from "./schemas";
 import { type StageDraft, type ToolContext, type ToolOutcome, failure, outcome } from "./types";
 import { safeExcerpt, safeTitle } from "./untrusted";
 
+// "1 page", "3 pages": the summaries are shown to people as written.
+const count = (n: number, noun: string): string => `${n} ${noun}${n === 1 ? "" : "s"}`;
+
 const RESEARCH_HARD_LIMIT_MS = 8_500; // every page has an 8 s limit of its own
 const DEEP_ANSWER_CHARS = 1_200;
 const EXCERPT_CHARS = 900; // long enough that the figure a page is cited for is usually inside the excerpt the model sees
@@ -73,7 +76,7 @@ export async function searchOffers(args: Record<string, unknown>, ctx: ToolConte
   const best = research.best;
 
   const stages: StageDraft[] = [
-    { kind: "research", title: `Searched today's ${billType} offers`, summary: `${research.citations.length} pages found for "${research.query}"`, source: "exa", data: { kind: "research", query: research.query, searchedWith: "exa", pages: research.citations, retrievedAt: research.finishedAt ?? research.startedAt, mock: research.mock } },
+    { kind: "research", title: `Searched today's ${billType} offers`, summary: `${count(research.citations.length, "page")} found for "${research.query}"`, source: "exa", data: { kind: "research", query: research.query, searchedWith: "exa", pages: research.citations, retrievedAt: research.finishedAt ?? research.startedAt, mock: research.mock } },
     { kind: "extraction", title: "Read the offer pages", summary: `${research.offers.length} offers from ${research.pagesDone - research.errors.length < 0 ? 0 : research.citations.length} of ${research.pagesTotal} pages`, source: "context.dev", data: { kind: "extraction", extractedWith: "context.dev", pagesRead: research.citations.length, pagesTotal: research.pagesTotal, offers: research.offers, problems: research.errors } },
     ...(best ? [{ kind: "calculation" as const, title: `Saving with ${best.provider}`, summary: `About €${Math.round(best.estimatedYearlySavingEur ?? 0)} a year`, source: "calculation" as const, data: { kind: "calculation" as const, steps: savingSteps(research, best), resultLabel: "Estimated saving per year", resultValue: best.estimatedYearlySavingEur ?? 0, unit: "EUR/year" as const, assumptions: research.assumptions } }] : []),
   ];
@@ -98,7 +101,7 @@ export async function searchOffers(args: Record<string, unknown>, ctx: ToolConte
     }),
     ok,
     summary: ok
-      ? `${research.offers.length} offers from ${research.citations.length} pages in ${(research.tookMs / 1000).toFixed(1)} s${best ? `; best saves €${Math.round(best.estimatedYearlySavingEur ?? 0)} a year` : ""}`
+      ? `${count(research.offers.length, "offer")} from ${count(research.citations.length, "page")} in ${(research.tookMs / 1000).toFixed(1)} s${best ? `; best saves €${Math.round(best.estimatedYearlySavingEur ?? 0)} a year` : ""}`
       : `No offers found (${research.errors[0] ?? "no pages could be read"})`,
     source: "exa+context.dev",
     joinedPrefetch: reused,
