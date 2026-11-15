@@ -10,9 +10,16 @@ export const QR_MESSAGE = "Scan this QR code with your phone to use the demo.";
 const DEMO_CODE = "1234";
 const UNLOCK_KEY = "sisu.gate.desktopUnlocked";
 
+// Kept in localStorage, so the code is asked for once per browser: new tabs, reloads and restarts open the app.
+// An unlock kept for one tab only (sessionStorage, before 15 Nov) still counts and is moved over.
 function readUnlocked(): boolean {
   try {
-    return window.sessionStorage.getItem(UNLOCK_KEY) === "1";
+    if (window.localStorage.getItem(UNLOCK_KEY) === "1") return true;
+    if (window.sessionStorage.getItem(UNLOCK_KEY) === "1") {
+      window.localStorage.setItem(UNLOCK_KEY, "1");
+      return true;
+    }
+    return false;
   } catch {
     return false;
   }
@@ -20,8 +27,9 @@ function readUnlocked(): boolean {
 
 function rememberUnlocked(on: boolean): void {
   try {
-    if (on) window.sessionStorage.setItem(UNLOCK_KEY, "1");
-    else window.sessionStorage.removeItem(UNLOCK_KEY);
+    if (on) window.localStorage.setItem(UNLOCK_KEY, "1");
+    else window.localStorage.removeItem(UNLOCK_KEY);
+    window.sessionStorage.removeItem(UNLOCK_KEY);
   } catch {
     // Private mode: it lasts until the page reloads.
   }
@@ -56,7 +64,7 @@ export default function DesktopQr({ serverQr }: { serverQr?: ServerQr }) {
   const [wrong, setWrong] = useState(false);
 
   useEffect(() => {
-    // The unlock is kept for the tab, so a reload stays in the app.
+    // The unlock is kept in this browser, so a reload or a new tab stays in the app.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (readUnlocked()) setUnlocked(true);
   }, []);
