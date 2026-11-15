@@ -18,6 +18,8 @@ import { ActionCard } from "./ActionCard";
 import { AnswerDetails } from "./AnswerDetails";
 import { MemoryLine } from "./CardParts";
 import { ChartCard } from "./ChartCard";
+import { HousingIntakeCard } from "./HousingIntakeCard";
+import { HousingResultsCard } from "./HousingResultsCard";
 import { QuizCard } from "./QuizCard";
 import { ResultLine } from "./ResultLine";
 import { StepsCard } from "./StepsCard";
@@ -37,6 +39,7 @@ export function AssistantAnswer({ message, actions, retry, isNew }: {
   const reduceMotion = useReducedMotion();
   const enter = (id: string) => (isNew(id) ? SisuMotion.entrance(reduceMotion) : undefined);
   const question = useQuestion(message.id);
+  const housing = useHousing(message);
   const view = useMemo(() => AnswerPresenter.view(message, language, undefined, question), [message, question]);
   const stage = message.pending ? StagePresenter.researchStage(message) : null;
   const anchor = (suffix: string) => `${message.id}-${suffix}`;
@@ -58,6 +61,18 @@ export function AssistantAnswer({ message, actions, retry, isNew }: {
         ) : null}
         {!message.pending ? <div data-anchor={anchor("details")}><AnswerDetails view={view} /></div> : null}
       </SisuCard>
+      {/* v2 housing: the intake card, or the results of its search (the Project card is the action below). */}
+      {housing.intake && !housing.answered ? (
+        <div data-anchor={anchor("housing-intake")} className={enter(`${message.id}/housing-intake`)}>
+          <HousingIntakeCard intake={housing.intake} />
+        </div>
+      ) : null}
+      {housing.intake && housing.answered ? <p className="sisu-ask-caption sisu-ask-muted">Details sent. The results are below.</p> : null}
+      {housing.result ? (
+        <div data-anchor={anchor("housing-results")} className={enter(`${message.id}/housing-results`)}>
+          <HousingResultsCard result={housing.result} intake={housing.lastIntake} />
+        </div>
+      ) : null}
       {stage != null && stage !== "done" ? (
         <div data-anchor={anchor("indicator")}>
           <RiveComponent component="StageIndicator" values={RiveBindings.stageIndicator(stage, language)}
@@ -85,6 +100,21 @@ export function AssistantAnswer({ message, actions, retry, isNew }: {
       ))}
     </div>
   );
+}
+
+/** v2 housing: this answer's intake card or results, whether a later answer already holds the results of an intake,
+ *  and the newest intake before a results card (its "Adjust the search" reopens it). */
+function useHousing(message: CoachMessage) {
+  const messages = useCoachSessionState()?.messages ?? [];
+  const intakeOf = (m: CoachMessage) => m.stages.flatMap((s) => (s.data.kind === "housing_intake" ? [s.data.intake] : []))[0] ?? null;
+  const intake = intakeOf(message);
+  const result = message.stages.flatMap((s) => (s.data.kind === "housing_results" ? [s.data.result] : []))[0] ?? null;
+  const index = messages.findIndex((one) => one.id === message.id);
+  const later = index >= 0 ? messages.slice(index + 1) : [];
+  const answered = intake !== null && later.some((m) => m.stages.some((s) => s.data.kind === "housing_results") || (m.role === "assistant" && m.pending));
+  const earlier = index >= 0 ? messages.slice(0, index) : messages;
+  const lastIntake = result ? ([...earlier].reverse().map(intakeOf).find((one) => one !== null) ?? null) : null;
+  return { intake, result, answered, lastIntake };
 }
 
 /** What the user asked just before this answer (its requirements apply to the offers), "" when unknown. */

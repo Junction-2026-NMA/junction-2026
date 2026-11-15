@@ -14,20 +14,22 @@ import { RENT_BUDGET_LIMITS, rentFacts, rentFit } from "@/lib/finance/rent";
 import { activeWatch } from "@/lib/watch";
 import { fits, ruleFor } from "@/lib/watch/detect";
 import { monitoringSentence } from "@/lib/watch/scheduler";
-import type { AgentAction, Fact, Overview, WatchRequirements } from "@/lib/types";
+import type { AgentAction, Fact, HousingConversation, HousingResearchRecord, Overview, WatchRequirements } from "@/lib/types";
 import type { DraftResult } from "./drafts";
 
 // city: flats, where. topic: anything else, what (the search carries it). Exactly one of them is set.
-export type WatchRequest = { city: string | null; topic?: string | null; budgetEur: number; minRooms: number | null; search: ListingSearch; preparedBy: AgentAction["preparedBy"]; goal?: string | null; requirements?: WatchRequirements | null };
+export type WatchRequest = { city: string | null; topic?: string | null; budgetEur: number; minRooms: number | null; search: ListingSearch; preparedBy: AgentAction["preparedBy"]; goal?: string | null; requirements?: WatchRequirements | null; conversation?: HousingConversation | null; research?: HousingResearchRecord | null }; // conversation, research: v2 housing
 
 // The requirements in a few words, for the card.
 function describeRequirements(req: WatchRequirements): string[] {
   return [
     req.districts?.length ? `in ${req.districts.join(", ")}` : null,
     req.moveBy ? `free by ${req.moveBy}` : null,
+    typeof req.minAreaM2 === "number" ? `${req.minAreaM2} m² or more` : null,
     typeof req.maxDepositEur === "number" ? `deposit at most €${req.maxDepositEur}` : null,
     typeof req.maxCommuteMinutes === "number" ? `commute up to ${req.maxCommuteMinutes} min${req.commuteTo ? ` to ${req.commuteTo}` : ""} (you check this)` : null,
     typeof req.bufferToKeepEur === "number" ? `keep €${req.bufferToKeepEur} after moving` : null,
+    typeof req.savingsGoalEurPerMonth === "number" ? `keep saving €${req.savingsGoalEurPerMonth} a month` : null,
   ].filter((text): text is string => !!text);
 }
 
@@ -74,7 +76,7 @@ export function buildWatchDraft(customerId: string, request: WatchRequest): Draf
 
   const unit = monthly ? ("EUR/month" as const) : ("EUR" as const);
   const seen = search.pages.flatMap((page) => page.listings);
-  const rule = ruleFor({ budgetEur: budget, minRooms, topic, requirements: monthly ? requirements : null });
+  const rule = ruleFor({ budgetEur: budget, minRooms, topic, requirements: monthly ? requirements : null, customerId });
   const fitting = seen.filter((listing) => fits(listing, rule));
   // The nearest miss: the cheapest thing read that is a real candidate (enough rooms, not an accessory).
   const cheapest = [...seen].filter((listing) => listing.priceEur >= (rule.floorEur ?? 0) && (minRooms === null || (listing.rooms ?? 0) >= minRooms)).sort((a, b) => a.priceEur - b.priceEur)[0] ?? null;
@@ -112,7 +114,7 @@ export function buildWatchDraft(customerId: string, request: WatchRequest): Draf
       offer: null,
       monthlyAmountEur: 0, // a watch frees no money; the limit is in watch.budgetEur (the budget here showed up as "€700 a month freed")
       warning: checked.warning,
-      watch: { city, topic, priceUnit: unit, budgetEur: budget, minRooms, urls: search.pages.map((page) => page.url), seen, goal: request.goal ?? null, requirements: monthly ? requirements : {}, titles: Object.fromEntries(search.pages.map((page) => [page.url, page.title])) },
+      watch: { city, topic, priceUnit: unit, budgetEur: budget, minRooms, urls: search.pages.map((page) => page.url), seen, goal: request.goal ?? null, requirements: monthly ? requirements : {}, titles: Object.fromEntries(search.pages.map((page) => [page.url, page.title])), ...(request.conversation ? { conversation: request.conversation } : {}), ...(request.research ? { research: request.research } : {}) },
       facts: [
         fact("watch:budget", monthly ? "Your rent budget per month" : "The price you set", budget, unit, "the figure you gave", { source: "customer-stated" }),
         fact("watch:read", `${monthly ? "Flats" : "Offers"} read from the pages today`, seen.length, "count", `read with Context.dev at ${search.retrievedAt}`, { source: "context.dev" }),

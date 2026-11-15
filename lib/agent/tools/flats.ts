@@ -50,10 +50,11 @@ export async function searchFlats(args: Record<string, unknown>, ctx: ToolContex
   const all = search.pages.flatMap((page) => page.listings);
   if (!all.length) return failure(SOURCE, `No rental listing page for ${city} could be read just now (${search.errors[0] ?? "no pages were found"}). Say so plainly.`);
 
-  const rule = ruleFor({ budgetEur: budget, minRooms, topic: null, requirements });
+  const rule = ruleFor({ budgetEur: budget, minRooms, topic: null, requirements, customerId: ctx.customerId });
   const byRent = (a: Listing, b: Listing): number => a.priceEur - b.priceEur;
   const fitting = all.filter((listing) => fits(listing, rule)).sort(byRent);
-  const nearest = all.filter((listing) => !fits(listing, rule) && (minRooms === null || (listing.rooms ?? 0) >= minRooms)).sort(byRent).slice(0, 3);
+  // Only flats really over the budget are "nearest above budget": one under it that fails another requirement is not.
+  const nearest = all.filter((listing) => listing.priceEur > budget && (minRooms === null || (listing.rooms ?? 0) >= minRooms)).sort(byRent).slice(0, 3);
   const citations: Citation[] = search.pages.map((page) => ({ title: page.title, url: page.url, retrievedAt: search.retrievedAt, cacheAgeMs: page.cacheAgeMs, readBy: "context.dev" as const }));
   const facts = [fact("flats:budget", "Your rent budget per month", budget, "EUR/month", "the budget you gave", { source: "customer-stated" }), fact("flats:read", "Flats read from the listing pages", all.length, "count", "read with Context.dev just now", { source: "context.dev" }), fact("flats:fitting", "Flats within the budget", fitting.length, "count", "rent at or under the budget, with the rooms asked for", { source: "calculation" }), ...listingFacts("flats:fit", fitting.slice(0, SHOWN)), ...listingFacts("flats:near", nearest)];
   const stages = searchStages(search, citations, all.length);

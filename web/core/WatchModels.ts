@@ -98,6 +98,10 @@ export interface WatchedPage {
   /** Newer backends: the page's title, and when Context.dev runs its monitor next. */
   title?: string | null;
   monitorNextRunAt?: string | null;
+  /** v2 housing reads these when the backend sends them: when Context.dev last ran the monitor, and the latest change
+   *  it reported (title, summary, when, and whether it was simulated). */
+  monitorLastRunAt?: string | null;
+  lastChange?: Readonly<Record<string, unknown>> | null;
 }
 
 /** A running (or stopped) watch: what the Projects screens show. */
@@ -130,6 +134,10 @@ export interface PropertyWatch {
   nextCheckAt?: string | null;
   /** Newer backends: `status` plus the pages' errors (`failing`). Draw it through `projectStatusOf`. */
   projectStatus?: WatchStatus | null;
+  /** v2 housing: the conversation the project came from, and the Exa search and Context.dev reads it started with.
+   *  Raw objects (read with HousingModels). */
+  conversation?: Readonly<Record<string, unknown>> | null;
+  research?: Readonly<Record<string, unknown>> | null;
 }
 
 /** A finding: a listing that fits now (new, or its price fell). */
@@ -241,6 +249,7 @@ export const WatchedPage = {
       url: text(o, "url"), monitorId: text(o, "monitorId"), listings: many(o.listings, Listing.decode),
       lastReadAt: text(o, "lastReadAt"), lastChangeAt: text(o, "lastChangeAt"), lastError: text(o, "lastError"),
       title: text(o, "title"), monitorNextRunAt: text(o, "monitorNextRunAt"),
+      monitorLastRunAt: text(o, "monitorLastRunAt"), lastChange: record(o, "lastChange"),
     };
   },
 } as const;
@@ -257,6 +266,7 @@ export const PropertyWatch = {
       searchMonitorId: text(o, "searchMonitorId"), createdAt: text(o, "createdAt"), lastCheckedAt: text(o, "lastCheckedAt"),
       problems: texts(o.problems), goal: text(o, "goal"), requirements: record(o, "requirements"),
       lastSuccessAt: text(o, "lastSuccessAt"), nextCheckAt: text(o, "nextCheckAt"), projectStatus: text(o, "projectStatus"),
+      conversation: record(o, "conversation"), research: record(o, "research"),
     };
   },
 } as const;

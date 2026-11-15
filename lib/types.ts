@@ -520,7 +520,7 @@ export type MemoryItem = {
 
 export type CustomerMemory = { customerId: string; consent: boolean; items: MemoryItem[] };
 
-export type StageKind = "lead" | "evidence" | "research" | "extraction" | "calculation" | "teaching" | "action" | "impact" | "memory";
+export type StageKind = "lead" | "evidence" | "research" | "extraction" | "calculation" | "teaching" | "action" | "impact" | "memory" | HousingStageKind; // HousingStageKind: v2 housing
 
 // One step of Sisu's work, typed so the UI can draw a card for it. A whole turn (or investigation) is a sequence of these.
 export type Stage = {
@@ -541,7 +541,8 @@ export type Stage = {
     | { kind: "teaching"; card: TeachingCard }
     | { kind: "action"; action: AgentAction }
     | { kind: "impact"; impact: ActionImpact }
-    | { kind: "memory"; item: MemoryItem };
+    | { kind: "memory"; item: MemoryItem }
+    | HousingStageData; // v2 housing
 };
 
 // Extra events on the agent stream. Older clients can ignore them.
@@ -747,7 +748,7 @@ export type PriceUnit = "EUR/month" | "EUR"; // a rent, or a price paid once
 // What a watch action would watch: the city (flats), the topic (anything else; null for flats), the price limit the
 // customer said, the pages, and the listings read from them when the watch was prepared (the starting point later
 // readings are compared with).
-export type WatchPlan = { city: string | null; topic: string | null; priceUnit: PriceUnit; budgetEur: number; minRooms: number | null; urls: string[]; seen: Listing[]; goal?: string | null; requirements?: WatchRequirements | null; titles?: Record<string, string> };
+export type WatchPlan = { city: string | null; topic: string | null; priceUnit: PriceUnit; budgetEur: number; minRooms: number | null; urls: string[]; seen: Listing[]; goal?: string | null; requirements?: WatchRequirements | null; titles?: Record<string, string>; conversation?: HousingConversation | null; research?: HousingResearchRecord | null }; // conversation, research: v2 housing
 
 // --- Projects (added 15 Nov). A watch is shown as a Project: a goal in the customer's words, requirements they can
 // edit, the sources, when it was last read successfully and when Context.dev runs next, and its findings.
@@ -761,6 +762,8 @@ export type WatchRequirements = {
   movingCostEur?: number | null; // the customer's own estimate
   bufferToKeepEur?: number | null; // money they want to keep in the account after moving
   savingsGoalEur?: number | null; // a savings target they named
+  minAreaM2?: number | null; // v2 housing: the smallest living area they accept
+  savingsGoalEurPerMonth?: number | null; // v2 housing: what they want to keep saving every month after moving
 };
 export type ProjectStatus = "active" | "paused" | "stopped" | "failing"; // failing: active, but no page could be read or watched on the last check
 export type WatchScheduler = "cron" | "on-open"; // cron: Sisu also reviews changes once a day on its own; on-open: only when the app checks in
@@ -807,6 +810,8 @@ export type PropertyWatch = {
   createdAt: string;
   lastCheckedAt: string | null; // the last check, even one where every page failed
   problems: string[];
+  conversation?: HousingConversation | null; // v2 housing: the conversation the project came from (from its action's plan)
+  research?: HousingResearchRecord | null; // v2 housing: the Exa search and Context.dev reads it started from
   // Added 15 Nov (Projects), all optional:
   goal?: string | null; // the decision, in the customer's words
   requirements?: WatchRequirements;
@@ -842,7 +847,77 @@ export type WatchNotification = {
 };
 
 // GET /api/watch/:id. `currentMatches`: the listings last read that meet the requirements now, each with its housing effect.
-export type WatchProject = { customerId: string; watch: PropertyWatch; notifications: WatchNotification[]; unread: number; currentMatches: { listing: Listing; housing: HousingEffect | null }[]; scheduler: WatchScheduler };
+export type WatchProject = { customerId: string; watch: PropertyWatch; notifications: WatchNotification[]; unread: number; currentMatches: { listing: Listing; housing: HousingEffect | null }[]; scheduler: WatchScheduler; evaluation?: HousingEvaluation | null }; // evaluation: v2 housing
 
 export type WatchList = { customerId: string; watches: PropertyWatch[]; notifications: WatchNotification[]; scheduler?: WatchScheduler };
 export type WatchCheck = { customerId: string; checked: number; changesSeen: number; pagesReread: number; notifications: WatchNotification[]; problems: string[] };
+
+// --- v2 housing (added 15 Nov, evening): the housing conversation, its results and the project it becomes. ---
+// A question about affording or finding a home gets an intake card first (stage housing_intake); submitting it runs
+// POST /api/housing/search, whose answer is a stage housing_results plus a Project proposal (a property_watch).
+// Every figure is worked out in code (lib/housing/*); a fact a listing does not state is "unknown", never 0.
+export type HousingStageKind = "housing_intake" | "housing_results";
+export type HousingStageData = { kind: "housing_intake"; intake: HousingIntake } | { kind: "housing_results"; result: HousingSearchResult };
+
+// The most rent that keeps an average month balanced and the savings goal, from the customer's own 12-month averages.
+// maxRentEur null: the month already comes out short, so no rent above today's housing keeps it balanced.
+export type HousingBudget = { maxRentEur: number | null; housingNowEur: number; leftOverNowEur: number; savingsPerMonthEur: number; steps: CalcStep[]; reasoning: string; facts: Fact[] };
+
+export type HousingIntake = {
+  question: string;
+  tenure: "rent" | "buy";
+  city: string | null;
+  minRooms: number | null;
+  minAreaM2: number | null;
+  commuteTo: string | null;
+  maxCommuteMinutes: number | null;
+  moveBy: string | null; // YYYY-MM-DD
+  savingsGoalEurPerMonth: number;
+  budget: HousingBudget; // worked out with savingsGoalEurPerMonth; the card works it out again as the goal changes
+};
+
+// What the customer confirmed in the intake card (POST /api/housing/search).
+export type HousingCriteria = { city: string; budgetEur: number; budgetFrom: "customer" | "sisu-suggested"; minRooms: number | null; requirements: WatchRequirements };
+
+export type HousingCheckId = "rent" | "month" | "savings" | "rooms" | "size" | "moveBy" | "commute" | "district" | "deposit";
+export type HousingCheck = { id: HousingCheckId; label: string; status: "pass" | "fail" | "unknown"; detail: string };
+export type HousingCost = { label: string; eur: number | null; per: "month" | "once"; note: string | null }; // eur null = unknown
+
+export type ListingEvaluation = {
+  key: string;
+  listing: Listing;
+  host: string;
+  verdict: "fits" | "needs_checking" | "excluded"; // fits: every requirement checked and met; needs_checking: none failed, some unknown
+  checks: HousingCheck[];
+  reasons: string[]; // why it was excluded (the failed checks), one line each
+  unknowns: string[]; // what could not be checked
+  recurring: HousingCost[];
+  upfront: HousingCost[];
+  monthlyEffectEur: number; // known change per month against housing today (positive = costs more)
+  leftOverAfterEur: number; // what an average month would leave over after moving, known costs only
+  housing: HousingEffect;
+};
+
+export type HousingSourceRecord = { url: string; title: string; host: string; retrievedAt: string; cacheAgeMs: number | null; cached: boolean; readBy: "context.dev" | "exa" };
+// exaQuery: exactly what was sent to Exa. sources: the pages Exa found. read: the pages Context.dev read.
+export type HousingResearchRecord = { exaQuery: string; retrievedAt: string; sources: { url: string; title: string; host: string }[]; read: HousingSourceRecord[]; cached: boolean; mock: boolean; problems: string[] };
+export type HousingConversation = { conversationId: string | null; question: string; summary: string; budgetReasoning: string | null; savedAt: string };
+
+export type HousingEvaluation = {
+  criteria: HousingCriteria;
+  verdict: string; // one line for the top of the card
+  best: ListingEvaluation | null; // only a listing whose verdict is fits
+  closest: ListingEvaluation | null; // when there is no best: the cheapest that needs checking
+  fitting: ListingEvaluation[];
+  needsChecking: ListingEvaluation[];
+  excluded: ListingEvaluation[];
+  maths: CalcStep[];
+  assumptions: string[];
+  rule: string; // how a best match is decided, in one sentence
+  changes?: HousingChange[]; // projects only: what each finding (a detected or simulated change) does to the results, newest first
+};
+
+// A change a watch found, and what it does to the project: "Rent dropped €1,180 → €575 · now within budget · best match changed".
+export type HousingChange = { notificationId: string; title: string; detectedAt: string; detectedBy: string; simulated: boolean; beforeEur: number | null; afterEur: number; verdict: ListingEvaluation["verdict"]; bestChanged: boolean; line: string };
+
+export type HousingSearchResult = HousingEvaluation & { research: HousingResearchRecord; budget: HousingBudget; action: AgentAction | null; actionProblem: string | null; facts: Fact[] };

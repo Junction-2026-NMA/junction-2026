@@ -22,6 +22,7 @@ import { failure } from "./tools/types";
 import { FORGED_NOTE, looksForged } from "./tools/untrusted";
 import { listNotifications, listWatches, watchSubject } from "@/lib/watch";
 import { fact } from "@/lib/finance/facts";
+import { intakeTurn, wantsIntake } from "@/lib/housing/turn";
 
 const MAX_MODEL_STEPS = { chat: 6, investigate: 10 };
 const MAX_GUARD_RETRIES = 2; // how many times one turn may be sent back to redo a step
@@ -95,6 +96,12 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
   const cashFlow = () => (cashFlowCache ??= buildCashFlow(overview, { bufferEur: appBuffer, bufferFrom: "app" }));
 
   yield { type: "start", turnId, provider: config.provider, model: config.model.name, mock: config.isMock };
+
+  // v2 housing: a question about affording or finding a home to rent gets the intake card first, in code.
+  if (!looksForged(request.text) && wantsIntake(request)) {
+    yield* intakeTurn(request, overview, customer.area, turnId, sinceStart, sttMs);
+    return;
+  }
 
   // Rule 1: start slow research now if the words suggest it. Nothing here is awaited.
   // An investigation almost always ends at a bill, so it starts research for the strongest bill lead at once.

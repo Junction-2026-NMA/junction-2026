@@ -50,6 +50,7 @@ import { ApproveAllResult, PlanEvent, type Visual, VisualList } from "./PlanMode
 import { SSEParser } from "./ServerSentEvents";
 import { SimulatedDrop, WatchChange, WatchCheck, WatchList, WatchReadResult, type WatchRequirements } from "./WatchModels";
 import { WatchProject } from "./WatchProject";
+import { type HousingBudget, HousingModels, type HousingSearchRequest, type HousingSearchResult } from "./HousingModels";
 import { FallbackTransport, FetchTransport, ReplayTransport, type SisuTransport, TransportResponse } from "./Transport";
 
 const object = <T>(keys: string[] = []) => (json: unknown): T => JSONRead.object(json, keys) as unknown as T;
@@ -360,6 +361,16 @@ export class CoachClient implements SisuAPI {
    *  server's sentence when there is no watch or nothing to drop. */
   simulateDrop(id: string, customerId: string): Promise<SimulatedDrop> {
     return this.watchCall("Simulating a price drop", CoachEndpoints.simulateDrop(this.baseURL, id, customerId), SimulatedDrop.decode);
+  }
+
+  /** v2 housing: the intake card's search. Refused on the sample. */
+  housingSearch(body: HousingSearchRequest): Promise<HousingSearchResult> {
+    return this.watchCall("Searching for homes", CoachEndpoints.housingSearch(this.baseURL, body), HousingModels.result);
+  }
+
+  /** v2 housing: the rent Sisu suggests for a monthly savings goal. Refused on the sample. */
+  housingBudget(customerId: string, savingsGoalEurPerMonth: number): Promise<HousingBudget | null> {
+    return this.watchCall("Working out a budget", CoachEndpoints.housingBudget(this.baseURL, customerId, savingsGoalEurPerMonth), HousingModels.budget);
   }
 
   /** A watch call: refused on the sample (also when the client fell back to it during the call). */

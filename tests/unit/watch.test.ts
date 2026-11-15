@@ -413,7 +413,7 @@ describe("the agent offers a watch instead of stopping", () => {
   });
 
   it("the budget must be a figure the customer said", async () => {
-    const events = await ask("Find me a flat in Helsinki", { city: "Helsinki", budgetEur: 900 });
+    const events = await ask("What flats are there in Helsinki?", { city: "Helsinki", budgetEur: 900 });
     assert.equal(ofType(events, "action").length, 0);
     assert.equal(listActions(AINO).length, 0);
     assert.ok(ofType(events, "tool_end").some((event) => event.trace.name === "search_flats" && !event.trace.ok));

@@ -7,6 +7,7 @@
 // object is null, and only a body that is not an object at all throws.
 import { DecodingError, JSONRead } from "./Models";
 import { type HousingEffect, Listing, PropertyWatch, WatchNotification } from "./WatchModels";
+import { type HousingEvaluation, HousingModels } from "./HousingModels";
 
 /** A listing that fits the requirements as last read, and the total effect of moving in (null for a price watch). */
 export interface CurrentMatch {
@@ -22,6 +23,8 @@ export interface WatchProject {
   currentMatches: CurrentMatch[];
   /** `cron` when a scheduled review runs while the app is closed; `on-open` otherwise. */
   scheduler?: string | null;
+  /** v2 housing: every listing judged against the requirements now, and what each finding changed. */
+  evaluation?: HousingEvaluation | null;
 }
 
 const decodeMatch = (json: unknown): CurrentMatch | null => {
@@ -44,6 +47,7 @@ export const WatchProject = {
       unread: typeof json.unread === "number" && Number.isFinite(json.unread) ? json.unread : null,
       currentMatches: list(json.currentMatches).map(decodeMatch).filter((m): m is CurrentMatch => m !== null),
       scheduler: typeof json.scheduler === "string" ? json.scheduler : null,
+      evaluation: HousingModels.evaluation(json.evaluation),
     };
   },
 } as const;

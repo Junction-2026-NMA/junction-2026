@@ -7,6 +7,7 @@ import { useEffect, useRef } from "react";
 import { useAppModel, useCoach, useCoachDataTag, useCoachStore } from "@/web/app/AppProvider";
 import { ActionStatus, type AgentAction } from "@/web/core/CoachModels";
 import { Dates } from "@/web/core/Presentation";
+import { JSONRead } from "@/web/core/Models";
 import { isWatchKind, WatchPlan } from "@/web/core/WatchModels";
 import { SisuButton, SisuCard } from "@/web/shared/SisuStyle";
 import { Chip, ExternalLink, Note, Rows } from "./ProjectParts";
@@ -75,9 +76,12 @@ export function WatchActionCard({ action }: WatchActionCardProps) {
   const question = rent
     ? "Would you like me to keep checking for homes that match these requirements?"
     : "Would you like me to keep checking for offers that match these requirements?";
+  // v2 housing: a proposal from the housing intake carries its conversation; the results card above already says
+  // what fits, so this card only asks to make it a project.
+  const fromIntake = rent && JSONRead.isObject(action.watch) && JSONRead.isObject(action.watch.conversation);
   const heading = approved ? ProjectText.title(plan)
     : status === ActionStatus.declined ? "You chose not to start this project."
-      : status === "expired" ? "This proposal expired before it was started." : question;
+      : status === "expired" ? "This proposal expired before it was started." : fromIntake ? "Make this a project" : question;
   const chip = approved ? "Project" : closed ? "Not started" : "Project proposal";
 
   return (
@@ -87,7 +91,8 @@ export function WatchActionCard({ action }: WatchActionCardProps) {
         {dataTag && !closed ? <Chip tone="attention">{`${dataTag}: nothing on the web is watched`}</Chip> : null}
       </div>
       <h2 className="sisu-project-h2">{heading}</h2>
-      {readLine ? <p className="sisu-project-body">{readLine}</p> : null}
+      {fromIntake && waiting ? <p className="sisu-project-body">Sisu saves this conversation, your requirements and what it found, keeps monitoring the pages and shows changes in the project. You can open it later from Saved projects and edit the requirements.</p> : null}
+      {readLine && !fromIntake ? <p className="sisu-project-body">{readLine}</p> : null}
       {action.warning && !closed ? <Note title={action.warning} /> : null}
       <p className="sisu-project-subhead">Requirements</p>
       <Rows rows={ProjectText.requirements(plan)} />
@@ -105,7 +110,8 @@ export function WatchActionCard({ action }: WatchActionCardProps) {
           {dataTag
             ? "Sisu re-reads these pages itself when you open the app and shows matches in the project. Nothing checks them while the app is closed."
             : `Context.dev re-checks these pages about every 6 hours. Sisu reviews the changes ${state?.scheduler ? "once a day on its server and " : ""}when you open the app and shows matches in the project.`}
-          {" "}{rent ? "Nothing is rented or paid, and no landlord is contacted." : "Nothing is bought or paid, and no seller is contacted."}
+          {" "}{fromIntake && !dataTag ? "This monitoring is real. A change Sisu makes up for the demo is always labelled Simulated update. " : ""}
+          {rent ? "Nothing is rented or paid, and no landlord is contacted." : "Nothing is bought or paid, and no seller is contacted."}
         </p>
       ) : null}
 
@@ -122,7 +128,7 @@ export function WatchActionCard({ action }: WatchActionCardProps) {
           {action.confirmation ? <p className="sisu-project-muted">{action.confirmation}</p> : null}
           {project ? <SisuButton label="Open project" style="primary" action={() => openProject(project.id)} /> : null}
           {!project && state?.loaded && !state.loading ? (
-            <p className="sisu-project-muted">The project list does not show it yet. Open the chat history to find it.</p>
+            <p className="sisu-project-muted">The project list does not show it yet. Find it under Saved projects in the chat history.</p>
           ) : null}
         </>
       ) : null}

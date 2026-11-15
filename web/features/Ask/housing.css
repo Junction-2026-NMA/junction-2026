@@ -1,0 +1,31 @@
+/* v2 housing: the intake card, the results card and the evidence shared with the project view. Every class is
+   sisu-housing-*. Text and inputs reuse sisu-project-* (projects.css) and sisu-ask-* (ask.css). */
+.sisu-housing-card { display: flex; flex-direction: column; gap: 12px; }
+.sisu-housing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+.sisu-housing-grid > .sisu-housing-wide { grid-column: 1 / -1; }
+.sisu-housing-toggle { display: flex; gap: 8px; }
+.sisu-housing-toggle > button.sisu-housing-option {
+  flex: 1; appearance: none; min-height: 44px; border-radius: var(--sisu-radius-pill); border: 1px solid var(--sisu-color-hairline);
+  background: var(--sisu-color-card); color: var(--sisu-green-900); font: var(--sisu-type-label); cursor: pointer;
+}
+.sisu-housing-toggle > button.sisu-housing-option[aria-pressed="true"] { background: var(--sisu-color-primary); color: var(--sisu-color-on-primary); border-color: transparent; }
+.sisu-housing-budget { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 14px; background: var(--sisu-green-25); }
+.sisu-housing-verdict { font: var(--sisu-type-label); color: var(--sisu-color-text); margin: 0; }
+.sisu-housing-listing { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 16px; border: 1px solid var(--sisu-color-hairline); }
+.sisu-housing-listing[data-verdict="fits"] { border-color: var(--sisu-color-primary); box-shadow: inset 3px 0 0 var(--sisu-color-primary); }
+.sisu-housing-listing-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.sisu-housing-price { font: var(--sisu-type-h3); color: var(--sisu-color-text); margin: 0; white-space: nowrap; }
+.sisu-housing-costs { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.sisu-housing-costs > li { display: flex; justify-content: space-between; gap: 12px; font: var(--sisu-type-caption); color: var(--sisu-color-text); }
+.sisu-housing-costs > li > span:last-child { text-align: right; color: var(--sisu-color-text-muted); }
+.sisu-housing-costs > li[data-unknown="true"] > span:last-child { color: var(--sisu-amber-text); }
+.sisu-housing-table { width: 100%; border-collapse: collapse; font: var(--sisu-type-caption); color: var(--sisu-color-text); }
+.sisu-housing-table th, .sisu-housing-table td { text-align: left; padding: 4px 6px 4px 0; border-bottom: 1px solid var(--sisu-color-hairline); vertical-align: top; }
+.sisu-housing-table th { color: var(--sisu-color-text-muted); font-weight: 600; }
+.sisu-housing-scroll { overflow-x: auto; max-width: 100%; }
+.sisu-housing-mark[data-status="pass"] { color: var(--sisu-green-700); }
+.sisu-housing-mark[data-status="fail"] { color: var(--sisu-error-text); }
+.sisu-housing-mark[data-status="unknown"] { color: var(--sisu-amber-text); }
+.sisu-housing-change { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 12px; background: var(--sisu-green-25); }
+.sisu-housing-change[data-simulated="true"] { background: var(--sisu-amber-background); }
+.sisu-housing-query { font: 500 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--sisu-color-text); background: var(--sisu-color-input-fill); padding: 6px 8px; border-radius: 8px; word-break: break-word; margin: 0; }

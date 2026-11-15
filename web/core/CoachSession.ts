@@ -37,6 +37,7 @@ import { ReplayTransport } from "./Transport";
 import { JSONRead } from "./Models";
 import { ConversationHistory } from "./ConversationHistory";
 import { SpokenText } from "./SpokenText";
+import type { HousingBudget, HousingSearchRequest } from "./HousingModels";
 
 /** Plays Sisu's voice. The app implements it (web/voice); this package has no audio code. */
 export interface SpeechOutput {
@@ -430,6 +431,45 @@ export class CoachSession extends Store<CoachSessionState> {
     const restored = CoachSession.settled(messages.map((m) => CoachMessage.make(m.id, m.role, m)));
     this.history = ConversationHistory.chatTurns(restored);
     this.update({ messages: restored });
+  }
+
+  /** v2 housing: the intake card's Search. Adds the confirmed requirements as a question and the results as Sisu's
+   *  answer (a `housing_results` stage, plus the Project proposal as the message's action), so the conversation
+   *  keeps them and the history drawer restores them. Errors become the reply's sentence; nothing throws. */
+  async housingSearch(request: HousingSearchRequest, summary: string): Promise<void> {
+    this.cancel();
+    const userId = this.makeId();
+    const replyId = this.makeId();
+    const stepId = `${replyId}-search`;
+    const label = `Searching listings in ${request.city} with Exa, reading them with Context.dev`;
+    this.update({
+      messages: [...this.state.messages, CoachMessage.make(userId, "user", { text: summary }),
+        CoachMessage.make(replyId, "assistant", { pending: true, filler: "Searching for homes and checking each one against your requirements…", steps: [CoachStep.make(stepId, label)] })],
+      isThinking: true, working: SisuActivity.make("searching_web"), moment: null,
+    });
+    const started = Date.now();
+    try {
+      const result = await this.client.housingSearch(request);
+      const stage: Stage = { id: `${replyId}:housing`, kind: "housing_results", title: "Homes checked against your requirements", summary: result.verdict, source: "calculation", toolCallId: null, atMs: Date.now() - started, facts: result.facts, data: { kind: "housing_results", result } };
+      const read = result.research.read.length;
+      const step = { ...CoachStep.make(stepId, label), done: true, ok: true, tookMs: Date.now() - started, result: `${result.research.sources.length} pages found, ${read} read` };
+      // The card says the verdict; the answer's own line says what was done. The model history keeps the verdict.
+      const checked = result.fitting.length + result.needsChecking.length + result.excluded.length;
+      const lead = checked ? `I checked ${checked} listing${checked === 1 ? "" : "s"} in ${request.city} against your requirements.` : `I could not read any listings in ${request.city} just now.`;
+      const text = result.actionProblem ? `${result.verdict} ${result.actionProblem}` : result.verdict;
+      this.patch(replyId, (m) => ({ ...m, pending: false, filler: null, text: lead, stages: [stage], action: result.action ?? null, facts: result.facts, steps: [step] }));
+      if (result.action) this.update({ actions: [result.action as unknown as AgentAction, ...this.state.actions.filter((a) => a.id !== result.action?.id)] });
+      this.history = [...this.history, { role: "user" as const, content: summary }, { role: "assistant" as const, content: text }].slice(-12);
+      this.update({ isThinking: false, working: SisuActivity.idle });
+    } catch (error) {
+      this.patch(replyId, (m) => ({ ...m, pending: false, filler: null, error: CoachErrors.sentence(error), steps: m.steps.map((s) => ({ ...s, done: true, ok: false })) }));
+      this.update({ isThinking: false, working: SisuActivity.idle });
+    }
+  }
+
+  /** v2 housing: the rent Sisu suggests for a monthly savings goal, or null when it cannot be worked out now. */
+  housingBudget(savingsGoalEurPerMonth: number): Promise<HousingBudget | null> {
+    return this.client.housingBudget(this.customerId, savingsGoalEurPerMonth).catch(() => null);
   }
 
   /** Call when the microphone opens and closes. Opening it interrupts Sisu. */

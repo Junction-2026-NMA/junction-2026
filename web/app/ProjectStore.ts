@@ -16,6 +16,7 @@ import type { CoachClient } from "@/web/core/CoachClient";
 import { CoachErrors, Store } from "@/web/core/CoachSession";
 import type { PropertyWatch, WatchNotification, WatchRequirements } from "@/web/core/WatchModels";
 import type { CurrentMatch } from "@/web/core/WatchProject";
+import type { HousingEvaluation } from "@/web/core/HousingModels";
 import type { SisuDefaults } from "./Defaults";
 import { ALL_SUPPORT, MAX_SEEN, NO_SUPPORT, type ProjectBusy, type ProjectFeature, ProjectFeatureText, hasProjectRoutes, isActiveWatch,
   missingRoute, readSeen, schedulerRuns, writeSeen } from "./ProjectRules";
@@ -52,6 +53,8 @@ export interface ProjectsState {
   readonly fresh: Readonly<Record<string, readonly string[]>>;
   /** Per open watch: the listings that fit its requirements now, as last read (`GET /api/watch/:id`). */
   readonly matches: Readonly<Record<string, readonly CurrentMatch[]>>;
+  /** v2 housing: per open watch, every listing judged against its requirements now (`GET /api/watch/:id`). */
+  readonly evaluations?: Readonly<Record<string, HousingEvaluation | null>>;
 }
 
 const POLL_MS = 60_000;
@@ -211,6 +214,7 @@ export class ProjectStore extends Store<ProjectsState> {
       const watch = project.watch;
       this.update({
         matches: { ...this.state.matches, [id]: project.currentMatches },
+        evaluations: { ...(this.state.evaluations ?? {}), [id]: project.evaluation ?? null },
         ...(watch && watch.id === id ? { watches: this.state.watches.map((w) => (w.id === id ? watch : w)) } : {}),
       });
     } catch (error) {
