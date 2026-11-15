@@ -2,6 +2,7 @@
 // own numbers. The model passes only a bill type or an amount, so it cannot invent an offer, a price or a saving.
 import { peekResearch } from "@/lib/agent/research";
 import { toResult } from "@/lib/agent/research/compare";
+import { savedTariff, type ElectricityTariff } from "@/lib/agent/research/tariff";
 import { requirementsText } from "@/lib/agent/research/requirements";
 import { buildCashFlow } from "@/lib/finance/cashflow";
 import { findCustomer } from "@/lib/finance/data";
@@ -59,7 +60,7 @@ const draftMessage = (offer: Offer, billType: BillType): string =>
 
 // A contract switch, built from finished offer research. `provider` picks one offer; without it the best one is used.
 // `requirements` are what the customer asked the contract to meet: an offer that misses one is never switched to.
-export function buildSwitchDraft(customerId: string, billType: BillType, options: { provider?: string; preparedBy: AgentAction["preparedBy"]; requirements?: OfferRequirements | null }): DraftResult {
+export function buildSwitchDraft(customerId: string, billType: BillType, options: { provider?: string; preparedBy: AgentAction["preparedBy"]; requirements?: OfferRequirements | null; electricity?: { yearlyKwh: number; tariff: ElectricityTariff } }): DraftResult {
   const customer = findCustomer(customerId);
   const overview = buildOverview(customerId);
   if (!customer || !overview) return { ok: false, status: 404, reason: "We could not find that customer." };
@@ -70,7 +71,8 @@ export function buildSwitchDraft(customerId: string, billType: BillType, options
   const memory = getMemory(customerId);
   const match = billFor(overview, memory, billType);
   const requirements = options.requirements ?? null;
-  const research = toResult(raw, match?.bill.monthlyAvg ?? null, billType === "electricity" ? statedYearlyKwh(memory) : null, requirements);
+  const tariff = billType === "electricity" ? options.electricity?.tariff ?? savedTariff(memory) : null;
+  const research = toResult(raw, match?.bill.monthlyAvg ?? null, billType === "electricity" ? options.electricity?.yearlyKwh ?? statedYearlyKwh(memory) : null, requirements, tariff);
   const wanted = options.provider?.trim().toLowerCase();
   const named = wanted ? research.offers.find((o) => o.comparable && o.provider.toLowerCase().includes(wanted)) : undefined;
   const asked = requirementsText(requirements);
@@ -89,15 +91,15 @@ export function buildSwitchDraft(customerId: string, billType: BillType, options
     draft: {
       kind: "switch_contract",
       title: `Switch ${BILL_NOUN[billType]} to ${offer.provider}${offer.plan ? ` (${offer.plan})` : ""}`,
-      summary: `Estimated saving about €${Math.round(yearly)} a year (€${monthly.toFixed(2)} a month) against your current bill of €${(research.baselineMonthlyEur ?? 0).toFixed(2)} a month. Simulation only: Sisu does not contact the provider.`,
+      summary: `Estimated saving about €${Math.round(yearly)} a year (€${monthly.toFixed(2)} a month) against your current ${tariff ? "energy-sales cost" : "bill"} of €${(research.baselineMonthlyEur ?? 0).toFixed(2)} a month. Simulated switch: Sisu does not contact the provider.`,
       checklist: CHECKLIST[billType](offer),
       draftMessage: draftMessage(offer, billType),
       billType,
       offer,
       monthlyAmountEur: monthly,
       facts: [
-        fact("action:current-bill", "Current bill per month", research.baselineMonthlyEur ?? 0, "EUR/month", `average of the last 12 months${label && !label.confirmed ? "; the bill's name is Sisu's guess" : ""}`, match ? { evidence: { from: overview.windowFrom, to: overview.windowTo, category: match.bill.category } } : {}),
-        fact("action:offer-monthly", `${offer.provider}, estimated cost per month`, offer.estimatedMonthlyCostEur ?? 0, "EUR/month", "price extracted from the provider's page, applied to your estimated use", { source: "context.dev", url: offer.sourceUrl }),
+        fact("action:current-bill", tariff ? "Current energy-sales cost per month" : "Current bill per month", research.baselineMonthlyEur ?? 0, "EUR/month", tariff ? "your stated yearly kWh, energy price and monthly fee; grid fees excluded" : `average of the last 12 months${label && !label.confirmed ? "; the bill's name is Sisu's guess" : ""}`, tariff ? { source: "customer-stated" } : match ? { evidence: { from: overview.windowFrom, to: overview.windowTo, category: match.bill.category } } : {}),
+        fact("action:offer-monthly", `${offer.provider}, estimated cost per month`, offer.estimatedMonthlyCostEur ?? 0, "EUR/month", "price extracted from the provider's page, applied to your yearly use", { source: "calculation", url: offer.sourceUrl }),
         fact("action:saving-yearly", "Estimated saving per year", yearly, "EUR/year", "current bill minus the offer's estimated cost, times 12", { source: "calculation" }),
         fact("action:saving-monthly", "Estimated saving per month", monthly, "EUR/month", "yearly saving divided by 12", { source: "calculation" }),
         ...(research.assumedYearlyKwh === null ? [] : [fact("action:kwh", "Yearly electricity use in the estimate", research.assumedYearlyKwh, "kWh/year", research.usageSource === "stated" ? "the figure you gave" : "estimated from your bill", { source: research.usageSource === "stated" ? "customer-stated" : "assumption" })]),

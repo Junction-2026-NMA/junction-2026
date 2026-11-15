@@ -9,6 +9,7 @@ import { ACTION_KINDS, BILL_TYPES, MEMORY_KINDS } from "./schemas";
 import { type ToolContext, type ToolOutcome, factsForModel, failure, outcome } from "./types";
 import { looksLikeInstructions } from "./untrusted";
 import { parseRequirements } from "../research/requirements";
+import { electricityInputs } from "../research/tariff";
 
 export const digitsOf = (text: string): number[] => [...text.replace(/(\d)[ ,](\d{3})\b/g, "$1$2").matchAll(/\d+(?:\.\d+)?/g)].map((match) => Number(match[0]));
 const wordsOf = (text: string): string[] => text.toLowerCase().match(/[a-zà-öø-ÿ]{4,}/g) ?? [];
@@ -32,12 +33,19 @@ const userSaidThis = (ctx: ToolContext, value: string): boolean => {
 export function prepareAction(args: Record<string, unknown>, ctx: ToolContext): ToolOutcome {
   const kind = ACTION_KINDS.includes(args.kind as string) ? (args.kind as string) : null;
   if (!kind) return failure("finance", `prepare_action needs kind: ${ACTION_KINDS.join(" or ")}.`);
+  const latest = ctx.userTexts.at(-1) ?? "";
+  if (kind !== "switch_contract" && /\b(flat|apartment|rent|landlord|buffer|fixed|spot|electricity)\b/i.test(latest)
+    && !/\b(transfer|move money|send money|invest my|set aside)\b/i.test(latest)) {
+    return failure("finance", "This request is about housing, electricity or learning, not a money transfer. Use the relevant research, saved-project or lesson tool; do not reuse a rent limit as a transfer amount.");
+  }
+  const electricity = kind === "switch_contract" && args.billType === "electricity" ? electricityInputs(ctx.customerId, ctx.userTexts) : null;
+  if (electricity?.missing.length) return failure("finance", `Before preparing the simulated electricity switch, ask for ${electricity.missing.join(" and ")}. A bank payment is not a current tariff, and no supported saving is available yet.`);
 
   const amount = typeof args.amountEur === "number" ? args.amountEur : typeof args.monthlyAmountEur === "number" ? args.monthlyAmountEur : null;
   const built =
     kind === "switch_contract"
       ? BILL_TYPES.includes(args.billType as BillType)
-        ? buildSwitchDraft(ctx.customerId, args.billType as BillType, { provider: typeof args.provider === "string" ? args.provider.slice(0, 60) : undefined, preparedBy: "sisu-agent", requirements: parseRequirements(args) })
+        ? buildSwitchDraft(ctx.customerId, args.billType as BillType, { provider: typeof args.provider === "string" ? args.provider.slice(0, 60) : undefined, preparedBy: "sisu-agent", requirements: parseRequirements(args), ...(electricity?.yearlyKwh !== null && electricity?.yearlyKwh !== undefined && electricity.tariff ? { electricity: { yearlyKwh: electricity.yearlyKwh, tariff: electricity.tariff } } : {}) })
         : ({ ok: false, status: 400, reason: "switch_contract needs billType: electricity, mobile or internet." } as const)
       : typeof amount === "number" && amountWasDiscussed(ctx, amount)
         ? buildTransferDraft(ctx.customerId, amount, { preparedBy: "sisu-agent", once: kind === "one_off_transfer", destination: args.destination === "investments" ? "investments" : "savings" })

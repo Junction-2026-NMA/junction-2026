@@ -34,6 +34,7 @@ import { PlaceholderScreen } from "@/web/features/Ask/PlaceholderScreen";
 import { useKeyboardInset } from "@/web/features/Ask/useKeyboardInset";
 import { HistoryDrawer } from "@/web/features/History/HistoryDrawer";
 import { ProjectScreen } from "@/web/features/Projects/ProjectScreen";
+import { ProjectNotification } from "@/web/features/Projects/ProjectNotification";
 import { useProjectsUnread } from "@/web/features/Projects/useProjects";
 import { SettingsSheet } from "@/web/features/Sheets/SettingsSheet";
 import { SisuEmptyState } from "./SisuEmptyState";
@@ -92,6 +93,7 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
   const keyboard = useKeyboardInset();
   const unread = useProjectsUnread() > 0;
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [openFinding, setOpenFinding] = useState<{ watchId: string; id: string } | null>(null);
   const logo = useRef<HTMLButtonElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   const transcript = useRef<TranscriptHandle | null>(null);
@@ -235,6 +237,10 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
         ) : chatting ? <div className="sisu-talk-header-liito">{liitoBadge("small")}</div> : null}
       </header>
       <FallbackNotice session={session} notice={state?.fallbackNotice ?? null} fellBackToSample={coach.fellBackToSample} />
+      {!openProjectId && !historyOpen ? <ProjectNotification onOpen={(watchId, id) => {
+        setOpenFinding({ watchId, id });
+        model.setOpenProjectId(watchId);
+      }} /> : null}
       {chatting && state ? (
         <TalkTranscript key={conversationId} session={session} state={state} store={store} conversationId={conversationId} reduceMotion={reduceMotion}
           handle={(next) => { transcript.current = next; }}
@@ -255,7 +261,8 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
         onSettings={() => { model.setHistoryOpen(false); setSettingsOpen(true); }} />
       {openProjectId ? (
         <div className="sisu-talk-project">
-          <ProjectScreen id={openProjectId} onClose={() => model.setOpenProjectId(null)} />
+          <ProjectScreen id={openProjectId} findingId={openFinding?.watchId === openProjectId ? openFinding.id : null}
+            onClose={() => { model.setOpenProjectId(null); setOpenFinding(null); }} />
         </div>
       ) : null}
       <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />

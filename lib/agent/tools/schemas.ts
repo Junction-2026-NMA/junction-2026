@@ -31,6 +31,8 @@ const tool = (name: string, description: string, properties: Record<string, unkn
 // Every character here is read by the model on every step (about 10 ms per 1,000 characters on our GPU, measured in
 // tests/gauntlet/results), so descriptions say when to use the tool and nothing more.
 export const TOOL_SCHEMAS: ToolSchema[] = [
+  tool("get_rent_budget", "How much monthly rent the customer's financial data can support, separate from the rent limit they choose for a search.", {}),
+  tool("get_watch_findings", "Read the current visitor's saved projects and findings, including simulated updates, rent, rooms, size and source. Use for 'did my flat watch find anything?'.", { housingOnly: { type: "boolean", description: "true for flat or housing watches, so an unrelated price watch is excluded" } }),
   tool(
     "get_spending",
     "Exact spending total and count for any period, optionally by category, merchant type or basket, optionally split. Also returns the largest purchases.",

@@ -2,6 +2,7 @@
 import type { BillType, Offer, OfferRequirements, ResearchResult } from "@/lib/types";
 import { isSeasonalOffer, isSpotOffer, missesFor, requirementsText } from "./requirements";
 import type { RawOffer, RawResearch } from "./types";
+import type { ElectricityTariff } from "./tariff";
 
 // Used only when the customer has no bill to estimate from.
 const DEFAULT_KWH_PER_YEAR = 2_000;
@@ -25,7 +26,7 @@ const isSpot = (offer: RawOffer): boolean => isSpotOffer(offer);
 // An electricity offer without its monthly base fee is listed but not ranked (counting the fee as free could make it
 // the best offer); one whose setup fee is not stated is ranked with that fee left out, and its saving is incomplete.
 function feesUnknown(offer: RawOffer, billType: BillType): boolean {
-  return billType === "electricity" ? offer.monthlyPriceEur === null : offer.setupFeeEur === null;
+  return offer.setupFeeEur === null || (billType === "electricity" && offer.monthlyPriceEur === null);
 }
 
 const brokenSetupFee = (offer: RawOffer): boolean => offer.setupFeeEur !== null && (!Number.isFinite(offer.setupFeeEur) || offer.setupFeeEur < 0);
@@ -135,17 +136,21 @@ function assumptionsFor(billType: BillType, baseline: number | null, usage: Usag
   ];
 }
 
-export function toResult(raw: RawResearch, baselineMonthlyEur: number | null, statedYearlyKwh: number | null = null, requirements: OfferRequirements | null = null): ResearchResult {
+export function toResult(raw: RawResearch, baselineMonthlyEur: number | null, statedYearlyKwh: number | null = null, requirements: OfferRequirements | null = null, tariff: ElectricityTariff | null = null): ResearchResult {
   const unique = dedupe(raw.offers);
   const usage = raw.billType === "electricity" ? estimateUsage(unique, baselineMonthlyEur, statedYearlyKwh) : null;
 
-  const energyPart = usage && baselineMonthlyEur !== null ? energyPartOfBill(baselineMonthlyEur, usage) : null;
+  const supportedTariff = raw.billType === "electricity" && usage?.source === "stated" ? tariff : null;
+  if (supportedTariff && usage) baselineMonthlyEur = round2(usage.yearlyKwh * supportedTariff.energyPriceCentsPerKwh / 100 / 12 + supportedTariff.monthlyFeeEur);
+  const energyPart = usage && baselineMonthlyEur !== null ? (supportedTariff ? { amount: baselineMonthlyEur, capped: false } : energyPartOfBill(baselineMonthlyEur, usage)) : null;
   const compareAgainst = energyPart?.amount ?? baselineMonthlyEur;
 
   const offers: Offer[] = unique
     .map((offer) => {
       const cost = monthlyCost(offer, raw.billType, usage?.yearlyKwh ?? 0);
-      const saving = cost !== null && compareAgainst !== null ? round2((compareAgainst - cost) * 12) : null;
+      const saving = cost !== null && compareAgainst !== null ? supportedTariff && usage
+        ? round2(usage.yearlyKwh * (supportedTariff.energyPriceCentsPerKwh - (offer.energyPriceCentsPerKwh as number)) / 100 + 12 * (supportedTariff.monthlyFeeEur - (offer.monthlyPriceEur as number)) - (offer.setupFeeEur ?? 0))
+        : round2((compareAgainst - cost) * 12) : null;
       const misses = missesFor(offer, requirements, cost);
       return { ...offer, comparable: cost !== null, estimatedMonthlyCostEur: cost, estimatedYearlySavingEur: saving, meetsRequirements: misses.length === 0, misses, feesUnknown: feesUnknown(offer, raw.billType), notComparableReason: notComparableReason(offer, raw.billType) };
     })
@@ -179,11 +184,16 @@ export function toResult(raw: RawResearch, baselineMonthlyEur: number | null, st
     best,
     citations: raw.citations,
     assumptions: [
-      ...assumptionsFor(raw.billType, baselineMonthlyEur, usage, energyPart),
+      ...(supportedTariff && usage ? [
+        `Your current energy-sales cost uses the figures you gave: ${usage.yearlyKwh} kWh/year × ${supportedTariff.energyPriceCentsPerKwh} c/kWh ÷ 100 + €${supportedTariff.monthlyFeeEur}/month × 12. Grid fees are excluded from both contracts and stay unchanged.`,
+        "The offers use the same yearly kWh. Known setup fees are charged in the first year; any unstated setup or exit fee remains unverified and may reduce the saving.",
+        "Spot and seasonal contracts are listed but not ranked: their future cost needs a usage profile and changing market prices.",
+        "Prices are as stated on the linked pages at the retrieval time shown; verify terms and eligibility before switching.",
+      ] : assumptionsFor(raw.billType, baselineMonthlyEur, usage, energyPart)),
       // Only when an offer really is left unranked for its seasons (a spot offer is unranked as spot already).
       ...(raw.billType === "electricity" && unique.some((offer) => !isSpot(offer) && isSeasonalOffer(offer)) ? ["Seasonal and day/night contracts are listed but not ranked: their cost depends on when you use electricity, which your bank data does not show."] : []),
       ...(stated ? [`Only offers that meet what you asked for (${stated}) can be the best offer. An offer whose page does not state one of these counts as not meeting it.`] : []),
-      ...(best?.feesUnknown ? [`${best.provider}'s page does not state its ${raw.billType === "electricity" ? "monthly fee" : "setup fee"}, so the cost leaves it out and the saving is incomplete: the real saving is likely smaller.`] : []),
+      ...(best?.feesUnknown ? [`${best.provider}'s page does not state its ${raw.billType === "electricity" && best.monthlyPriceEur === null ? "monthly fee" : "setup fee"}, so the cost leaves it out and the saving is incomplete: the real saving may be smaller.`] : []),
     ],
     errors: raw.errors,
     requirements,

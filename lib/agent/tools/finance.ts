@@ -367,16 +367,23 @@ export function explainConcept(args: Record<string, unknown>, ctx: ToolContext):
   const concept = CONCEPTS.includes(args.concept as ConceptId) ? (args.concept as ConceptId) : null;
   if (!concept) return failure("finance", `explain_concept needs one of: ${CONCEPTS.join(", ")}.`);
   const card = teachingCard(concept, ctx.overview);
+  const bufferContext = concept === "buffer-first" ? {
+    essentialsPerMonthEur: ctx.overview.monthlyMandatory,
+    threeMonthBufferEur: Math.round(ctx.overview.monthlyMandatory * 3 * 100) / 100,
+    sixMonthBufferEur: Math.round(ctx.overview.monthlyMandatory * 6 * 100) / 100,
+    note: "These are regular and occasional essentials in the synthetic financial data. Explain a three-to-six-month rule of thumb, with a separate allowance for moving costs and deposit. The right amount depends on income stability and necessary spending. The existing Buffer before investing lesson remains in Path progression.",
+  } : null;
   return outcome({
     content: JSON.stringify({
-      howToUse: "Explain the idea in one or two short sentences, in your own words, then ask the question (in the customer's language, same meaning) and STOP. The answer options are on the card. You do not know the answer: the app reveals it after the customer guesses, so do not state or hint at any figure.",
+      howToUse: bufferContext ? "Explain the rule of thumb briefly using essentialsPerMonthEur and threeMonthBufferEur. Then ask the lesson question and stop. Do not reveal how many months the customer's balance covers; that is the quiz answer." : "Explain the idea in one or two short sentences, in your own words, then ask the question (in the customer's language, same meaning) and STOP. The answer options are on the card. You do not know the answer: the app reveals it after the customer guesses, so do not state or hint at any figure.",
       title: card.title,
       idea: card.explanation,
       questionToAsk: card.question,
+      ...(bufferContext ? { personalContext: bufferContext } : {}),
     }),
     summary: `Lesson: ${card.title}`,
     // The receipts go to the app with the card, not to the model, so they are not offered as numbers it may say.
-    facts: [],
+    facts: bufferContext ? [...card.facts.filter(f => f.id === "teach:buffer:mandatory" || f.id === "teach:buffer:target"), fact("teach:buffer:six", "Six-month buffer", bufferContext.sixMonthBufferEur, "EUR", "six times monthly essentials", { source: "calculation" })] : [],
     teaching: concept === "three-baskets" ? { ...card, revealVisual: basketsVisual(ctx.overview) } : card,
     stages: [{ kind: "teaching", title: card.title, summary: card.question, source: "bank-data", facts: card.facts, data: { kind: "teaching", card } }],
   });

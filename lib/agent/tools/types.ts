@@ -31,6 +31,7 @@ export type ToolOutcome = {
   teaching?: TeachingCard;
   memory?: MemoryItem;
   visual?: Visual; // a chart to draw with the answer
+  directAnswer?: string; // a complete answer computed from saved state, without another model guess
 };
 
 export const outcome = (partial: Pick<ToolOutcome, "content" | "summary"> & Partial<ToolOutcome>): ToolOutcome => ({

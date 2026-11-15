@@ -49,14 +49,14 @@ export function WatchActionCard({ action }: WatchActionCardProps) {
   useEffect(() => {
     if (!approved || project || !store || asked.current) return;
     asked.current = true;
-    void store.load();
+    void store.load(true);
   }, [approved, project, store]);
 
   const decide = (approve: boolean) => {
     if (inFlight.current || busy) return;
     inFlight.current = true;
     void coachStore.decide(action.id, approve)
-      .then((decided) => (approve && decided ? store?.load() : undefined))
+      .then((decided) => (approve && decided ? store?.load(true) : undefined))
       .finally(() => { inFlight.current = false; });
   };
   const openProject = (id: string) => {
@@ -122,7 +122,10 @@ export function WatchActionCard({ action }: WatchActionCardProps) {
           {action.confirmation ? <p className="sisu-project-muted">{action.confirmation}</p> : null}
           {project ? <SisuButton label="Open project" style="primary" action={() => openProject(project.id)} /> : null}
           {!project && state?.loaded && !state.loading ? (
-            <p className="sisu-project-muted">The project list does not show it yet. Open the chat history to find it.</p>
+            <>
+              <p className="sisu-project-muted">{state.error ?? "The project list does not show it yet. Load it again to open your project."}</p>
+              <SisuButton label="Load project again" style="secondary" action={() => void store?.load(true)} />
+            </>
           ) : null}
         </>
       ) : null}

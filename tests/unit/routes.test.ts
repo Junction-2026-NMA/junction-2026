@@ -17,6 +17,7 @@ import { DELETE as forgetRoute, GET as memoryGet, POST as memoryPost } from "@/a
 import { POST as researchPost } from "@/app/api/research/route";
 import { allowRequest, parseAgentRequest } from "@/lib/agent/http";
 import { ensureResearch, waitForUsable } from "@/lib/agent/research";
+import { electricityInputs } from "@/lib/agent/research/tariff";
 import type { ActionList, AgentAction, CustomerMemory, HealthReport, SisuEvent } from "@/lib/types";
 
 let visitor = 0;
@@ -175,6 +176,7 @@ describe("HTTP routes: validation, approval and isolation", () => {
   });
 
   it("an investigation streams stages and leaves its action unapproved (mock model)", async () => {
+    electricityInputs(AINO, ["I use 2000 kWh a year, currently pay 15 c/kWh and a monthly fee of €5."]);
     const events = await readStream(await investigate(request("/api/agent/investigate", { customerId: AINO })));
     assert.equal(events.at(-1)?.type, "done");
     assert.equal(events.find((e) => e.type === "filler")?.type, "filler");

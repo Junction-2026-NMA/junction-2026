@@ -5,6 +5,7 @@ import { calculate } from "./calc";
 import { showChart } from "./chart";
 import { searchFlats } from "./flats";
 import { searchPricesTool } from "./prices";
+import { getRentBudget, getWatchFindings } from "./housing-context";
 import { checkAffordabilityTool, explainConcept, findPatternsTool, getCashFlow, getMortgage, getSpending, listBills, runScenarioTool } from "./finance";
 import { type ToolContext, type ToolOutcome, failure, parseArgs } from "./types";
 import { searchOffers, webSearch } from "./web";
@@ -17,6 +18,10 @@ export type { StageDraft, ToolContext, ToolOutcome } from "./types";
 export async function executeTool(call: ToolCall, ctx: ToolContext): Promise<ToolOutcome> {
   const args = parseArgs(call);
   switch (call.function.name) {
+    case "get_rent_budget":
+      return getRentBudget(ctx);
+    case "get_watch_findings":
+      return getWatchFindings(ctx, args.housingOnly === true);
     case "get_spending":
       return getSpending(args, ctx);
     case "list_bills":

@@ -78,6 +78,63 @@ const optionalRouteCalls = (calls: string[]) => calls.filter((c) => /^GET \/api\
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 async function main() {
+  await group("approval refresh waits for an older list, then reads the newly saved project", async () => {
+    let release: (() => void) | null = null;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    let reads = 0;
+    const fetchImpl = (async () => {
+      reads += 1;
+      const old = reads === 1;
+      if (old) await gate;
+      return new Response(JSON.stringify({ customerId: "C1", watches: old ? [] : [watchJSON], notifications: [], scheduler: "on-open" }),
+        { status: 200, headers: { "Content-Type": "application/json" } });
+    }) as typeof fetch;
+    const store = new ProjectStore("C1", CoachClient.live("", fetchImpl), memoryDefaults());
+    const earlier = store.load();
+    const shared = store.load();
+    const afterApproval = store.load(true);
+    eq(reads, 1, "ordinary readers share the pending list");
+    release!();
+    await Promise.all([earlier, shared, afterApproval]);
+    eq([reads, store.watch("w1")?.actionId], [2, "a1"], "the approval's fresh read exposes Open project without waiting for polling");
+  });
+
+  await group("opening a project reads its saved findings even before the next list refresh", async () => {
+    const server = fakeServer({ newer: true });
+    const fetchImpl = (async (url: RequestInfo | URL, init?: RequestInit) => {
+      const response = await server.fetchImpl(url, init);
+      if (new URL(String(url), "http://x").pathname !== "/api/watch/w1") return response;
+      return new Response(JSON.stringify({ ...(await response.json()), notifications: [findingJSON] }),
+        { status: 200, headers: { "Content-Type": "application/json" } });
+    }) as typeof fetch;
+    const store = new ProjectStore("C1", CoachClient.live("", fetchImpl), memoryDefaults());
+    await store.load();
+    eq(store.findings("w1"), [], "the list predates the finding");
+    const close = store.open("w1");
+    await settle(); await settle();
+    eq(store.findings("w1").map((note) => [note.id, note.simulated, note.listing?.rooms, note.listing?.areaM2]),
+      [["n1", true, 2, 48]], "project detail supplies the saved finding and listing metadata");
+    close();
+  });
+
+  await group("returning immediately from a manual simulation reloads saved findings without another monitoring check", async () => {
+    const server = fakeServer();
+    let simulated = false;
+    const fetchImpl = (async (url: RequestInfo | URL, init?: RequestInit) => {
+      const response = await server.fetchImpl(url, init);
+      if (!simulated || new URL(String(url), "http://x").pathname !== "/api/watch") return response;
+      return new Response(JSON.stringify({ ...(await response.json()), notifications: [{ ...findingJSON, id: "manual-update" }] }),
+        { status: 200, headers: { "Content-Type": "application/json" } });
+    }) as typeof fetch;
+    const store = new ProjectStore("C1", CoachClient.live("", fetchImpl), memoryDefaults(), () => new Date("2026-11-15T09:00:00Z"));
+    await store.refreshOnFocus();
+    const checks = server.calls.filter((call) => call === "POST /api/watch/check").length;
+    simulated = true;
+    await store.refreshOnFocus();
+    eq([store.findings("w1")[0]?.id, server.calls.filter((call) => call === "POST /api/watch/check").length],
+      ["manual-update", checks], "saved simulated finding appears even inside the monitoring throttle interval");
+  });
+
   await group("store on today's backend: list, check, findings, unread, controls hidden", async () => {
     const server = fakeServer();
     const defaults = memoryDefaults();
@@ -207,6 +264,7 @@ async function main() {
   await group("presenter: findings and the housing effect", () => {
     const n = WatchNotification.decode(findingJSON)!;
     eq(FindingText.isSimulated(n), true, "simulated");
+    eq(FindingText.provenance(n, new Date(n.detectedAt!)), "Simulated monitoring update · just now", "manual time jump stays visibly simulated");
     eq(FindingText.listingLine(n.listing, true), "€870 a month · 2 rooms · 48 m² · Tapiola", "listing line");
     eq(FindingText.why(n, true).map((r) => r.value), ["€950 a month", "€30", "about €412"], "why it matters, server figures only");
     const view = HousingText.view(n, true)!;

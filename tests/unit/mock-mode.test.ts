@@ -4,6 +4,7 @@ import { AINO, SANNA, collect, freshState, ofType } from "./helpers";
 import { setMockScript } from "@/lib/agent/mock";
 import { runTurn } from "@/lib/agent/orchestrator";
 import { ensureResearch, waitForUsable } from "@/lib/agent/research";
+const ELECTRICITY_INPUTS = "I use 2000 kWh a year, currently pay 15 c/kWh and a monthly fee of €5.";
 
 // Mock mode is what the frontend teammate builds against, with no keys. It has to exercise every card.
 describe("mock mode: every feature works with no keys and no network", () => {
@@ -42,7 +43,7 @@ describe("mock mode: every feature works with no keys and no network", () => {
     ["I keep running short before payday. What can I spend this week without missing my bills?", "get_cash_flow", /estimated weekly budget until payday .* is about 133\.64 euros/],
     ["What can I spend this week without missing my bills?", "get_cash_flow", /estimated weekly budget/],
     ["Why does my balance go below zero, and how do I stop it?", "get_cash_flow", /went below zero in \d+ of the last 12 months/],
-    ["Find a cheaper plan that meets my needs.", "search_offers", /cheapest|No example offer/],
+    ["Find a cheaper plan that meets my needs.", "search_offers", /supported comparison.*yearly electricity use/i],
     ["What would spending 20% less at restaurants save?", "run_scenario", /20% less on restaurants would free about [\d.]+ euros a month, or [\d.]+ euros a year/],
   ];
   for (const [question, tool, answer] of SUGGESTED) {
@@ -113,13 +114,13 @@ describe("mock mode: every feature works with no keys and no network", () => {
   });
 
   it("search and prepare in one message leaves an action awaiting approval", async () => {
-    const events = await collect(runTurn({ customerId: AINO, text: "Find a cheaper electricity deal and prepare the switch", mode: "text" }));
+    const events = await collect(runTurn({ customerId: AINO, text: `Find a cheaper electricity deal and prepare the switch. ${ELECTRICITY_INPUTS}`, mode: "text" }));
     assert.deepEqual(ofType(events, "tool_end").map((e) => e.trace.name), ["search_offers", "prepare_action"]);
     assert.equal(ofType(events, "action")[0].action.status, "awaiting_approval");
   });
 
   it("an investigation produces every stage, a teaching card and an action to approve", async () => {
-    const events = await collect(runTurn({ customerId: AINO, text: "Investigate", mode: "text", investigate: true }));
+    const events = await collect(runTurn({ customerId: AINO, text: "Investigate", mode: "text", investigate: true, history: [{ role: "user", content: ELECTRICITY_INPUTS }] }));
     assert.deepEqual(ofType(events, "stage").map((e) => e.stage.kind), ["lead", "research", "extraction", "calculation", "impact", "teaching", "action"]);
     assert.equal(ofType(events, "teaching").length, 1);
     assert.equal(ofType(events, "action")[0].action.status, "awaiting_approval");

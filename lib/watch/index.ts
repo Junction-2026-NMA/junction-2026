@@ -11,10 +11,11 @@ import { readPrices } from "@/lib/agent/research/prices";
 import { buildOverview } from "@/lib/finance/overview";
 import { withAudit } from "@/lib/store/audit";
 import { type SisuState, readState, updateState } from "@/lib/store/state";
-import type { AgentAction, Listing, PropertyWatch, WatchCheck, WatchNotification, WatchPlan, WatchedPage } from "@/lib/types";
+import type { AgentAction, PropertyWatch, WatchCheck, WatchNotification, WatchPlan, WatchedPage } from "@/lib/types";
 import { type FitEvent, detectFits, fits, ruleFor, toNotification } from "./detect";
 import { closeMonitors, monitorIdsOf, openMonitors } from "./monitoring";
 import { researchListing } from "./research";
+import { simulatedFinding } from "./simulation";
 
 const MAX_NOTIFICATIONS = 60;
 const REREAD_EVERY_MS = 30 * 60_000; // pages without a monitor are read again at most this often
@@ -37,7 +38,7 @@ export const findWatch = ownWatch;
 const latest = (times: (string | null | undefined)[]): string | null => times.filter((time): time is string => !!time).sort().at(-1) ?? null;
 const earliest = (times: (string | null | undefined)[]): string | null => times.filter((time): time is string => !!time).sort()[0] ?? null;
 // The last time at least one page was read: by Sisu itself, or by a Context.dev monitor that ran without an error.
-export const lastSuccessOf = (pages: WatchedPage[]): string | null => latest(pages.flatMap((page) => [page.lastReadAt, page.monitorId && !page.lastError ? page.monitorLastRunAt : null]));
+export const lastSuccessOf = (pages: WatchedPage[]): string | null => latest(pages.flatMap((page) => [page.listings.length ? page.lastReadAt : null, page.monitorId && !page.lastError ? page.monitorLastRunAt : null]));
 export const nextCheckOf = (pages: WatchedPage[]): string | null => earliest(pages.map((page) => (page.monitorId ? page.monitorNextRunAt : null)));
 const hostOf = (url: string): string => new URL(url).hostname.replace(/^www\./, "");
 
@@ -56,7 +57,7 @@ export async function startWatch(customerId: string, action: AgentAction, now: D
     listings: plan.seen.filter((listing) => listing.pageUrl === url),
     lastReadAt: action.createdAt,
     lastChangeAt: null,
-    lastError: opened.errors[index],
+    lastError: opened.errors[index] ?? (plan.seen.length ? null : "No listings could be verified when the project was prepared."),
     title: plan.titles?.[url] ?? action.sources.find((source) => source.url === url)?.title ?? null,
   }));
   const watch: PropertyWatch = {
@@ -74,10 +75,10 @@ export async function startWatch(customerId: string, action: AgentAction, now: D
     searchMonitorId: opened.searchMonitorId,
     createdAt: now.toISOString(),
     lastCheckedAt: null,
-    problems: opened.problems,
+    problems: [...opened.problems, ...(plan.seen.length ? [] : ["The source URLs were found, but no initial listing could be verified. Matching homes are unknown until a page can be read."])],
     goal: plan.goal ?? null,
     requirements: plan.requirements ?? {},
-    lastSuccessAt: action.createdAt, // the pages were read when the watch was prepared
+    lastSuccessAt: plan.seen.length ? action.createdAt : null, // sources-only projects have no successful listing read yet
     nextCheckAt: null, // known once Context.dev reports it on the first check
     visitorSeenAt: now.toISOString(),
     pausedAt: null,
@@ -209,18 +210,10 @@ export function simulatePriceDrop(customerId: string, watchId: string, now: Date
   const overview = buildOverview(customerId);
   if (!watch || !overview) return { ok: false, status: 404, reason: "We could not find that watch." };
   if (watch.status !== "active") return { ok: false, status: 409, reason: "This watch has been stopped." };
-  const enoughRooms = (listing: Listing): boolean => watch.minRooms === null || (listing.rooms ?? 0) >= watch.minRooms;
-  // The cheapest watched flat that is over the budget, wherever it is listed.
-  const target = watch.pages.flatMap((candidate) => candidate.listings).filter((listing) => listing.priceEur > watch.budgetEur && enoughRooms(listing)).sort((a, b) => a.priceEur - b.priceEur)[0];
-  const page = target ? watch.pages.find((candidate) => candidate.listings.includes(target)) : undefined;
-  if (!page || !target) return { ok: false, status: 409, reason: "Nothing being watched is over the limit, so there is no price to drop." };
-  const already = listNotifications(customerId).find((note) => note.simulated && note.watchId === watch.id && listingKey(note.listing) === listingKey(target));
+  const event = simulatedFinding(watch, now);
+  if (!event) return { ok: false, status: 409, reason: "No simulated finding can meet this project's requirements." };
+  const already = listNotifications(customerId).find((note) => note.simulated && note.watchId === watch.id && listingKey(note.listing) === listingKey(event.listing) && note.listing.priceEur === event.listing.priceEur);
   if (already) return { ok: true, notification: already };
-
-  const droppedTo = Math.floor((watch.budgetEur * 0.97) / 5) * 5;
-  const pretend = page.listings.map((listing) => (listing === target ? { ...listing, priceEur: droppedTo } : listing));
-  const [event] = detectFits(page.listings, pretend, ruleFor(watch));
-  if (!event) return { ok: false, status: 409, reason: "The simulated price did not come in under the budget." };
   const notification = toNotification(watch, overview, event, "simulation", now);
   record(watch, watch, [notification], null, now);
   return { ok: true, notification };

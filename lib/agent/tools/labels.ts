@@ -8,6 +8,10 @@ export function activityLabel(call: ToolCall): string {
   const args = parseArgs(call);
   const text = (key: string): string | null => (typeof args[key] === "string" && args[key] ? String(args[key]).slice(0, 80) : null);
   switch (call.function.name) {
+    case "get_rent_budget":
+      return "Working out affordable rent from your financial data";
+    case "get_watch_findings":
+      return "Reading your saved project findings";
     case "get_spending":
       return `Adding up your ${(text("merchantType") ?? text("category") ?? "spending").toLowerCase()} from ${text("from") ?? "the start"} to ${text("to") ?? "today"}`;
     case "list_bills":

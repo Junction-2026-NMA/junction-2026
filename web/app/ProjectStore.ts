@@ -75,6 +75,7 @@ export class ProjectStore extends Store<ProjectsState> {
   private lastFocusCheck = 0;
   private routesKnown = false;
   private healthAsked = false;
+  private loadingList: Promise<void> | null = null;
   /** Watch ids open on screen, with how many screens show each. */
   private readonly opened = new Map<string, number>();
   private readonly onVisible = () => { if (this.visible()) void this.refreshOnFocus(); };
@@ -136,19 +137,28 @@ export class ProjectStore extends Store<ProjectsState> {
     if (typeof window !== "undefined") window.removeEventListener("focus", this.onVisible);
   }
 
-  /** Load, then check when a project is active; at most once per FOCUS_GAP_MS. */
+  /** Always reload saved findings on return (including a manual demo update in another tab). Only the external
+   *  monitoring check is throttled, so a quick return cannot hide an already saved finding. */
   async refreshOnFocus(): Promise<void> {
     const at = this.now().getTime();
-    if (at - this.lastFocusCheck < FOCUS_GAP_MS) return;
-    this.lastFocusCheck = at;
+    const due = at - this.lastFocusCheck >= FOCUS_GAP_MS;
+    if (due) this.lastFocusCheck = at;
     await this.load();
-    if (this.hasActive) await this.check();
+    if (due && this.hasActive) await this.check();
   }
 
   // MARK: Reading
 
-  async load(): Promise<void> {
-    if (this.state.loading) return;
+  load(afterChange = false): Promise<void> {
+    // An approval must read after any older list request settles; otherwise that older response can hide the
+    // project that was just created. Ordinary readers share the request already in flight.
+    if (this.loadingList) return afterChange ? this.loadingList.then(() => this.load()) : this.loadingList;
+    const pending = this.readList().finally(() => { if (this.loadingList === pending) this.loadingList = null; });
+    this.loadingList = pending;
+    return pending;
+  }
+
+  private async readList(): Promise<void> {
     this.update({ loading: true });
     try {
       const list = await this.client.watchList(this.state.customerId);
@@ -211,6 +221,8 @@ export class ProjectStore extends Store<ProjectsState> {
       const watch = project.watch;
       this.update({
         matches: { ...this.state.matches, [id]: project.currentMatches },
+        notifications: [...this.state.notifications.filter((note) => note.watchId !== id), ...project.notifications]
+          .sort((a, b) => (b.detectedAt ?? "").localeCompare(a.detectedAt ?? "")),
         ...(watch && watch.id === id ? { watches: this.state.watches.map((w) => (w.id === id ? watch : w)) } : {}),
       });
     } catch (error) {

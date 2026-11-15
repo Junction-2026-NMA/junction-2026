@@ -201,7 +201,7 @@ export const FindingText = {
 
   /** "Context.dev monitor · today at 14:05" (or "Simulated for the demo · …"). */
   provenance(n: WatchNotification, now: Date = new Date()): string {
-    const by = FindingText.isSimulated(n) ? "Made up by the demo button"
+    const by = FindingText.isSimulated(n) ? "Simulated monitoring update"
       : n.detectedBy === "context.dev monitor" ? "Found by a Context.dev monitor"
         : n.detectedBy === "context.dev re-read" ? "Found when Sisu re-read the page" : "Found by Sisu";
     return n.detectedAt ? `${by} · ${ProjectText.when(n.detectedAt, now)}` : by;

@@ -22,6 +22,7 @@ import { failure } from "./tools/types";
 import { FORGED_NOTE, looksForged } from "./tools/untrusted";
 import { listNotifications, listWatches, watchSubject } from "@/lib/watch";
 import { fact } from "@/lib/finance/facts";
+import { firstToolFor } from "./intents";
 
 const MAX_MODEL_STEPS = { chat: 6, investigate: 10 };
 const MAX_GUARD_RETRIES = 2; // how many times one turn may be sent back to redo a step
@@ -143,11 +144,13 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
   // The same goes for an open request for advice: it starts with a look through their history.
   // A message dressed up as a tool result gets no web search or sums to build on its made-up figures.
   const offered = forged ? TOOL_SCHEMAS.filter((schema) => schema.function.name !== "web_search" && schema.function.name !== "calculate") : TOOL_SCHEMAS;
+  const initialTool = investigate || forged ? null : firstToolFor(request.text, history);
   const firstMove = investigate || forged ? null : asksToMoveMoney(request.text) ? "prepare_action" : asksForChart(request.text) ? "show_chart" : asksForAdvice(request.text) ? "find_patterns" : null;
-  let forceToolNext: boolean | string = firstMove ?? false;
+  let forceToolNext: boolean | string = initialTool?.function.name ?? firstMove ?? false;
   let nudges = 0;
   let offerFound = false;
   let researched = false;
+  let directAnswer: string | null = null;
   // What this turn did, for the follow-up buttons under the answer.
   let lastAction: AgentAction | null = null;
   let lastResearch: ResearchResult | null = null;
@@ -213,7 +216,10 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
       let muted = false;
       guard.accepted = [];
 
-      for await (const chunk of streamChat({
+      // These intents have unambiguous inputs from the customer's own words. Execute the
+      // first tool ourselves: some model hosts ignore tool_choice, which used to lose watches.
+      if (step === 0 && initialTool) toolCalls = [initialTool];
+      else for await (const chunk of streamChat({
         messages,
         tools: isLastStep ? [] : offered, // the last step must answer in words
         maxTokens: investigate ? MAX_TOKENS.investigate : MAX_TOKENS[request.mode],
@@ -245,6 +251,9 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
           timings.modelSteps = [...timings.modelSteps, { model: chunk.model, provider: chunk.provider, usedBackup: chunk.usedBackup, firstTokenMs: chunk.firstTokenMs, totalMs: chunk.totalMs }];
         }
       }
+      if (step === 0 && initialTool) toolCalls = toolCalls.map(call => call.function.name === initialTool.function.name
+        ? { ...call, function: { ...call.function, arguments: JSON.stringify({ ...parseArgs(call), ...parseArgs(initialTool) }) } }
+        : call);
       forceToolNext = false;
       if (!guard.trip) yield* emitSentences(splitter.flush()); // the last sentence of the step is checked too
 
@@ -329,6 +338,7 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
         citations.push(...outcome.citations.filter((c) => !citations.some((seen) => seen.url === c.url)));
         toolFacts.push(...outcome.facts);
         toolContents.push(outcome.content);
+        if (outcome.directAnswer) directAnswer = outcome.directAnswer;
         if (outcome.research) {
           providerNames.push(...outcome.research.offers.map((offer) => offer.provider));
           researched = true;
@@ -354,6 +364,16 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
       }
       // Tool results go back in the order the model asked for them.
       messages.push(...toolCalls.map((call): ChatMessage => ({ role: "tool", tool_call_id: call.id, content: results.get(call.id)?.content ?? "{}" })));
+      if (directAnswer) {
+        answer = directAnswer;
+        // Saved findings have already been checked by the watch rule. Their fields, labels and
+        // source must survive verbatim rather than becoming a model's refusal or invented search.
+        timings.firstTokenMs ??= sinceStart();
+        timings.firstSentenceMs ??= sinceStart();
+        yield { type: "delta", text: directAnswer };
+        yield { type: "sentence", index: sentenceIndex++, text: request.mode === "voice" ? forSpeech(directAnswer) : directAnswer };
+        break;
+      }
       if (stepText.trim()) messages.push({ role: "user", content: "(Note from the app: the customer has already heard what you said before the tool ran. Do not repeat it. Carry on from the result.)" });
     }
 

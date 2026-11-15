@@ -102,6 +102,7 @@ function wordAnswer(results: { name: string; body: Json }[], question = ""): str
   if (patterns) parts.push(`The thing that stands out most: ${String(patterns.what)}.`);
   if (best) parts.push(`${String(best.provider)} looks cheapest at about ${best.estimatedMonthlyCostEur} euros a month, saving about ${best.estimatedYearlySavingEur} euros a year against your bill of ${offers?.currentBillMonthlyEur} euros a month. These are example offers, not live prices.`);
   else if (offers && typeof offers.note === "string" && offers.note.includes("No matching options found")) parts.push(`No matching options found for ${String(offers.requirements)}. Want me to widen it, or look further?`);
+  else if (offers?.comparisonSupported === false) parts.push(`The example offers are on screen. To calculate a supported comparison, please give ${((offers.stillToConfirm as string[] | undefined) ?? []).join(", ")}.`);
   else if (offers) parts.push("No example offer is cheaper than your current bill.");
   const flats = of("search_flats") ?? of("search_prices");
   if (flats && typeof flats.watch === "string") {
@@ -139,7 +140,10 @@ function wordAnswer(results: { name: string; body: Json }[], question = ""): str
   if (of("remember")?.saved) parts.push("I will remember that. You can ask me to forget it at any time.");
   if (of("prepare_action")?.prepared) parts.push("I have prepared it for you to review. Nothing happens until you tap Approve, and even then it is a simulation.");
   const lesson = of("explain_concept");
-  if (lesson) parts.push(`${String(lesson.idea)} ${String(lesson.questionToAsk)}`);
+  if (lesson) {
+    const personal = lesson.personalContext as Json | undefined;
+    parts.push(`${String(lesson.idea)}${personal ? ` Your essentials average €${personal.essentialsPerMonthEur} a month, so three months is €${personal.threeMonthBufferEur}.` : ""} ${String(lesson.questionToAsk)}`);
+  }
   const failed = results.find((r) => typeof r.body.error === "string");
   if (!parts.length && failed) parts.push(`I could not do that: ${String(failed.body.error)}`);
   return `Mock answer. ${parts.join(" ") || "Done."}`;
@@ -171,7 +175,7 @@ export async function* scriptedMockModel(options: StreamOptions): AsyncGenerator
     if (clarify) return yield* speak(clarify);
     const tool = firstTool(question);
     if (tool) return yield* callTool(tool[0], tool[1]);
-  } else if (canCallTools && called.length === 1 && called[0] === "search_offers" && /prepare|switch me|set (it|that) up|go ahead/i.test(question)) {
+  } else if (canCallTools && called.length === 1 && called[0] === "search_offers" && (/prepare|switch me|set (it|that) up|go ahead/i.test(question) || results.some(r => r.name === "search_offers" && r.body.comparisonSupported === true && r.body.best))) {
     return yield* callTool("prepare_action", { kind: "switch_contract", billType: "electricity" });
   }
 

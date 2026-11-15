@@ -4,7 +4,7 @@
 // One builder for both kinds: flats to rent (a rent per month) and anything else with a price (paid once).
 // Since 15 Nov the card is a Project proposal: it carries the goal and requirements, asks for consent in plain
 // words, says exactly what will run (lib/watch/scheduler.ts), and for flats shows the total effect of the nearest one.
-import type { ListingSearch } from "@/lib/agent/research/listings";
+import { LISTING_SITES, type ListingSearch } from "@/lib/agent/research/listings";
 import { checkAffordability } from "@/lib/finance/affordability";
 import { buildCashFlow } from "@/lib/finance/cashflow";
 import { fact } from "@/lib/finance/facts";
@@ -32,6 +32,24 @@ function describeRequirements(req: WatchRequirements): string[] {
 }
 
 const ONE_OFF_LIMITS: [number, number] = [5, 100_000];
+
+// A live search can find rental sources even when Context.dev cannot extract listings today. Monitoring those
+// real source URLs is still useful, but they must never be described as pages successfully read or priced.
+export function pagesForWatch(search: ListingSearch, housing: boolean): ListingSearch["pages"] {
+  if (search.pages.length) return search.pages;
+  if (!housing) return [];
+  const seen = new Set<string>();
+  return search.found.flatMap((page): ListingSearch["pages"] => {
+    try {
+      const url = new URL(page.url);
+      const allowed = (url.protocol === "https:" || url.protocol === "http:") && !url.username && !url.password
+        && LISTING_SITES.some(site => url.hostname === site || url.hostname.endsWith(`.${site}`));
+      if (!allowed || seen.has(url.href)) return [];
+      seen.add(url.href);
+      return [{ url: url.href, title: page.title, listings: [], dropped: 0, cacheAgeMs: null, tookMs: 0, mock: search.mock }];
+    } catch { return []; }
+  }).slice(0, 3);
+}
 
 // The limit the customer gave, checked against their own figures: a warning to show, and the receipts behind it.
 function checkLimit(overview: Overview, budget: number, monthly: boolean): { warning: string | null; facts: Fact[] } {
@@ -63,17 +81,19 @@ export function buildWatchDraft(customerId: string, request: WatchRequest): Draf
   const { city, minRooms, search } = request;
   const topic = request.topic ?? null;
   const monthly = topic === null;
+  const pages = pagesForWatch(search, monthly);
+  const initiallyUnread = search.pages.length === 0;
   const budget = Math.round(request.budgetEur);
   const limits = monthly ? RENT_BUDGET_LIMITS : ONE_OFF_LIMITS;
   if (!Number.isFinite(budget) || budget < limits[0] || budget > limits[1]) return { ok: false, status: 400, reason: `${monthly ? "A monthly rent budget" : "A price to watch for"} must be between €${limits[0]} and €${limits[1].toLocaleString("en-US")}.` };
-  if (!search.pages.length) return { ok: false, status: 409, reason: "No page could be read just now, so there is nothing to watch yet. Try the search again." };
+  if (!pages.length) return { ok: false, status: 409, reason: monthly ? "No valid rental source URLs were found, so there is nothing to watch yet. Try the search again." : "No page could be read just now, so there is nothing to watch yet. Try the search again." };
   const subject = topic ?? `flats in ${city}`;
   const existing = activeWatch(customerId, { city, topic, budgetEur: budget });
   if (existing) return { ok: false, status: 409, reason: existing.status === "paused" ? `You already have a paused project for ${subject} at €${budget} or less: resume it instead.` : `Sisu is already watching ${subject} at €${budget} or less.` };
   const requirements = request.requirements ?? {};
 
   const unit = monthly ? ("EUR/month" as const) : ("EUR" as const);
-  const seen = search.pages.flatMap((page) => page.listings);
+  const seen = pages.flatMap((page) => page.listings);
   const rule = ruleFor({ budgetEur: budget, minRooms, topic, requirements: monthly ? requirements : null });
   const fitting = seen.filter((listing) => fits(listing, rule));
   // The nearest miss: the cheapest thing read that is a real candidate (enough rooms, not an accessory).
@@ -94,15 +114,15 @@ export function buildWatchDraft(customerId: string, request: WatchRequest): Draf
       summary: [
         ask,
         request.goal ? `Goal: ${request.goal}${/[.!?]$/.test(request.goal) ? "" : "."}` : null,
-        `${fitting.length ? `${fitting.length} of the ${seen.length} ${things} read today fit` : `None of the ${seen.length} ${things} read today fit`} (${what}${extra.length ? `; ${extra.join("; ")}` : ""}).`,
+        initiallyUnread ? "Exa found these rental source pages, but no listing could be verified with Context.dev yet. Whether any home fits is unknown; approval starts monitoring the source pages." : `${fitting.length ? `${fitting.length} of the ${seen.length} ${things} read today fit` : `None of the ${seen.length} ${things} read today fit`} (${what}${extra.length ? `; ${extra.join("; ")}` : ""}).`,
         housing && nearest ? `${fitting.length ? "The cheapest that fits" : "The nearest"}, ${nearest.title}: ${housing.sentence}` : null,
-        `${monitoringSentence(search.pages.length, !search.mock)}${search.mock ? " (Example data here: no key is set, so nothing is watched on the web.)" : ""}`,
+        `${monitoringSentence(pages.length, !search.mock)}${search.mock ? " (Example data here: no key is set, so nothing is watched on the web.)" : ""}`,
         `Nothing is ${monthly ? "rented, booked" : "bought, ordered"} or paid, and no one is contacted. You can pause or stop it at any time.`,
       ]
         .filter(Boolean)
         .join(" "),
       checklist: [
-        `Approve, and Sisu starts watching ${search.pages.map((page) => new URL(page.url).hostname.replace(/^www\./, "")).join(", ")}.`,
+        `Approve, and Sisu starts watching ${pages.map((page) => new URL(page.url).hostname.replace(/^www\./, "")).join(", ")}.`,
         `When a page changes, Sisu reads it again and compares each ${monthly ? "rent" : "price"} with your limit in code.`,
         `A finding appears in the project only when ${monthly ? "a flat meets your requirements" : "an offer fits"}, and only once per ${monthly ? "flat" : "offer"} and price. Check its own page before you ${monthly ? "contact anyone" : "buy"}.`,
         "Pause or stop it whenever you like; its monitors are removed. It also stops by itself if the app has not checked in for 14 days.",
@@ -111,8 +131,8 @@ export function buildWatchDraft(customerId: string, request: WatchRequest): Draf
       billType: null,
       offer: null,
       monthlyAmountEur: 0, // a watch frees no money; the limit is in watch.budgetEur (the budget here showed up as "€700 a month freed")
-      warning: checked.warning,
-      watch: { city, topic, priceUnit: unit, budgetEur: budget, minRooms, urls: search.pages.map((page) => page.url), seen, goal: request.goal ?? null, requirements: monthly ? requirements : {}, titles: Object.fromEntries(search.pages.map((page) => [page.url, page.title])) },
+      warning: [initiallyUnread ? `No listing could be verified yet: ${search.errors[0] ?? "the source pages could not be read"}. No live rent or matching home is claimed.` : null, checked.warning].filter(Boolean).join(" ") || null,
+      watch: { city, topic, priceUnit: unit, budgetEur: budget, minRooms, urls: pages.map((page) => page.url), seen, goal: request.goal ?? null, requirements: monthly ? requirements : {}, titles: Object.fromEntries(pages.map((page) => [page.url, page.title])) },
       facts: [
         fact("watch:budget", monthly ? "Your rent budget per month" : "The price you set", budget, unit, "the figure you gave", { source: "customer-stated" }),
         fact("watch:read", `${monthly ? "Flats" : "Offers"} read from the pages today`, seen.length, "count", `read with Context.dev at ${search.retrievedAt}`, { source: "context.dev" }),
@@ -122,9 +142,9 @@ export function buildWatchDraft(customerId: string, request: WatchRequest): Draf
         ...checked.facts,
         ...(housing ? housing.facts : []),
       ],
-      sources: search.pages.map((page) => ({ title: page.title, url: page.url, retrievedAt: search.retrievedAt, cacheAgeMs: page.cacheAgeMs, readBy: "context.dev" as const })),
+      sources: pages.map((page) => ({ title: page.title, url: page.url, retrievedAt: search.retrievedAt, cacheAgeMs: page.cacheAgeMs, readBy: initiallyUnread ? "exa" as const : "context.dev" as const })),
       assumptions: [
-        `${monthly ? "Rents" : "Prices"} are as the pages state them; Sisu has not checked them with the ${monthly ? "landlord" : "seller"}.`,
+        initiallyUnread ? "Only the source URLs were retrieved by Exa. No live listing, rent, room count or availability could be verified." : `${monthly ? "Rents" : "Prices"} are as the pages state them; Sisu has not checked them with the ${monthly ? "landlord" : "seller"}.`,
         monthly ? "Housing today and what a month leaves over are 12-month averages from your bank data." : `An offer under €${Math.round(rule.floorEur ?? 0)} is taken to be a part or an accessory and is not reported.`,
         ...(search.errors.length ? [`Not every page could be read: ${search.errors.join("; ")}.`] : []),
         ...(housing ? [...housing.assumptions.slice(1), ...housing.missing.map((gap) => `Missing: ${gap}`)] : []),

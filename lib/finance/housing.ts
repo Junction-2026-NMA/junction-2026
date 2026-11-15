@@ -55,7 +55,10 @@ export function housingEffect(overview: Overview, listing: ListingFacts, require
 
   const monthly = knownChange === 0 ? "the same as your housing today" : `${eur(Math.abs(knownChange))} a month ${knownChange > 0 ? "more" : "less"} than your housing today`;
   const upfrontText = range.low === range.high ? `${eur(range.low)} upfront` : `${eur(range.low)} to ${eur(range.high)} upfront${assumed ? " (the deposit is assumed)" : ""}`;
-  const sentence = `Rent ${eur(rent)} is ${monthly}${utilities === null ? " (water and other charges not stated)" : ", charges included"}; an average month would leave ${leftOverAfter < 0 ? `${eur(-leftOverAfter)} short` : `about ${eur(leftOverAfter)} over`}. Moving in would take ${upfrontText}.`;
+  const upfrontSentence = moving === null
+    ? `The deposit is ${deposit === null ? `${eur(range.low)} to ${eur(range.high)} (assumed, not stated on the listing)` : eur(deposit)}; moving costs are still unknown.`
+    : `Moving in would take ${upfrontText}.`;
+  const sentence = `Rent ${eur(rent)} is ${monthly}${utilities === null ? " (water and other charges not stated)" : ", charges included"}; an average month would leave ${leftOverAfter < 0 ? `${eur(-leftOverAfter)} short` : `about ${eur(leftOverAfter)} over`}. ${upfrontSentence}`;
 
   const url = listing.url ? { url: listing.url } : {};
   const facts: Fact[] = [

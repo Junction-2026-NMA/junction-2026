@@ -98,7 +98,7 @@ describe("search_offers and prepare_action carry the requirements (mock offers: 
   beforeEach(() => void freshState());
 
   it("every card from the search agrees: best, stages, chart and the words for the model", async () => {
-    const result = await executeTool(toolCall("search_offers", { billType: "electricity", yearlyKwh: 3000, maxContractMonths: 12 }), context(["I use 3000 kWh. Find electricity, 12 months or less"]));
+    const result = await executeTool(toolCall("search_offers", { billType: "electricity", yearlyKwh: 3000, maxContractMonths: 12 }), context(["I use 3000 kWh a year, currently pay 15 c/kWh with a monthly fee of €5. Find electricity, 12 months or less"]));
     const research = result.research as ResearchResult;
     assert.equal(research.best?.contractMonths, 12);
     assert.ok(research.offers.filter((o) => o.meetsRequirements === false).every((o) => o.provider !== research.best?.provider));
@@ -109,7 +109,7 @@ describe("search_offers and prepare_action carry the requirements (mock offers: 
     const content = JSON.parse(result.content) as { requirements: string; best: { provider: string } | null; stillToConfirm?: string[] };
     assert.equal(content.requirements, "contract of 12 months or less");
     assert.equal(content.best?.provider, research.best?.provider);
-    assert.ok(content.stillToConfirm?.some((line) => /price per kWh and monthly fee/.test(line)), "electricity: the current tariff is still to be confirmed");
+    assert.ok(!content.stillToConfirm?.some((line) => /price per kWh and monthly fee/.test(line)), "the current tariff was given, so it is not asked again");
     assert.ok(!content.stillToConfirm?.some((line) => /yearly electricity use/.test(line)), "the use was given, so it is not asked again");
     assert.equal(research.bill?.confirmed, false, "the bill name is a guess");
   });

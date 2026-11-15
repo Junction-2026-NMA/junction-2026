@@ -9,7 +9,7 @@
 // Every figure and sentence comes from the payload through AnswerPresenter / SisuCore presenters.
 import { useMemo } from "react";
 import type { AgentAction, TeachingCard } from "@/web/core/CoachModels";
-import { useCoachSessionState } from "@/web/app/AppProvider";
+import { useAppModel, useCoachSessionState } from "@/web/app/AppProvider";
 import { AnswerPresenter, CardText, messageActions } from "@/web/core/AnswerPresentation";
 import { StagePresenter } from "@/web/core/CoachPresentation";
 import type { CoachMessage } from "@/web/core/CoachSession";
@@ -45,6 +45,9 @@ export function AssistantAnswer({ message, actions, retry, isNew }: {
   const stage = message.pending ? StagePresenter.researchStage(message) : null;
   const anchor = (suffix: string) => `${message.id}-${suffix}`;
   const teaching = teachingCard(message);
+  const model = useAppModel();
+  const pathLesson = teaching?.concept === "buffer-first" || /\bbuffer\b/i.test(question) ? "Buffer before investing"
+    : teaching?.concept === "fixed-vs-spot" || (/\bfixed\b/i.test(question) && /\bspot\b/i.test(question)) ? "Fixed price or spot price" : null;
   const own = messageActions(message).map((action) => actions.find((one) => one.id === action.id) ?? action);
   const remembered = [
     ...message.stages.flatMap((one) => (one.data.kind === "memory" ? [one.data.item] : [])),
@@ -86,6 +89,9 @@ export function AssistantAnswer({ message, actions, retry, isNew }: {
         <div data-anchor={anchor("quiz")} className={enter(`${message.id}/quiz`)}>
           <QuizCard card={teaching} askedInText={endsWithQuestion(message.text, teaching.question)} />
         </div>
+      ) : null}
+      {pathLesson && !message.pending && !message.error ? (
+        <SisuButton label={`Continue Path: ${pathLesson}`} style="secondary" action={() => model.setTab("path")} />
       ) : null}
       {own.map((action) => (
         <div key={action.id} data-anchor={anchor("action")} className={enter(`${message.id}/action/${action.id}`)}>

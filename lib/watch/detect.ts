@@ -92,7 +92,7 @@ function findingSummary(parts: SummaryParts): string {
     details ? `${details}.` : null,
     parts.effect,
     parts.unchecked.length ? `Not on the page, so not checked: ${parts.unchecked.join(", ")}.` : null,
-    parts.simulated ? "Simulated for the demo: the page did not really change." : `Check the ${monthly ? "listing" : "offer"}'s own page before you act: Sisu read it, it did not contact anyone.`,
+    parts.simulated ? `Simulated monitoring update. Simulated for the demo: the page did not really change. Source reference: ${new URL(listing.url).hostname.replace(/^www\./, "")}; this simulated price is not a live offer.` : `Check the ${monthly ? "listing" : "offer"}'s own page before you act: Sisu read it, it did not contact anyone.`,
   ]
     .filter(Boolean)
     .join(" ");

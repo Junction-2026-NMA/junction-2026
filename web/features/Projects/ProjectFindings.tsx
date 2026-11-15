@@ -84,10 +84,10 @@ function Finding({ finding, rent, isNew }: { finding: WatchNotification; rent: b
   const line = FindingText.listingLine(finding.listing, rent);
 
   return (
-    <article className="sisu-project-finding sisu-project-enter" data-new={isNew ? "true" : "false"}>
+    <article id={`sisu-finding-${finding.id}`} tabIndex={-1} className="sisu-project-finding sisu-project-enter" data-new={isNew ? "true" : "false"}>
       <div className="sisu-project-chips">
         {isNew ? <Chip tone="new">New</Chip> : null}
-        {simulated ? <Chip tone="simulated">Simulated for the demo</Chip> : null}
+        {simulated ? <Chip tone="simulated">Simulated monitoring update</Chip> : null}
         <Chip tone="plain">{finding.kind === "price_drop" ? "Price dropped" : "New listing"}</Chip>
       </div>
       <h3 className="sisu-project-h3">{FindingText.title(finding)}</h3>

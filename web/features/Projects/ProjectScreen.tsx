@@ -21,6 +21,8 @@ import "./projects.css";
 export interface ProjectScreenProps {
   /** The watch id (`PropertyWatch.id`). */
   id: string;
+  /** A saved notification opens this finding after its project has loaded. */
+  findingId?: string | null;
   onClose: () => void;
 }
 
@@ -29,16 +31,25 @@ const LOGO = '[data-testid="history.open"]';
 /** The mock tag already says it on the head card. */
 const isExampleNote = (line: string) => /^example data\b/i.test(line.trim());
 
-export function ProjectScreen({ id, onClose }: ProjectScreenProps) {
+export function ProjectScreen({ id, findingId, onClose }: ProjectScreenProps) {
   const { store, state } = useProjects();
   const watch = state?.watches.find((w) => w.id === id) ?? null;
   const fresh = useFreshFindings(store, state, id);
   const title = useRef<HTMLHeadingElement | null>(null);
+  const focusedFinding = useRef<string | null>(null);
   const ready = !!watch || (!!state?.loaded && !watch);
   useEffect(() => (store ? store.open(id) : undefined), [store, id]);
   useEffect(() => {
     if (ready) title.current?.focus({ preventScroll: true });
   }, [ready, id]);
+  useEffect(() => {
+    if (!findingId || focusedFinding.current === `${id}:${findingId}`) return;
+    const finding = document.getElementById(`sisu-finding-${findingId}`);
+    if (!finding) return;
+    focusedFinding.current = `${id}:${findingId}`;
+    finding.focus({ preventScroll: true });
+    finding.scrollIntoView({ block: "start", behavior: "auto" });
+  }, [id, findingId, state?.notifications]);
 
   const back = () => {
     onClose();

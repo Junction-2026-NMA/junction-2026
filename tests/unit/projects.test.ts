@@ -52,6 +52,8 @@ describe("the housing effect of a listing is worked out in code, and nothing unk
     assert.deepEqual([effect.recurring.utilitiesChangeEur, effect.recurring.transportChangeEur, effect.upfront.depositEur, effect.upfront.movingCostEur], [null, null, null, null]);
     assert.deepEqual(effect.upfront.depositAssumedEur, { low: 940, high: 2_820 });
     assert.deepEqual(effect.upfront.rangeEur, { low: 940, high: 2_820 });
+    assert.match(effect.sentence, /moving costs are still unknown/);
+    assert.doesNotMatch(housingEffect(overview, flat({ depositEur: 0 })).sentence, /Moving in would take €0 upfront/);
     assert.match(effect.assumptions.join(" "), /Assumption, not from the listing: deposits are usually 1 to 3 months' rent/);
     for (const gap of [/Water and other monthly charges/, /Transport after the move/, /The deposit/, /Moving costs/, /keep in the account/]) assert.match(effect.missing.join(" "), gap);
     assert.ok(effect.facts.filter((fact) => fact.source === "assumption").every((fact) => /assumption/.test(fact.label)));
