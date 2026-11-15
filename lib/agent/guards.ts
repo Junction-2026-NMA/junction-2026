@@ -70,7 +70,26 @@ const ASKS_FOR_INPUTS = /\bif you (tell|give|share|let) me\b[^.!]*\b(i can|i cou
 // savings", "can you invest my 1,000". Not a what-if ("what if I invest 100 a month?").
 const MOVE = /\binvest\b|\b(transfer|move|put|send|set aside)\b[^.?!]*\b(savings?|investments?|invest|funds?|stocks?|shares)\b/i;
 const WHAT_IF = /\b(what if|how much|what would|what happens|should i|is it|would it|if i (had|were|invest(ed)?|sav(e|ed)|put))\b/i;
+// A conversation about a home: renting, a flat, its size, moving out. A savings figure said here ("keep €100 a month
+// for savings") is a requirement on the rent, never an instruction to move money (v3, 15 Nov).
+const HOUSING = /\b(rent|renting|rental|flats?|apartments?|houses?|housing|studios?|landlord|listings?|move out|moving out|square met(re|er)s?|m²|m2)\b|asun|vuokr|muuttaa|muutto|neliö|bostad|hyr(a|es|or)|lägenhet/i;
+// "Move to Espoo", "moving to a bigger place": a move of home, not of money (case-sensitive: a place name).
+const MOVING_HOME = /\bmov(e|ing) (to|into) (a |an |the |my )?((bigger|larger|smaller|cheaper|new) )?(place|home|flat|house|apartment|city)\b|\b[Mm]ov(e|ing) to [A-ZÅÄÖ]/;
+const isHousing = (text: string): boolean => HOUSING.test(text) || MOVING_HOME.test(text);
+export const aboutHousing = (texts: string[]): boolean => texts.some(isHousing);
+// Did the customer explicitly ask for money to be moved or a transfer to be set up? "Keep €100 a month for savings"
+// is not such a request: it names an amount and savings but asks for nothing to move.
+const TRANSFER_REQUEST: RegExp[] = [
+  /\btransfer\b|\bstanding order\b|\bautomatic (saving|transfer)s?\b|\binvest\b/i,
+  /\b(move|send|put|pay|set up|add)\b[^.?!]*\b(\d|money|euros?|€|it|that)[^.?!]*\b(to|into|in|for)\b[^.?!]*\b(savings?|investments?|investment account)\b/i,
+  /\bset (up )?(a |an |the )?(monthly |regular )?(transfer|saving|savings)\b|\bset (it|that|this) up\b/i,
+  /siirr|siirto|säästösiirto|säästä automaattisesti/i,
+  /för(a)? över|överför/i,
+];
+export const asksForTransfer = (text: string): boolean => TRANSFER_REQUEST.some((pattern) => pattern.test(text));
+
 export function asksToMoveMoney(text: string): boolean {
+  if (isHousing(text)) return false;
   const hasAmount = /\d[\d ,.]*\d|\d/.test(text) && [...text.replace(/(\d)[ ,](\d{3})\b/g, "$1$2").matchAll(/\d+(?:\.\d+)?/g)].some((match) => Number(match[0]) >= 5);
   return hasAmount && MOVE.test(text) && !WHAT_IF.test(text);
 }

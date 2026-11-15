@@ -13,6 +13,11 @@ import { prefersReducedMotion } from "@/web/theme/motion";
 import { SisuCard } from "@/web/shared/SisuStyle";
 import { Chevron, Chip, ExternalLink, Note } from "./ProjectParts";
 import { ProjectFindings } from "./ProjectFindings";
+import { HowSisuFound } from "./HowSisuFound";
+import { ListingResults } from "./ListingResults";
+import { CheckFrequency } from "./ProjectJourney";
+import { ProjectDemo } from "./ProjectDemo";
+import { PushControl } from "./PushControl";
 import { ProjectRequirements } from "./ProjectRequirements";
 import { ProjectText } from "./ProjectPresenter";
 import { useProjects } from "./useProjects";
@@ -36,6 +41,13 @@ export function ProjectScreen({ id, onClose }: ProjectScreenProps) {
   const title = useRef<HTMLHeadingElement | null>(null);
   const ready = !!watch || (!!state?.loaded && !watch);
   useEffect(() => (store ? store.open(id) : undefined), [store, id]);
+  // While the first search runs on the server, look again every 5 s (it also runs if the app is closed).
+  const researching = watch?.initialResearch === "running";
+  useEffect(() => {
+    if (!store || !researching) return;
+    const timer = setInterval(() => { void store.load().then(() => store.loadProject(id)); }, 5_000);
+    return () => clearInterval(timer);
+  }, [store, researching, id]);
   useEffect(() => {
     if (ready) title.current?.focus({ preventScroll: true });
   }, [ready, id]);
@@ -97,6 +109,11 @@ function ProjectBody({ watch, store, state, fresh, title }: BodyProps) {
   const last = ProjectText.lastSuccess(watch);
   const sources = ProjectText.sources(watch);
   const dataTag = useCoachDataTag();
+  const updated = store.updated;
+  const evaluated = state.evaluated[watch.id] ?? [];
+  const showResults = updated && (evaluated.length > 0 || watch.initialResearch === "done" || watch.initialResearch === "failed");
+  const focusId = state.focus?.watchId === watch.id ? state.focus.findingId : null;
+  const next = CheckFrequency.next(watch);
   const problems = [...new Set([...watch.problems, ...(status.tone === "attention" ? state.checkProblems : [])])]
     .filter((line) => !(dataTag && isExampleNote(line)));
 
@@ -109,6 +126,8 @@ function ProjectBody({ watch, store, state, fresh, title }: BodyProps) {
           {dataTag ? <Chip tone="attention">{`${dataTag}: nothing on the web is watched`}</Chip> : null}
           {findings.length ? <Chip tone="plain">{`${findings.length} finding${findings.length === 1 ? "" : "s"}`}</Chip> : null}
         </div>
+        {watch.initialResearch === "running" ? <p className="sisu-project-body" role="status" data-testid="project.researching">{CheckFrequency.searching}</p> : null}
+        {watch.initialResearch === "failed" ? <p className="sisu-project-error" role="alert">The first search on Sisu&apos;s server did not finish. Sisu tries again at its next check; you can also tap Check now.</p> : null}
         {problems.length > 0 ? <Note title={status.tone === "attention" ? "What needs attention" : "Good to know"} lines={problems} /> : null}
       </SisuCard>
 
@@ -117,8 +136,9 @@ function ProjectBody({ watch, store, state, fresh, title }: BodyProps) {
         <dl className="sisu-project-rows">
           <div className="sisu-project-row-line"><dt>Last successful check</dt><dd>{last ? ProjectText.when(last) : "Not yet"}</dd></div>
           {state.lastCheckAt ? <div className="sisu-project-row-line"><dt>Reviewed by Sisu</dt><dd>{ProjectText.when(state.lastCheckAt)}</dd></div> : null}
+          {updated && next && !stopped ? <div className="sisu-project-row-line"><dt>{next.label}</dt><dd>{ProjectText.when(next.at)}</dd></div> : null}
         </dl>
-        <p className="sisu-project-muted">{ProjectText.schedule(watch, state.scheduler)}</p>
+        <p className="sisu-project-muted" data-testid="project.frequency">{updated && !stopped ? CheckFrequency.text(state.schedulerInfo) : ProjectText.schedule(watch, state.scheduler)}</p>
         {/* A failed Check now also shows next to its button (the controls' notice); announced there, once. */}
         {state.error ? <p className="sisu-project-error" role={state.notices[watch.id] === state.error ? undefined : "alert"}>{state.error}</p> : null}
       </SisuCard>
@@ -141,8 +161,24 @@ function ProjectBody({ watch, store, state, fresh, title }: BodyProps) {
         )}
       </SisuCard>
 
+      {updated && !stopped ? (
+        <SisuCard>
+          <h2 className="sisu-project-h2">Notifications</h2>
+          <p className="sisu-project-body">{CheckFrequency.notifyLine}</p>
+          <PushControl store={store} state={state} />
+        </SisuCard>
+      ) : null}
+
+      {/* A notification, the banner or a deep link opened one finding: show the findings first, so the listing
+          results loading in afterwards cannot push the opened finding off the screen. */}
+      {showResults && !focusId ? <ListingResults evaluated={evaluated} stopped={stopped} /> : null}
+
       <ProjectFindings findings={findings} matches={stopped ? [] : state.matches[watch.id] ?? []} watch={watch} rent={rent}
-        fresh={fresh} stopped={stopped} />
+        fresh={fresh} stopped={stopped} focusId={focusId} hideFitsNow={showResults} />
+
+      {showResults && focusId ? <ListingResults evaluated={evaluated} stopped={stopped} /> : null}
+
+      {updated ? <SisuCard><HowSisuFound evidence={state.evidence[watch.id] ?? null} listings={evaluated} /></SisuCard> : null}
 
       <ProjectControls watch={watch} store={store} state={state} dataTag={dataTag} />
     </>
@@ -211,6 +247,7 @@ function ProjectControls({ watch, store, state, dataTag }: { watch: PropertyWatc
         </div>
       ) : null}
       {notice ? <p className="sisu-project-error sisu-project-notice" role="alert" data-testid="project.notice" ref={noticeRef}>{notice}</p> : null}
+      {store.updated && !paused ? <ProjectDemo watchId={watch.id} store={store} /> : null}
     </SisuCard>
   );
 }

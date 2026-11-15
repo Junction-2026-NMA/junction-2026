@@ -29,7 +29,7 @@ import { POST as approveRoute } from "@/app/api/actions/[id]/approve/route";
 import { POST as approveAllRoute } from "@/app/api/actions/approve-all/route";
 
 const PAGE = "https://www.vuokraovi.com/vuokra-asunnot/espoo";
-const flat = (overrides: Partial<Listing> = {}): Listing => ({ title: "Tapiontori 1", priceEur: 940, rooms: 2, areaM2: 45, district: "Tapiola", availableFrom: "1.12.2026", url: "https://www.vuokraovi.com/kohde/a1", pageUrl: PAGE, ...overrides });
+const flat = (overrides: Partial<Listing> = {}): Listing => ({ title: "Tapiontori 1", priceEur: 940, rooms: 2, areaM2: 45, district: "Tapiola", city: "Espoo", availableFrom: "1.12.2026", url: "https://www.vuokraovi.com/kohde/a1", pageUrl: PAGE, ...overrides }); // v3: a full match needs the city stated
 const OTHER = flat({ title: "Leppävaarankatu 3", priceEur: 1_190, district: "Leppävaara", url: "https://www.vuokraovi.com/kohde/b2" });
 const searchOf = (listings: Listing[]): ListingSearch => ({ city: "Espoo", topic: null, query: listingQuery("Espoo"), pages: [{ url: PAGE, title: "Vuokraovi: Espoo", listings, dropped: 0, cacheAgeMs: 0, tookMs: 1, mock: false }], found: [{ url: PAGE, title: "Vuokraovi: Espoo" }], errors: [], retrievedAt: "2026-11-15T08:00:00.000Z", tookMs: 1, mock: false });
 
@@ -105,7 +105,7 @@ describe("the Project proposal asks for consent and says exactly what will run",
     const { draft } = built;
     assert.match(draft.summary, /^Would you like me to keep checking for homes that match these requirements\?/);
     assert.match(draft.summary, /Goal: Move to Espoo\./);
-    assert.match(draft.summary, /every 6 hours on its own servers\. Sisu reviews what changed when you open the app; it does not check on its own/);
+    assert.match(draft.summary, /every 6 hours on its own servers\. Sisu reviews what changed when you open the app \(and once right after you approve\); it does not check on its own/);
     assert.match(draft.summary, /The nearest, Tapiontori 1: Rent €940/);
     assert.ok(!/tells you when|The watching is real/.test(draft.summary + draft.title));
     assert.deepEqual([draft.watch?.goal, draft.watch?.requirements], ["Move to Espoo", { districts: ["Tapiola"] }]);
@@ -116,7 +116,7 @@ describe("the Project proposal asks for consent and says exactly what will run",
     process.env.CRON_SECRET = "test-secret";
     const built = buildWatchDraft(AINO, { city: "Espoo", budgetEur: 900, minRooms: null, search: searchOf([flat()]), preparedBy: "sisu-agent" });
     assert.ok(built.ok);
-    assert.match(built.draft.summary, /once a day on its own schedule and whenever you open the app/);
+    assert.match(built.draft.summary, /runs once a day on a schedule, and whenever you open the app; checks are periodic, not continuous/);
     assert.equal(((await (await health(new Request("http://localhost/api/health"))).json()) as HealthReport).watchScheduler, "cron");
     delete process.env.CRON_SECRET;
     assert.equal(((await (await health(new Request("http://localhost/api/health"))).json()) as HealthReport).watchScheduler, "on-open");
@@ -336,7 +336,7 @@ describe("mock mode can start a Project from a question, and the buttons speak t
     const action = ofType(events, "action")[0]?.action;
     assert.equal(action?.kind, "property_watch");
     assert.equal(action?.watch?.city, "Espoo");
-    assert.match(ofType(events, "done")[0].text, /Would you like me to keep checking for homes that match these requirements\?/);
+    assert.match(ofType(events, "done")[0].text, /Would you like me to make this a project and keep checking\?/);
     assert.doesNotMatch(ofType(events, "done")[0].text, /tell you the moment|instantly|right away/);
   });
 

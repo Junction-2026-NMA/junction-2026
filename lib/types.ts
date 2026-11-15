@@ -747,7 +747,7 @@ export type PriceUnit = "EUR/month" | "EUR"; // a rent, or a price paid once
 // What a watch action would watch: the city (flats), the topic (anything else; null for flats), the price limit the
 // customer said, the pages, and the listings read from them when the watch was prepared (the starting point later
 // readings are compared with).
-export type WatchPlan = { city: string | null; topic: string | null; priceUnit: PriceUnit; budgetEur: number; minRooms: number | null; urls: string[]; seen: Listing[]; goal?: string | null; requirements?: WatchRequirements | null; titles?: Record<string, string> };
+export type WatchPlan = { city: string | null; topic: string | null; priceUnit: PriceUnit; budgetEur: number; minRooms: number | null; urls: string[]; seen: Listing[]; goal?: string | null; requirements?: WatchRequirements | null; titles?: Record<string, string>; discovery?: ProjectEvidence["exa"]; evaluated?: EvaluatedListing[] }; // v3: discovery = the Exa search that found the pages; evaluated = each listing's verdict when proposed
 
 // --- Projects (added 15 Nov). A watch is shown as a Project: a goal in the customer's words, requirements they can
 // edit, the sources, when it was last read successfully and when Context.dev runs next, and its findings.
@@ -942,6 +942,7 @@ export type ProjectCreateRequest = {
   requirements?: WatchRequirements;
   schedule: ProjectSchedule;
   fromConversation?: boolean;
+  fromActionId?: string | null; // the conversation's draft watch action this Project starts from (required by the server since the 15 Nov scope cut)
 };
 // POST /api/watch/draft-from-conversation: requirements read in code from the customer's own messages.
 export type ProjectDraft = { goal: string | null; city: string | null; budgetEur: number | null; minRooms: number | null; minAreaM2: number | null; requirements: WatchRequirements; found: string[]; missing: string[] };

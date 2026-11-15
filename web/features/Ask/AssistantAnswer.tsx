@@ -6,7 +6,8 @@
 // Every figure and sentence comes from the payload through AnswerPresenter / SisuCore presenters.
 import { useMemo } from "react";
 import type { AgentAction, TeachingCard } from "@/web/core/CoachModels";
-import { useCoachSessionState } from "@/web/app/AppProvider";
+import { useAppModel, useAppSelector, useCoachSessionState } from "@/web/app/AppProvider";
+import { TodayPresenter } from "@/web/core/AppLogic/AppPresenters";
 import { AnswerPresenter, CardText, messageActions } from "@/web/core/AnswerPresentation";
 import { StagePresenter } from "@/web/core/CoachPresentation";
 import type { CoachMessage } from "@/web/core/CoachSession";
@@ -41,7 +42,8 @@ export function AssistantAnswer({ message, actions, retry, isNew }: {
   const stage = message.pending ? StagePresenter.researchStage(message) : null;
   const anchor = (suffix: string) => `${message.id}-${suffix}`;
   const teaching = teachingCard(message);
-  const own = messageActions(message).map((action) => actions.find((one) => one.id === action.id) ?? action);
+  const own = messageActions(message).map((action) => actions.find((one) => one.id === action.id) ?? action)
+    .filter((action) => !view.hiddenActionIds.includes(action.id));
   const remembered = [
     ...message.stages.flatMap((one) => (one.data.kind === "memory" ? [one.data.item] : [])),
     ...message.remembered,
@@ -56,7 +58,9 @@ export function AssistantAnswer({ message, actions, retry, isNew }: {
             <ResultLine result={view.result} />
           </div>
         ) : null}
+        {!message.pending && view.scenarioDated ? <ScenarioDate /> : null}
         {!message.pending ? <div data-anchor={anchor("details")}><AnswerDetails view={view} /></div> : null}
+        {view.lesson ? <LessonLinkButton concept={view.lesson.concept} label={view.lesson.label} /> : null}
       </SisuCard>
       {stage != null && stage !== "done" ? (
         <div data-anchor={anchor("indicator")}>
@@ -84,6 +88,22 @@ export function AssistantAnswer({ message, actions, retry, isNew }: {
         <div key={item.id} className="sisu-answer-memory"><MemoryLine text={item.value} /></div>
       ))}
     </div>
+  );
+}
+
+/** The synthetic scenario date, in Today's own words and formatter, so the answer and Today name the same day. */
+function ScenarioDate() {
+  const overview = useAppSelector((s) => s.overview);
+  return overview ? <p className="sisu-answer-scenario-date" data-testid="answer.scenarioDate">{TodayPresenter.dataDate(overview)}</p> : null;
+}
+
+/** "Open the lesson: …": the Path tab, with that lesson's explanation and comprehension check open. */
+function LessonLinkButton({ concept, label }: { concept: string; label: string }) {
+  const model = useAppModel();
+  return (
+    <button type="button" className="sisu-answer-lesson" onClick={() => model.openLesson(concept)} data-testid="answer.lesson">
+      {label}
+    </button>
   );
 }
 

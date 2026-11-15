@@ -12,6 +12,9 @@ import { StepPresenter } from "@/web/core/ChartPresentation";
 import { CoachMessage, CoachStep } from "@/web/core/CoachSession";
 import { Working } from "@/web/core/AnswerWorking";
 import { Visual } from "@/web/core/PlanModels";
+import { PaydayAnswers } from "@/web/core/AnswerPayday";
+import { TodayPresenter } from "@/web/core/AppLogic/AppPresenters";
+import type { Overview } from "@/web/core/Models";
 
 let failures = 0, passes = 0;
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
@@ -263,13 +266,13 @@ const restaurantAnswer = (text = restaurantText, monthly = 55.3) => {
 
 group("a monthly saving leads with the month, the years are optional (QA: 'More after 5 years if you keep it €3,318')", () => {
   const view = AnswerPresenter.view(restaurantAnswer(), "en", "Europe/Helsinki", "What would spending 20% less at restaurants save?");
-  eq([view.result?.label, view.result?.value, view.result?.detail], ["Cutting Restaurants by 20% frees", "€55.30 a month", "€663.60 a year"], "per month, then per year");
+  eq([view.result?.label, view.result?.value, view.result?.detail], ["Monthly saving if you spend 20% less on Restaurants", "€55.30 a month", "€663.60 a year · from your Restaurants average of €276.52 a month over 12 months"],
+    "v3: a monthly saving with its baseline, per month then per year");
   eq(view.result?.tags.map((tag) => tag.kind), ["bank", "input", "estimate"], "where it comes from");
   eq(view.how.map((block) => [block.title, block.lines.map((line) => [line.label, line.value])]),
     [["What the saving is worked out from", [["Restaurants, average per month", "€276.52 a month"], ["Cut asked for", "20%"]]]], "the basis once, no 'Figures behind' repeats");
   eq(view.how[0].evidence?.filter.category, "Restaurants", "with the transactions behind the average");
-  eq([view.futures?.optional, view.futures?.label, view.futures?.series.map((line) => line.id), view.futures?.tags.map((tag) => tag.kind)],
-    [true, "Optional: if you keep the saving for 5 years", ["nothing", "save"], ["estimate"]], "the projection is optional, an estimate, with no invest line");
+  eq(view.futures, null, "v3: a plain category cut shows no projection at all, not even an optional one");
   eq([view.steps[0].label, view.steps[0].result], ["Projected the next years ahead from your real averages", null], "the tool line adds no figure");
   const said = [view.result?.value, view.result?.detail, ...view.how.flatMap((block) => block.lines.map((line) => line.value))].filter((one) => one?.includes("55.30"));
   eq(said.length, 1, "€55.30 is on the card only");
@@ -317,6 +320,60 @@ group("no matching offer: the requirement is said once (QA: in What Sisu did and
   eq([view.result?.label, view.result?.detail], ["No matching options found", "You asked for a contract of 6 months or less."], "the card says it");
   eq(view.steps.map((row) => row.result), ["3 offers from 1 page"], "not again in What Sisu did");
   eq(view.assumptions, ["Only offers that meet what you asked for can be the best offer. An offer whose page does not state one of these counts as not meeting it."], "nor in the assumptions");
+});
+
+// MARK: - v3: the S-Pankki payday story (15 Nov)
+
+// The category cut as the newer backend sends it: one calculation card, its receipts, no impact (lib/agent/tools/category-cut.ts).
+const cutFacts = (pct: number, monthly: number): Fact[] => [
+  f("scenario:category-avg", "Restaurants, average per month", 276.52, "EUR/month", "bank-data", { basis: "average of the last 12 months", evidence: { from: "2025-10-01", to: "2026-09-30", category: "Restaurants" } }),
+  f("scenario:category-cut-pct", "Cut asked for", pct, "percent", "customer-stated"),
+  f("scenario:category-freed", `Cutting Restaurants by ${pct}% frees, per month`, monthly, "EUR/month"),
+  f("scenario:category-freed-yearly", `Cutting Restaurants by ${pct}% frees, per year`, Math.round(monthly * 12 * 100) / 100, "EUR/year"),
+];
+const cutStage = (pct: number, monthly: number): Stage => ({ ...calcStage("c", `Spending ${pct}% less on Restaurants`, "Freed per month", monthly, "EUR/month", ["From your 12-month average for Restaurants, not any single month."]), facts: cutFacts(pct, monthly) });
+const transfer = { id: "t1", kind: "standing_transfer", status: "awaiting_approval", title: "Move €55.30 a month to savings", simulated: true, assumptions: [], sources: [] } as unknown as AgentAction;
+const futuresChart = Visual.decode({ id: "fl", kind: "futures_lines", title: "5 years ahead", source: "calculation", years: 5, series: [] });
+const cutAnswer = (pct: number, monthly: number) => CoachMessage.make("cut", "assistant", { text: `Spending ${pct}% less on eating out frees about ${monthly} euros a month.`,
+  stages: [cutStage(pct, monthly), { id: "a", kind: "action", title: "Transfer", summary: "", source: "calculation", toolCallId: null, atMs: 0, facts: [], data: { kind: "action", action: transfer } } as Stage],
+  facts: cutFacts(pct, monthly), visuals: [futuresChart] });
+
+group("v3: eating out 20% less is a monthly saving, with no projection, futures chart or transfer", () => {
+  const view = AnswerPresenter.view(cutAnswer(20, 55.3), "en", "Europe/Helsinki", "What if I spend 20 percent less eating out?");
+  eq([view.result?.label, view.result?.value, view.result?.detail], ["Monthly saving if you spend 20% less on Restaurants", "€55.30 a month", "€663.60 a year · from your Restaurants average of €276.52 a month over 12 months"], "the saving and its baseline");
+  eq(view.result?.label.includes("payday"), false, "never worded as money available before payday");
+  eq([view.futures, view.visuals.map((v) => v.content.kind)], [null, []], "no projection and no futures chart");
+  eq(view.hiddenActionIds, ["t1"], "a transfer prepared next to the cut is not shown");
+  eq([view.lesson?.concept, view.lesson?.label], ["three-baskets", "Open the lesson: Three baskets"], "links to the existing lesson");
+  eq(view.scenarioDated, true, "names the synthetic scenario date");
+  const years = AnswerPresenter.view(cutAnswer(20, 55.3), "en", "Europe/Helsinki", "What if I cut eating out by 20% and invest it for 5 years?");
+  eq(years.hiddenActionIds, [], "asked about investing: nothing is hidden");
+});
+
+group("v3: asking again with 10% halves the saving the card shows", () => {
+  const twenty = PaydayAnswers.cut(cutAnswer(20, 55.3));
+  const ten = PaydayAnswers.cut(cutAnswer(10, 27.65));
+  eq([twenty?.baselineEur, ten?.baselineEur], [276.52, 276.52], "the same baseline in the follow-up");
+  eq(ten && twenty ? Math.abs(ten.monthlyEur * 2 - twenty.monthlyEur) < 0.005 : false, true, "10% is half of 20%");
+  eq(AnswerPresenter.view(cutAnswer(10, 27.65), "en", "Europe/Helsinki", "And 10 percent?").result?.value, "€27.65 a month", "the card shows the halved figure");
+});
+
+group("v3: the payday answer says the period, links the lesson and uses Today's date line", () => {
+  const steps = [{ label: "Balance today", amount: 412.5, basis: "account balance on 2025-09-30" }, { label: "Left for spending until payday", amount: 184, basis: "never below zero" }];
+  const stage: Stage = { id: "p", kind: "calculation", title: "Estimated weekly budget until payday", summary: "About €86 a week until 2025-10-15", source: "calculation", toolCallId: null, atMs: 0, facts: [],
+    data: { kind: "calculation", steps, resultLabel: "Estimated weekly budget", resultValue: 85.87, unit: "EUR", assumptions: ["Payday is expected on 2025-10-15, the usual salary day in your history."] } };
+  const facts = [f("cash:days-to-payday", "Days to the next payday", 15, "days", "calculation", { basis: "next payday expected on 2025-10-15" }),
+    f("cash:budget:per-week", "Estimated weekly budget until payday", 85.87, "EUR"), f("cash:budget:left", "Left for spending until payday", 184, "EUR"),
+    f("cash:budget:weeks", "Weeks until payday", 2.14, "count", "calculation", { basis: "15 days to 2025-10-15, divided by 7" })];
+  const view = AnswerPresenter.view(CoachMessage.make("pay", "assistant", { text: "About 86 euros a week until payday.", stages: [stage], facts }), "en", "Europe/Helsinki",
+    "Why do I keep running out of money before payday, and what can I change?");
+  eq([view.result?.label, view.result?.value, view.result?.detail], ["Estimated weekly budget", "€85.87", "€184 in total until payday on 15 Oct 2025 (15 days)"], "the figure and the period it covers");
+  eq([view.lesson?.concept, view.lesson?.label], ["safe-to-spend", "Open the lesson: Weekly room in an average month"], "links the weekly-room lesson");
+  eq(view.scenarioDated, true, "names the synthetic scenario date");
+  eq(view.how.length > 0, true, "the maths is behind Show the maths");
+  const overview = { dataTimestamp: "2025-09-30" } as unknown as Overview;
+  eq(TodayPresenter.dataDate(overview), "Synthetic demo data · as of 30 Sep 2025", "one date line for Today and the answer");
+  eq(AnswerPresenter.view(CoachMessage.make("x", "assistant", { text: "Hello." })).lesson, null, "no lesson link on other answers");
 });
 
 console.log(`\n${passes} passed, ${failures} failed`);

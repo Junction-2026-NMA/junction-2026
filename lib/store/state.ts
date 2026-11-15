@@ -12,7 +12,7 @@
 // State is kept per session (lib/store/session.ts). Without a session it is the one shared state, as before.
 import { mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import type { AgentAction, AuditEvent, CustomerMemory, PropertyWatch, WatchNotification } from "@/lib/types";
+import type { AgentAction, AuditEvent, CustomerMemory, ProjectAlert, PropertyWatch, PushSubscriptionRecord, WatchNotification } from "@/lib/types";
 import { SHARED, currentSession } from "./session";
 import { type RemoteStore, loadRemote, saveRemote } from "./supabase";
 
@@ -23,6 +23,8 @@ export type SisuState = {
   audit: AuditEvent[];
   watches?: PropertyWatch[]; // property watches this visitor approved (lib/watch)
   notifications?: WatchNotification[]; // what those watches found
+  alerts?: ProjectAlert[]; // v3: the phone notifications Sisu sent (or would have) about those findings; the in-app fallback lists them
+  pushSubscriptions?: PushSubscriptionRecord[]; // v3: this visitor's devices that turned phone notifications on
 };
 
 const EMPTY: SisuState = { version: 1, memory: {}, actions: [], audit: [] };

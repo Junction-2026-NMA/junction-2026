@@ -3,13 +3,16 @@
 // user taps Approve. It shows the requirements, the pages, what was read today and how often the pages are really
 // checked. Approving starts a real watch, so it never says "simulated" or "€X freed". After approval the project
 // list is refreshed and the card offers "Open project".
-import { useEffect, useRef } from "react";
+// v3: the button reads "Make this a project" and first shows the confirmation (ProjectConfirm): every requirement
+// carried from the conversation, the notification rule, how often Sisu checks, phone notifications, then Approve.
+import { useEffect, useRef, useState } from "react";
 import { useAppModel, useCoach, useCoachDataTag, useCoachStore } from "@/web/app/AppProvider";
 import { ActionStatus, type AgentAction } from "@/web/core/CoachModels";
 import { Dates } from "@/web/core/Presentation";
 import { isWatchKind, WatchPlan } from "@/web/core/WatchModels";
 import { SisuButton, SisuCard } from "@/web/shared/SisuStyle";
 import { Chip, ExternalLink, Note, Rows } from "./ProjectParts";
+import { ProjectConfirm } from "./ProjectConfirm";
 import { ProjectText } from "./ProjectPresenter";
 import { useProjects } from "./useProjects";
 import "./projects.css";
@@ -32,16 +35,19 @@ export function WatchActionCard({ action }: WatchActionCardProps) {
   const coach = useCoach();
   const dataTag = useCoachDataTag();
   const { store, state } = useProjects();
+  const [confirming, setConfirming] = useState(false);
+  const [startedId, setStartedId] = useState<string | null>(null);
   const plan = WatchPlan.decode(action.watch) ?? { urls: [], seen: [], city: null, topic: null, budgetEur: action.monthlyAmountEur || null };
   const rent = action.kind === "property_watch";
   const status = action.status;
-  const waiting = status === ActionStatus.awaitingApproval;
-  const approved = status === ActionStatus.executedSimulated || status === "executed";
+  const started = startedId !== null;
+  const waiting = status === ActionStatus.awaitingApproval && !started;
+  const approved = status === ActionStatus.executedSimulated || status === "executed" || started;
   // Declined or expired: nothing was started, so the card keeps no consent question and no monitoring promise.
   const closed = status === ActionStatus.declined || status === "expired";
   const busy = coach.deciding.includes(action.id);
   const notice = coach.decisionNotices[action.id];
-  const project = state?.watches.find((w) => w.actionId === action.id) ?? null;
+  const project = state?.watches.find((w) => w.actionId === action.id || w.id === startedId) ?? null;
   const inFlight = useRef(false);
 
   // An approved card (also one reloaded later) looks for its project once.
@@ -109,9 +115,13 @@ export function WatchActionCard({ action }: WatchActionCardProps) {
         </p>
       ) : null}
 
-      {waiting ? (
+      {waiting && confirming && store && state ? (
+        <ProjectConfirm action={action} plan={plan} store={store} state={state} approveOld={() => decide(true)} busyOld={busy}
+          onStarted={(id) => { setStartedId(id); openProject(id); }} onBack={() => setConfirming(false)} />
+      ) : null}
+      {waiting && !confirming ? (
         <>
-          <SisuButton label="Approve" style="primary" enabled={!busy} loading={busy} action={() => decide(true)} />
+          <SisuButton label="Make this a project" style="primary" enabled={!busy && !!store} loading={busy} action={() => setConfirming(true)} />
           <SisuButton label="Not now" style="secondary" enabled={!busy} action={() => decide(false)} />
           <p className="sisu-project-muted">{`You can stop it at any time. Valid until ${Dates.shortDateTime(action.expiresAt, "en")}.`}</p>
         </>

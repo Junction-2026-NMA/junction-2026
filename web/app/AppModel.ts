@@ -8,6 +8,8 @@ import type { DemoCustomer, EvidenceFilter, RecurringBill, ScenarioInput, Scenar
 import { Store } from "@/web/core/CoachSession";
 import { CoachBillMatch } from "@/web/core/AppLogic/CoachAppLogic";
 import { DayStamp } from "@/web/core/AppLogic/DayStamp";
+import { LessonAttempt } from "@/web/core/AppLogic/LessonFollowUps";
+import type { ConceptId } from "@/web/core/CoachModels";
 import { OnboardingFlow } from "@/web/core/AppLogic/Onboarding";
 import { SampleEvidence } from "@/web/core/AppLogic/SampleEvidence";
 import { Dates } from "@/web/core/Presentation";
@@ -138,6 +140,20 @@ export class AppModel extends Store<AppState> {
     if (question.trim() === "") return;
     this.coach.conversation?.end();
     this.coach.ask(question);
+  }
+
+  /** "Open the lesson: …" under an answer (v3): the Path tab, where that lesson opens with its explanation and
+   *  comprehension check. It goes through the lesson place PathScreen reopens on arrival (the same one "Ask Sisu"
+   *  keeps), so a place already kept in that lesson stays. */
+  openLesson(concept: string): void {
+    const customerId = this.state.customer?.customerId ?? FixtureAPI.customerIds[0] ?? null;
+    if (customerId) {
+      const key = `${Keys.lessonAttemptPrefix}${customerId}`;
+      const saved = LessonAttempt.decode(this.launch.defaults.json(key));
+      const attempt = saved && saved.concept === concept ? saved : LessonAttempt.make(concept as ConceptId);
+      this.launch.defaults.setJSON(key, { ...attempt, resume: true });
+    }
+    this.set({ tab: "path", historyOpen: false, openProjectId: null });
   }
 
   /** Swift `model.evidence = …` (null closes the sheet). */

@@ -15,7 +15,7 @@ import { inSession, newSessionId } from "@/lib/store/session";
 import { GET as demoDrop } from "@/app/api/watch/demo-drop/route";
 
 const PAGE = "https://www.vuokraovi.com/vuokra-asunnot/helsinki";
-const flat = (title: string, priceEur: number, id: string): Listing => ({ title, priceEur, rooms: 1, areaM2: 37, district: "Taka-Töölö", availableFrom: null, url: `https://www.vuokraovi.com/kohde/${id}`, pageUrl: PAGE });
+const flat = (title: string, priceEur: number, id: string): Listing => ({ title, priceEur, rooms: 1, areaM2: 37, district: "Taka-Töölö", city: "Helsinki", availableFrom: null, url: `https://www.vuokraovi.com/kohde/${id}`, pageUrl: PAGE });
 const search: ListingSearch = { city: "Helsinki", topic: null, query: listingQuery("Helsinki"), pages: [{ url: PAGE, title: "Vuokraovi", listings: [flat("Sallinkatu 2", 919, "hp8899"), flat("Kustinpolku 9", 1_239, "hq3786")], dropped: 0, cacheAgeMs: 0, tookMs: 1, mock: false }], found: [{ url: PAGE, title: "Vuokraovi" }], errors: [], retrievedAt: "2026-11-14T10:00:00.000Z", tookMs: 1, mock: false };
 
 async function watching(): Promise<PropertyWatch> {

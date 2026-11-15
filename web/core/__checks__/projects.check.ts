@@ -12,6 +12,8 @@ import { memoryDefaults } from "@/web/app/Defaults";
 import { ProjectStore } from "@/web/app/ProjectStore";
 import { FindingText, HousingText, ProjectText } from "@/web/features/Projects/ProjectPresenter";
 import { fieldError, formErrors, readNumber, requirementFields, requirementPatch } from "@/web/features/Projects/RequirementForm";
+import { EvaluatedListing, ProjectAlert, SchedulerInfo } from "@/web/core/WatchExtras";
+import { AlertRules, CheckFrequency, ListingGroups, affordabilityLines, confirmRows, parseProjectLink } from "@/web/features/Projects/ProjectJourney";
 
 let failures = 0, passes = 0;
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
@@ -247,7 +249,7 @@ async function main() {
   await group("requirements editor: every field the PATCH takes, checked in place (15 Nov QA)", () => {
     const w = PropertyWatch.decode({ ...watchJSON, requirements: { moveBy: "2027-01-31" } })!;
     const fields = requirementFields(w, true);
-    eq(fields.map((f) => f.key), ["budgetEur", "minRooms", "moveBy", "districts", "maxDepositEur", "movingCostEur", "bufferToKeepEur", "savingsGoalEur",
+    eq(fields.map((f) => f.key), ["budgetEur", "minAreaM2", "minRooms", "moveBy", "districts", "maxDepositEur", "movingCostEur", "bufferToKeepEur", "monthlySavingsEur", "savingsGoalEur",
       "maxCommuteMinutes", "commuteTo", "goal"], "every field the PATCH takes, for a rent");
     eq(fields[0].label, "Rent at most (€ a month)", "the limit is named as a rent");
     eq(requirementFields(w, false).map((f) => [f.key, f.label]), [["budgetEur", "Price at most (€)"], ["goal", "The goal, in your words"]], "a price watch: its limit and goal");
@@ -266,6 +268,58 @@ async function main() {
     eq([readNumber("1 100"), readNumber("€950"), readNumber("12,5"), readNumber("1e3"), readNumber("-5")], [1100, 950, 12.5, null, null], "numbers as typed");
     const req = CoachEndpoints.watchUpdate("", "w1", "C1", { minRooms: null, moveBy: null, maxDepositEur: 2000 });
     eq(JSON.parse(String(req.body)), { customerId: "C1", minRooms: null, requirements: { maxDepositEur: 2000, moveBy: null } }, "a cleared field is sent as null, not dropped");
+  });
+
+
+  await group("v3: verdict groups, a failing listing is never a match, No matches yet", () => {
+    const l = (title: string, priceEur: number) => ({ title, priceEur, url: `https://x.fi/${title}`, pageUrl: "https://x.fi" });
+    const evaluated = EvaluatedListing.many([
+      { listing: l("A", 850), verdict: "match", checks: [{ requirement: "Maximum rent", status: "met", detail: "" }] },
+      { listing: l("B", 800), verdict: "needs_verification", checks: [{ requirement: "Minimum floor area", status: "unknown", detail: "" }] },
+      { listing: l("C", 700), verdict: "fails", checks: [{ requirement: "Minimum floor area", status: "failed", detail: "" }] },
+      { listing: l("D", 750), verdict: "match", checks: [{ requirement: "Savings goal", status: "failed", detail: "" }] },
+      { listing: l("E", 1), verdict: "maybe", checks: [] },
+    ]);
+    const groups = ListingGroups.of(evaluated);
+    eq(groups.matches.map((e) => e.listing.title), ["A"], "only listings meeting every requirement are matches");
+    eq(groups.verify.map((e) => e.listing.title), ["B"], "a missing detail needs verification");
+    eq(groups.alternatives.map((e) => e.listing.title), ["C", "D"], "a failed check is an alternative, even if labelled match");
+    eq(ListingGroups.missing(groups.verify[0].checks), ["Minimum floor area"], "the missing detail is named");
+    eq(ListingGroups.of([]).matches.length === 0 && ListingGroups.noMatches === "No matches yet", true, "nothing qualifies: No matches yet");
+    eq(affordabilityLines([{ requirement: "Maximum rent", status: "met", detail: "" }, { requirement: "Savings goal", status: "failed", detail: "" }]).map((x) => x.label),
+      ["Within your rent limit", "Would not leave your monthly savings"], "rent limit and savings goal are two lines");
+  });
+
+  await group("v3: check frequency is said honestly, never continuous", () => {
+    const daily = SchedulerInfo.decode({ kind: "cron", checkEveryMinutes: 1440, dailyTimes: ["08:00"], deadline: true, push: true, timeZone: "Europe/Helsinki" });
+    const onOpen = SchedulerInfo.decode({ kind: "on-open", checkEveryMinutes: null, dailyTimes: [], deadline: false, push: false });
+    const quarter = SchedulerInfo.decode({ kind: "cron", checkEveryMinutes: 15, dailyTimes: [], push: true });
+    const lines = [CheckFrequency.text(daily), CheckFrequency.text(onOpen), CheckFrequency.text(quarter), CheckFrequency.text(null)];
+    eq(lines[0], "Sisu checks right after you approve, then once a day at 08:00 on its server, also while the app is closed. Context.dev re-checks the pages about every 6 hours.", "daily");
+    eq(lines[1], "Sisu checks right after you approve and whenever you open the app. Context.dev re-checks the pages about every 6 hours.", "on-open");
+    eq(lines[2].includes("about every 15 minutes"), true, "every 15 minutes");
+    eq(lines.some((t) => /continuous|real-time|realtime|instantly/i.test(t)), false, "never continuous or real-time");
+    eq(CheckFrequency.next({ nextScheduledCheckAt: null, nextCheckAt: "2026-11-15T12:00:00.000Z" })?.label, "Context.dev's next run", "Context.dev's run is labelled as its own");
+    eq(SchedulerInfo.decode({}), null, "the old backend sends no scheduler info");
+  });
+
+  await group("v3: confirmation rows, deep links, alerts", () => {
+    const rows = confirmRows({ city: "Espoo", budgetEur: 900, minRooms: null, requirements: { minAreaM2: 40, monthlySavingsEur: 100, savingsGoalEur: 2000 } });
+    eq(rows.map((r) => r.label), ["Location", "Maximum rent", "Minimum floor area", "Keep saving each month", "Savings goal"], "every requirement from the conversation");
+    eq(rows[3].value.includes("no money is moved"), true, "monthly savings is a limit, not a transfer");
+    eq(parseProjectLink(new URLSearchParams("project=w1&finding=n1&source=homescreen")), { project: "w1", finding: "n1" }, "project and finding");
+    eq(parseProjectLink(new URLSearchParams("project=w1")), { project: "w1", finding: null }, "project only");
+    eq(parseProjectLink(new URLSearchParams("finding=n1")), null, "no project, no link");
+    eq(parseProjectLink(new URLSearchParams("project=<script>")), null, "an id is a plain id");
+    const alerts = ProjectAlert.many([
+      { id: "a1", watchId: "w1", findingIds: ["n1"], title: "Sisu", body: "Your Espoo housing search has an update.", reason: "match", createdAt: "2026-11-15T09:00:00Z", pushed: "sent", simulated: true },
+      { id: "a2", watchId: "w1", findingIds: [], title: "Sisu", body: "x", reason: "match", createdAt: "2026-11-15T08:00:00Z", pushed: "sent", simulated: false, readAt: "2026-11-15T08:05:00Z" },
+      { watchId: "w1" },
+    ]);
+    eq(alerts.length, 2, "an alert without an id is skipped");
+    eq(AlertRules.unread(alerts, []).map((a) => a.id), ["a1"], "read alerts are not shown again");
+    eq(AlertRules.unread(alerts, ["a1"]).length, 0, "seen on this device");
+    eq(alerts[0].simulated && AlertRules.simulatedLabel === "Simulated for demo", true, "simulated alerts are labelled");
   });
 
   console.log(`\n${passes} passed, ${failures} failed`);

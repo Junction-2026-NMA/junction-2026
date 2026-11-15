@@ -15,6 +15,7 @@ import { Dates, Money, rawOf, roundAway, type SisuLanguage } from "./Presentatio
 import { CardText, SourceTags, type SourceTag } from "./AnswerText";
 import { OfferGroups, type OfferGroup, type OfferSection } from "./AnswerOffers";
 import { Working } from "./AnswerWorking";
+import { PaydayAnswers } from "./AnswerPayday";
 
 export { CardText, SourceTags } from "./AnswerText";
 export type { SourceKind, SourceTag } from "./AnswerText";
@@ -71,6 +72,13 @@ export interface AnswerView {
   visuals: Visual[];
   /** Ids of prepared switches whose offer does not meet the user's requirements: their card says so. */
   mismatchedActionIds: string[];
+  /** v3: the Path lesson that explains a payday or spending answer ("Open the lesson: …"); null otherwise. */
+  lesson: PaydayAnswers.LessonLink | null;
+  /** v3: the answer rests on the synthetic profile's bank data as of the scenario date (payday, a category cut):
+   *  the card names that date with Today's own formatter (TodayPresenter.dataDate). */
+  scenarioDated: boolean;
+  /** v3: actions not shown with this answer: a transfer prepared next to a category cut (a saving question). */
+  hiddenActionIds: string[];
 }
 
 export function messageActions(message: CoachMessage): AgentAction[] {
@@ -150,6 +158,19 @@ export namespace AnswerPresenter {
         evidence: { title: h(evidence[0].title), filter: data.filter }, tags: [SourceTags.bank(language)] };
     }
 
+    // v3: a category cut leads with the monthly saving and its baseline (never money to spend before payday), and
+    // gets no projection, no futures chart and no transfer unless the question asked about the years or investing.
+    // The cash-flow card says the period its figure covers.
+    // A projection of some other monthly amount (the person's own €50) is not this cut.
+    const found = noMatch ? null : PaydayAnswers.cut(message);
+    const cut = found && !(impact && impact.data.kind === "impact" && Math.abs(impact.data.impact.monthlyEur - found.monthlyEur) >= 0.005) ? found : null;
+    const cutOnly = cut !== null && !Working.asksLongTerm(question);
+    if (cut && cutOnly && result) result = { ...result, label: PaydayAnswers.cutLabel(cut), value: CoachText.value(cut.monthlyEur, "EUR/month", language), detail: PaydayAnswers.cutDetail(cut), evidence: null };
+    const payday = PaydayAnswers.payday(message);
+    if (payday && result && resultCalc && resultCalc.data.kind === "calculation" && PaydayAnswers.isCashFlowStage(resultCalc)) {
+      result = { ...result, detail: PaydayAnswers.paydayDetail(payday, resultCalc.data.resultValue) ?? result.detail };
+    }
+
     // How this was worked out: what Sisu noticed, the transactions, every calculation's steps; with no calculation,
     // the figures the answer rests on.
     const how: HowBlock[] = [];
@@ -199,7 +220,7 @@ export namespace AnswerPresenter {
       switch (visual.content.kind) {
         case "unknown": return false;
         case "offerBars": return !hasOffers;
-        case "futuresLines": return !noMatch && impact == null && !actions.some((a) => a.impact);
+        case "futuresLines": return !noMatch && !cutOnly && impact == null && !actions.some((a) => a.impact);
         case "waterfall": return calcs.length === 0;
         default: return true;
       }
@@ -229,7 +250,7 @@ export namespace AnswerPresenter {
     const mismatchedActionIds = actions.filter((action) => rawOf(action.kind) === "switch_contract"
       && ((action.offer != null && OfferPresenter.qualifies(action.offer) === false) || noMatch)).map((action) => action.id);
 
-    const futures = impact && impact.data.kind === "impact"
+    const futures = impact && impact.data.kind === "impact" && !cutOnly
       ? Working.futures(impact.data.impact, monthly != null, Working.asksInvesting(question), result, language, timeZone) : null;
     const shown = Working.shownNumbers(message.text, result, how);
     const said = { shown, noMatch: noMatch ? result?.label ?? null : null, monthly: monthly != null };
@@ -241,6 +262,9 @@ export namespace AnswerPresenter {
       result, offers, how, futures, steps,
       timing: message.timings ? ToolPresenter.timingLine(message.timings, language) : null,
       assumptions, sources, tags, grounding, noMatch, visuals, mismatchedActionIds,
+      lesson: message.pending || noMatch ? null : PaydayAnswers.lesson(message),
+      scenarioDated: cut !== null || payday !== null || message.stages.some(PaydayAnswers.isCashFlowStage),
+      hiddenActionIds: cutOnly ? actions.filter((action) => ["standing_transfer", "one_off_transfer"].includes(rawOf(action.kind))).map((action) => action.id) : [],
     };
   }
 

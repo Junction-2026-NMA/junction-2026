@@ -12,6 +12,7 @@ import { CoachText } from "@/web/core/CoachPresentation";
 import { CoachErrors, type CoachDataLabel } from "@/web/core/CoachSession";
 import { LessonPathPresenter, LessonProgress, LessonWording, type LessonNode } from "@/web/core/AppLogic/LessonPath";
 import { LessonAttempt } from "@/web/core/AppLogic/LessonFollowUps";
+import { rawOf } from "@/web/core/Presentation";
 import { Keys } from "@/web/app/AppState";
 import type { SisuDefaults } from "@/web/app/Defaults";
 
@@ -141,6 +142,20 @@ export class PathModel {
     const attempt = saved && saved.concept === card.id ? saved : LessonAttempt.make(card.concept);
     this.presentations += 1;
     this.set({ openLesson: { card, id: card.id, token: this.presentations, attempt }, lockedNotice: null });
+  }
+
+  /** A lesson asked for from outside the path (an answer's "Open the lesson", or the place kept by "Ask Sisu").
+   *  When the unlock order still keeps it closed, the lesson that is up next opens instead and the notice says
+   *  why, so the order stays honest and the person still lands in a lesson they can do now. */
+  openOrNext(card: TeachingCard) {
+    const concepts = this.snapshot.cards.map((c) => c.concept);
+    if (LessonProgress.isOpen(this.snapshot.progress, concepts, card.concept)) return this.open(card);
+    const upNext = LessonProgress.next(this.snapshot.progress, concepts);
+    const next = this.snapshot.cards.find((c) => upNext !== null && rawOf(c.concept) === rawOf(upNext));
+    if (!next) return this.open(card);
+    this.open(next);
+    this.presentations += 1;
+    this.set({ lockedNotice: { text: `"${card.title}" opens after "${next.title}", so that lesson comes first.`, token: this.presentations } });
   }
 
   /** Keeps the place in the open lesson (each answer, and before "Ask Sisu" leaves the tab). */

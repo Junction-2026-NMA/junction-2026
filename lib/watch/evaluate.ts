@@ -8,7 +8,10 @@ import { withinBudget } from "@/lib/finance/rent";
 import type { EvaluatedListing, HousingEffect, Listing, RequirementCheck, WatchRequirements } from "@/lib/types";
 import { availableDay } from "./requirements";
 
-export type EvaluationRule = { budgetEur: number; minRooms: number | null; city?: string | null; requirements?: WatchRequirements | null; today: string };
+// savings (optional): the customer's own monthly figures, so "Savings goal" is checked apart from "Maximum rent".
+// Build it with savingsFigures() in lib/finance/housing.ts; without it (or without monthlySavingsEur) there is no savings check.
+export type SavingsFigures = { monthlySavingsEur: number; leftOverNowEur: number; currentHousingEur: number; unstatedChargesEur: number };
+export type EvaluationRule = { budgetEur: number; minRooms: number | null; city?: string | null; requirements?: WatchRequirements | null; today: string; savings?: SavingsFigures | null };
 
 const euros = (value: number): string => `€${Math.round(value).toLocaleString("en-US")}`;
 
@@ -20,7 +23,9 @@ export function requirementChecks(listing: Listing, rule: EvaluationRule): Requi
     : { requirement: "Maximum rent", status: "failed", detail: `${euros(listing.priceEur)} a month is over ${euros(rule.budgetEur)}` });
   if (rule.city) {
     const city = listing.city ?? null;
-    if (!city) checks.push({ requirement: "Location", status: "unknown", detail: `The page does not state the city; check it is in ${rule.city}` });
+    // Same rule as the reading (inCity in lib/agent/research/listings.ts): a flat on the city's listing page is kept
+    // unless the page places it somewhere else, so a listing that does not repeat the city counts as in it.
+    if (!city) checks.push({ requirement: "Location", status: "met", detail: `${listing.district ? `${listing.district}, ` : ""}on the ${rule.city} listings page (the listing does not name another city)` });
     else checks.push(city.toLowerCase().includes(rule.city.toLowerCase()) ? { requirement: "Location", status: "met", detail: `${listing.district ? `${listing.district}, ` : ""}${city}` } : { requirement: "Location", status: "failed", detail: `In ${city}, not ${rule.city}` });
   }
   if (typeof req.minAreaM2 === "number") {
@@ -44,10 +49,24 @@ export function requirementChecks(listing: Listing, rule: EvaluationRule): Requi
     if (typeof listing.depositEur !== "number") checks.push({ requirement: "Deposit", status: "unknown", detail: `Deposit not stated; your limit is ${euros(req.maxDepositEur)}` });
     else checks.push(listing.depositEur <= req.maxDepositEur ? { requirement: "Deposit", status: "met", detail: `${euros(listing.depositEur)}` } : { requirement: "Deposit", status: "failed", detail: `${euros(listing.depositEur)} is over ${euros(req.maxDepositEur)}` });
   }
+  if (rule.savings) checks.push(savingsCheck(listing, rule.savings));
   if (typeof req.maxCommuteMinutes === "number") {
     checks.push({ requirement: "Commute", status: "unknown", detail: `Sisu does not measure commute times${req.commuteTo ? ` to ${req.commuteTo}` : ""}; check the journey (limit ${req.maxCommuteMinutes} min) yourself` });
   }
   return checks;
+}
+
+// "Affordable while meeting your savings goal", separate from "within your rent limit": what an average month leaves
+// over after this rent (and the charges the listing states), against the amount the customer wants to keep saving.
+// Charges the listing does not state could flip it, so a margin smaller than the allowance for them is unknown.
+export function savingsCheck(listing: Listing, figures: SavingsFigures): RequirementCheck {
+  const utilities = typeof listing.utilitiesPerMonthEur === "number" ? listing.utilitiesPerMonthEur : null;
+  const leftOver = Math.round((figures.leftOverNowEur - (listing.priceEur - figures.currentHousingEur) - (utilities ?? 0)) * 100) / 100;
+  const margin = leftOver - figures.monthlySavingsEur;
+  const keep = euros(figures.monthlySavingsEur);
+  if (margin < 0) return { requirement: "Savings goal", status: "failed", detail: `With this rent an average month leaves ${leftOver < 0 ? `${euros(-leftOver)} short` : `about ${euros(leftOver)}`}, so you could not keep saving ${keep} a month` };
+  if (utilities === null && margin < figures.unstatedChargesEur) return { requirement: "Savings goal", status: "unknown", detail: `An average month would leave about ${euros(leftOver)}, just enough to keep saving ${keep} a month, but the listing does not state water and other charges, which could take that` };
+  return { requirement: "Savings goal", status: "met", detail: `An average month would leave about ${euros(leftOver)}${utilities === null ? " before charges the listing does not state" : ""}, enough to keep saving ${keep} a month` };
 }
 
 export function verdictOf(checks: RequirementCheck[]): EvaluatedListing["verdict"] {

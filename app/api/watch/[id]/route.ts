@@ -22,8 +22,10 @@ export const GET = withVisitor(async function GET(request: Request, { params }: 
 });
 
 // Edits the requirements and re-evaluates the listings already read (no new page reads).
-// Body: { customerId, budgetEur?, minRooms?, goal?, requirements?: { districts?, moveBy?, maxCommuteMinutes?,
-// commuteTo?, maxDepositEur?, movingCostEur?, bufferToKeepEur?, savingsGoalEur? } }. null clears a field.
+// Body: { customerId, budgetEur?, minRooms?, minAreaM2?, goal?, requirements?: { districts?, moveBy?, maxCommuteMinutes?,
+// commuteTo?, maxDepositEur?, movingCostEur?, bufferToKeepEur?, savingsGoalEur?, minAreaM2?, monthlySavingsEur? } }.
+// null clears a field. The findings and `evaluated` are judged again with the new requirements, and they are kept
+// in the stored watch, so they are there the next time the app opens.
 // Answers the Project, like GET.
 export const PATCH = withVisitor(async function PATCH(request: Request, { params }: Context) {
   if (!allowRequest(request, "actions", 30)) return TOO_MANY();
@@ -46,12 +48,13 @@ export const PATCH = withVisitor(async function PATCH(request: Request, { params
     if (goal === null && body.goal !== null) return jsonError("Write the goal as a short sentence (3 to 160 characters).", 400);
     edit.goal = goal;
   }
-  if ("requirements" in body) {
-    const { requirements, dropped } = cleanRequirements(body.requirements);
+  if ("requirements" in body || "minAreaM2" in body) {
+    const raw = { ...((body.requirements && typeof body.requirements === "object" ? body.requirements : {}) as Record<string, unknown>), ...("minAreaM2" in body ? { minAreaM2: body.minAreaM2 } : {}) };
+    const { requirements, dropped } = cleanRequirements(raw);
     if (dropped.length) return jsonError(`Some requirements could not be used: ${dropped.join(", ")}.`, 400);
     edit.requirements = requirements;
   }
-  if (!Object.keys(edit).length) return jsonError("Nothing to change: send budgetEur, minRooms, goal or requirements.", 400);
+  if (!Object.keys(edit).length) return jsonError("Nothing to change: send budgetEur, minRooms, minAreaM2, goal or requirements.", 400);
   const result = updateWatch(customerId, id, edit);
   if (!result.ok) return jsonError(result.reason, result.status);
   return Response.json(result.project);

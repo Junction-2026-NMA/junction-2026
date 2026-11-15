@@ -2,6 +2,7 @@
 // listing states and what the customer said. Recurring (every month) and upfront (once) are kept apart.
 // A figure nobody knows stays null and is named under `missing`; the only assumption made (the usual deposit) is
 // named under `assumptions` and never mixed into a known total. Nothing here is guessed by a model.
+import type { SavingsFigures } from "@/lib/watch/evaluate";
 import type { Fact, HousingEffect, Listing, Overview, WatchRequirements } from "@/lib/types";
 import { categoryAverages } from "./categories";
 import { fact } from "./facts";
@@ -10,6 +11,17 @@ import { currentHousing, rentFit } from "./rent";
 
 // Finnish landlords usually ask for one to three months' rent as a deposit. Used only when the listing does not say.
 export const USUAL_DEPOSIT_MONTHS: [number, number] = [1, 3];
+// Assumption for the savings check only: water and other charges a listing does not state are taken to be up to
+// this much a month. A margin smaller than this cannot be called safe, so the listing needs verification.
+export const UNSTATED_CHARGES_ALLOWANCE_EUR = 50;
+
+// The figures the "Savings goal" check needs (lib/watch/evaluate.ts), from the customer's own bank data. Null when
+// they did not name an amount to keep saving every month.
+export function savingsFigures(overview: Overview, requirements: WatchRequirements | null | undefined): SavingsFigures | null {
+  const keep = requirements?.monthlySavingsEur;
+  if (typeof keep !== "number" || keep <= 0) return null;
+  return { monthlySavingsEur: round2(keep), leftOverNowEur: round2(overview.safeToSpend.gapPerMonth), currentHousingEur: currentHousing(overview), unstatedChargesEur: UNSTATED_CHARGES_ALLOWANCE_EUR };
+}
 
 const eur = (value: number): string => `€${Math.round(value).toLocaleString("en-US")}`;
 const monthsTo = (goal: number, perMonth: number): number | null => (perMonth > 0 ? Math.ceil(goal / perMonth) : null);
@@ -39,6 +51,9 @@ export function housingEffect(overview: Overview, listing: ListingFacts, require
   const goal = typeof requirements.savingsGoalEur === "number" && requirements.savingsGoalEur > 0 ? round2(requirements.savingsGoalEur) : null;
   const savingsGoal = goal === null ? null : { goalEur: goal, monthsNow: monthsTo(goal, fit.leftOverNowEur), monthsAfter: monthsTo(goal, leftOverAfter) };
 
+  const keepSaving = typeof requirements.monthlySavingsEur === "number" && requirements.monthlySavingsEur > 0 ? round2(requirements.monthlySavingsEur) : null;
+  const afterSaving = keepSaving === null ? null : round2(leftOverAfter - keepSaving);
+
   const transportToday = categoryAverage(overview, "Transportation");
   const missing = [
     ...(utilities === null ? ["Water and other monthly charges at this flat: the listing does not state them."] : []),
@@ -51,11 +66,13 @@ export function housingEffect(overview: Overview, listing: ListingFacts, require
   const assumptions = [
     "Housing today and what a month leaves over are 12-month averages from your bank data.",
     ...(assumed ? [`Assumption, not from the listing: deposits are usually ${USUAL_DEPOSIT_MONTHS[0]} to ${USUAL_DEPOSIT_MONTHS[1]} months' rent (${eur(assumed.low)} to ${eur(assumed.high)}).`] : []),
+    ...(keepSaving !== null && utilities === null ? [`Assumption for the savings check: charges the listing does not state are taken to be up to ${eur(UNSTATED_CHARGES_ALLOWANCE_EUR)} a month.`] : []),
   ];
 
   const monthly = knownChange === 0 ? "the same as your housing today" : `${eur(Math.abs(knownChange))} a month ${knownChange > 0 ? "more" : "less"} than your housing today`;
   const upfrontText = range.low === range.high ? `${eur(range.low)} upfront` : `${eur(range.low)} to ${eur(range.high)} upfront${assumed ? " (the deposit is assumed)" : ""}`;
-  const sentence = `Rent ${eur(rent)} is ${monthly}${utilities === null ? " (water and other charges not stated)" : ", charges included"}; an average month would leave ${leftOverAfter < 0 ? `${eur(-leftOverAfter)} short` : `about ${eur(leftOverAfter)} over`}. Moving in would take ${upfrontText}.`;
+  const savingText = keepSaving === null || afterSaving === null ? "" : afterSaving >= 0 ? `, ${eur(afterSaving)} after the ${eur(keepSaving)} you keep saving` : `, not enough to keep saving ${eur(keepSaving)} a month`;
+  const sentence = `Rent ${eur(rent)} is ${monthly}${utilities === null ? " (water and other charges not stated)" : ", charges included"}; an average month would leave ${leftOverAfter < 0 ? `${eur(-leftOverAfter)} short` : `about ${eur(leftOverAfter)} over`}${savingText}. Moving in would take ${upfrontText}.`;
 
   const url = listing.url ? { url: listing.url } : {};
   const facts: Fact[] = [
@@ -64,6 +81,7 @@ export function housingEffect(overview: Overview, listing: ListingFacts, require
     fact(`${prefix}:change`, "Known change per month", knownChange, "EUR/month", utilities === null ? "rent minus housing today" : "rent plus stated charges minus housing today", { source: "calculation" }),
     fact(`${prefix}:left-over-now`, "Left over in an average month today", fit.leftOverNowEur, "EUR/month", "monthly budget from averages minus actual everyday spending", { source: "calculation" }),
     fact(`${prefix}:left-over-after`, "Left over in an average month after moving", leftOverAfter, "EUR/month", "left over today minus the known change", { source: "calculation" }),
+    ...(keepSaving === null || afterSaving === null ? [] : [fact(`${prefix}:keep-saving`, "What you want to keep saving each month", keepSaving, "EUR/month", "the figure you gave", { source: "customer-stated" }), fact(`${prefix}:after-saving`, "Left over after moving and saving each month", afterSaving, "EUR/month", "left over after moving minus what you keep saving", { source: "calculation" })]),
     ...(utilities === null ? [] : [fact(`${prefix}:utilities`, "Monthly charges on top of the rent", utilities, "EUR/month", "stated on the listing", { source: "context.dev", ...url })]),
     ...(deposit === null ? [] : [fact(`${prefix}:deposit`, "Deposit", deposit, "EUR", "stated on the listing", { source: "context.dev", ...url })]),
     ...(assumed ? [fact(`${prefix}:deposit-low`, "Deposit if it is one month's rent (assumption)", assumed.low, "EUR", "usual range, not from the listing", { source: "assumption" }), fact(`${prefix}:deposit-high`, "Deposit if it is three months' rent (assumption)", assumed.high, "EUR", "usual range, not from the listing", { source: "assumption" })] : []),

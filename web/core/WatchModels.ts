@@ -65,6 +65,9 @@ export interface Listing {
   url?: string | null;
   /** The page Context.dev read it from. */
   pageUrl?: string | null;
+  /** Only when the page states them. */
+  depositEur?: number | null;
+  utilitiesPerMonthEur?: number | null;
 }
 
 /** What a watch action would watch once approved (`AgentAction.watch`). */
@@ -130,6 +133,10 @@ export interface PropertyWatch {
   nextCheckAt?: string | null;
   /** Newer backends: `status` plus the pages' errors (`failing`). Draw it through `projectStatusOf`. */
   projectStatus?: WatchStatus | null;
+  /** v3: Sisu's own next scheduled check (not Context.dev's). */
+  nextScheduledCheckAt?: string | null;
+  /** v3: the first search and check after approval, run on the server: running, done or failed. */
+  initialResearch?: string | null;
 }
 
 /** A finding: a listing that fits now (new, or its price fell). */
@@ -160,6 +167,10 @@ export interface WatchNotification {
    *  in the shape this client first expected. Read through HousingText.view. */
   housingEffect?: HousingEffect | null;
   housing?: HousingEffect | null;
+  /** v3: `match` or `needs_verification` (a failing listing is never a finding). */
+  verdict?: string | null;
+  /** v3: each requirement against this listing, raw (read with RequirementCheck.many in WatchExtras). */
+  checks?: unknown;
 }
 
 /** Answer of `GET /api/watch`: the watches and the findings, newest first. */
@@ -167,6 +178,9 @@ export interface WatchList {
   customerId?: string | null; watches: PropertyWatch[]; notifications: WatchNotification[];
   /** Newer backends: `cron` when a scheduled review runs while the app is closed; missing means `on-open`. */
   scheduler?: string | null;
+  /** v3, raw: read with SchedulerInfo.decode and ProjectAlert.many (web/core/WatchExtras.ts). */
+  schedulerInfo?: unknown;
+  alerts?: unknown;
 }
 
 /** Answer of `POST /api/watch/check`: `notifications` holds only the new findings of this check. */
@@ -215,7 +229,7 @@ export const Listing = {
     return {
       title: text(o, "title"), priceEur: number(o, "priceEur"), rooms: number(o, "rooms"), areaM2: number(o, "areaM2"),
       district: text(o, "district"), city: text(o, "city"), availableFrom: text(o, "availableFrom"), details: text(o, "details"),
-      url: text(o, "url"), pageUrl: text(o, "pageUrl"),
+      url: text(o, "url"), pageUrl: text(o, "pageUrl"), depositEur: number(o, "depositEur"), utilitiesPerMonthEur: number(o, "utilitiesPerMonthEur"),
     };
   },
 } as const;
@@ -257,6 +271,7 @@ export const PropertyWatch = {
       searchMonitorId: text(o, "searchMonitorId"), createdAt: text(o, "createdAt"), lastCheckedAt: text(o, "lastCheckedAt"),
       problems: texts(o.problems), goal: text(o, "goal"), requirements: record(o, "requirements"),
       lastSuccessAt: text(o, "lastSuccessAt"), nextCheckAt: text(o, "nextCheckAt"), projectStatus: text(o, "projectStatus"),
+      nextScheduledCheckAt: text(o, "nextScheduledCheckAt"), initialResearch: text(o, "initialResearch"),
     };
   },
 } as const;
@@ -272,7 +287,7 @@ export const WatchNotification = {
       previousPriceEur: number(o, "previousPriceEur"), budgetEur: number(o, "budgetEur"), underBudgetByEur: number(o, "underBudgetByEur"),
       leftOverAfterEur: number(o, "leftOverAfterEur"), balanceAfterEur: number(o, "balanceAfterEur"), detectedAt: text(o, "detectedAt"),
       detectedBy: text(o, "detectedBy"), simulated: flag(o, "simulated"), facts: facts(o.facts), read: flag(o, "read"),
-      readAt: text(o, "readAt"), housingEffect: record(o, "housingEffect"), housing: record(o, "housing"),
+      readAt: text(o, "readAt"), housingEffect: record(o, "housingEffect"), housing: record(o, "housing"), verdict: text(o, "verdict"), checks: o.checks,
     };
   },
 } as const;
@@ -284,7 +299,7 @@ export const WatchList = {
     const o = top(json);
     return {
       customerId: text(o, "customerId"), watches: many(o.watches, PropertyWatch.decode),
-      notifications: many(o.notifications, WatchNotification.decode), scheduler: text(o, "scheduler"),
+      notifications: many(o.notifications, WatchNotification.decode), scheduler: text(o, "scheduler"), schedulerInfo: o.schedulerInfo, alerts: o.alerts,
     };
   },
 } as const;

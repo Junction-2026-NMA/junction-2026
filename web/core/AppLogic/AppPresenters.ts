@@ -72,7 +72,7 @@ export namespace TodayPresenter {
   export function greeting(name: string): string { return `Hei ${name}`; }
 
   /** `Data up to 30 Sep 2026`. */
-  export function dataDate(overview: Overview): string { return `Data up to ${Dates.short(overview.dataTimestamp, "en")}`; }
+  export function dataDate(overview: Overview): string { return `Synthetic demo data · as of ${Dates.short(overview.dataTimestamp, "en")}`; }
 
   /** The recurring bill with the largest monthly average outside housing. Null when there is none. */
   export function flaggedBill(overview: Overview): RecurringBill | null {

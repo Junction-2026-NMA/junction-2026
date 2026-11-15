@@ -9,6 +9,8 @@
 //   transactions behind any figure open over the conversation too.
 // - Projects (web/features/Projects) are checked while any tab is shown (useProjectsPolling), and `?project=<id>`
 //   opens one on the Sisu tab (useProjectLaunch). Both run here once, because MainScreen stays mounted.
+// - v3: an unread project alert shows as a slim banner on top (the in-app fallback for phone notifications), and a
+//   tapped notification opens its finding (useProjectLaunch listens to the service worker).
 // - Nothing here paints a background: the app-wide texture under .sisu-root shows through.
 import { useAppModel, useAppSelector } from "@/web/app/AppProvider";
 import { AppTab } from "@/web/app/AppTypes";
@@ -19,6 +21,7 @@ import TalkScreen from "@/web/features/Talk/TalkScreen";
 import PathScreen from "@/web/features/Path/PathScreen";
 import { TransactionsSheet } from "@/web/features/Sheets/TransactionsSheet";
 import { useProjectLaunch } from "@/web/features/Projects/ProjectLaunch";
+import { ProjectAlertBanner } from "@/web/features/Projects/ProjectAlertBanner";
 import { useProjectsPolling } from "@/web/features/Projects/useProjects";
 import { CelebrationOverlay } from "./CelebrationOverlay";
 import "./main.css";
@@ -47,6 +50,7 @@ export default function MainScreen() {
         <TabContent tab={tab} />
       </div>
       <GlassTabBar selection={tab} onSelect={(next) => model.setTab(next)} tabs={AppTab.allCases} hidden={keyboardShown} />
+      <ProjectAlertBanner />
       <TransactionsSheet request={evidence} onClose={() => model.setEvidence(null)} />
       <CelebrationOverlay celebration={celebration} onDismiss={() => model.clearCelebration()} />
     </div>

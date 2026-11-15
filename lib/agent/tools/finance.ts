@@ -21,7 +21,7 @@ import { withCurrentAccount } from "@/lib/actions/bank";
 import { COVERED_FACTOR, billsCovered, coveredText, parseBuffer } from "@/lib/finance/budget";
 import { weeklyBudgetFacts } from "../grounding";
 import { digitsOf } from "./act";
-import { DEFAULT_CUT_YEARS, categoryCutFacts, categoryCutOutcome, wantsProjection } from "./category-cut";
+import { DEFAULT_CUT_YEARS, categoryCutFacts, categoryCutOutcome, categoryNamed, wantsProjection } from "./category-cut";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_GROUPS = 12;
@@ -250,7 +250,7 @@ export function runScenarioTool(args: Record<string, unknown>, ctx: ToolContext)
   // "Reduce dining out by 20%": the euros come from the category's 12-month average, worked out here. Using one
   // month's figure (a model's first instinct) can be several times off when that month was unusual.
   const cutPct = Number(args.categoryCutPct);
-  const cutCategory = typeof args.category === "string" && Number.isFinite(cutPct) && cutPct > 0 && cutPct <= 100 ? categoryAverages(ctx.overview).find((entry) => entry.category === args.category) : undefined;
+  const cutCategory = typeof args.category === "string" && Number.isFinite(cutPct) && cutPct > 0 && cutPct <= 100 ? categoryNamed(categoryAverages(ctx.overview), args.category) : undefined;
   if (typeof args.category === "string" && args.categoryCutPct !== undefined && !cutCategory) return failure("finance", `There is no spending in ${args.category} in the last ${ctx.overview.windowMonths} months, or the percentage is not between 1 and 100.`);
   const fromCategory = cutCategory ? round2((cutCategory.monthly * cutPct) / 100) : 0;
   // A monthly-savings question is answered per month and per year; the projection only when the years were asked about.

@@ -1,6 +1,7 @@
 import { TOO_MANY, allowRequest, jsonError, parseCustomerId } from "@/lib/agent/http";
 import { withVisitor } from "@/lib/agent/visitor";
 import { findCustomer } from "@/lib/finance/data";
+import { markAlertsRead } from "@/lib/watch/alerts";
 import { markRead } from "@/lib/watch/project";
 
 export const runtime = "nodejs";
@@ -19,5 +20,6 @@ export const POST = withVisitor(async function POST(request: Request, { params }
   if (raw !== undefined && (!Array.isArray(raw) || raw.length > MAX_IDS || !raw.every((value) => typeof value === "string"))) return jsonError(`notificationIds must be a list of at most ${MAX_IDS} ids.`, 400);
   const result = markRead(customerId, id, (raw as string[] | undefined) ?? null);
   if (!result.ok) return jsonError(result.reason, result.status);
-  return Response.json({ marked: result.marked, unread: result.unread });
+  const alertsMarked = markAlertsRead(customerId, id, null); // v3: the Project's phone notifications count as read too
+  return Response.json({ marked: result.marked, unread: result.unread, alertsMarked });
 });

@@ -13,6 +13,8 @@ import { buildOverview } from "@/lib/finance/overview";
 import { RENT_BUDGET_LIMITS, rentFacts, rentFit } from "@/lib/finance/rent";
 import { activeWatch } from "@/lib/watch";
 import { fits, ruleFor } from "@/lib/watch/detect";
+import { evaluateListings } from "@/lib/watch/evaluate";
+import { watchEvaluationRule } from "@/lib/watch/rule";
 import { monitoringSentence } from "@/lib/watch/scheduler";
 import type { AgentAction, Fact, Overview, WatchRequirements } from "@/lib/types";
 import type { DraftResult } from "./drafts";
@@ -28,6 +30,9 @@ function describeRequirements(req: WatchRequirements): string[] {
     typeof req.maxDepositEur === "number" ? `deposit at most €${req.maxDepositEur}` : null,
     typeof req.maxCommuteMinutes === "number" ? `commute up to ${req.maxCommuteMinutes} min${req.commuteTo ? ` to ${req.commuteTo}` : ""} (you check this)` : null,
     typeof req.bufferToKeepEur === "number" ? `keep €${req.bufferToKeepEur} after moving` : null,
+    typeof req.minAreaM2 === "number" ? `at least ${req.minAreaM2} m²` : null,
+    typeof req.monthlySavingsEur === "number" ? `keep saving €${req.monthlySavingsEur} a month` : null,
+    typeof req.savingsGoalEur === "number" ? `savings goal €${req.savingsGoalEur}` : null,
   ].filter((text): text is string => !!text);
 }
 
@@ -75,7 +80,10 @@ export function buildWatchDraft(customerId: string, request: WatchRequest): Draf
   const unit = monthly ? ("EUR/month" as const) : ("EUR" as const);
   const seen = search.pages.flatMap((page) => page.listings);
   const rule = ruleFor({ budgetEur: budget, minRooms, topic, requirements: monthly ? requirements : null });
-  const fitting = seen.filter((listing) => fits(listing, rule));
+  // The Project's one rule (lib/watch/rule.ts, with the savings check), so the card's counts are the Project's counts.
+  const judged = monthly ? evaluateListings(seen, watchEvaluationRule({ budgetEur: budget, minRooms, city, requirements }, overview)) : [];
+  const fitting = monthly ? judged.filter((item) => item.verdict === "match").map((item) => item.listing) : seen.filter((listing) => fits(listing, rule));
+  const toVerify = judged.filter((item) => item.verdict === "needs_verification").length;
   // The nearest miss: the cheapest thing read that is a real candidate (enough rooms, not an accessory).
   const cheapest = [...seen].filter((listing) => listing.priceEur >= (rule.floorEur ?? 0) && (minRooms === null || (listing.rooms ?? 0) >= minRooms)).sort((a, b) => a.priceEur - b.priceEur)[0] ?? null;
   const checked = checkLimit(overview, budget, monthly);
@@ -94,7 +102,7 @@ export function buildWatchDraft(customerId: string, request: WatchRequest): Draf
       summary: [
         ask,
         request.goal ? `Goal: ${request.goal}${/[.!?]$/.test(request.goal) ? "" : "."}` : null,
-        `${fitting.length ? `${fitting.length} of the ${seen.length} ${things} read today fit` : `None of the ${seen.length} ${things} read today fit`} (${what}${extra.length ? `; ${extra.join("; ")}` : ""}).`,
+        `${fitting.length ? `${fitting.length} of the ${seen.length} ${things} read today ${monthly ? "match your requirements" : "fit"}` : `None of the ${seen.length} ${things} read today ${monthly ? "match your requirements" : "fit"}`}${toVerify ? `, ${toVerify} more need${toVerify === 1 ? "s" : ""} verification` : ""} (${what}${extra.length ? `; ${extra.join("; ")}` : ""}).`,
         housing && nearest ? `${fitting.length ? "The cheapest that fits" : "The nearest"}, ${nearest.title}: ${housing.sentence}` : null,
         `${monitoringSentence(search.pages.length, !search.mock)}${search.mock ? " (Example data here: no key is set, so nothing is watched on the web.)" : ""}`,
         `Nothing is ${monthly ? "rented, booked" : "bought, ordered"} or paid, and no one is contacted. You can pause or stop it at any time.`,
@@ -112,7 +120,7 @@ export function buildWatchDraft(customerId: string, request: WatchRequest): Draf
       offer: null,
       monthlyAmountEur: 0, // a watch frees no money; the limit is in watch.budgetEur (the budget here showed up as "€700 a month freed")
       warning: checked.warning,
-      watch: { city, topic, priceUnit: unit, budgetEur: budget, minRooms, urls: search.pages.map((page) => page.url), seen, goal: request.goal ?? null, requirements: monthly ? requirements : {}, titles: Object.fromEntries(search.pages.map((page) => [page.url, page.title])) },
+      watch: { city, topic, priceUnit: unit, budgetEur: budget, minRooms, urls: search.pages.map((page) => page.url), seen, goal: request.goal ?? null, requirements: monthly ? requirements : {}, titles: Object.fromEntries(search.pages.map((page) => [page.url, page.title])), discovery: { query: search.query, searchedAt: search.retrievedAt, sources: search.found.map((page) => ({ title: page.title, url: page.url, retrievedAt: search.retrievedAt, cacheAgeMs: null, readBy: "exa" as const })), mock: search.mock } },
       facts: [
         fact("watch:budget", monthly ? "Your rent budget per month" : "The price you set", budget, unit, "the figure you gave", { source: "customer-stated" }),
         fact("watch:read", `${monthly ? "Flats" : "Offers"} read from the pages today`, seen.length, "count", `read with Context.dev at ${search.retrievedAt}`, { source: "context.dev" }),

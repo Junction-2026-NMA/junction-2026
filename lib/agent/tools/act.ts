@@ -8,6 +8,7 @@ import type { BillType, MemoryKind } from "@/lib/types";
 import { ACTION_KINDS, BILL_TYPES, MEMORY_KINDS } from "./schemas";
 import { type ToolContext, type ToolOutcome, factsForModel, failure, outcome } from "./types";
 import { looksLikeInstructions } from "./untrusted";
+import { aboutHousing, asksForTransfer } from "../guards";
 import { parseRequirements } from "../research/requirements";
 
 export const digitsOf = (text: string): number[] => [...text.replace(/(\d)[ ,](\d{3})\b/g, "$1$2").matchAll(/\d+(?:\.\d+)?/g)].map((match) => Number(match[0]));
@@ -33,6 +34,13 @@ export function prepareAction(args: Record<string, unknown>, ctx: ToolContext): 
   const kind = ACTION_KINDS.includes(args.kind as string) ? (args.kind as string) : null;
   if (!kind) return failure("finance", `prepare_action needs kind: ${ACTION_KINDS.join(" or ")}.`);
 
+  // v3: a transfer only when the customer's latest message asks for one, and never in a conversation about a home.
+  // "Keep €100 a month for savings" is a constraint (monthlySavingsEur on search_flats), not a request to move money.
+  if (kind !== "switch_contract") {
+    const latest = ctx.userTexts.at(-1) ?? "";
+    if (aboutHousing(ctx.userTexts)) return failure("finance", "No transfer: this conversation is about a home. A savings amount the customer said is a requirement on the rent: pass it to search_flats as monthlySavingsEur (or savingsGoalEur for a total) and do not set up a transfer.");
+    if (!asksForTransfer(latest)) return failure("finance", "No transfer: the customer did not ask to move money in their latest message. Treat any amount they said as a constraint or a goal, answer their question, and set up a transfer only if they ask for one.");
+  }
   const amount = typeof args.amountEur === "number" ? args.amountEur : typeof args.monthlyAmountEur === "number" ? args.monthlyAmountEur : null;
   const built =
     kind === "switch_contract"

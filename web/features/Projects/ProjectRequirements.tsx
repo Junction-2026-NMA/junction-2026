@@ -80,7 +80,7 @@ function Field({ field, value, error, onChange }: { field: RequirementField; val
   const id = `req-${field.key}`;
   // The error replaces the hint (the budget's says the same range).
   const described = error ? `${id}-error` : field.hint ? `${id}-hint` : undefined;
-  const numeric = field.kind === "euros" || field.kind === "rooms" || field.kind === "minutes";
+  const numeric = field.kind === "euros" || field.kind === "rooms" || field.kind === "minutes" || field.kind === "area";
   return (
     <div className="sisu-project-field">
       <label className="sisu-project-label" htmlFor={id}>{field.label}</label>
