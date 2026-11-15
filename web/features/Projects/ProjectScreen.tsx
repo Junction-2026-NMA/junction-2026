@@ -119,7 +119,8 @@ function ProjectBody({ watch, store, state, fresh, title }: BodyProps) {
           {state.lastCheckAt ? <div className="sisu-project-row-line"><dt>Reviewed by Sisu</dt><dd>{ProjectText.when(state.lastCheckAt)}</dd></div> : null}
         </dl>
         <p className="sisu-project-muted">{ProjectText.schedule(watch, state.scheduler)}</p>
-        {state.error ? <p className="sisu-project-error" role="alert">{state.error}</p> : null}
+        {/* A failed Check now also shows next to its button (the controls' notice); announced there, once. */}
+        {state.error ? <p className="sisu-project-error" role={state.notices[watch.id] === state.error ? undefined : "alert"}>{state.error}</p> : null}
       </SisuCard>
 
       <ProjectRequirements watch={watch} store={store} canEdit={state.support.update} rent={rent}
@@ -152,6 +153,11 @@ function ProjectControls({ watch, store, state, dataTag }: { watch: PropertyWatc
   const [confirming, setConfirming] = useState(false);
   const busy = state.busy[watch.id] ?? null;
   const notice = state.notices[watch.id] ?? null;
+  // A failure (Check now, pause, stop) shows under the buttons; bring it above the tab bar when it appears.
+  const noticeRef = useRef<HTMLParagraphElement | null>(null);
+  useEffect(() => {
+    if (notice) noticeRef.current?.scrollIntoView({ block: "nearest", behavior: prefersReducedMotion() ? "auto" : "smooth" });
+  }, [notice]);
   const stopped = projectStatusOf(watch) === "stopped";
   const paused = projectStatusOf(watch) === "paused";
   const live = store.isLive;
@@ -204,7 +210,7 @@ function ProjectControls({ watch, store, state, dataTag }: { watch: PropertyWatc
           </div>
         </div>
       ) : null}
-      {notice ? <p className="sisu-project-error" role="alert">{notice}</p> : null}
+      {notice ? <p className="sisu-project-error sisu-project-notice" role="alert" data-testid="project.notice" ref={noticeRef}>{notice}</p> : null}
     </SisuCard>
   );
 }

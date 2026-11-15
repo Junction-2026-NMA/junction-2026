@@ -1,8 +1,9 @@
 "use client";
 // Focus for BottomSheet, as a modal dialog: Tab and Shift+Tab wrap inside the topmost open sheet, the app behind
 // it is inert while it is open, and focus goes back to what opened it. Safari does not focus a tapped button, so
-// when the active element is the body the opener is the control under the last pointer press. Also brings a
-// focused text field (and the primary button after it) above the on-screen keyboard.
+// the opener is the control under a fresh pointer press when that differs from the focused one. Tab skips what
+// a closed <details> hides. Also brings a focused text field (and the primary button after it) above the
+// on-screen keyboard.
 
 const TABBABLE = [
   "button:not([disabled])", "a[href]", "input:not([disabled]):not([type='hidden'])", "select:not([disabled])",
@@ -26,28 +27,44 @@ const POINTER_FRESH_MS = 1500;
 let lastPress: { target: Element; at: number } | null = null;
 let tracking = false;
 
-/** Starts remembering pointer presses (once per page). */
+/** Starts remembering pointer presses (once per page). A key press forgets the last one, so a sheet opened from
+ *  the keyboard returns focus to the focused control, never to something tapped just before. */
 export function trackPointerPresses(): void {
   if (tracking || typeof document === "undefined") return;
   tracking = true;
   document.addEventListener("pointerdown", (event) => {
     if (event.target instanceof Element) lastPress = { target: event.target, at: performance.now() };
   }, true);
+  document.addEventListener("keydown", () => { lastPress = null; }, true);
 }
 
-/** Where focus goes back on close: the focused control, else the control under a fresh pointer press. A canvas
- *  or an icon inside a control resolves to the control itself. */
+/** Where focus goes back on close: the control under a fresh pointer press when that is not the focused one
+ *  (Safari leaves focus where an earlier sheet put it back, so a tap on another control must win), else the
+ *  focused control, else the pressed one. A canvas or an icon inside a control resolves to the control itself. */
 export function openerOf(active: Element | null): HTMLElement | null {
-  const focused = active && active !== document.body && active !== document.documentElement ? active : null;
-  const pressed = lastPress && performance.now() - lastPress.at < POINTER_FRESH_MS ? lastPress.target : null;
-  const from = focused ?? pressed;
-  return from?.closest<HTMLElement>(TABBABLE) ?? null;
+  const focusedElement = active && active !== document.body && active !== document.documentElement ? active : null;
+  const focused = focusedElement?.closest<HTMLElement>(TABBABLE) ?? null;
+  const pressedElement = lastPress && performance.now() - lastPress.at < POINTER_FRESH_MS ? lastPress.target : null;
+  const pressed = pressedElement?.closest<HTMLElement>(TABBABLE) ?? null;
+  return pressed && pressed.isConnected && pressed !== focused ? pressed : focused ?? pressed;
+}
+
+/** True when `el` sits in the body of a closed <details> (any level): shown neither on screen nor to Tab. Its
+ *  <summary>, and what is inside the summary, stay reachable. Browsers still give the hidden body boxes
+ *  (content-visibility), so `getClientRects` alone does not tell. */
+export function inClosedDetails(el: Element): boolean {
+  for (let details = el.parentElement?.closest("details") ?? null; details; details = details.parentElement?.closest("details") ?? null) {
+    if (details.open) continue;
+    const summary = Array.from(details.children).find((child) => child.tagName === "SUMMARY");
+    if (!summary || !summary.contains(el)) return true;
+  }
+  return false;
 }
 
 /** The elements Tab reaches inside `root`, in order (hidden ones, like a closed details' body, left out). */
 export function tabbables(root: HTMLElement): HTMLElement[] {
   return Array.from(root.querySelectorAll<HTMLElement>(TABBABLE)).filter((el) =>
-    el.getClientRects().length > 0 && !el.closest("[inert], [aria-hidden='true']"));
+    el.getClientRects().length > 0 && !el.closest("[inert], [aria-hidden='true']") && !inClosedDetails(el));
 }
 
 /** Keeps Tab inside `root`: each press moves to the next element (Shift: the previous one), wrapping at the ends.

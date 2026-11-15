@@ -28,6 +28,16 @@ const raw = (card: TeachingCard): Record<string, unknown> => card as unknown as 
 const strings = (value: unknown): (string | null)[] =>
   Array.isArray(value) ? value.map((v) => (typeof v === "string" && v.trim() !== "" ? v : null)) : [];
 
+/** The backend's whyWrong opens with "Not quite:", which the sheet has already said ("Not quite. Here is how it
+ *  works out for you.", and "Not this one" on a follow-up pick). Without it, and capitalised; null when nothing is
+ *  left. "Not quite right …" (no stop after it) is a sentence of its own and stays. */
+export function withoutOpener(text: string | null): string | null {
+  if (text === null) return null;
+  const rest = text.replace(/^\s*not quite\s*[:.,;!–—-]+\s*/i, "").trim();
+  return rest === "" ? null : rest.charAt(0).toUpperCase() + rest.slice(1);
+}
+const explanations = (value: unknown): (string | null)[] => strings(value).map(withoutOpener);
+
 /** FNV-1a: a small, stable 32-bit hash of the seed text. */
 const hash = (text: string): number =>
   [...text].reduce((h, ch) => Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0, 2166136261);
@@ -64,7 +74,7 @@ function shuffled(question: LessonQuestion, seed: string): LessonQuestion {
 export namespace LessonFollowUps {
   /** Why the picked first option is wrong, from the backend (`whyWrong`), or null when it sent none. */
   export function whyWrong(card: TeachingCard, index: number): string | null {
-    return strings(raw(card).whyWrong)[index] ?? null;
+    return explanations(raw(card).whyWrong)[index] ?? null;
   }
 
   /** The backend's follow-up when it is complete and consistent; null otherwise. */
@@ -77,7 +87,7 @@ export namespace LessonFollowUps {
     if (typeof f.question !== "string" || f.question.trim() === "" || options.length < 2 || options.length !== (f.options as unknown[]).length) return null;
     if (!Number.isInteger(correctIndex) || correctIndex < 0 || correctIndex >= options.length) return null;
     const explanation = typeof f.explanation === "string" ? f.explanation : typeof f.reveal === "string" ? f.reveal : card.reveal;
-    return { question: f.question, options, correctIndex, explanation, whyWrong: strings(f.whyWrong) };
+    return { question: f.question, options, correctIndex, explanation, whyWrong: explanations(f.whyWrong) };
   }
 
   /** The follow-up to ask after a wrong first answer. */
@@ -268,7 +278,9 @@ export namespace LessonAttempt {
   export function followUpHint(attempt: LessonAttempt, followUp: LessonQuestion): string | null {
     const last = attempt.followUpPicks[attempt.followUpPicks.length - 1];
     if (last === undefined || last === followUp.correctIndex) return null;
-    return `${followUp.whyWrong[last] ?? "Not quite."} Try another one.`;
+    // No "Not quite" here: the feedback above has said it, and the pick is marked "Not this one".
+    const why = followUp.whyWrong[last] ?? null;
+    return why ? `${why} Try another one.` : "Try another one.";
   }
 
   export function decode(value: unknown): LessonAttempt | null {

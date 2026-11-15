@@ -59,6 +59,8 @@
 
 /* The drawer section */
 .sisu-project-section { display: flex; flex-direction: column; gap: 8px; }
+.sisu-project-failed { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.sisu-project-failed .sisu-project-error { flex: 1 1 12em; }
 .sisu-project-section-head { display: flex; align-items: baseline; justify-content: space-between; }
 .sisu-project-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .sisu-project-item,
@@ -118,6 +120,7 @@
 .sisu-project-field { display: flex; flex-direction: column; gap: 4px; }
 .sisu-project-field-error { font: var(--sisu-type-caption); color: var(--sisu-error-text); margin: 0; }
 .sisu-project-form { display: flex; flex-direction: column; gap: 14px; }
+.sisu-project-notice { scroll-margin-bottom: var(--sisu-tabbar-room); }
 .sisu-project-confirm { scroll-margin-bottom: var(--sisu-tabbar-room); display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 16px; background: var(--sisu-error-background); }
 .sisu-project-confirm p { font: var(--sisu-type-label); color: var(--sisu-error-text); margin: 0; }
 .sisu-project-enter { animation: sisu-project-rise var(--sisu-motion-state-duration) var(--sisu-motion-state-easing) both; }

@@ -2,6 +2,8 @@
 // (no pause/resume/PATCH/read routes) and a newer one, and the presenter's wording (titles, status, the honest
 // schedule line, findings, the housing effect with its missing items), and the requirements editor's rules.
 // Run: npx tsx web/core/__checks__/projects.check.ts
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { CoachClient } from "@/web/core/CoachClient";
 import { CoachEndpoints } from "@/web/core/CoachEndpoints";
 import { PropertyWatch, WatchNotification } from "@/web/core/WatchModels";
@@ -136,6 +138,42 @@ async function main() {
     const after = reads();
     await store.check();
     eq(reads(), after, "a closed project is not read again");
+  });
+
+  await group("store: a failed Check now is kept next to its button; a failed list asks for a retry (15 Nov QA)", async () => {
+    const server = fakeServer();
+    let down: "check" | "list" | null = null;
+    const fetchImpl = (async (url: RequestInfo | URL, init?: RequestInit) => {
+      const path = new URL(String(url), "http://x").pathname;
+      if (down === "check" && path === "/api/watch/check") throw new TypeError("Failed to fetch");
+      if (down === "list" && path === "/api/watch") return new Response(JSON.stringify({ error: "Service unavailable" }), { status: 503, headers: { "Content-Type": "application/json" } });
+      return server.fetchImpl(url, init);
+    }) as typeof fetch;
+    const store = new ProjectStore("C1", CoachClient.live("", fetchImpl), memoryDefaults());
+    await store.load();
+    eq([store.getSnapshot().listFailed, store.getSnapshot().error], [false, null], "loaded");
+    down = "check";
+    await store.checkNow("w1");
+    const failed = store.getSnapshot();
+    eq([failed.busy.w1, failed.checking], [undefined, false], "the button is back");
+    eq(typeof failed.notices.w1 === "string" && failed.notices.w1 !== "" && failed.notices.w1 === failed.error, true, "the failure shows with the controls, not only in the Checks card");
+    eq(failed.listFailed, false, "a failed check is not a failed list");
+    down = null;
+    await store.checkNow("w1");
+    eq([store.getSnapshot().notices.w1, store.getSnapshot().error], [undefined, null], "a check that works clears it");
+    down = "list";
+    await store.load();
+    eq([store.getSnapshot().listFailed, store.getSnapshot().watches.map((w) => w.id)], [true, ["w1"]], "a failed list is marked; the projects known stay");
+    down = null;
+    await store.load();
+    eq([store.getSnapshot().listFailed, store.getSnapshot().error], [false, null], "Retry: the list loads again");
+    const fresh = new ProjectStore("C1", CoachClient.live("", fetchImpl), memoryDefaults());
+    down = "list";
+    await fresh.load();
+    eq([fresh.getSnapshot().loaded, fresh.getSnapshot().listFailed, fresh.getSnapshot().watches.length], [true, true, 0], "first load fails: marked, nothing invented");
+    const section = readFileSync(join(process.cwd(), "web/features/Projects/ProjectsSection.tsx"), "utf8");
+    eq(["Sisu could not load your projects.", "projects.retry", "store?.load()", "Ask Sisu to keep an eye on something"].map((text) => section.includes(text)),
+      [true, true, true, true], "the drawer names the list failure, offers Retry and keeps the hint");
   });
 
   await group("store on the sample: empty, no checks, no project calls", async () => {

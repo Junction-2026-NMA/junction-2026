@@ -16,6 +16,20 @@ export namespace WeeklyBudget {
   export const defaultBufferEur = 100;
   /** The realistic adjustment Today offers: about a fifth of a usual week's everyday spending, in steps of €5. */
   export const adjustmentShare = 0.2;
+  /** The largest buffer a field accepts: the server refuses more (lib/finance/budget.ts BUFFER_LIMITS), and a
+   *  refused buffer would make every question fail while the setting stays. */
+  export const maxBufferEur = 100_000;
+  /** What every buffer field says when the typed text is not a buffer it accepts. */
+  export const bufferInputError = "Type an amount in euros from 0 to 100,000, for example 150.";
+
+  /** Typed buffer text ("150", "€ 1 500", "99,50") as whole euros, or null when it is not a number from 0 to
+   *  `maxBufferEur`. Empty text is null too: the caller decides whether that clears the setting. */
+  export function parseBuffer(text: string): number | null {
+    const clean = text.replace(/[€\s ]/g, "").replace(",", ".");
+    if (!/^\d+(\.\d{1,2})?$/.test(clean)) return null;
+    const value = Math.round(Number(clean));
+    return Number.isFinite(value) && value >= 0 && value <= maxBufferEur ? value : null;
+  }
 
   export interface Bill { readonly label: string; readonly amountEur: number; readonly expectedOn: string }
 

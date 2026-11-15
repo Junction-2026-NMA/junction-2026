@@ -4,6 +4,7 @@
 // language or the voice keeps the conversation and projects. Opened from Today and from Path.
 import { useState, type FormEvent } from "react";
 import { useAppModel, useAppSelector } from "@/web/app/AppProvider";
+import { WeeklyBudget } from "@/web/core/AppLogic/WeeklyBudget";
 import { SisuButton, SisuCard } from "@/web/shared/SisuStyle";
 import { DataSourcesCard, useBackendStatus } from "./DataSourcesCard";
 import { SheetFrame } from "./SheetFrame";
@@ -44,13 +45,14 @@ function BufferSetting() {
   const buffer = useAppSelector((s) => s.prefs.bufferEur);
   const [text, setText] = useState(buffer === null ? "" : String(buffer));
   const [saved, setSaved] = useState(false);
-  const trimmed = text.trim().replace(/\s/g, "").replace(",", ".");
-  const value = trimmed === "" ? null : Number(trimmed);
-  const valid = value === null || (Number.isFinite(value) && value >= 0 && value <= 1_000_000);
+  // The same rule and message as Today's buffer sheet: from 0 to 100,000 (the server refuses more). Empty clears it.
+  const empty = text.trim() === "";
+  const value = empty ? null : WeeklyBudget.parseBuffer(text);
+  const valid = empty || value !== null;
   const save = (event: FormEvent) => {
     event.preventDefault();
     if (!valid) return;
-    model.setPrefs({ bufferEur: value === null ? null : Math.round(value) });
+    model.setPrefs({ bufferEur: value });
     setSaved(true);
   };
   return (
@@ -67,7 +69,7 @@ function BufferSetting() {
         <button type="submit" className="sisu-settings-save" disabled={!valid}>Save</button>
       </div>
       <p className="sisu-sheet-caption" role="status">
-        {!valid ? "Type an amount in euros, like 500." : saved ? (value === null ? "No buffer set." : "Saved.") : "Leave it empty and Sisu assumes a default buffer, marked as assumed."}
+        {!valid ? WeeklyBudget.bufferInputError : saved ? (value === null ? "No buffer set." : "Saved.") : "Leave it empty and Sisu assumes a default buffer, marked as assumed."}
       </p>
     </form>
   );

@@ -8,7 +8,8 @@ import { join } from "node:path";
 import type { TeachingCard } from "@/web/core/CoachModels";
 import { ConceptId } from "@/web/core/CoachModels";
 import { LessonWording } from "@/web/core/AppLogic/LessonPath";
-import { LessonAttempt, LessonFollowUps, stableOrder } from "@/web/core/AppLogic/LessonFollowUps";
+import { LessonAttempt, LessonFollowUps, stableOrder, withoutOpener } from "@/web/core/AppLogic/LessonFollowUps";
+import { inClosedDetails } from "@/web/shared/sheetFocus";
 import { VoiceLanguages, VoicePrefs } from "@/web/voice/VoicePrefs";
 import { memoryDefaults } from "@/web/app/Defaults";
 import { previewSentence, voicesOffered } from "@/web/features/Sheets/voiceChoices";
@@ -132,6 +133,61 @@ group("backend follow-up and whyWrong are used when valid, ignored when not", ()
   eq(LessonFollowUps.question(withExtras).question, "Q?", "backend follow-up wins");
   const broken = { ...card, followUp: { question: "Q?", options: ["x", "y"], correctIndex: 5 } } as unknown as TeachingCard;
   eq(LessonFollowUps.question(broken).question, LessonFollowUps.local(card).question, "an inconsistent backend follow-up falls back to the local one");
+});
+
+group("wrong-answer feedback says \"Not quite\" once (15 Nov QA)", () => {
+  // The sheet opens with "Not quite. Here is how it works out for you."; the backend's whyWrong opened the same way.
+  const card = cardsOf("CUST04974")[0];
+  const sent = { ...card, whyWrong: ["Not quite: the real share is higher than that.", "Close, but the real share is higher than that.", "Not quite. ", "Not quite right for you."],
+    followUp: { question: "Q?", options: ["x", "y", "z"], correctIndex: 0, explanation: "E", whyWrong: ["Yes.", "Not quite: one bill at a time hides the total.", "not quite — that is more than your bills."] } } as unknown as TeachingCard;
+  eq([0, 1, 2, 3].map((i) => LessonFollowUps.whyWrong(sent, i)),
+    ["The real share is higher than that.", "Close, but the real share is higher than that.", null, "Not quite right for you."], "the opener goes, the explanation stays");
+  const follow = LessonFollowUps.question(sent);
+  eq(follow.whyWrong, ["Yes.", "One bill at a time hides the total.", "That is more than your bills."], "the follow-up's too");
+  const wrongFirst = LessonAttempt.chooseFirst(LessonAttempt.make(sent.concept), sent, (sent.correctIndex + 1) % sent.options.length);
+  const picked = LessonAttempt.chooseFollowUp(wrongFirst, sent, follow, 1);
+  eq(LessonAttempt.followUpHint(picked, follow), "One bill at a time hides the total. Try another one.", "the hint has no second Not quite");
+  const bare = { ...follow, whyWrong: [] };
+  eq(LessonAttempt.followUpHint(LessonAttempt.chooseFollowUp(wrongFirst, sent, bare, 2), bare), "Try another one.", "without an explanation: no Not quite either");
+  eq([withoutOpener(null), withoutOpener("Not quite"), withoutOpener("Right: about €164.")], [null, "Not quite", "Right: about €164."], "other text as sent");
+  const sheet = readFileSync(join(process.cwd(), "web/features/Path/LessonSheet.tsx"), "utf8");
+  eq((sheet.match(/Not quite/g) ?? []).length, 1, "the sheet itself says it once");
+});
+
+group("sheet focus: Tab skips what a closed details hides, never its summary (15 Nov QA)", () => {
+  // A tiny stand-in for the DOM: tag, parent, children, open, closest(tag) and contains.
+  class El {
+    parentElement: El | null = null;
+    readonly children: El[] = [];
+    constructor(readonly tagName: string, public open = false) {}
+    add(child: El): El { child.parentElement = this; this.children.push(child); return child; }
+    closest(tag: string): El | null {
+      return this.tagName === tag.toUpperCase() ? this : this.parentElement?.closest(tag) ?? null;
+    }
+    contains(other: El): boolean {
+      for (let node: El | null = other; node; node = node.parentElement) if (node === this) return true;
+      return false;
+    }
+  }
+  const sheet = new El("DIV");
+  const close = sheet.add(new El("BUTTON"));
+  const details = sheet.add(new El("DETAILS"));
+  const summary = details.add(new El("SUMMARY"));
+  const inSummary = summary.add(new El("SPAN"));
+  const body = details.add(new El("DIV"));
+  const toggle = body.add(new El("DIV"));
+  const nested = body.add(new El("DETAILS", true));
+  const nestedSummary = nested.add(new El("SUMMARY"));
+  const nestedButton = nested.add(new El("BUTTON"));
+  const hidden = (el: El) => inClosedDetails(el as unknown as Element);
+  eq([close, summary, inSummary].map(hidden), [false, false, false], "closed: the summary and what is outside stay");
+  eq([toggle, nestedSummary, nestedButton].map(hidden), [true, true, true], "closed: its body is hidden, nested ones too");
+  details.open = true;
+  eq([summary, toggle, nestedSummary, nestedButton].map(hidden), [false, false, false, false], "open: all reachable");
+  nested.open = false;
+  eq([nestedSummary, nestedButton].map(hidden), [false, true], "a closed nested details: only its body");
+  const source = readFileSync(join(process.cwd(), "web/shared/sheetFocus.ts"), "utf8");
+  ok(/!inClosedDetails\(el\)/.test(source), "tabbables() leaves them out");
 });
 
 group("evidence of understanding: only a right answer completes", () => {

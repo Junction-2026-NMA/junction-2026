@@ -34,6 +34,8 @@ export interface ProjectsState {
   readonly lastCheckAt: string | null;
   /** The last load or check failure, as a sentence. Earlier data stays. */
   readonly error: string | null;
+  /** The last `GET /api/watch` failed (the drawer then says it could not load the projects and offers Retry). */
+  readonly listFailed: boolean;
   /** What the last check reported as not working (pages that could not be read…). */
   readonly checkProblems: readonly string[];
   /** True only once the server's list showed it is the backend with these routes. */
@@ -81,7 +83,7 @@ export class ProjectStore extends Store<ProjectsState> {
     private readonly now: () => Date = () => new Date()) {
     super({
       customerId, watches: [], notifications: [], loaded: false, loading: false, checking: false, lastCheckAt: null, error: null,
-      checkProblems: [], support: NO_SUPPORT, scheduler: false, busy: {}, notices: {}, seen: readSeen(defaults, customerId), fresh: {},
+      listFailed: false, checkProblems: [], support: NO_SUPPORT, scheduler: false, busy: {}, notices: {}, seen: readSeen(defaults, customerId), fresh: {},
       matches: {},
     });
   }
@@ -153,29 +155,33 @@ export class ProjectStore extends Store<ProjectsState> {
       const routes = this.isLive && !this.routesKnown;
       this.routesKnown ||= this.isLive;
       this.update({
-        watches: list.watches, notifications: list.notifications, loaded: true, loading: false, error: null,
+        watches: list.watches, notifications: list.notifications, loaded: true, loading: false, error: null, listFailed: false,
         ...(list.scheduler === "cron" ? { scheduler: true } : {}),
         ...(routes ? { support: hasProjectRoutes(list) ? ALL_SUPPORT : NO_SUPPORT } : {}),
       });
       if (routes && this.state.support.project) void this.reloadOpen();
       if (list.watches.length > 0 && typeof list.scheduler !== "string") void this.askHealth();
     } catch (error) {
-      this.update({ loading: false, loaded: true, error: CoachErrors.sentence(error) || CoachErrors.generic });
+      this.update({ loading: false, loaded: true, listFailed: true, error: CoachErrors.sentence(error) || CoachErrors.generic });
     }
   }
 
   /** `POST /api/watch/check` (runNow also asks Context.dev to run its monitors; their result shows on a later
-   *  check), then the list again. Skipped on the sample and while another check runs. */
-  async check(runNow = false): Promise<void> {
-    if (!this.isLive || this.state.checking) return;
+   *  check), then the list again. Skipped on the sample and while another check runs. Returns the failure as a
+   *  sentence (the check's, or the list's after it), null when it worked or did not run. */
+  async check(runNow = false): Promise<string | null> {
+    if (!this.isLive || this.state.checking) return null;
     this.update({ checking: true });
     try {
       const result = await this.client.watchCheck(this.state.customerId, runNow);
       this.update({ checking: false, lastCheckAt: this.now().toISOString(), checkProblems: result.problems, error: null });
       await this.load();
       await this.reloadOpen();
+      return this.state.error;
     } catch (error) {
-      this.update({ checking: false, error: CoachErrors.sentence(error) || CoachErrors.generic });
+      const sentence = CoachErrors.sentence(error) || CoachErrors.generic;
+      this.update({ checking: false, error: sentence });
+      return sentence;
     }
   }
 
@@ -234,12 +240,15 @@ export class ProjectStore extends Store<ProjectsState> {
     return this.change(id, "update", () => this.client.watchUpdate(id, this.state.customerId, requirements), "update");
   }
 
-  /** Check now: asks Context.dev to run the monitors and reviews what has changed so far. */
+  /** Check now: asks Context.dev to run the monitors and reviews what has changed so far. A failure is also kept
+   *  as the watch's notice, so it shows next to the button, not only in the Checks card far above. */
   async checkNow(id: string): Promise<void> {
     if (this.state.busy[id]) return;
     this.setBusy(id, "check");
+    this.dismissNotice(id);
     try {
-      await this.check(true);
+      const failure = await this.check(true);
+      if (failure) this.update({ notices: { ...this.state.notices, [id]: failure } });
     } finally {
       this.setBusy(id, null);
     }

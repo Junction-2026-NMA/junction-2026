@@ -67,6 +67,20 @@ group("Missing inputs are named, not guessed", () => {
   eq(WeeklyBudget.inputs(null, cashFlow("CUST04974"), Number.NaN).bufferEur, null, "an invalid buffer is the default");
 });
 
+group("Buffer fields: one rule for Today and Settings, capped where the server stops", () => {
+  const parse = WeeklyBudget.parseBuffer;
+  eq(["150", "€ 1 500", "99,50", "0", "100000", "100 000"].map(parse), [150, 1500, 100, 0, 100_000, 100_000], "accepted, as whole euros");
+  // The server refuses a buffer over 100,000 (lib/finance/budget.ts), which made every question fail.
+  eq(["100001", "150000", "1000000", "-5", "1e3", "abc", "", "12.345"].map(parse), [null, null, null, null, null, null, null, null], "refused");
+  eq(WeeklyBudget.maxBufferEur, 100_000, "the server's limit");
+  ok(WeeklyBudget.bufferInputError.includes("100,000"), "the message names the limit");
+  const settings = readFileSync(join(process.cwd(), "web/features/Sheets/SettingsSheet.tsx"), "utf8");
+  const sheet = readFileSync(join(process.cwd(), "web/features/Today/BufferSheet.tsx"), "utf8");
+  ok([settings, sheet].every((source) => source.includes("WeeklyBudget.parseBuffer") || source.includes("{ parseBuffer } = WeeklyBudget")), "both fields use the shared rule");
+  ok([settings, sheet].every((source) => source.includes("WeeklyBudget.bufferInputError")), "both fields show the same message");
+  ok(!settings.includes("1_000_000"), "no separate, larger Settings limit");
+});
+
 group("Recorded profiles", () => {
   const aino = ready(WeeklyBudget.compute(WeeklyBudget.inputs(overview("CUST04974"), cashFlow("CUST04974"), null)));
   near(aino.balanceEur, 1220.35, "Aino balance");

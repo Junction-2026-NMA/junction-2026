@@ -10,16 +10,7 @@ import { SheetFrame } from "@/web/features/Sheets/SheetFrame";
 import "./buffer.css";
 
 const presets = [50, 100, 200, 500] as const;
-/** The largest buffer the field accepts. */
-const maxBuffer = 100_000;
-
-/** The typed text as whole euros, or null when it is not a number from 0 to `maxBuffer`. */
-export function parseBuffer(text: string): number | null {
-  const clean = text.replace(/[€\s ]/g, "").replace(",", ".");
-  if (!/^\d+(\.\d{1,2})?$/.test(clean)) return null;
-  const value = Math.round(Number(clean));
-  return Number.isFinite(value) && value >= 0 && value <= maxBuffer ? value : null;
-}
+const { parseBuffer } = WeeklyBudget;
 
 /** Below this window height half a screen cannot hold the field and "Save buffer" together, so the sheet opens
  *  at the large detent (a 375x667 phone shows only the field and half the quick amounts at medium). */
@@ -72,7 +63,7 @@ function BufferForm({ onClose, defaultEur }: { onClose: () => void; defaultEur: 
             if (value !== null) save(value);
           }} />
       </label>
-      {invalid ? <p className="sisu-buffer-error" role="alert">Type a whole amount in euros, for example 150.</p> : null}
+      {invalid ? <p className="sisu-buffer-error" role="alert">{WeeklyBudget.bufferInputError}</p> : null}
       {/* Save sits right under the field, so the two show together at the medium detent. */}
       <SisuButton label="Save buffer" enabled={value !== null} action={() => { if (value !== null) save(value); }} />
       <div className="sisu-buffer-presets" role="group" aria-label="Quick amounts">

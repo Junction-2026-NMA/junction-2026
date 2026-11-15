@@ -21,6 +21,8 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: calc(var(--sisu-space-grid) * 2);
+  /* The labels size to the row (container units), so the phone frame on a desktop sizes like a phone. */
+  container-type: inline-size;
 }
 
 button.sisu-baskets-button {
@@ -53,11 +55,18 @@ button.sisu-baskets-button:focus-visible { outline: 2px solid var(--sisu-green-5
   border-radius: 50%;
 }
 
+/* A label wraps between words only, onto two lines at most: "Occasional / essentials". Never hyphenated (WebKit
+   split it into "Occasion- / al essen- / tials" at 375 px). The type shrinks with the column, from the button size
+   (17 px) down to 12 px, so the longest word ("Occasional", about 5.1 × the font size) fits the column's text width
+   (a third of the row less the gaps, less 2 × 12 px padding and the 2 px border). */
 .sisu-baskets-name {
   font: var(--sisu-type-button);
+  font-size: clamp(12px, calc(((100cqi - 2 * var(--sisu-space-grid) * 2) / 3 - 26px) / 5.4), 17px);
   line-height: 1.2;
-  overflow-wrap: anywhere;
-  hyphens: auto;
+  hyphens: manual;
+  -webkit-hyphens: manual;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .sisu-baskets-chevron { display: inline-flex; flex: none; color: var(--sisu-green-700); }
