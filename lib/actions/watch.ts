@@ -79,7 +79,7 @@ export function buildWatchDraft(customerId: string, request: WatchRequest): Draf
       draftMessage: null,
       billType: null,
       offer: null,
-      monthlyAmountEur: monthly ? budget : 0,
+      monthlyAmountEur: 0, // a watch frees no money; the limit is in watch.budgetEur (the budget here showed up as "€700 a month freed")
       warning: checked.warning,
       watch: { city, topic, priceUnit: unit, budgetEur: budget, minRooms, urls: search.pages.map((page) => page.url), seen },
       facts: [
