@@ -73,59 +73,21 @@
   color: var(--gate-muted);
 }
 
-/* Demo code under the QR: opens the app on a computer, in an iPhone-sized frame (DesktopPhone.tsx). */
+/* Under the QR: one button that opens the app on this computer, in an iPhone-sized frame (DesktopPhone.tsx). */
 
-.sisu-gate-code {
+.sisu-gate-open {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  width: 100%;
-  max-width: 320px;
 }
 
-.sisu-gate-code-label {
+.sisu-gate-open-label {
   font-size: 14px;
   color: var(--gate-muted);
 }
 
-.sisu-gate-code-row {
-  display: flex;
-  gap: 8px;
-  width: 100%;
-}
-
-.sisu-gate .sisu-gate-code-input {
-  flex: 1 1 auto;
-  min-width: 0;
-  height: 48px;
-  padding: 0 16px;
-  border-radius: 16px;
-  border: 1px solid var(--gate-hairline);
-  background: var(--gate-card);
-  color: var(--gate-text);
-  font: inherit;
-  font-size: 18px;
-  letter-spacing: 0.2em;
-  text-align: center;
-}
-
-.sisu-gate .sisu-gate-code-input:focus-visible {
-  outline: 2px solid var(--gate-accent);
-  outline-offset: 1px;
-}
-
-.sisu-gate .sisu-gate-code-input[aria-invalid="true"] {
-  border-color: #cf8300;
-}
-
-/* A wrong code: the focus ring turns amber too (the darker amber, 3:1 or more on the page), one error state. */
-.sisu-gate .sisu-gate-code-input[aria-invalid="true"]:focus-visible {
-  outline-color: #885600;
-}
-
-.sisu-gate .sisu-gate-code-button {
-  flex: none;
+.sisu-gate .sisu-gate-open-button {
   height: 48px;
   padding: 0 22px;
   border: 0;
@@ -139,15 +101,9 @@
   cursor: pointer;
 }
 
-.sisu-gate .sisu-gate-code-button:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-
-.sisu-gate-code-error {
-  margin: 0;
-  font-size: 14px;
-  color: #8a5a00;
+.sisu-gate .sisu-gate-open-button:focus-visible {
+  outline: 2px solid var(--gate-accent);
+  outline-offset: 2px;
 }
 
 /* The app on a computer: an iPhone-sized screen in a dark frame, scaled down to fit (never up). */
