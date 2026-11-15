@@ -1,97 +1,124 @@
-/* The Talk screen (TalkScreen.tsx, TalkParts.tsx, TalkTranscript.tsx). Light only. Spacing and type from
-   web/theme/tokens.css. Every class here is sisu-talk-*. */
+/* The Sisu tab (TalkScreen.tsx, TalkParts.tsx, TalkTranscript.tsx, SisuEmptyState.tsx, VoiceStrip.tsx). Light only.
+   Spacing and type from web/theme/tokens.css. Every class here is sisu-talk-*. No full-screen background: the
+   app-wide texture on .sisu-root shows through; cards stay solid. */
 
+/* The whole column: header, notice, conversation, dock. It keeps to what is visible: above the floating tab bar,
+   or on the keyboard while it is up (--sisu-talk-kb / --sisu-talk-vv-top from the visual viewport; MainScreen gives
+   the bar's room back then). */
 .sisu-talk {
   position: absolute;
   inset: 0;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: var(--sisu-color-background);
-  padding-top: env(safe-area-inset-top, 0px);
-  padding-bottom: calc(var(--sisu-tabbar-room) + var(--sisu-space-grid) * 2);
+  background: transparent;
+  padding-top: var(--sisu-talk-vv-top, 0px);
+  padding-bottom: max(var(--sisu-tabbar-room), var(--sisu-talk-kb, 0px));
   padding-left: env(safe-area-inset-left, 0px);
   padding-right: env(safe-area-inset-right, 0px);
 }
 
-/* MARK: Hero (before the first question) */
-
-.sisu-talk-hero {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  padding: 0 var(--sisu-space-margin);
-  overflow-y: auto;
-  overscroll-behavior: contain;
+.sisu-talk[data-keyboard="true"] {
+  padding-bottom: var(--sisu-talk-kb, 0px);
 }
 
-.sisu-talk-topbar {
+/* MARK: Header */
+
+.sisu-talk-header {
+  position: relative;
+  z-index: 2;
   flex: none;
   display: flex;
   align-items: center;
-  min-height: var(--sisu-space-touch-target);
+  gap: calc(var(--sisu-space-grid) * 3);
+  min-height: 56px;
+  padding: calc(env(safe-area-inset-top, 0px) + var(--sisu-space-grid) * 4) var(--sisu-space-margin) calc(var(--sisu-space-grid) * 2);
+}
+
+.sisu-talk[data-keyboard="true"] .sisu-talk-header {
   padding-top: calc(var(--sisu-space-grid) * 2);
 }
 
-.sisu-talk-heading {
-  margin: 0;
-  font: var(--sisu-type-h3);
-  color: var(--sisu-color-text);
-}
-
-.sisu-talk-spacer {
-  flex: 1 1 0;
-  min-height: 8px;
-}
-
-.sisu-talk-spacer[data-min="16"] {
-  min-height: 16px;
-}
-
-.sisu-talk-caption {
-  flex: none;
+.sisu-talk-titles {
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: calc(var(--sisu-space-grid) * 2);
-  text-align: center;
-  animation: sisu-talk-fade 250ms ease both;
+  gap: 2px;
 }
 
-.sisu-talk-caption-title {
+.sisu-talk-title {
   margin: 0;
-  font: var(--sisu-type-h2);
+  font: var(--sisu-type-h1);
   color: var(--sisu-color-text);
+  letter-spacing: -0.01em;
 }
 
-.sisu-talk-caption-detail {
-  margin: 0;
-  font: var(--sisu-type-body);
-  color: var(--sisu-color-text-muted);
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.sisu-talk-link {
-  min-height: var(--sisu-space-touch-target);
-  padding: 0 var(--sisu-space-grid);
-  border: 0;
-  background: none;
-  font: var(--sisu-type-label);
-  color: var(--sisu-color-primary);
-  cursor: pointer;
-}
-
-.sisu-talk-hero-liito {
+.sisu-talk-header-liito {
   flex: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 260px;
-  margin: var(--sisu-space-card) 0;
+  width: 56px;
+  height: 56px;
+}
+
+/* The Sisu logo: Liito's face in a small circle, with a list mark that says it opens the history. */
+button.sisu-talk-logo {
+  position: relative;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 160ms var(--sisu-motion-ease-out);
+}
+
+button.sisu-talk-logo:active {
+  transform: scale(0.94);
+}
+
+button.sisu-talk-logo:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--sisu-color-outline);
+}
+
+.sisu-talk-logo-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--sisu-color-primary) url("/app-icons/icon-192.png") center / cover no-repeat;
+  box-shadow: 0 0 0 1px rgba(0, 70, 40, 0.12), 0 4px 12px rgba(0, 70, 40, 0.16);
+}
+
+.sisu-talk-logo-lines {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--sisu-color-card);
+  color: var(--sisu-color-text);
+  box-shadow: 0 0 0 1px var(--sisu-color-hairline), 0 2px 6px rgba(24, 33, 28, 0.12);
+}
+
+.sisu-talk-logo-dot {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--sisu-amber-mark);
+  box-shadow: 0 0 0 2px var(--sisu-color-card);
 }
 
 /* MARK: Liito's badge */
@@ -158,43 +185,9 @@
   }
 }
 
-/* MARK: Chat (from the first question on) */
+/* MARK: Empty conversation */
 
-.sisu-talk-chat-header {
-  /* Above the chat, so the badge stays on top while it flies up from the middle (the FLIP in TalkScreen.tsx). */
-  position: relative;
-  z-index: 2;
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: calc(var(--sisu-space-grid) * 3);
-  padding: calc(var(--sisu-space-grid) * 2) var(--sisu-space-margin);
-  background: var(--sisu-color-background);
-  border-bottom: 1px solid var(--sisu-color-hairline);
-}
-
-.sisu-talk[data-chat-entered="true"] .sisu-talk-chat-titles {
-  animation: sisu-talk-fade 250ms ease both;
-}
-
-.sisu-talk-chat-titles {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.sisu-talk-chat-title {
-  margin: 0;
-  font: var(--sisu-type-h3);
-  color: var(--sisu-color-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.sisu-talk-scroll {
+.sisu-talk-empty-scroll {
   flex: 1 1 auto;
   min-height: 0;
   overflow-x: hidden;
@@ -203,8 +196,140 @@
   -webkit-overflow-scrolling: touch;
 }
 
-.sisu-talk[data-chat-entered="true"] .sisu-talk-scroll {
-  animation: sisu-talk-rise 450ms var(--sisu-motion-ease-out) both;
+.sisu-talk-empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sisu-space-card);
+  padding: 0 var(--sisu-space-margin) var(--sisu-space-card);
+}
+
+.sisu-talk-empty-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+  padding-top: var(--sisu-space-grid);
+  text-align: center;
+  animation: sisu-talk-fade 320ms var(--sisu-motion-ease-out) both;
+}
+
+.sisu-talk-empty-line {
+  margin: calc(var(--sisu-space-grid) * 2) 0 0;
+  font: var(--sisu-type-h2);
+  color: var(--sisu-color-text);
+  text-wrap: balance;
+}
+
+.sisu-talk-empty-hint {
+  margin: 0;
+  max-width: 32ch;
+  font: var(--sisu-type-body);
+  color: var(--sisu-color-text-muted);
+  text-wrap: pretty;
+}
+
+.sisu-talk-suggest {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 2);
+  animation: sisu-talk-rise-soft 420ms var(--sisu-motion-ease-out) both;
+}
+
+.sisu-talk-suggest + .sisu-talk-suggest {
+  animation-delay: 60ms;
+}
+
+.sisu-talk-suggest-head {
+  margin: var(--sisu-space-grid) 0 0;
+  font: var(--sisu-type-label);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-talk-suggest-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--sisu-color-hairline);
+  border-radius: var(--sisu-radius-button);
+  background: var(--sisu-color-card);
+  overflow: hidden;
+}
+
+.sisu-talk-suggest-list > li + li {
+  border-top: 1px solid var(--sisu-color-hairline);
+}
+
+button.sisu-talk-suggest-item {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 3);
+  width: 100%;
+  min-height: 52px;
+  padding: calc(var(--sisu-space-grid) * 3) var(--sisu-space-card);
+  border: 0;
+  background: transparent;
+  color: var(--sisu-color-text);
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 160ms ease;
+}
+
+button.sisu-talk-suggest-item:active {
+  background: var(--sisu-color-selection-fill);
+}
+
+button.sisu-talk-suggest-item:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 3px var(--sisu-color-outline);
+}
+
+.sisu-talk-suggest-stack {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sisu-talk-suggest-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: 600 16px/1.35 var(--sisu-font-text);
+}
+
+.sisu-talk-suggest-noticed {
+  font: var(--sisu-type-caption);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-talk-suggest-tag {
+  font-weight: 400;
+}
+
+.sisu-talk-suggest-chevron {
+  flex: none;
+  color: var(--sisu-color-primary);
+}
+
+/* MARK: Transcript */
+
+.sisu-talk-transcript {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sisu-talk-scroll {
+  position: relative; /* the offsetParent of the rows (TalkTranscript measures layout offsets) */
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .sisu-talk-stack {
@@ -212,7 +337,13 @@
   flex-direction: column;
   align-items: stretch;
   gap: var(--sisu-space-card);
-  padding: var(--sisu-space-card) var(--sisu-space-margin);
+  padding: calc(var(--sisu-space-grid) * 2) var(--sisu-space-margin) var(--sisu-space-card);
+}
+
+/* Under the newest turn: room for its question to sit at the top (height set by TalkTranscript). */
+.sisu-talk-spacer {
+  flex: none;
+  height: 0;
 }
 
 .sisu-talk-bottom {
@@ -220,100 +351,193 @@
   height: 1px;
 }
 
-/* MARK: Controls */
+button.sisu-talk-jump {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--sisu-space-grid) * 3);
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 calc(var(--sisu-space-grid) * 4);
+  border: 1px solid var(--sisu-color-hairline);
+  border-radius: var(--sisu-radius-pill);
+  background: var(--sisu-color-card);
+  color: var(--sisu-color-primary);
+  font: var(--sisu-type-label);
+  box-shadow: 0 8px 24px rgba(24, 33, 28, 0.14);
+  cursor: pointer;
+  translate: -50% 0;
+  animation: sisu-talk-pill-in 260ms var(--sisu-motion-ease-out) both;
+  -webkit-tap-highlight-color: transparent;
+}
 
-.sisu-talk-controls {
+button.sisu-talk-jump:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--sisu-color-outline), 0 8px 24px rgba(24, 33, 28, 0.14);
+}
+
+/* MARK: Dock (notice + composer or voice strip) */
+
+.sisu-talk-dock {
   flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 2);
+  padding: calc(var(--sisu-space-grid) * 2) var(--sisu-space-margin) calc(var(--sisu-space-grid) * 3);
+}
+
+/* A voice problem (speech failed, the microphone refused or interrupted): one calm line, never red. */
+.sisu-talk-notice {
+  margin: 0;
+  padding: calc(var(--sisu-space-grid) * 2) calc(var(--sisu-space-grid) * 3);
+  border-radius: var(--sisu-radius-button);
+  background: var(--sisu-info-background);
+  color: var(--sisu-info-text);
+  font: var(--sisu-type-label);
+  text-align: center;
+}
+
+.sisu-talk-strip {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+  min-height: 60px;
+  box-sizing: border-box;
+  padding: 4px;
+  border: 1px solid rgba(0, 120, 65, 0.18);
+  border-radius: 30px;
+  background: var(--sisu-color-card);
+  box-shadow: 0 6px 20px rgba(0, 70, 40, 0.1);
+  animation: sisu-talk-fade 240ms var(--sisu-motion-ease-out) both;
+}
+
+button.sisu-talk-strip-type {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--sisu-color-background);
+  color: var(--sisu-color-text);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sisu-talk-strip-status {
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: calc(var(--sisu-space-grid) * 3);
 }
 
-.sisu-talk-controls[data-chatting="true"] {
-  padding: calc(var(--sisu-space-grid) * 3) var(--sisu-space-margin) 0;
-}
-
-.sisu-talk-main-button {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-/* The round 60 px buttons: the brand's press, a 4 px darker edge under the button that it moves down onto. */
-.sisu-talk-round {
+.sisu-talk-strip-dot {
+  position: relative;
   flex: none;
-  position: relative;
-  width: 60px;
-  height: calc(60px + var(--sisu-space-press-edge));
-  padding: 0 0 var(--sisu-space-press-edge);
-  border: 0;
-  background: none;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
+  width: 22px;
+  height: 22px;
 }
 
-.sisu-talk-round::before {
-  content: "";
+.sisu-talk-strip-halo,
+.sisu-talk-strip-core {
   position: absolute;
-  left: 0;
-  right: 0;
-  top: var(--sisu-space-press-edge);
-  height: 60px;
+  inset: 0;
   border-radius: 50%;
-  background: var(--sisu-color-press-edge);
 }
 
-.sisu-talk-round-face {
-  position: relative;
+.sisu-talk-strip-halo {
+  background: var(--sisu-color-selection-fill);
+  transition: transform 120ms ease-out;
+}
+
+.sisu-talk-strip-core {
+  inset: 6px;
+  background: var(--sisu-green-500);
+}
+
+.sisu-talk-strip[data-tone="listening"] .sisu-talk-strip-core {
+  animation: sisu-talk-breathe 1.8s ease-in-out infinite;
+}
+
+.sisu-talk-strip[data-tone="thinking"] .sisu-talk-strip-core {
+  background: var(--sisu-green-700);
+  animation: sisu-talk-breathe 0.9s ease-in-out infinite;
+}
+
+.sisu-talk-strip[data-tone="answering"] .sisu-talk-strip-core {
+  background: var(--sisu-color-primary);
+}
+
+.sisu-talk-strip-text {
+  min-width: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: var(--sisu-color-card);
-  color: var(--sisu-color-text);
-  box-shadow: inset 0 0 0 1px var(--sisu-color-hairline);
-  transition: transform var(--sisu-motion-state-duration) var(--sisu-motion-state-easing),
-    background-color 200ms ease, color 200ms ease;
+  flex-direction: column;
 }
 
-.sisu-talk-round[data-variant="dark"] .sisu-talk-round-face {
+.sisu-talk-strip-label {
+  font: 700 16px/1.25 var(--sisu-font-text);
+  color: var(--sisu-color-text);
+}
+
+.sisu-talk-strip-detail {
+  font: var(--sisu-type-caption);
+  color: var(--sisu-color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+button.sisu-talk-strip-stop {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 50px;
+  padding: 0 18px 0 16px;
+  border: 0;
+  border-radius: 25px;
   background: var(--sisu-color-text);
   color: var(--sisu-color-card);
-  box-shadow: none;
+  font: var(--sisu-type-label);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 160ms var(--sisu-motion-ease-out), background-color 200ms ease;
 }
 
-.sisu-talk-round:active:not(:disabled) .sisu-talk-round-face {
-  transform: translateY(var(--sisu-space-press-edge));
+button.sisu-talk-strip-stop[data-kind="interrupt"] {
+  background: var(--sisu-color-primary);
 }
 
-.sisu-talk-round:disabled {
-  opacity: 0.45;
-  cursor: default;
+button.sisu-talk-strip-stop:active {
+  transform: scale(0.95);
 }
 
-.sisu-talk-round:focus-visible .sisu-talk-round-face {
+.sisu-talk-strip-stop-mark {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+button.sisu-talk-strip-type:focus-visible,
+button.sisu-talk-strip-stop:focus-visible {
+  outline: none;
   box-shadow: 0 0 0 3px var(--sisu-color-outline);
 }
 
-.sisu-talk-icon-button {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--sisu-space-touch-target);
-  height: var(--sisu-space-touch-target);
-  padding: 0;
-  border: 1px solid var(--sisu-color-hairline);
-  border-radius: 50%;
-  background: var(--sisu-color-card);
-  color: var(--sisu-color-text);
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
+/* MARK: A project over the conversation (web/features/Projects/ProjectScreen.tsx) */
 
-.sisu-talk-icon-button:active {
-  background: var(--sisu-color-selection-fill);
+.sisu-talk-project {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  animation: sisu-talk-rise-soft 320ms var(--sisu-motion-ease-out) both;
 }
 
 /* MARK: Status line */
@@ -376,23 +600,27 @@
 }
 
 @keyframes sisu-talk-fade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes sisu-talk-rise { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: none; } }
+@keyframes sisu-talk-rise-soft { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes sisu-talk-pill-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes sisu-talk-breathe { 0%, 100% { transform: scale(0.82); } 50% { transform: scale(1); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .sisu-talk[data-chat-entered="true"] .sisu-talk-scroll {
-    animation: sisu-talk-fade 250ms ease both;
+  .sisu-talk-empty-hero,
+  .sisu-talk-suggest,
+  .sisu-talk-project,
+  button.sisu-talk-jump,
+  .sisu-talk-strip {
+    animation: sisu-talk-fade 200ms ease both;
   }
-}
 
-/* MARK: Voice notice (speech failed, microphone refused): one calm line, never red. */
+  .sisu-talk-strip-core {
+    animation: none !important;
+  }
 
-.sisu-talk-notice {
-  flex: none;
-  margin: calc(var(--sisu-space-grid) * 2) var(--sisu-space-margin) 0;
-  padding: calc(var(--sisu-space-grid) * 2) calc(var(--sisu-space-grid) * 3);
-  border-radius: var(--sisu-radius-button);
-  background: var(--sisu-info-background);
-  color: var(--sisu-info-text);
-  font: var(--sisu-type-label);
-  text-align: center;
+  button.sisu-talk-logo,
+  button.sisu-talk-strip-stop,
+  .sisu-talk-strip-halo,
+  button.sisu-talk-suggest-item {
+    transition: none;
+  }
 }

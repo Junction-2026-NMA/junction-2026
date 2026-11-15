@@ -14,7 +14,6 @@ import { Dates } from "@/web/core/Presentation";
 import { AppPrefs } from "./AppPrefs";
 import { type AppState, type AppStored, Keys, billKey, derive, stringDictionary } from "./AppState";
 import { type AppTab, type Celebration, EvidenceRequest, LoadState, type TodaySheet } from "./AppTypes";
-import { TalkLaunch } from "@/web/features/Talk/TalkLaunch";
 import { CoachStore } from "./CoachStore";
 import { LaunchOptions } from "./LaunchOptions";
 
@@ -36,7 +35,7 @@ export class AppModel extends Store<AppState> {
     const defaults = launch.defaults;
     if (launch.onboarding === "reset") {
       // As on a clean install: no progress, names, rewards, chosen customer, preferences or finished first run.
-      [Keys.progress, Keys.billNames, Keys.coachRewards, Keys.customer, Keys.onboarding, Keys.prefs].forEach((key) => defaults.remove(key));
+      [Keys.progress, Keys.billNames, Keys.coachRewards, Keys.customer, Keys.onboarding, Keys.prefs, Keys.conversations].forEach((key) => defaults.remove(key));
     }
     const storedFlow = OnboardingFlow.decode(defaults.json(Keys.onboarding));
     const stored: AppStored = {
@@ -50,7 +49,6 @@ export class AppModel extends Store<AppState> {
       overview: null,
       overviewState: LoadState.idle,
       tab: launch.tab ?? "sisu",
-      conversationShown: TalkLaunch.current().opensConversation,
       historyOpen: false,
       openProjectId: null,
       onboarding: OnboardingFlow.atLaunch(storedFlow, launch.onboarding, LaunchOptions.skipsOnboardingByDefault(launch)),
@@ -70,6 +68,7 @@ export class AppModel extends Store<AppState> {
     this.launch = launch;
     this.now = now;
     this.timeZone = timeZone;
+    this.coach.attachDefaults(defaults);
     this.coach.setLanguage(stored.prefs.language);
     this.coach.onApprovedSaving = (saving) => {
       if (this.state.approvedMonthlySaving !== saving) this.set({ approvedMonthlySaving: saving });
@@ -121,21 +120,20 @@ export class AppModel extends Store<AppState> {
   // MARK: Navigation
 
   setTab(tab: AppTab): void { if (tab !== this.state.tab) this.set({ tab }); }
-  /** Swift `model.conversationShown = …`: the written conversation as a sheet over Talk. */
-  setConversationShown(conversationShown: boolean): void {
-    if (conversationShown !== this.state.conversationShown) this.set({ conversationShown });
-  }
   /** The chat history drawer on the Sisu tab. */
   setHistoryOpen(historyOpen: boolean): void { if (historyOpen !== this.state.historyOpen) this.set({ historyOpen }); }
   /** Shows a project (a watch id) on the Sisu tab; null closes it. */
   setOpenProjectId(openProjectId: string | null): void { if (openProjectId !== this.state.openProjectId) this.set({ openProjectId }); }
 
   /** Asks Sisu from anywhere (a suggestion on Today, "Ask Sisu" in a lesson, a project): the Sisu tab with nothing
-   *  over the conversation (no sheet, drawer or project), then the question through the coach (`coach.ask`, typed
-   *  turn). A blank question only opens the tab. */
+   *  over the conversation (no drawer or project), then the question through the coach (`coach.ask`, typed turn) in
+   *  the same conversation. A hands-free conversation ends first (its microphone must not record over the answer).
+   *  A blank question only opens the tab. */
   askSisu(question: string): void {
-    this.set({ tab: "sisu", conversationShown: false, historyOpen: false, openProjectId: null });
-    if (question.trim() !== "") this.coach.ask(question);
+    this.set({ tab: "sisu", historyOpen: false, openProjectId: null });
+    if (question.trim() === "") return;
+    this.coach.conversation?.end();
+    this.coach.ask(question);
   }
 
   /** Swift `model.evidence = …` (null closes the sheet). */
@@ -260,7 +258,7 @@ export class AppModel extends Store<AppState> {
     this.coach.clear();
     this.defaults.remove(Keys.customer);
     this.set({
-      customer: null, overview: null, overviewState: LoadState.idle, conversationShown: false, historyOpen: false, openProjectId: null, tab: "sisu",
+      customer: null, overview: null, overviewState: LoadState.idle, historyOpen: false, openProjectId: null, tab: "sisu",
     });
   }
 
@@ -307,11 +305,11 @@ export class AppModel extends Store<AppState> {
     }
   }
 
-  /** "Look into my finances" on Today, or the third daily action: Sisu with the written conversation open, where the
-   *  investigation's stage cards are. A hands-free conversation in progress ends first. */
+  /** "Look into my finances" on Today, or the third daily action: the Sisu tab, where the investigation's stage cards
+   *  arrive in the conversation. A hands-free conversation in progress ends first. */
   startInvestigation(): void {
     this.coach.conversation?.end();
-    this.set({ tab: "sisu", conversationShown: true, investigationRequests: this.state.investigationRequests + 1 });
+    this.set({ tab: "sisu", historyOpen: false, openProjectId: null, investigationRequests: this.state.investigationRequests + 1 });
     this.coach.investigate();
     this.complete("investigate");
   }
@@ -329,6 +327,7 @@ export class AppModel extends Store<AppState> {
     // (401/403 when SISU_RESET_TOKEN is set) changes nothing here: the demo still starts over locally.
     const session = this.coach.session;
     session?.reset();
+    this.coach.clearHistory();
     const client = session?.client ?? (this.isLive ? CoachClient.live(this.state.baseURLString) : null);
     if (client) void client.resetDemo().catch(() => null);
     [Keys.progress, Keys.billNames, Keys.coachRewards].forEach((key) => this.defaults.remove(key));

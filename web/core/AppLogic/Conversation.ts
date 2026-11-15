@@ -238,7 +238,9 @@ export namespace SpeechEndpointer {
     /** At least this much speech, or it was not a question: the recording is thrown away. 0.33 s on the web: a cough
      *  measured 0.30 s and a spoken "No." 0.35 s in the browser (14 Nov QA recordings); iOS keeps 0.4 s. */
     minimumSpeech: number;
-    /** A pause this long after speech ends the question. */
+    /** A pause this long after speech ends the question. 0.9 s on the web since the Sisu tab rework (15 Nov 2026,
+     *  was 1.1 s): a turn feels like a conversation, and a breath inside a sentence (about 0.6 s) still does not end
+     *  it. The pause is measured against the person's own loudness, so background voices do not stretch it. */
     endSilence: number;
     /** The question is sent anyway after this long (the backend takes up to a minute). */
     maximumUtterance: number;
@@ -259,7 +261,7 @@ export namespace SpeechEndpointer {
   /** Swift `Tuning()`, with optional overrides. */
   export function tuning(overrides: Partial<Tuning> = {}): Tuning {
     return {
-      margin: 12, quietest: -48, hysteresis: 4, startAfter: 0.15, minimumSpeech: 0.33, endSilence: 1.1,
+      margin: 12, quietest: -48, hysteresis: 4, startAfter: 0.15, minimumSpeech: 0.33, endSilence: 0.9,
       maximumUtterance: 50, restartAfter: 20, calibration: 0.4, floorWindow: 3, backgroundMargin: 8, speechDrop: 18,
       resumeAfter: 0.1, ...overrides,
     };

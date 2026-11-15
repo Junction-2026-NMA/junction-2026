@@ -53,11 +53,10 @@ async function main() {
     eq([model.getSnapshot().tab, model.getSnapshot().prefs], ["today", { language: "sv", voiceId: null, speakReplies: true, bufferEur: null }], "launch tab and stored prefs");
     model.setHistoryOpen(true);
     model.setOpenProjectId("w1");
-    model.setConversationShown(true);
     eq([model.getSnapshot().historyOpen, model.getSnapshot().openProjectId], [true, "w1"], "drawer and project");
     model.askSisu("Will my money last until payday?");
     const s = model.getSnapshot();
-    eq([s.tab, s.conversationShown, s.historyOpen, s.openProjectId], ["sisu", false, false, null], "askSisu clears what covers the conversation");
+    eq([s.tab, s.historyOpen, s.openProjectId], ["sisu", false, null], "askSisu clears what covers the conversation");
     model.setPrefs({ language: "fi", speakReplies: false });
     eq(defaults.json(Keys.prefs), { language: "fi", voiceId: null, speakReplies: false, bufferEur: null }, "prefs stored under sisu.prefs");
     model.switchCustomer();

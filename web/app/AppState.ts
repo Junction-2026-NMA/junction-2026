@@ -29,9 +29,6 @@ export interface AppStored {
   readonly overviewState: LoadState;
   // Navigation
   readonly tab: AppTab;
-  /** The written conversation (the Ask screen) as a sheet over Talk: the cards, approvals, quizzes and typing.
-   *  While it is up, the hands-free conversation holds its microphone. */
-  readonly conversationShown: boolean;
   /** The chat history drawer on the Sisu tab (previous conversations, saved projects, New chat). */
   readonly historyOpen: boolean;
   /** The project (a watch id) shown on the Sisu tab, or null. */
@@ -111,6 +108,8 @@ export const Keys = {
   onboarding: "sisu.onboardingFlow",
   /** AppPrefs as JSON (web only). */
   prefs: "sisu.prefs",
+  /** The saved conversations of every customer (web only; web/core/ConversationHistory.ts). */
+  conversations: "sisu.conversations",
 } as const;
 
 export const billKey = (customerId: string, billId: string): string => `${customerId}/${billId}`;
