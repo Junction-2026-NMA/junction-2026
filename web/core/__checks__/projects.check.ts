@@ -1,12 +1,15 @@
 // Checks for Projects (watches) on the web: the ProjectStore against a fake server shaped like today's backend
 // (no pause/resume/PATCH/read routes) and a newer one, and the presenter's wording (titles, status, the honest
-// schedule line, findings, the housing effect with its missing items).
+// schedule line, findings, the housing effect with its missing items), and the requirements editor's rules.
 // Run: npx tsx web/core/__checks__/projects.check.ts
 import { CoachClient } from "@/web/core/CoachClient";
+import { CoachEndpoints } from "@/web/core/CoachEndpoints";
 import { PropertyWatch, WatchNotification } from "@/web/core/WatchModels";
+import { WatchProject, sameListing } from "@/web/core/WatchProject";
 import { memoryDefaults } from "@/web/app/Defaults";
 import { ProjectStore } from "@/web/app/ProjectStore";
 import { FindingText, HousingText, ProjectText } from "@/web/features/Projects/ProjectPresenter";
+import { fieldError, formErrors, readNumber, requirementFields, requirementPatch } from "@/web/features/Projects/RequirementForm";
 
 let failures = 0, passes = 0;
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
@@ -33,43 +36,60 @@ const findingJSON = {
   detectedAt: "2026-11-15T09:00:00.000Z", detectedBy: "simulation", simulated: true, facts: [],
 };
 
-/** A fake server: `routes` says which optional routes exist (a POST-only route answers a GET with 405). */
-function fakeServer(routes: { pause?: boolean; read?: boolean } = {}) {
+const matchJSON = { listing: { title: "Testikuja 7", priceEur: 965, rooms: 2, url: "https://www.vuokraovi.com/espoo/7", pageUrl: "https://www.vuokraovi.com/espoo" },
+  housing: { rentEur: 965, recurring: { knownChangeEur: 100 }, upfront: { depositEur: null, depositAssumedEur: { low: 965, high: 2895 } }, missing: [] } };
+
+/** A fake server: today's hosted backend (no project routes: they answer an HTML 404), or with `newer` the backend
+ *  that marks its list (`scheduler`, `projectStatus`) and has pause, resume, PATCH, read and `GET /api/watch/:id`. */
+function fakeServer({ newer = false }: { newer?: boolean } = {}) {
   const calls: string[] = [];
-  let watch: Record<string, unknown> = { ...watchJSON };
+  let watch: Record<string, unknown> = { ...watchJSON, ...(newer ? { projectStatus: "active", requirements: {} } : {}) };
   let notifications: unknown[] = [];
+  let patches: unknown[] = [];
   const fetchImpl = (async (url: RequestInfo | URL, init?: RequestInit) => {
-    const path = new URL(String(url), "http://x").pathname;
+    const parsed = new URL(String(url), "http://x");
+    const path = parsed.pathname;
     const method = init?.method ?? "GET";
-    calls.push(`${method} ${path}`);
+    calls.push(`${method} ${path}${parsed.search}`);
     const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
-    if (method === "GET" && path === "/api/watch") return json({ customerId: "C1", watches: [watch], notifications });
+    const project = () => json({ customerId: "C1", watch, notifications, unread: 0, currentMatches: [matchJSON], scheduler: "on-open" });
+    if (method === "GET" && path === "/api/watch") return json({ customerId: "C1", watches: [watch], notifications, ...(newer ? { scheduler: "on-open" } : {}) });
     if (method === "POST" && path === "/api/watch/check") { notifications = [findingJSON]; return json({ customerId: "C1", checked: 1, changesSeen: 1, pagesReread: 1, notifications, problems: [] }); }
-    if (method === "POST" && path === "/api/watch/w1/stop") { watch = { ...watch, status: "stopped" }; return json({ watch }); }
-    if (routes.pause && path === "/api/watch/w1/pause") {
-      if (method === "GET") return new Response("", { status: 405 });
-      watch = { ...watch, status: "paused" };
-      return json({ watch });
+    if (method === "POST" && path === "/api/watch/w1/stop") { watch = { ...watch, status: "stopped", projectStatus: newer ? "stopped" : undefined }; return json({ watch }); }
+    if (newer && method === "POST" && path === "/api/watch/w1/pause") { watch = { ...watch, status: "paused", projectStatus: "paused" }; return json({ watch }); }
+    if (newer && method === "POST" && path === "/api/watch/w1/read") return json({ watch, notifications });
+    if (newer && method === "GET" && path === "/api/watch/w1") return parsed.searchParams.get("customerId") === "C1" ? project() : json({ error: "Choose a customer first." }, 400);
+    if (newer && method === "PATCH" && path === "/api/watch/w1") {
+      const body = JSON.parse(String(init?.body)) as { budgetEur?: number };
+      patches = [...patches, body];
+      if (body.budgetEur !== undefined && (body.budgetEur < 200 || body.budgetEur > 10_000)) return json({ error: "The price limit must be between €200 and €10,000." }, 400);
+      watch = { ...watch, ...(body.budgetEur !== undefined ? { budgetEur: body.budgetEur } : {}) };
+      return project();
     }
-    if (routes.read && path === "/api/watch/w1/read") return method === "GET" ? new Response("", { status: 405 }) : json({ watch, notifications });
     if (path === "/api/health") return json({ ok: true, mock: false, model: { provider: "mock", name: "m" }, services: { watchScheduler: false } });
     return new Response("<!DOCTYPE html><title>404</title>", { status: 404, headers: { "Content-Type": "text/html" } });
   }) as typeof fetch;
-  const prober = async (path: string) => (await fetchImpl(path, { method: "GET" })).status;
-  return { calls, fetchImpl, prober };
+  return { calls, fetchImpl, patches: () => patches };
 }
+/** Calls that a browser would log as an error status (the probes did, on every load). */
+const optionalRouteCalls = (calls: string[]) => calls.filter((c) => /^GET \/api\/watch\/w1\/(pause|resume|read)|^GET \/api\/watch\/w1$/.test(c));
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 async function main() {
   await group("store on today's backend: list, check, findings, unread, controls hidden", async () => {
     const server = fakeServer();
     const defaults = memoryDefaults();
-    const store = new ProjectStore("C1", CoachClient.live("", server.fetchImpl), defaults, server.prober);
+    const store = new ProjectStore("C1", CoachClient.live("", server.fetchImpl), defaults);
     await store.load();
     await settle(); await settle();
     const s = store.getSnapshot();
     eq([s.loaded, s.watches.map((w) => w.id), s.error], [true, ["w1"], null], "loaded");
-    eq(s.support, { pause: false, resume: false, update: false, read: false }, "optional routes not found: hidden");
+    eq(s.support, { pause: false, resume: false, update: false, read: false, project: false }, "no project routes on today's backend: hidden");
+    eq(optionalRouteCalls(server.calls), [], "nothing probed, so no 404 in the console");
+    const close = store.open("w1");
+    await settle();
+    eq([server.calls.some((c) => c.startsWith("GET /api/watch/w1")), store.getSnapshot().matches], [false, {}], "no project detail asked where the route is missing");
+    close();
     eq(store.hasActive, true, "an active project");
     await store.check();
     eq(store.findings("w1").map((n) => n.id), ["n1"], "check found one");
@@ -78,7 +98,7 @@ async function main() {
     await store.markRead("w1", true);
     eq([ProjectStore.unreadCount(store.getSnapshot()), store.getSnapshot().fresh.w1], [0, ["n1"]], "seen on this device, still marked new");
     eq(server.calls.some((c) => c.startsWith("POST /api/watch/w1/read")), false, "no read call without the route");
-    const again = new ProjectStore("C1", CoachClient.live("", server.fetchImpl), defaults, server.prober);
+    const again = new ProjectStore("C1", CoachClient.live("", server.fetchImpl), defaults);
     await again.load();
     eq(ProjectStore.unreadCount(again.getSnapshot()), 0, "seen ids survive a new store");
     eq(await store.pause("w1"), false, "pause on today's backend fails");
@@ -88,22 +108,38 @@ async function main() {
     eq(store.hasActive, false, "nothing active: polling sends nothing");
   });
 
-  await group("store on a newer backend: routes found by probing, pause works, read sent", async () => {
-    const server = fakeServer({ pause: true, read: true });
-    const store = new ProjectStore("C1", CoachClient.live("", server.fetchImpl), memoryDefaults(), server.prober);
+  await group("store on a newer backend: routes read from the list, what fits now, pause works, read sent", async () => {
+    const server = fakeServer({ newer: true });
+    const store = new ProjectStore("C1", CoachClient.live("", server.fetchImpl), memoryDefaults());
+    const close = store.open("w1");
     await store.load();
     await settle(); await settle();
-    eq(store.getSnapshot().support, { pause: true, resume: false, update: false, read: true }, "probed");
-    eq(server.calls.filter((c) => c.startsWith("POST")).length, 0, "probing sends no POST");
+    eq(store.getSnapshot().support, { pause: true, resume: true, update: true, read: true, project: true }, "the list's marks say the routes exist");
+    eq(optionalRouteCalls(server.calls), [], "no probe of a POST-only route, so no 405 in the console");
+    eq(server.calls.filter((c) => c.startsWith("POST")).length, 0, "loading sends no POST");
+    eq(server.calls.includes("GET /api/watch/w1?customerId=C1"), true, "the open project is read with its customer");
+    eq(store.getSnapshot().matches.w1?.map((m) => [m.listing.title, m.listing.priceEur, m.housing !== null]), [["Testikuja 7", 965, true]], "what fits now, with its housing effect");
+    const reads = () => server.calls.filter((c) => c === "GET /api/watch/w1?customerId=C1").length;
+    const before = reads();
+    await store.check();
+    eq(reads(), before + 1, "read again after a check");
+    eq(await store.updateRequirements("w1", { budgetEur: 1100 }), true, "an edit saves");
+    eq([server.patches().at(-1), reads(), store.watch("w1")?.budgetEur], [{ budgetEur: 1100, customerId: "C1" }, before + 2, 1100], "only the change is sent, then the project is read again");
+    eq(await store.updateRequirements("w1", { budgetEur: 50 }), false, "a refused edit");
+    eq([store.getSnapshot().notices[ProjectStore.noticeKey("w1", "update")], store.getSnapshot().notices.w1],
+      ["The price limit must be between €200 and €10,000.", undefined], "the refusal is kept for the requirements card, not the controls");
     eq(await store.pause("w1"), true, "pause");
     eq(store.watch("w1")?.status, "paused", "paused");
-    await store.check();
     await store.markRead("w1", true);
     eq(server.calls.includes("POST /api/watch/w1/read"), true, "read sent");
+    close();
+    const after = reads();
+    await store.check();
+    eq(reads(), after, "a closed project is not read again");
   });
 
-  await group("store on the sample: empty, no checks, no probes", async () => {
-    const store = new ProjectStore("C1", CoachClient.sample(), null, async () => { throw new Error("no probe on the sample"); });
+  await group("store on the sample: empty, no checks, no project calls", async () => {
+    const store = new ProjectStore("C1", CoachClient.sample(), null);
     await store.load();
     await store.check();
     const s = store.getSnapshot();
@@ -142,6 +178,56 @@ async function main() {
     eq([server.monthly.length, server.upfront, server.missing, server.totals.map((t) => t.value)], [1, [{ label: "Moving van", value: "€150" }], ["Water", "Deposit"], ["€870", "€150"]], "server effect: unknown stays unknown");
     eq(FindingText.enquiry(n).includes("deposit"), true, "the enquiry asks for the deposit");
     eq(/CUST|C1|€412/.test(FindingText.enquiry(n)), false, "the enquiry carries nothing private");
+  });
+
+  await group("presenter: check now and stop say what really happens (15 Nov QA)", () => {
+    const w = PropertyWatch.decode(watchJSON)!;
+    const reread = { ...w, pages: [{ ...w.pages[0], monitorId: null }] };
+    eq(ProjectText.checking(w, null), "Asking Context.dev to read the pages again. New results can take a few minutes to show.", "monitored: Context.dev");
+    eq(ProjectText.checking(w, "Mock data"), "Sisu is reading the example pages again.", "mock: no Context.dev, whatever the pages say");
+    eq(ProjectText.checking(reread, null), "Sisu is reading the pages again.", "re-read on the live backend");
+    eq(ProjectText.stopQuestion(w, null).includes("Context.dev monitors are removed"), true, "monitored stop names the monitors");
+    eq(ProjectText.stopQuestion(w, "Mock data"), "Stop this project? Sisu stops re-reading its pages. Findings so far stay here.", "mock stop");
+    eq(ProjectText.stopQuestion(reread, null).includes("monitor"), false, "re-read stop: no monitors");
+    eq(ProjectText.requirements({ ...w, requirements: { maxDepositEur: 2000, maxCommuteMinutes: 40, moveBy: "2027-01-31", districts: ["Tapiola", "Otaniemi"] } }).slice(2),
+      [{ label: "Deposit at most", value: "€2,000" }, { label: "Commute at most", value: "40 minutes" }, { label: "Move in by", value: "2027-01-31" },
+        { label: "Districts", value: "Tapiola, Otaniemi" }], "known requirements named as the editor names them");
+  });
+
+  await group("project detail: currentMatches decoded tolerantly, the same home found once", () => {
+    const project = WatchProject.decode({ customerId: "C1", watch: watchJSON, notifications: [findingJSON, { nope: 1 }], unread: 1, scheduler: "on-open",
+      currentMatches: [matchJSON, { listing: null }, "x", { listing: { title: "Esimerkkikatu 4 A", priceEur: 1040 }, housing: "bad" }] });
+    eq([project.watch?.id, project.notifications.length, project.currentMatches.map((m) => [m.listing.title, m.housing === null])],
+      ["w1", 1, [["Testikuja 7", false], ["Esimerkkikatu 4 A", true]]], "bad entries skipped, a bad housing effect is null");
+    eq(WatchProject.decode({}).currentMatches, [], "missing: none");
+    const page = "https://site.fi/espoo";
+    eq(sameListing({ title: "A 1", rooms: 2, pageUrl: page, url: page, priceEur: 900 }, { title: "a 1", rooms: 2, pageUrl: page, url: page, priceEur: 850 }), true, "a rent drop is the same home");
+    eq(sameListing({ url: "https://site.fi/1", pageUrl: page }, { url: "https://site.fi/2", pageUrl: page }), false, "two own links: two homes");
+    eq(CoachEndpoints.watchProject("", "w/1", "C1").url, "/api/watch/w%2F1?customerId=C1", "GET with the customer");
+  });
+
+  await group("requirements editor: every field the PATCH takes, checked in place (15 Nov QA)", () => {
+    const w = PropertyWatch.decode({ ...watchJSON, requirements: { moveBy: "2027-01-31" } })!;
+    const fields = requirementFields(w, true);
+    eq(fields.map((f) => f.key), ["budgetEur", "minRooms", "moveBy", "districts", "maxDepositEur", "movingCostEur", "bufferToKeepEur", "savingsGoalEur",
+      "maxCommuteMinutes", "commuteTo", "goal"], "every field the PATCH takes, for a rent");
+    eq(fields[0].label, "Rent at most (€ a month)", "the limit is named as a rent");
+    eq(requirementFields(w, false).map((f) => [f.key, f.label]), [["budgetEur", "Price at most (€)"], ["goal", "The goal, in your words"]], "a price watch: its limit and goal");
+    const budget = fields[0];
+    eq([fieldError(budget, "", true), fieldError(budget, "150", true), fieldError(budget, "1 100", true), fieldError(budget, "abc", true)],
+      ["Enter the most you would pay a month.", "Enter an amount between €200 and €10,000.", null, "Enter an amount between €200 and €10,000."], "a blank limit is invalid, never €0");
+    eq(formErrors(fields, { budgetEur: "" }, true), { budgetEur: "Enter the most you would pay a month." }, "the blank limit blocks Save");
+    eq(formErrors(fields, {}, true), {}, "nothing changed: nothing to fix");
+    const rooms = fields.find((f) => f.key === "minRooms")!;
+    eq([fieldError(rooms, "2", true), fieldError(rooms, "2.5", true), fieldError(rooms, "9", true)], [null, "Enter a whole number from 1 to 6.", "Enter a whole number from 1 to 6."], "rooms");
+    eq(fieldError(fields.find((f) => f.key === "districts")!, "Tapiola, <b>", true), "Use district names only (letters, spaces, hyphens).", "districts are names");
+    eq(fieldError(fields.find((f) => f.key === "maxCommuteMinutes")!, "200", true), "Enter 5 to 180 minutes.", "commute limit");
+    eq(requirementPatch(fields, { budgetEur: "1100", minRooms: "2", moveBy: "", districts: "Tapiola, Otaniemi", movingCostEur: "300", commuteTo: "Aalto" }),
+      { budgetEur: 1100, minRooms: 2, moveBy: null, districts: ["Tapiola", "Otaniemi"], movingCostEur: 300, commuteTo: "Aalto" }, "only what changed; a cleared field is null");
+    eq(requirementPatch(fields, { budgetEur: "900", savingsGoalEur: "" }), {}, "typing the same value, or nothing, changes nothing");
+    eq([readNumber("1 100"), readNumber("€950"), readNumber("12,5"), readNumber("1e3"), readNumber("-5")], [1100, 950, 12.5, null, null], "numbers as typed");
+    const req = CoachEndpoints.watchUpdate("", "w1", "C1", { minRooms: null, moveBy: null, maxDepositEur: 2000 });
+    eq(JSON.parse(String(req.body)), { customerId: "C1", minRooms: null, requirements: { maxDepositEur: 2000, moveBy: null } }, "a cleared field is sent as null, not dropped");
   });
 
   console.log(`\n${passes} passed, ${failures} failed`);

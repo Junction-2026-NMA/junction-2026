@@ -89,7 +89,11 @@ group("projects: status, scheduler, read, housing", () => {
   eq(single.totals.map((l) => l.label)[0], "Your balance after the upfront costs", "one upfront item: its total is not repeated");
   const noLeftOver = HousingText.view({ ...n, housing, leftOverAfterEur: null }, true)!;
   eq(noLeftOver.monthly.at(-1)?.label, "An average month would leave you", "what a month leaves, with the monthly rows when the finding lacks it");
-  eq(view.missing, housing.missing, "missing sentences as sent");
+  eq(view.missing, [], "the deposit once: shown as the assumed range, so not also listed as not known (15 Nov QA)");
+  const withMore = HousingText.view({ ...n, housing: { ...housing, missing: [...housing.missing, "Moving costs: you have not given an estimate."] }, leftOverAfterEur: 200 }, true)!;
+  eq(withMore.missing, ["Moving costs: you have not given an estimate."], "other missing sentences as sent");
+  const stated = HousingText.view({ ...n, housing: { ...housing, upfront: { ...housing.upfront, depositEur: null, depositAssumedEur: null } }, leftOverAfterEur: 200 }, true)!;
+  eq(stated.missing, housing.missing, "no assumed range: the deposit stays not known");
   eq(view.note, "Assumption, not from the listing: deposits are usually 1 to 3 months' rent.", "only the assumption as the note");
   eq(HousingText.view({ ...n, housing: null }, true)?.fromServer, false, "no housing: only what is missing");
 });

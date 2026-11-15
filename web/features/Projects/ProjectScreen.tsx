@@ -1,8 +1,10 @@
 "use client";
 // One project (a watch), shown in place of the conversation on the Sisu tab: its goal and status, the checks (last
-// successful, next, said honestly), the requirements, the pages watched, the findings, and the controls (pause or
-// resume when the server has them, stop after a confirmation, check now). Opening it marks its findings seen.
-import { useEffect, useState } from "react";
+// successful, next, said honestly), the requirements, the pages watched, what fits now and the findings, and the
+// controls (pause or resume when the server has them, stop after a confirmation, check now). Opening it marks its
+// findings seen, reads what fits now (`ProjectStore.open`) and moves focus to its title; Back returns focus to the
+// Sisu logo that opens the drawer.
+import { type RefObject, useEffect, useRef, useState } from "react";
 import { useCoachDataTag } from "@/web/app/AppProvider";
 import { ProjectStore, type ProjectsState } from "@/web/app/ProjectStore";
 import { type PropertyWatch, PriceUnit, projectStatusOf } from "@/web/core/WatchModels";
@@ -22,29 +24,44 @@ export interface ProjectScreenProps {
   onClose: () => void;
 }
 
+/** The Sisu logo in the Sisu tab's header (web/features/Talk/TalkParts.tsx), where focus goes back to. */
+const LOGO = '[data-testid="history.open"]';
+/** The mock tag already says it on the head card. */
+const isExampleNote = (line: string) => /^example data\b/i.test(line.trim());
+
 export function ProjectScreen({ id, onClose }: ProjectScreenProps) {
   const { store, state } = useProjects();
   const watch = state?.watches.find((w) => w.id === id) ?? null;
   const fresh = useFreshFindings(store, state, id);
+  const title = useRef<HTMLHeadingElement | null>(null);
+  const ready = !!watch || (!!state?.loaded && !watch);
+  useEffect(() => (store ? store.open(id) : undefined), [store, id]);
+  useEffect(() => {
+    if (ready) title.current?.focus({ preventScroll: true });
+  }, [ready, id]);
 
+  const back = () => {
+    onClose();
+    requestAnimationFrame(() => document.querySelector<HTMLElement>(LOGO)?.focus());
+  };
   const header = (
     <div className="sisu-project-top">
-      <button type="button" className="sisu-project-back" onClick={onClose} data-testid="project.back"><Chevron left />Back</button>
+      <button type="button" className="sisu-project-back" onClick={back} data-testid="project.back"><Chevron left />Back</button>
     </div>
   );
 
   return (
-    <Screen testId="project.screen" header={header}>
-      <ScreenStack>
+    <Screen testId="project.screen" header={header} className="sisu-project-screen" safeTop={false}>
+      <ScreenStack className="sisu-project-stack">
         {!state || !store || (!state.loaded && !watch) ? <SisuCard><p className="sisu-project-muted" role="status">Loading the project…</p></SisuCard> : null}
         {state && store && state.loaded && !watch ? (
           <SisuCard>
-            <h1 className="sisu-project-h1">Project not found</h1>
+            <h1 className="sisu-project-h1" ref={title} tabIndex={-1}>Project not found</h1>
             <p className="sisu-project-body">It may have been removed, or it belongs to another customer.</p>
             {state.error ? <p className="sisu-project-error" role="alert">{state.error}</p> : null}
           </SisuCard>
         ) : null}
-        {state && store && watch ? <ProjectBody watch={watch} store={store} state={state} fresh={fresh} /> : null}
+        {state && store && watch ? <ProjectBody watch={watch} store={store} state={state} fresh={fresh} title={title} /> : null}
       </ScreenStack>
     </Screen>
   );
@@ -64,25 +81,35 @@ function useFreshFindings(store: ProjectStore | null, state: ProjectsState | nul
   return new Set(state?.fresh[id] ?? []);
 }
 
-function ProjectBody({ watch, store, state, fresh }: { watch: PropertyWatch; store: ProjectStore; state: ProjectsState; fresh: ReadonlySet<string> }) {
+interface BodyProps {
+  watch: PropertyWatch;
+  store: ProjectStore;
+  state: ProjectsState;
+  fresh: ReadonlySet<string>;
+  title: RefObject<HTMLHeadingElement | null>;
+}
+
+function ProjectBody({ watch, store, state, fresh, title }: BodyProps) {
   const status = ProjectText.status(watch);
   const rent = watch.priceUnit === PriceUnit.perMonth || (!watch.priceUnit && !watch.topic);
+  const stopped = projectStatusOf(watch) === "stopped";
   const findings = ProjectStore.findingsOf(state, watch.id);
   const last = ProjectText.lastSuccess(watch);
   const sources = ProjectText.sources(watch);
-  const problems = [...watch.problems, ...(status.tone === "attention" ? state.checkProblems : [])];
   const dataTag = useCoachDataTag();
+  const problems = [...new Set([...watch.problems, ...(status.tone === "attention" ? state.checkProblems : [])])]
+    .filter((line) => !(dataTag && isExampleNote(line)));
 
   return (
     <>
       <SisuCard className="sisu-project-head">
         <span className="sisu-project-label">Project</span>
-        <h1 className="sisu-project-h1">{ProjectText.title(watch)}</h1>
+        <h1 className="sisu-project-h1" ref={title} tabIndex={-1} data-testid="project.title">{ProjectText.title(watch)}</h1>
         <div className="sisu-project-chips"><Chip tone={status.tone}>{status.label}</Chip>
           {dataTag ? <Chip tone="attention">{`${dataTag}: nothing on the web is watched`}</Chip> : null}
           {findings.length ? <Chip tone="plain">{`${findings.length} finding${findings.length === 1 ? "" : "s"}`}</Chip> : null}
         </div>
-        {problems.length > 0 ? <Note title={status.tone === "attention" ? "What needs attention" : "Good to know"} lines={[...new Set(problems)]} /> : null}
+        {problems.length > 0 ? <Note title={status.tone === "attention" ? "What needs attention" : "Good to know"} lines={problems} /> : null}
       </SisuCard>
 
       <SisuCard>
@@ -95,10 +122,11 @@ function ProjectBody({ watch, store, state, fresh }: { watch: PropertyWatch; sto
         {state.error ? <p className="sisu-project-error" role="alert">{state.error}</p> : null}
       </SisuCard>
 
-      <ProjectRequirements watch={watch} store={store} canEdit={state.support.update} />
+      <ProjectRequirements watch={watch} store={store} canEdit={state.support.update} rent={rent}
+        notice={state.notices[ProjectStore.noticeKey(watch.id, "update")] ?? null} busy={state.busy[watch.id] === "update"} />
 
       <SisuCard>
-        <h2 className="sisu-project-h2">Pages watched</h2>
+        <h2 className="sisu-project-h2">{stopped ? "Pages that were watched" : "Pages watched"}</h2>
         {sources.length === 0 ? <p className="sisu-project-muted">No page is watched.</p> : (
           <ul className="sisu-project-links">
             {sources.map((source) => (
@@ -112,15 +140,15 @@ function ProjectBody({ watch, store, state, fresh }: { watch: PropertyWatch; sto
         )}
       </SisuCard>
 
-      <h2 className="sisu-project-section-title">Findings</h2>
-      <ProjectFindings findings={findings} rent={rent} fresh={fresh} />
+      <ProjectFindings findings={findings} matches={stopped ? [] : state.matches[watch.id] ?? []} watch={watch} rent={rent}
+        fresh={fresh} stopped={stopped} />
 
-      <ProjectControls watch={watch} store={store} state={state} />
+      <ProjectControls watch={watch} store={store} state={state} dataTag={dataTag} />
     </>
   );
 }
 
-function ProjectControls({ watch, store, state }: { watch: PropertyWatch; store: ProjectStore; state: ProjectsState }) {
+function ProjectControls({ watch, store, state, dataTag }: { watch: PropertyWatch; store: ProjectStore; state: ProjectsState; dataTag: string | null }) {
   const [confirming, setConfirming] = useState(false);
   const busy = state.busy[watch.id] ?? null;
   const notice = state.notices[watch.id] ?? null;
@@ -148,12 +176,14 @@ function ProjectControls({ watch, store, state }: { watch: PropertyWatch; store:
           </button>
         ) : null}
         {paused && state.support.resume ? (
-          <button type="button" className="sisu-project-small" data-kind="primary" disabled={busy !== null} onClick={() => void store.resume(watch.id)}>
+          <button type="button" className="sisu-project-small" data-kind="primary" disabled={!live || busy !== null}
+            onClick={() => void store.resume(watch.id)} data-testid="project.resume">
             {busy === "resume" ? "Resuming…" : "Resume"}
           </button>
         ) : null}
         {!paused && state.support.pause ? (
-          <button type="button" className="sisu-project-small" disabled={busy !== null} onClick={() => void store.pause(watch.id)}>
+          <button type="button" className="sisu-project-small" disabled={!live || busy !== null} onClick={() => void store.pause(watch.id)}
+            data-testid="project.pause">
             {busy === "pause" ? "Pausing…" : "Pause"}
           </button>
         ) : null}
@@ -162,13 +192,11 @@ function ProjectControls({ watch, store, state }: { watch: PropertyWatch; store:
             onClick={() => setConfirming(true)} data-testid="project.stop">Stop project</button>
         ) : null}
       </div>
-      {busy === "check" || state.checking ? (
-        <p className="sisu-project-muted" role="status">Asking Context.dev to read the pages again. New results can take a few minutes to show.</p>
-      ) : null}
+      {busy === "check" || state.checking ? <p className="sisu-project-muted" role="status">{ProjectText.checking(watch, dataTag)}</p> : null}
       {confirming ? (
         <div className="sisu-project-confirm" role="alertdialog" aria-label="Stop this project?"
           ref={(el) => el?.scrollIntoView({ block: "nearest", behavior: prefersReducedMotion() ? "auto" : "smooth" })}>
-          <p>Stop this project? Its pages stop being watched and their monitors are removed. Findings so far stay here.</p>
+          <p>{ProjectText.stopQuestion(watch, dataTag)}</p>
           <div className="sisu-project-actions">
             <button type="button" className="sisu-project-small" data-kind="danger" disabled={busy !== null} data-testid="project.stopConfirm"
               onClick={() => void store.stop(watch.id).then(() => setConfirming(false))}>{busy === "stop" ? "Stopping…" : "Stop watching"}</button>

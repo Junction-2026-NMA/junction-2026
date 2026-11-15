@@ -328,6 +328,47 @@ async function main() {
     assert.deepEqual(["", " (nothing heard) ", CoachSession.unheardText, "Where does my money go?"].map(CoachSession.isUnheard), [true, true, true, false]);
   });
 
+  await check("answered, then offline → throws, kind stays live: one dropped project check is not a switch to the sample (15 Nov QA)", async () => {
+    const recorded = (await fsSource(`coach/stream-spending-${aino}.sse`))!;
+    let online = true;
+    let slow = false;
+    const urls: string[] = [];
+    const flaky = (async (url: string | URL | Request, init?: RequestInit) => {
+      urls.push(String(url));
+      if (!online) throw new TypeError("Failed to fetch");
+      if (slow) return new Promise<Response>((_, reject) => init?.signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError"))));
+      if (String(url).includes("/api/agent/warm")) return new Response('{"provider":"verda","mock":false,"model":"nemotron"}', { status: 200 });
+      if (String(url).includes("/api/watch/check")) return new Response('{"customerId":"' + aino + '","notifications":[],"problems":[]}', { status: 200 });
+      return new Response(new Blob([recorded.slice().buffer as ArrayBuffer]), { status: 200, headers: { "Content-Type": "text/event-stream" } });
+    }) as typeof fetch;
+    const client = CoachClient.liveWithSampleFallback("", { fetchImpl: flaky, eventDelay: 0 });
+    assert.equal((await client.warm()).mock, false);
+    online = false;
+    await assert.rejects(client.watchCheck(aino), (e) => e instanceof SisuError && e.info.kind === "offline", "the check fails for its caller");
+    assert.equal(client.kind, "live", "kind stays live");
+    assert.equal(client.fallbackNotice, null, "no sample banner");
+    assert.equal(client.fallenBackAt, null);
+    online = true;
+    assert.deepEqual((await client.watchCheck(aino)).notifications, [], "the next check reaches the server");
+    const session = new CoachSession(aino, client);
+    await session.ask("What would spending 20% less at restaurants save?");
+    assert.ok(urls.some((u) => u.includes("/api/agent/query")), "the typed question goes to the server");
+    assert.equal(session.messages[session.messages.length - 1].error, null);
+    // A timeout counts as offline: it is also only an error once the server has answered.
+    slow = true;
+    const quick = { ...CoachEndpoints.watchList("", aino), timeoutInterval: 0.01 };
+    await assert.rejects(client.call(quick, (json) => json), (e) => e instanceof SisuError && e.info.kind === "offline", "a timeout fails for its caller");
+    assert.equal(client.kind, "live", "still live after a timeout");
+
+    // An agent turn that answered also counts: a later dropped request is still only an error.
+    online = true; slow = false;
+    const turnsFirst = CoachClient.liveWithSampleFallback("", { fetchImpl: flaky, eventDelay: 0 });
+    await new CoachSession(aino, turnsFirst).ask("Where does my money go?");
+    online = false;
+    await assert.rejects(turnsFirst.watchCheck(aino));
+    assert.equal(turnsFirst.kind, "live");
+  });
+
   console.log(`\n${passed} checks passed`);
 }
 

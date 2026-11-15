@@ -498,12 +498,16 @@ export class ReplayTransport implements SisuTransport {
   }
 }
 
-/** A live transport that falls back to the bundled sample when the server cannot be reached. The first request
- * that fails with `SisuError.offline` switches it, for good, to `ReplayTransport`: that request and every later
- * one is answered from the sample, `kind` becomes `bundledSample`, and `fallenBackAt` holds the moment.
- * Sessions publish a `fallbackNotice` when it happens. An HTTP error is not a reason to fall back. */
+/** A live transport that falls back to the bundled sample when the server cannot be reached **before it has ever
+ * answered**. Until then, the first request that fails with `SisuError.offline` switches it, for good, to
+ * `ReplayTransport`: that request and every later one is answered from the sample, `kind` becomes `bundledSample`,
+ * and `fallenBackAt` holds the moment. Sessions publish a `fallbackNotice` when it happens. Once the server has
+ * answered anything (any HTTP status), an offline failure or a timeout is thrown to the caller, which shows its own
+ * error with a way to try again: one dropped request (a phone leaving Wi-Fi, a background check) must not turn the
+ * rest of the session into recordings (15 Nov QA). An HTTP error is never a reason to fall back. */
 export class FallbackTransport implements SisuTransport {
   private fellBackAt: Date | null = null;
+  private answered = false;
 
   constructor(
     readonly primary: SisuTransport,
@@ -514,22 +518,38 @@ export class FallbackTransport implements SisuTransport {
   /** When the transport switched to the sample. Null while it is live. */
   get fallenBackAt(): Date | null { return this.fellBackAt; }
 
+  /** True once the server has answered a request through this transport (or `direct`). */
+  get hasAnswered(): boolean { return this.answered; }
+
   get kind(): DataSourceKind { return this.fellBackAt === null ? this.primary.kind : "bundledSample"; }
+
+  /** The server alone, never the sample (agent turns): its answers still count as the server having answered. */
+  get direct(): SisuTransport {
+    return { kind: this.primary.kind, send: (request, signal) => this.noted(this.primary.send(request, signal)),
+      open: (request, signal) => this.noted(this.primary.open(request, signal)) };
+  }
+
+  private async noted<T>(call: Promise<T>): Promise<T> {
+    const value = await call;
+    this.answered = true;
+    return value;
+  }
 
   private fallBack(): void {
     if (this.fellBackAt === null) this.fellBackAt = this.now();
   }
 
-  private static isOffline(error: unknown): boolean {
-    return error instanceof SisuError && error.info.kind === "offline";
+  /** Offline before the server ever answered: the only reason to switch to the sample. */
+  private shouldFallBack(error: unknown): boolean {
+    return !this.answered && error instanceof SisuError && error.info.kind === "offline";
   }
 
   async send(request: SisuRequest, signal?: AbortSignal | null): Promise<TransportResponse> {
     if (this.fellBackAt !== null) return this.sample.send(request);
     try {
-      return await this.primary.send(request, signal);
+      return await this.noted(this.primary.send(request, signal));
     } catch (error) {
-      if (!FallbackTransport.isOffline(error)) throw error;
+      if (!this.shouldFallBack(error)) throw error;
       this.fallBack();
       return this.sample.send(request);
     }
@@ -538,9 +558,9 @@ export class FallbackTransport implements SisuTransport {
   async open(request: SisuRequest, signal?: AbortSignal | null): Promise<TransportStream> {
     if (this.fellBackAt !== null) return this.sample.open(request, signal);
     try {
-      return await this.primary.open(request, signal);
+      return await this.noted(this.primary.open(request, signal));
     } catch (error) {
-      if (!FallbackTransport.isOffline(error)) throw error;
+      if (!this.shouldFallBack(error)) throw error;
       this.fallBack();
       return this.sample.open(request, signal);
     }

@@ -192,6 +192,12 @@ export class CoachEndpoints {
   /** `GET {base}/api/watch?customerId=`: the watches and the findings (reads only, calls nothing outside). */
   static watchList(baseURL: string, customerId: string) { return CoachEndpoints.get(baseURL, "/api/watch", [["customerId", customerId]]); }
 
+  /** `GET {base}/api/watch/{id}?customerId=`: one project, with the listings that fit now (`currentMatches`, each with
+   *  its housing effect). Reads only. Not on the hosted backend yet (404). */
+  static watchProject(baseURL: string, id: string, customerId: string) {
+    return CoachEndpoints.get(baseURL, CoachEndpoints.watchPath(id), [["customerId", customerId]], CoachEndpoints.researchTimeout);
+  }
+
   /** `POST {base}/api/watch/check` with `{ customerId, runNow? }` (`runNow` sent only when true). */
   static watchCheck(baseURL: string, customerId: string, runNow = false) {
     return CoachEndpoints.post(baseURL, "/api/watch/check", { customerId, runNow: runNow ? true : null }, CoachEndpoints.watchCheckTimeout);
@@ -212,21 +218,34 @@ export class CoachEndpoints {
     return CoachEndpoints.post(baseURL, CoachEndpoints.watchPath(id, "resume"), { customerId }, CoachEndpoints.researchTimeout);
   }
 
-  /** `PATCH {base}/api/watch/{id}` with `{ customerId, requirements }` (the whole set: null members are left out,
-   *  as in every body here). Not on the hosted backend yet (404). */
+  /** `PATCH {base}/api/watch/{id}` with `{ customerId, requirements }`: only the fields that change. Unlike every
+   *  other body here, a null member is kept, because the backend reads it as "clear this field". Not on the hosted
+   *  backend yet (404). */
   static watchUpdate(baseURL: string, id: string, customerId: string, requirements: WatchRequirements): SisuRequest {
     // The backend (rework/api-projects) takes the watch's own limits beside the requirements:
     // `{ customerId, budgetEur?, minRooms?, goal?, requirements? }`; a requirement it does not know is refused.
     const { budgetEur, minRooms, goal, ...rest } = requirements;
+    const own = Object.fromEntries(Object.entries(rest).filter(([, value]) => value !== undefined));
     const body = {
       customerId,
       ...(typeof budgetEur === "number" ? { budgetEur } : {}),
       ...(typeof minRooms === "number" || minRooms === null ? { minRooms } : {}),
-      ...(typeof goal === "string" ? { goal } : {}),
-      ...(Object.keys(rest).length > 0 ? { requirements: rest } : {}),
+      ...(typeof goal === "string" || goal === null ? { goal } : {}),
+      ...(Object.keys(own).length > 0 ? { requirements: own } : {}),
     };
     const request = CoachEndpoints.post(baseURL, CoachEndpoints.watchPath(id), body, CoachEndpoints.researchTimeout);
-    return { ...request, method: "PATCH" };
+    return { ...request, method: "PATCH", body: CoachEndpoints.encodeKeepingNull(body) };
+  }
+
+  /** JSON with sorted keys, like `Endpoints.encode`, but null members stay (undefined ones are left out). */
+  static encodeKeepingNull(value: unknown): string {
+    const clean = (v: unknown): unknown => {
+      if (Array.isArray(v)) return v.map(clean);
+      if (v === null || typeof v !== "object") return v;
+      const o = v as Record<string, unknown>;
+      return Object.fromEntries(Object.keys(o).sort().filter((k) => o[k] !== undefined).map((k) => [k, clean(o[k])]));
+    };
+    return JSON.stringify(clean(value)) ?? "{}";
   }
 
   /** `POST {base}/api/watch/{id}/read` with `{ customerId }`: the watch's findings are seen. Not on the hosted

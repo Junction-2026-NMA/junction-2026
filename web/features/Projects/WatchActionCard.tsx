@@ -37,6 +37,8 @@ export function WatchActionCard({ action }: WatchActionCardProps) {
   const status = action.status;
   const waiting = status === ActionStatus.awaitingApproval;
   const approved = status === ActionStatus.executedSimulated || status === "executed";
+  // Declined or expired: nothing was started, so the card keeps no consent question and no monitoring promise.
+  const closed = status === ActionStatus.declined || status === "expired";
   const busy = coach.deciding.includes(action.id);
   const notice = coach.decisionNotices[action.id];
   const project = state?.watches.find((w) => w.actionId === action.id) ?? null;
@@ -73,33 +75,39 @@ export function WatchActionCard({ action }: WatchActionCardProps) {
   const question = rent
     ? "Would you like me to keep checking for homes that match these requirements?"
     : "Would you like me to keep checking for offers that match these requirements?";
+  const heading = approved ? ProjectText.title(plan)
+    : status === ActionStatus.declined ? "You chose not to start this project."
+      : status === "expired" ? "This proposal expired before it was started." : question;
+  const chip = approved ? "Project" : closed ? "Not started" : "Project proposal";
 
   return (
     <SisuCard className="sisu-project-enter">
       <div className="sisu-project-chips" data-testid="watch.card">
-        <Chip tone="plain">{approved ? "Project" : "Project proposal"}</Chip>
-        {dataTag ? <Chip tone="attention">{`${dataTag}: nothing on the web is watched`}</Chip> : null}
+        <Chip tone={closed ? "stopped" : "plain"}>{chip}</Chip>
+        {dataTag && !closed ? <Chip tone="attention">{`${dataTag}: nothing on the web is watched`}</Chip> : null}
       </div>
-      <h2 className="sisu-project-h2">{approved ? ProjectText.title(plan) : question}</h2>
+      <h2 className="sisu-project-h2">{heading}</h2>
       {readLine ? <p className="sisu-project-body">{readLine}</p> : null}
-      {action.warning ? <Note title={action.warning} /> : null}
+      {action.warning && !closed ? <Note title={action.warning} /> : null}
       <p className="sisu-project-subhead">Requirements</p>
       <Rows rows={ProjectText.requirements(plan)} />
       {sources.length > 0 ? (
         <>
-          <p className="sisu-project-subhead">Pages to watch</p>
+          <p className="sisu-project-subhead">{closed ? "Pages it would have watched" : "Pages to watch"}</p>
           <ul className="sisu-project-links">
             {sources.map((source) => <li key={source.url}><ExternalLink url={source.url}>{source.title}</ExternalLink></li>)}
           </ul>
         </>
       ) : null}
-      <p className="sisu-project-muted">
-        {/* Example data starts no Context.dev monitor (the server says so), so it never promises one. */}
-        {dataTag
-          ? "Sisu re-reads these pages itself when you open the app and shows matches in the project. Nothing checks them while the app is closed."
-          : `Context.dev re-checks these pages about every 6 hours. Sisu reviews the changes ${state?.scheduler ? "once a day on its server and " : ""}when you open the app and shows matches in the project.`}
-        {" "}{rent ? "Nothing is rented or paid, and no landlord is contacted." : "Nothing is bought or paid, and no seller is contacted."}
-      </p>
+      {!closed ? (
+        <p className="sisu-project-muted">
+          {/* Example data starts no Context.dev monitor (the server says so), so it never promises one. */}
+          {dataTag
+            ? "Sisu re-reads these pages itself when you open the app and shows matches in the project. Nothing checks them while the app is closed."
+            : `Context.dev re-checks these pages about every 6 hours. Sisu reviews the changes ${state?.scheduler ? "once a day on its server and " : ""}when you open the app and shows matches in the project.`}
+          {" "}{rent ? "Nothing is rented or paid, and no landlord is contacted." : "Nothing is bought or paid, and no seller is contacted."}
+        </p>
+      ) : null}
 
       {waiting ? (
         <>
@@ -119,7 +127,7 @@ export function WatchActionCard({ action }: WatchActionCardProps) {
         </>
       ) : null}
       {status === ActionStatus.declined ? <p className="sisu-project-body" role="status">Not started. Nothing is being watched.</p> : null}
-      {status === "expired" ? <p className="sisu-project-body" role="status">This proposal has expired. Ask Sisu again to set it up.</p> : null}
+      {status === "expired" ? <p className="sisu-project-body" role="status">Nothing is being watched. Ask Sisu again to set it up.</p> : null}
       {notice ? <p className="sisu-project-error" role="alert">{notice}</p> : null}
     </SisuCard>
   );

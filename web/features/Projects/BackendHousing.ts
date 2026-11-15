@@ -82,6 +82,9 @@ export const BackendHousing = {
     }
 
     const assumptions = texts(o.assumptions).filter((line) => /assum/i.test(line));
-    return { monthly, upfront: once, totals, missing: texts(o.missing), note: assumptions.length ? assumptions.join(" ") : null, fromServer: true };
+    // The deposit once: the assumed range in the upfront rows, explained by its assumption note, so it is not also
+    // listed as "not known" (15 Nov QA: the deposit appeared three times).
+    const missing = texts(o.missing).filter((line) => !(deposit === null && assumed !== null && /\bdeposit\b/i.test(line)));
+    return { monthly, upfront: once, totals, missing, note: assumptions.length ? assumptions.join(" ") : null, fromServer: true };
   },
 } as const;

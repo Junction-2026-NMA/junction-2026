@@ -14,6 +14,11 @@ export interface ProjectSource { title: string; url: string; host: string; detai
 type Subject = Pick<WatchPlan, "city" | "topic" | "priceUnit" | "budgetEur" | "minRooms" | "goal" | "requirements">;
 
 const money = (eur: number) => Money.format(eur, "en");
+/** The requirement keys of `PATCH /api/watch/:id` (lib/types.ts WatchRequirements), named as the editor names them. */
+const REQUIREMENT_LABEL: Readonly<Record<string, string>> = {
+  moveBy: "Move in by", districts: "Districts", maxDepositEur: "Deposit at most", movingCostEur: "Moving costs (your estimate)",
+  bufferToKeepEur: "Keep in the account after moving", savingsGoalEur: "Savings goal", maxCommuteMinutes: "Commute at most", commuteTo: "Commute to",
+};
 const isRent = (s: Pick<Subject, "priceUnit" | "topic">) => s.priceUnit === PriceUnit.perMonth || (s.priceUnit == null && !s.topic);
 /** "flats" → "Flats"; "iPhone 15" stays as written. */
 const capital = (text: string) => (text === "" || /^[a-z][A-Z]/.test(text) ? text : text[0].toUpperCase() + text.slice(1));
@@ -72,6 +77,23 @@ export const ProjectText = {
     return "Sisu re-reads these pages itself when you open the app, at most every 30 minutes. Nothing checks them while the app is closed.";
   },
 
+  /** True when Context.dev monitors at least one page. Never on mock or sample data (`dataTag` set): nothing on
+   *  the web is watched there, whatever the pages say. */
+  monitored(w: PropertyWatch, dataTag: string | null): boolean { return !dataTag && w.pages.some((p) => !!p.monitorId); },
+
+  /** What "Check now" really does while it runs. */
+  checking(w: PropertyWatch, dataTag: string | null): string {
+    if (ProjectText.monitored(w, dataTag)) return "Asking Context.dev to read the pages again. New results can take a few minutes to show.";
+    return dataTag ? "Sisu is reading the example pages again." : "Sisu is reading the pages again.";
+  },
+
+  /** The question before stopping, saying what stopping really ends. */
+  stopQuestion(w: PropertyWatch, dataTag: string | null): string {
+    return ProjectText.monitored(w, dataTag)
+      ? "Stop this project? Its pages stop being watched and their Context.dev monitors are removed. Findings so far stay here."
+      : "Stop this project? Sisu stops re-reading its pages. Findings so far stay here.";
+  },
+
   /** What would be watched / is watched, as label and value rows. */
   requirements(s: Subject): ProjectLine[] {
     const rent = isRent(s);
@@ -82,8 +104,9 @@ export const ProjectText = {
     if (s.minRooms != null) rows.push({ label: "Rooms", value: `${s.minRooms} or more` });
     const covered = new Set(["city", "topic", "budgetEur", "minRooms", "priceUnit", "goal"]);
     Object.entries(s.requirements ?? {}).forEach(([key, value]) => {
-      const text = ProjectText.value(value);
-      if (!covered.has(key) && text !== null) rows.push({ label: ProjectText.label(key), value: text });
+      const text = typeof value === "number" && /Eur$/.test(key) ? money(value)
+        : typeof value === "number" && /Minutes$/.test(key) ? `${value} minutes` : ProjectText.value(value);
+      if (!covered.has(key) && text !== null) rows.push({ label: REQUIREMENT_LABEL[key] ?? ProjectText.label(key), value: text });
     });
     return rows;
   },
@@ -185,7 +208,7 @@ export const FindingText = {
   },
 
   /** A message the user can copy and send themselves. Asks for what is not known; says nothing private. */
-  enquiry(n: WatchNotification): string {
+  enquiry(n: Pick<WatchNotification, "listing">): string {
     const l = n.listing;
     const what = [l?.title, l?.rooms != null ? `${l.rooms} room${l.rooms === 1 ? "" : "s"}` : null, l?.areaM2 != null ? `${l.areaM2} m²` : null].filter(Boolean).join(", ");
     const price = l?.priceEur != null ? ` at ${money(l.priceEur)} a month` : "";

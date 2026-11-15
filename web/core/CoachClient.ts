@@ -49,6 +49,7 @@ import { CoachEndpoints, type FormBytes } from "./CoachEndpoints";
 import { ApproveAllResult, PlanEvent, type Visual, VisualList } from "./PlanModels";
 import { SSEParser } from "./ServerSentEvents";
 import { SimulatedDrop, WatchChange, WatchCheck, WatchList, WatchReadResult, type WatchRequirements } from "./WatchModels";
+import { WatchProject } from "./WatchProject";
 import { FallbackTransport, FetchTransport, ReplayTransport, type SisuTransport, TransportResponse } from "./Transport";
 
 const object = <T>(keys: string[] = []) => (json: unknown): T => JSONRead.object(json, keys) as unknown as T;
@@ -77,8 +78,10 @@ export class CoachClient implements SisuAPI {
     return new CoachClient(CoachClient.sampleBaseURL, new ReplayTransport(eventDelay, fixtures));
   }
 
-  /** A client of the real server that switches to the bundled sample, for good, the first time the server cannot
-   * be reached. Sessions built on it publish `fallbackNotice` at that moment. Agent turns (`ask`, `investigate`,
+  /** A client of the real server that switches to the bundled sample, for good, when the server cannot be reached
+   * before it has ever answered. Once it has answered, a dropped request or a timeout is an error for the caller
+   * (15 Nov QA: one failed background project check switched the whole app to the sample). Sessions built on it
+   * publish `fallbackNotice` when the switch happens. Agent turns (`ask`, `investigate`,
    * `voiceTurn`, `plan`) never cause the switch: once the server has answered, a dropped connection during a turn is
    * an error with "Try again", because a recorded answer to another question would be wrong (14 Nov QA: one network
    * failure turned every later spoken question into the sample's electricity question). They use the sample only
@@ -104,7 +107,7 @@ export class CoachClient implements SisuAPI {
   /** Where agent turns go: past the fallback while it is live (see `liveWithSampleFallback`). */
   private get turnTransport(): SisuTransport {
     const transport = this.transport;
-    return transport instanceof FallbackTransport && transport.fallenBackAt === null ? transport.primary : transport;
+    return transport instanceof FallbackTransport && transport.fallenBackAt === null ? transport.direct : transport;
   }
 
   // MARK: Plumbing
@@ -314,6 +317,12 @@ export class CoachClient implements SisuAPI {
   watchList(customerId: string): Promise<WatchList> {
     if (this.kind === "bundledSample") return Promise.resolve(WatchList.empty(customerId));
     return this.call(CoachEndpoints.watchList(this.baseURL, customerId), WatchList.decode);
+  }
+
+  /** `GET /api/watch/:id?customerId=`: one project with the listings that fit now (`currentMatches`). Not on the
+   *  hosted backend yet: 404. */
+  watchProject(id: string, customerId: string): Promise<WatchProject> {
+    return this.watchCall("Reading a project", CoachEndpoints.watchProject(this.baseURL, id, customerId), WatchProject.decode);
   }
 
   /** `POST /api/watch/check`: turns Context.dev's changes into findings. `runNow` also asks Context.dev to run the
