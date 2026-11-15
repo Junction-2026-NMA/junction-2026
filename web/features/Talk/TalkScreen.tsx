@@ -10,10 +10,13 @@
 // - Settings opens from the drawer's last row (the same sheet as on Today and Path).
 // - Empty: Liito, larger, and one friendly line, centred above the ask box (no suggestion list). With the keyboard
 //   up Liito is smaller, so the greeting still fits.
-// - The transcript keeps the reading position (TalkTranscript.tsx). The composer is pinned at the bottom: the text
-//   field, Send and the microphone; while voice is on it shows the live state with a stop control (VoiceStrip.tsx).
+// - The transcript keeps the reading position (TalkTranscript.tsx). The dock is pinned at the bottom and voice first:
+//   a large microphone in the middle and a small keyboard button beside it (VoiceLauncher.tsx). The keyboard button
+//   opens the text field with Send and the microphone (Ask/Composer.tsx); leaving it empty goes back. While voice is
+//   on the dock shows the live state with a stop control (VoiceStrip.tsx).
 // The hands-free logic is web/voice/ConversationController.ts and web/core (ConversationFlow, VoiceBar, LiitoTask).
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
+import { flushSync } from "react-dom";
 import { useAppModel, useAppSelector, useCoach, useCoachSessionState, useConversation, useVoice } from "@/web/app/AppProvider";
 import type { CoachStore } from "@/web/app/CoachStore";
 import { VoiceBar } from "@/web/core/AppLogic/VoiceBar";
@@ -27,6 +30,7 @@ import type { ConversationController } from "@/web/voice/ConversationController"
 import { FallbackNotice } from "@/web/features/Ask/AskParts";
 import { runLaunch } from "@/web/features/Ask/askLaunch";
 import { Composer } from "@/web/features/Ask/Composer";
+import { VoiceLauncher } from "./VoiceLauncher";
 import { PlaceholderScreen } from "@/web/features/Ask/PlaceholderScreen";
 import { useKeyboardInset } from "@/web/features/Ask/useKeyboardInset";
 import { HistoryDrawer } from "@/web/features/History/HistoryDrawer";
@@ -101,12 +105,17 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
     setTyped({ id: conversationId, text });
   };
 
+  // The dock is voice first (VoiceLauncher); the keyboard button switches to the text field. An unsent draft or a
+  // typed question Sisu is still working on keeps the field (and its Stop) on screen.
+  const [typing, setTyping] = useState(() => draft.trim() !== "");
+
   const flow = conversation?.flow ?? talk.flow;
   const messages = state?.messages ?? [];
   const chatting = messages.length > 0;
   const screen = talk.screen(session.activity, null);
   const bar = VoiceBar.state(flow, session.activity, conversation?.answerReady ?? false);
   const isThinking = state?.isThinking ?? false;
+  const showComposer = typing || isThinking || draft.trim() !== "";
 
   // Liito's mood: the presenter's, corrected while Sisu answers with what the session really does (real work beats
   // a filler sentence), then sequenced so each real task can be read (useLiitoMood). An approval cheers.
@@ -185,7 +194,17 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
   };
   const typeInstead = () => {
     talk.end();
+    setTyping(true);
     window.setTimeout(() => input.current?.focus(), 60);
+  };
+  /** The keyboard button: the text field appears and takes focus inside the tap, so iOS raises the keyboard. */
+  const openKeyboard = () => {
+    flushSync(() => setTyping(true));
+    input.current?.focus();
+  };
+  /** Leaving an empty field goes back to the voice-first dock. */
+  const leaveTypingIfEmpty = () => {
+    if ((input.current?.value ?? "").trim() === "") setTyping(false);
   };
 
   const notice = conversation?.notice ?? voice?.notice ?? null;
@@ -223,9 +242,11 @@ function TalkContent({ session, talk, store }: { session: CoachSession; talk: Co
         {notice ? <p className="sisu-talk-notice" role="status" data-testid="talk.notice">{notice}</p> : null}
         {flow.isOn ? (
           <VoiceStrip bar={bar} talk={talk} onType={typeInstead} onStop={() => (bar.stop === "interrupt" ? talk.interrupt() : talk.end())} />
-        ) : (
+        ) : showComposer ? (
           <Composer draft={draft} setDraft={setDraft} thinking={isThinking} onSend={send} onStop={() => session.cancel()}
-            onVoice={startVoice} inputRef={input} />
+            onVoice={startVoice} inputRef={input} onFocusChange={(focused) => { if (!focused) leaveTypingIfEmpty(); }} />
+        ) : (
+          <VoiceLauncher onVoice={startVoice} onType={openKeyboard} />
         )}
       </div>
       <HistoryDrawer open={historyOpen} onClose={() => model.setHistoryOpen(false)} returnFocus={logo}

@@ -66,6 +66,13 @@ const WORDS: Record<Lang, Words> = {
   },
 };
 
+// v2 payday: after a payday budget or a category cut, the Path lesson that shows how the figure is worked out. The
+// id names the lesson (`lesson:<concept>`), so the app can open it directly; the prompt asks for it in the chat.
+const LESSON_WORDS: Record<Lang, [string, string]> = {
+  en: ["Lesson: how your payday budget is worked out", "Teach me how my payday budget is worked out"],
+  fi: ["Oppitunti: näin palkkapäivän budjetti lasketaan", "Opeta, miten palkkapäivän budjettini lasketaan"],
+};
+
 const KIND_IS_AGENTIC: Record<SuggestionKind, boolean> = { ask: false, show: false, act: true, watch: true, investigate: true };
 const make = (id: string, kind: SuggestionKind, [label, prompt]: [string, string]): Suggestion => ({ id, label, prompt, kind, agentic: KIND_IS_AGENTIC[kind] });
 const langOf = (language?: string | null): Lang => (language === "fi" ? "fi" : "en");
@@ -150,5 +157,6 @@ export function followUpSuggestions(state: SuggestionState, turn: TurnSummary): 
     if (transfer.kind === "standing_transfer") first.push(make("future", "ask", w.future(Math.round(transfer.monthlyAmountEur))));
   }
   if (turn.action) first.push(make("set-up", "ask", w.setUp));
+  if (turn.tools.includes("get_cash_flow") || turn.tools.includes("run_scenario")) first.unshift(make("lesson:safe-to-spend", "ask", LESSON_WORDS[langOf(state.language)]));
   return pick(first, candidates(state), used, turn.question, FOLLOW_UPS);
 }

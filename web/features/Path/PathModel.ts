@@ -129,9 +129,10 @@ export class PathModel {
 
   /** Opens a lesson in the sheet, where the person left it if they stepped out to ask Sisu. A locked lesson does
    *  not open: it says which lesson comes first. */
-  open(card: TeachingCard) {
+  open(card: TeachingCard, force = false) {
     const concepts = this.snapshot.cards.map((c) => c.concept);
-    if (!LessonProgress.isOpen(this.snapshot.progress, concepts, card.concept)) {
+    // `force`: a lesson resumed (left for "Ask Sisu", or opened from an answer's lesson button) opens even out of order.
+    if (!force && !LessonProgress.isOpen(this.snapshot.progress, concepts, card.concept)) {
       const reason = this.nodes.find((node) => node.concept === card.concept)?.lockedReason ?? "Finish the lessons before this one first.";
       this.presentations += 1;
       this.set({ lockedNotice: { text: reason, token: this.presentations } });

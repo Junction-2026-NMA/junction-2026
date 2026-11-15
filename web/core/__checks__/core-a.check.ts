@@ -222,7 +222,7 @@ async function main() {
     await task;
     const view = plan.view;
     assert.equal(view.phase, "done");
-    assert.equal(view.customerName, "Aino");
+    assert.equal(view.customerName, "Jack");
     assert.equal(view.scan?.transactions, 172);
     assert.equal(view.findings.length, 4);
     assert.deepEqual(view.lanes.map((l) => l.billType).sort(), ["electricity", "internet", "mobile"]);

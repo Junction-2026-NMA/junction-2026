@@ -387,11 +387,11 @@ describe("orchestrator: one turn, driven by a scripted model", () => {
     const { script } = scriptedModel(["Fine."]);
     setMockScript(async function* (options) {
       const system = String(options.messages[0].content);
-      yield { type: "delta", text: system.includes('"name":"Aino"') ? "Hello Aino." : system.includes('"name":"Eetu"') ? "Hello Eetu." : "Hello stranger." };
+      yield { type: "delta", text: system.includes('"name":"Jack"') ? "Hello Jack." : system.includes('"name":"Eetu"') ? "Hello Eetu." : "Hello stranger." };
       yield* script(options);
     });
     const [a, e] = await Promise.all([collect(runTurn(ask("Hi"))), collect(runTurn(ask("Hi", { customerId: EETU })))]);
-    assert.match(ofType(a, "done")[0].text, /Hello Aino/);
+    assert.match(ofType(a, "done")[0].text, /Hello Jack/);
     assert.match(ofType(e, "done")[0].text, /Hello Eetu/);
   });
 

@@ -7,7 +7,8 @@
 // labelled default. The default is the backend's own when it sends one (`CashFlow.weeklyBudget`, newer backends: one
 // week of regular and occasional essentials), so Today and Sisu's answers agree; otherwise €100. It is an estimate,
 // never "safe to spend". A missing input is named, never guessed.
-import type { CashFlow } from "@/web/core/CoachModels";
+import type { CashFlow, CashFlowBasis } from "@/web/core/CoachModels";
+import { PaydayBudget } from "./PaydayBudget";
 import type { Overview } from "@/web/core/Models";
 import { Dates, Money } from "@/web/core/Presentation";
 
@@ -31,7 +32,8 @@ export namespace WeeklyBudget {
     return Number.isFinite(value) && value >= 0 && value <= maxBufferEur ? value : null;
   }
 
-  export interface Bill { readonly label: string; readonly amountEur: number; readonly expectedOn: string }
+  /** `billId` starts with `added-` for a bill the person added (v2 payday). */
+  export interface Bill { readonly label: string; readonly amountEur: number; readonly expectedOn: string; readonly billId?: string }
 
   export interface Inputs {
     readonly balanceEur: number | null;
@@ -93,7 +95,7 @@ export namespace WeeklyBudget {
       nextPayday: cashFlow?.nextPayday ?? null,
       daysToPayday: finite(days) && days >= 0 ? days : null,
       bills: cashFlow ? (cashFlow.billsDueBeforePayday ?? []).filter((bill) => finite(bill.amount))
-        .map((bill) => ({ label: bill.label, amountEur: Math.abs(bill.amount), expectedOn: bill.expectedOn })) : null,
+        .map((bill) => ({ label: bill.label, amountEur: Math.abs(bill.amount), expectedOn: bill.expectedOn, billId: bill.billId })) : null,
       averageDailyEverydayEur: cashFlow && finite(cashFlow.averageDailyEverydayEur) && cashFlow.averageDailyEverydayEur >= 0
         ? cashFlow.averageDailyEverydayEur : null,
       bufferEur: finite(bufferEur) && bufferEur >= 0 ? bufferEur : null,
@@ -155,10 +157,35 @@ export interface BudgetLine { readonly id: string; readonly label: string; reado
 /** What Today and "How this is worked out" say about the weekly budget. */
 export namespace WeeklyBudgetText {
   const money = (amount: number) => Money.format(amount, "en");
+  /** To the cent, as Sisu's answers say it, so the chat, the cards and the maths show the same figure. */
+  const cents = (amount: number) => Money.format(amount, "en", true);
   const date = (iso: string) => Dates.short(iso, "en");
   const line = (id: string, label: string, amount: string, basis: string, isResult = false): BudgetLine => ({ id, label, amount, basis, isResult });
 
   export const title = "Estimated weekly budget";
+  /** v2 payday: the headline label. Always an estimate while the bills are 12-month averages. */
+  export const budgetTitle = "Estimated budget";
+  export const mathsTitle = "Show the maths";
+
+  /** v2 payday: "until payday on Thu 15 Oct, 15 days", the server's words when it sends them. */
+  export function period(ready: WeeklyBudget.Ready, basis: CashFlowBasis | null | undefined): string {
+    return basis?.periodText && ready.nextPayday ? basis.periodText : PaydayBudget.periodText(ready.nextPayday, ready.daysToPayday);
+  }
+
+  /** v2 payday: Today's headline: what is left until payday and the period, the weekly figure as a second line. */
+  export type BudgetHeadline = { readonly kind: "budget"; readonly amount: string; readonly period: string; readonly weekly: string; readonly detail: string };
+
+  export function budgetHeadline(ready: WeeklyBudget.Ready, basis: CashFlowBasis | null | undefined): Headline | BudgetHeadline {
+    if (WeeklyBudget.covered(ready)) return headline(ready);
+    const bills = ready.bills.length === 0 ? "no bills due" : `${cents(ready.billsEur)} of bills`;
+    return {
+      kind: "budget",
+      amount: cents(Math.max(ready.leftEur, 0)),
+      period: period(ready, basis),
+      weekly: `About ${cents(ready.weeklyEur)} a week`,
+      detail: `After ${bills} and a ${cents(ready.bufferEur)} buffer${ready.bufferIsDefault ? " (assumed)" : ""}.`,
+    };
+  }
   export const unit = "a week until payday";
   export const coveredTitle = "Bills before payday are covered";
 
@@ -214,12 +241,12 @@ export namespace WeeklyBudgetText {
     const weeksBasis = underWeek ? "under a week: all of it is this week's"
       : `${ready.daysToPayday} days to ${date(ready.nextPayday)} (${ready.daysToPayday} ÷ 7)`;
     return [
-      line("balance", "Balance", money(ready.balanceEur), `bank data, ${date(dataDate)}`),
-      ...ready.bills.map((bill, index) => line(`bill-${index}`, bill.label, `−${money(bill.amountEur)}`, `usually due ${date(bill.expectedOn)} (12-month average; the name is Sisu's guess)`)),
-      line("buffer", "Protected buffer", `−${money(ready.bufferEur)}`, ready.bufferIsDefault ? "a default assumption: set your own" : "your setting"),
-      line("left", "Left until payday", money(Math.max(ready.leftEur, 0)), ready.leftEur < 0 ? `the bills and buffer need ${money(-ready.leftEur)} more than the balance` : `for everything else until ${date(ready.nextPayday)}`, true),
+      line("balance", "Balance", cents(ready.balanceEur), `bank data, ${date(dataDate)}`),
+      ...ready.bills.map((bill, index) => line(`bill-${index}`, bill.label, `−${cents(bill.amountEur)}`, bill.billId?.startsWith("added-") ? `due ${date(bill.expectedOn)} (a bill you added)` : `usually due ${date(bill.expectedOn)} (12-month average; the name is Sisu's guess)`)),
+      line("buffer", "Protected buffer", `−${cents(ready.bufferEur)}`, ready.bufferIsDefault ? "a default assumption: set your own" : "your setting"),
+      line("left", "Left until payday", cents(Math.max(ready.leftEur, 0)), ready.leftEur < 0 ? `the bills and buffer need ${cents(-ready.leftEur)} more than the balance` : `for everything else until ${date(ready.nextPayday)}`, true),
       line("weeks", "Weeks until payday", weeks, weeksBasis),
-      line("weekly", WeeklyBudgetText.title, money(ready.weeklyEur), "a week", true),
+      line("weekly", WeeklyBudgetText.title, cents(ready.weeklyEur), "a week", true),
     ];
   }
 
@@ -227,8 +254,8 @@ export namespace WeeklyBudgetText {
   export function pace(ready: WeeklyBudget.Ready): BudgetLine[] {
     if (ready.usualWeeklyEur === null || ready.projectedEur === null) return [];
     return [
-      line("usual", "Usual everyday spending", money(ready.usualWeeklyEur), "a week, 12-month average"),
-      line("projected", "Left just before payday", money(ready.projectedEur), "at that usual pace, after the bills", true),
+      line("usual", "Usual everyday spending", cents(ready.usualWeeklyEur), "a week, 12-month average"),
+      line("projected", "Left just before payday", cents(ready.projectedEur), "at that usual pace, after the bills", true),
     ];
   }
 

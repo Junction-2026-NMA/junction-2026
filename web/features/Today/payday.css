@@ -1,0 +1,104 @@
+/* v2 payday: change payday and add a bill (PaydayEditor.tsx), in "Show the maths" and under Sisu's payday answer. */
+
+.sisu-payday-editor {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 2);
+  min-width: 0;
+}
+
+.sisu-payday-row,
+.sisu-payday-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sisu-space-grid);
+  min-width: 0;
+}
+
+.sisu-payday-label {
+  font: var(--sisu-type-label);
+  color: var(--sisu-color-text);
+}
+
+.sisu-payday-input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: var(--sisu-space-touch-target);
+  padding: 0 calc(var(--sisu-space-grid) * 3);
+  border: 1px solid var(--sisu-neutral-400);
+  border-radius: var(--sisu-radius-button);
+  background: var(--sisu-color-input-fill);
+  color: var(--sisu-color-text);
+  font: var(--sisu-type-body);
+  /* 16 px or more keeps iOS Safari from zooming into the field. */
+  font-size: max(16px, 1em);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  box-sizing: border-box;
+}
+
+.sisu-payday-input:focus-visible { border-color: var(--sisu-green-700); }
+
+.sisu-payday-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  gap: calc(var(--sisu-space-grid) * 2);
+}
+
+.sisu-payday-note,
+.sisu-payday-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: calc(var(--sisu-space-grid) * 2);
+  margin: 0;
+  font: var(--sisu-type-label);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-payday-error { color: var(--sisu-error-text); }
+
+.sisu-payday-bills {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sisu-space-grid);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sisu-payday-bill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--sisu-space-grid) * 2);
+  font: var(--sisu-type-label);
+  color: var(--sisu-color-text);
+}
+
+button.sisu-payday-link {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: var(--sisu-type-label);
+  color: var(--sisu-green-700);
+  cursor: pointer;
+}
+
+button.sisu-payday-add {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0 calc(var(--sisu-space-grid) * 4);
+  border: 1px solid var(--sisu-green-700);
+  border-radius: var(--sisu-radius-button);
+  background: none;
+  font: var(--sisu-type-button);
+  color: var(--sisu-green-700);
+  cursor: pointer;
+}
+
+button.sisu-payday-link:focus-visible,
+button.sisu-payday-add:focus-visible { outline: 2px solid var(--sisu-green-500); outline-offset: 2px; }

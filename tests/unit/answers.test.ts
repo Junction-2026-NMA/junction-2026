@@ -182,7 +182,7 @@ describe("estimated weekly budget until payday", () => {
     assert.deepEqual([summary.estimatedWeeklyBudgetUntilPayday.billsBeforePaydayCovered, summary.estimatedWeeklyBudgetUntilPayday.leftAfterBillsAndBufferEur], [true, 25_964.13]);
     assert.equal((JSON.parse(customerSummary(aino, "Helsinki")) as { estimatedWeeklyBudgetUntilPayday: { billsBeforePaydayCovered?: boolean } }).estimatedWeeklyBudgetUntilPayday.billsBeforePaydayCovered, undefined);
     const aino1 = (await executeTool(toolCall("get_cash_flow", {}), context(["What can I spend this week?"]))).stages[0];
-    assert.ok(aino1.title === "Estimated weekly budget until payday" && aino1.data.kind === "calculation" && aino1.data.resultLabel === "Estimated weekly budget");
+    assert.ok(aino1.title === "Estimated budget until payday" && aino1.data.kind === "calculation" && aino1.data.resultLabel === "Estimated budget");
     const chart = safeToSpendVisual(sanna);
     assert.ok(chart.kind === "waterfall" && chart.resultLabel === "Left for spending until payday" && chart.title === "Bills before payday are covered");
   });
@@ -208,7 +208,7 @@ describe("estimated weekly budget until payday", () => {
     assert.equal(budgetOf(stated.content), 300);
     assert.equal(budgetOf(unsaid.content), defaultBufferEur(aino));
     assert.equal(stated.stages.length, 1);
-    assert.equal(stated.stages[0].title, "Estimated weekly budget until payday");
+    assert.equal(stated.stages[0].title, "Estimated budget until payday");
     assert.ok(stated.facts.some((f) => f.id === "cash:budget:per-week"));
     assert.doesNotMatch(stated.content, /safeToSpend/);
   });

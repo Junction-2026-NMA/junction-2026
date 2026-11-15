@@ -2,7 +2,8 @@
 // Today answers "What needs my attention today?" at a glance: the money overview (estimated weekly budget until
 // payday, balance, payday, data date), one primary insight or action with one tap into Sisu, the three spending
 // baskets as buttons (amounts only once tapped), and the newest transactions with "See all".
-// The sheets: How this is worked out (MathsSheet), the buffer, one basket, and Settings.
+// The sheets: Show the maths (MathsSheet, where payday can be changed and a bill added), the buffer, one basket,
+// and Settings.
 import { useEffect, useRef, useState } from "react";
 import { useAppModel, useAppSelector } from "@/web/app/AppProvider";
 import { LoadState } from "@/web/app/AppTypes";
@@ -55,7 +56,7 @@ export default function TodayScreen() {
           <LoadingState />
         )}
       </Screen>
-      <MathsSheet open={todaySheet === "maths"} overview={overview} budget={budget}
+      <MathsSheet open={todaySheet === "maths"} overview={overview} budget={budget} cashFlow={flow}
         cashFlowAssumptions={flow?.assumptions ?? []} onBuffer={openBuffer} onClose={() => model.setTodaySheet(null)} />
       <BufferSheet open={bufferOpen} onClose={() => setBufferOpen(false)} defaultEur={WeeklyBudget.defaultBuffer(flow)} />
       <SettingsSheet open={todaySheet === "settings"} onClose={() => model.setTodaySheet(null)} />
@@ -89,7 +90,7 @@ function TodayContent({ overview, budget, cashFlow, onBuffer }: {
   return (
     <div ref={stack} className="sisu-screen-stack sisu-today-stack">
       <div data-scroll-id="overview">
-        <MoneyOverview overview={overview} budget={budget} onMaths={() => model.setTodaySheet("maths")} onBuffer={onBuffer} />
+        <MoneyOverview overview={overview} budget={budget} basis={cashFlow?.basis} onMaths={() => model.setTodaySheet("maths")} onBuffer={onBuffer} />
       </div>
       {focus ? (
         <div data-scroll-id="focus" className="sisu-today-enter">

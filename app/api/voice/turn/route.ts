@@ -45,9 +45,9 @@ export const POST = withVisitor(async function POST(request: Request) {
   })();
   // The text is filled in after transcription; a placeholder lets the same validation run now.
   // bufferEur: the protected buffer the customer set in the app, so Sisu's weekly budget matches Today's.
-  const parsed = parseAgentRequest({ customerId: form?.get("customerId"), text: "voice", history, focusBill: form?.get("focusBill"), bufferEur: form?.get("bufferEur") }, "voice");
+  const parsed = parseAgentRequest({ customerId: form?.get("customerId"), text: "voice", history, focusBill: form?.get("focusBill"), bufferEur: form?.get("bufferEur"), paydayDate: form?.get("paydayDate") ?? undefined, extraBills: form?.get("extraBills") ?? undefined }, "voice");
   if (typeof parsed === "string") return jsonError(parsed, 400);
-  const { customerId, history: turns, focusBill, bufferEur } = parsed;
+  const { customerId, history: turns, focusBill, bufferEur, paydayDate, extraBills } = parsed;
   const spoken = typeof form?.get("language") === "string" ? String(form?.get("language")) : AUTO;
-  return eventStream(voiceTurn(audio, { customerId, mode: "voice", history: turns, focusBill, ...(bufferEur === undefined ? {} : { bufferEur }) }, spoken, request.signal));
+  return eventStream(voiceTurn(audio, { customerId, mode: "voice", history: turns, focusBill, ...(bufferEur === undefined ? {} : { bufferEur }), ...(paydayDate ? { paydayDate } : {}), ...(extraBills ? { extraBills } : {}) }, spoken, request.signal));
 });

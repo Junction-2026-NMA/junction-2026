@@ -8,7 +8,7 @@ export const DATA_AS_OF = "2026-09-30";
 
 // Names are invented for the demo. The dataset identifies customers only by ID.
 const DISPLAY: Record<string, { displayName: string; area: string }> = {
-  CUST04974: { displayName: "Aino", area: "Helsinki" },
+  CUST04974: { displayName: "Jack", area: "Helsinki" },
   CUST04414: { displayName: "Eetu", area: "Espoo" },
   CUST02003: { displayName: "Sanna", area: "Helsinki" },
 };

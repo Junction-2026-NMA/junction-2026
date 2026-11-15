@@ -8,6 +8,7 @@ import { BasketKind } from "@/web/core/Presentation";
 import { TodayFocus, TodayPresenter } from "@/web/core/AppLogic/AppPresenters";
 import { OnboardingCopy, OnboardingReading } from "@/web/core/AppLogic/OnboardingCopy";
 import { WeeklyBudget, WeeklyBudgetText } from "@/web/core/AppLogic/WeeklyBudget";
+import { PaydayBudget } from "@/web/core/AppLogic/PaydayBudget";
 
 let failures = 0, passes = 0;
 function eq(actual: unknown, expected: unknown, label: string): void {
@@ -124,7 +125,7 @@ group("Budget text", () => {
   ok(!/safe to spend/i.test(JSON.stringify([WeeklyBudgetText.lines(r, "2026-09-30"), WeeklyBudgetText.basis(r), WeeklyBudgetText.pace(r)])), "never 'safe to spend'");
   eq(WeeklyBudgetText.basis(r), "After €600 of bills due before payday and a €100 buffer (assumed).", "basis");
   eq(WeeklyBudgetText.payday(r), "Payday in 14 days", "payday");
-  eq(WeeklyBudgetText.lines(r, "2026-09-30").map((l) => l.amount), ["€1,000", "−€600", "−€100", "€300", "÷ 2 weeks", "€150"], "maths lines");
+  eq(WeeklyBudgetText.lines(r, "2026-09-30").map((l) => l.amount), ["€1,000.00", "−€600.00", "−€100.00", "€300.00", "÷ 2 weeks", "€150.00"], "maths lines (to the cent, as the chat says them)");
   const weeksLine = (days: number) => WeeklyBudgetText.lines(ready(WeeklyBudget.compute({ ...base, daysToPayday: days })), "2026-09-30").find((l) => l.id === "weeks");
   eq([weeksLine(15)?.amount, weeksLine(15)?.basis], ["÷ 2.1 weeks", "15 days to 15 Oct 2026 (15 ÷ 7)"], "the divisor sits in the value column");
   eq([weeksLine(3)?.amount, weeksLine(3)?.basis], ["÷ 1 week", "under a week: all of it is this week's"], "under a week");
@@ -176,6 +177,24 @@ group("Basket wording", () => {
   ok(OnboardingCopy.promiseBaskets.every((row) => !/leak|waste|must pay/i.test(`${row.examples} ${row.meaning}`)), "onboarding rows");
   ok(OnboardingReading.loadingDetail.includes("regular essentials"), "reading copy");
   eq(TodayPresenter.peerNote, "Compared with other profiles in the synthetic demo data", "peer note");
+});
+
+group("v2 payday: estimated budget, period, overrides", () => {
+  // The server's figures for Jack (CUST04974): 1220.35 − 686.53 − 247.45 = 286.37 until Thu 15 Oct, 133.64 a week.
+  const server: CashFlow = { ...cashFlow("CUST04974"), weeklyBudget: { bufferEur: 247.45, bufferSource: "default" } };
+  const jack = ready(WeeklyBudget.compute(WeeklyBudget.inputs(overview("CUST04974"), server, null)));
+  eq(WeeklyBudgetText.budgetHeadline(jack, null), { kind: "budget", amount: "€286.37", period: "until payday on Thu 15 Oct, 15 days", weekly: "About €133.64 a week", detail: "After €686.53 of bills and a €247.45 buffer (assumed)." }, "Jack: the same figures as the chat");
+  eq(WeeklyBudgetText.budgetTitle, "Estimated budget", "headline label");
+  eq(PaydayBudget.periodText("2026-10-20", 20), "until payday on Tue 20 Oct, 20 days", "period words match the server");
+  // An older backend or the sample: the overrides are applied here by the same rule.
+  const moved = PaydayBudget.apply(server, { paydayDate: "2026-10-08", extraBills: [{ label: "Phone repair", amountEur: 80, dueDate: "2026-10-05" }, { label: "Gym", amountEur: 30, dueDate: "2026-10-09" }] });
+  eq([moved.nextPayday, moved.daysToNextPayday, moved.billsDueBeforePayday.map((b) => b.billId), moved.basis?.payday], ["2026-10-08", 8, ["added-1", "housing-1"], "confirmed"], "earlier payday drops the mobile bill, counts the repair, not the gym");
+  const left = ready(WeeklyBudget.compute(WeeklyBudget.inputs(overview("CUST04974"), PaydayBudget.apply(server, { extraBills: [{ label: "Phone repair", amountEur: 80, dueDate: "2026-10-12" }] }), null)));
+  near(left.leftEur, 206.37, "an added bill comes off what is left");
+  eq(PaydayBudget.apply({ ...server, basis: { payday: "history" } }, { paydayDate: "2026-10-08" }).nextPayday, "2026-10-15", "a backend that sends basis already applied them");
+  eq(PaydayBudget.decode({ paydayDate: "nope", extraBills: [{ label: " ", amountEur: 5, dueDate: "2026-10-02" }] }), null, "invalid overrides are dropped");
+  eq(PaydayBudget.bill("Repair", "80,50", "2026-10-12", "2026-09-30"), { label: "Repair", amountEur: 80.5, dueDate: "2026-10-12" }, "typed bill");
+  eq(PaydayBudget.paydayError("2026-09-30", "2026-09-30"), "Pick a date within 62 days after 2026-09-30.", "payday must be after the data date");
 });
 
 console.log(`\n${passes} passed, ${failures} failed`);

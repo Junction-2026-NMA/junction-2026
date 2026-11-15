@@ -27,6 +27,7 @@ import { VoiceController, fixtureRecording } from "@/web/voice/VoiceController";
 import { VoiceLaunch } from "@/web/voice/VoiceLaunch";
 import { TalkLaunch } from "@/web/features/Talk/TalkLaunch";
 import { Keys } from "./AppState";
+import { paydayStore } from "./PaydayStore";
 import type { SisuDefaults } from "./Defaults";
 
 export interface CoachStoreState {
@@ -328,6 +329,7 @@ export class CoachStore extends Store<CoachStoreState> {
     this.watcher?.();
     next.language = this.language;
     next.bufferEur = this.bufferEur;
+    next.paydayFor = paydayStore.get; // v2 payday: the payday and bills confirmed on Today go with every question
     const fixture = VoiceLaunch.current().voiceFixture;
     const voice = new VoiceController(next, fixture ? fixtureRecording() : null);
     const conversation = new ConversationController(next, voice.player, fixture ? fixtureRecording() : null);

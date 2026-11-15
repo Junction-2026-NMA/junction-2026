@@ -104,6 +104,8 @@ export const Keys = {
   /** Prefixes of per-customer values: lesson progress and a lesson left for "Ask Sisu" (web/features/Path/PathModel.ts). */
   lessonsPrefix: "sisu.lessons.",
   lessonAttemptPrefix: "sisu.lessonAttempt.",
+  /** v2 payday: the payday and bills the person confirmed, per customer (web/app/PaydayStore.ts). */
+  paydayPrefix: "sisu.payday.",
 } as const;
 
 /** What starting over removes ("Start the demo over" and `onboarding=reset`): names, old progress, preferences,
@@ -111,7 +113,7 @@ export const Keys = {
 export function clearPersonalData(defaults: SisuDefaults): void {
   [Keys.progress, Keys.billNames, Keys.coachRewards, Keys.prefs, Keys.voiceLanguages, Keys.conversations, Keys.projectsSeen]
     .forEach((key) => defaults.remove(key));
-  [Keys.lessonsPrefix, Keys.lessonAttemptPrefix].forEach((prefix) => defaults.removePrefix(prefix));
+  [Keys.lessonsPrefix, Keys.lessonAttemptPrefix, Keys.paydayPrefix].forEach((prefix) => defaults.removePrefix(prefix));
 }
 
 export const billKey = (customerId: string, billId: string): string => `${customerId}/${billId}`;
