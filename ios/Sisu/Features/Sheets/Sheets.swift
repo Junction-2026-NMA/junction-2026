@@ -181,7 +181,7 @@ struct SettingsSheet: View {
                     DataSourcesCard()
                     SisuCard {
                         Text("Backend address").font(SisuTheme.Font.label).foregroundStyle(SisuTheme.Color.textMuted)
-                        TextField("http://localhost:3000", text: $address)
+                        TextField(AppModel.defaultBaseURL, text: $address)
                             .font(SisuTheme.Font.body)
                             .foregroundStyle(SisuTheme.Color.text)
                             .keyboardType(.URL)

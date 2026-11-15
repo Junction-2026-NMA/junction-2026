@@ -38,7 +38,9 @@ public struct MultipartForm: Sendable {
 
 public enum CoachEndpoints {
     /// Seconds before each kind of request counts as offline.
-    public static let quickTimeout: TimeInterval = 5
+    /// Ten seconds, not five: a hosted server that has been idle needs a few seconds to wake up, and a request that
+    /// times out switches the app to its bundled sample for the rest of the visit.
+    public static let quickTimeout: TimeInterval = 10
     public static let researchTimeout: TimeInterval = 15
     public static let voiceTimeout: TimeInterval = 30
     public static let streamTimeout: TimeInterval = 90

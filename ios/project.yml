@@ -68,7 +68,7 @@ targets:
           - Figtree-Bold.ttf
           - BricolageGrotesque-Bold.ttf
           - BricolageGrotesque-ExtraBold.ttf
-        # The simulator talks to the team backend at http://localhost:3000.
+        # Lets the simulator talk to a backend on this Mac (http://localhost:3000). The hosted backend is HTTPS.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
         NSMicrophoneUsageDescription: Sisu listens only while you hold the talk button.

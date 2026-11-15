@@ -24,6 +24,21 @@ public struct Visual: Codable, Equatable, Sendable, Identifiable {
         public var income: Double
         public var spending: Double
     }
+    /// One of the three baskets in `basket_bar`: what it holds, what it costs a month, and its largest categories.
+    public struct Basket: Codable, Equatable, Sendable {
+        public struct Top: Codable, Equatable, Sendable {
+            public var category: String
+            public var monthly: Double
+        }
+        /// `mandatory`, `everyday` or `future`.
+        public var id: String
+        public var label: String
+        public var description: String
+        public var monthly: Double
+        /// 0...100.
+        public var share: Double
+        public var top: [Top]
+    }
     public struct FuturePoint: Codable, Equatable, Sendable {
         public var year: Double
         public var value: Double
@@ -52,12 +67,14 @@ public struct Visual: Codable, Equatable, Sendable, Identifiable {
         case waterfall(steps: [CalcStep], resultLabel: String, resultValue: Double)
         case futuresLines(years: Double, series: [FutureSeries])
         case offerBars(currentMonthlyEur: Double, offers: [OfferBar], mock: Bool)
+        /// The three baskets side by side (added on the server on 14 Nov).
+        case basketBar(total: Double, baskets: [Basket])
         /// A kind this version of the app does not know: show `title`, `caption` and `summary` only.
         case unknown
     }
 
     public var id: String
-    /// `budget_donut`, `peer_bars`, `month_bars`, `waterfall`, `futures_lines` or `offer_bars`.
+    /// `budget_donut`, `basket_bar`, `peer_bars`, `month_bars`, `waterfall`, `futures_lines` or `offer_bars`.
     public var kind: String
     public var title: String
     public var caption: String
@@ -68,7 +85,7 @@ public struct Visual: Codable, Equatable, Sendable, Identifiable {
 
     enum CodingKeys: String, CodingKey {
         case id, kind, title, caption, summary, source, facts, slices, total, centerLabel, peerGroup, rows, months, steps, resultLabel, resultValue,
-             years, series, currentMonthlyEur, offers, mock
+             years, series, currentMonthlyEur, offers, mock, baskets
     }
 
     public init(from decoder: Decoder) throws {
@@ -97,6 +114,8 @@ public struct Visual: Codable, Equatable, Sendable, Identifiable {
             case "offer_bars":
                 return .offerBars(currentMonthlyEur: try c.decode(Double.self, forKey: .currentMonthlyEur), offers: try c.decode([OfferBar].self, forKey: .offers),
                                   mock: try c.decodeIfPresent(Bool.self, forKey: .mock) ?? false)
+            case "basket_bar":
+                return .basketBar(total: try c.decode(Double.self, forKey: .total), baskets: try c.decode([Basket].self, forKey: .baskets))
             default: return .unknown
             }
         }
@@ -118,6 +137,7 @@ public struct Visual: Codable, Equatable, Sendable, Identifiable {
         case .futuresLines(let years, let series): try c.encode(years, forKey: .years); try c.encode(series, forKey: .series)
         case .offerBars(let current, let offers, let mock):
             try c.encode(current, forKey: .currentMonthlyEur); try c.encode(offers, forKey: .offers); try c.encode(mock, forKey: .mock)
+        case .basketBar(let total, let baskets): try c.encode(total, forKey: .total); try c.encode(baskets, forKey: .baskets)
         case .unknown: break
         }
     }

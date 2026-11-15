@@ -233,6 +233,21 @@ public enum ChartPresenter {
             }
             state.body = .bars(groups: groups)
             if mock { state.footnote = CoachText.pick(language, "Example data, not a live search.", "Esimerkkidataa, ei oikea haku.") }
+        case .basketBar(_, let baskets):
+            // One group per basket: the basket's own bar, then its largest categories, all on one scale.
+            let maximum = baskets.map(\.monthly).filter(\.isFinite).max() ?? 0
+            state.body = .bars(groups: baskets.enumerated().map { index, basket in
+                let share = CoachText.value(basket.share.rounded(.toNearestOrAwayFromZero), unit: "percent", language: language)
+                let whole = ChartBar(id: "basket", label: basket.label, valueText: euro(basket.monthly, language),
+                                     fraction: fraction(basket.monthly, of: maximum), color: .category(index))
+                let parts = basket.top.enumerated().map { place, top in
+                    ChartBar(id: "top-\(place)", label: top.category, valueText: euro(top.monthly, language),
+                             fraction: fraction(top.monthly, of: maximum), color: .quiet)
+                }
+                return ChartState.BarGroup(id: "\(index)-\(basket.id)", title: basket.label,
+                                           note: CoachText.pick(language, "\(share) of your spending", "\(share) menoistasi"), bars: [whole] + parts, url: nil)
+            })
+            state.legend = baskets.enumerated().map { index, basket in ChartLegendEntry(label: basket.label, color: .category(index), isLine: false) }
         case .unknown:
             break
         }

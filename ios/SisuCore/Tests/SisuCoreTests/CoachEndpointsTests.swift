@@ -26,7 +26,8 @@ final class CoachEndpointsTests: XCTestCase {
         check(CoachEndpoints.teaching(baseURL: base, customerId: "C", concept: .bufferFirst), "GET", "/api/coach/teaching?customerId=C&concept=buffer-first")
         check(CoachEndpoints.mortgage(baseURL: base, customerId: "C"), "GET", "/api/coach/mortgage?customerId=C")
         check(CoachEndpoints.voiceOptions(baseURL: base), "GET", "/api/voice/tts")
-        XCTAssertEqual(CoachEndpoints.health(baseURL: base).timeoutInterval, 5)
+        XCTAssertEqual(CoachEndpoints.health(baseURL: base).timeoutInterval, CoachEndpoints.quickTimeout)
+        XCTAssertEqual(CoachEndpoints.quickTimeout, 10, "long enough for a hosted server to wake up")
     }
 
     func testDemoResetSendsTheTokenOnlyWhenGiven() {
