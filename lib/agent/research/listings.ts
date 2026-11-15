@@ -135,8 +135,13 @@ export async function scrapeJson<T>(url: string, schema: Record<string, unknown>
 
 export const hostName = (url: string): string => hostOf(url) ?? url;
 
-// Reads one page of rental listings with Context.dev.
+// Reads one page of rental listings with Context.dev. Mock mode re-reads the example page as it was (a watch's
+// check then finds no change and no error, instead of failing on the missing Context.dev key).
 export async function readListings(url: string, options: { fresh?: boolean; signal?: AbortSignal; city?: string } = {}): Promise<ListingPage> {
+  if (getConfig().isMock) {
+    const page = mockSearch(options.city ?? "").pages[0];
+    return page.url === url ? page : { ...page, url, title: hostName(url), listings: [] };
+  }
   const read = await scrapeJson<{ listings?: RawListing[] }>(url, LISTING_SCHEMA, LISTING_INSTRUCTIONS, options);
   const cleaned = cleanListings(read.data?.listings ?? [], url);
   const { city } = options;
@@ -152,13 +157,21 @@ export function cleanCity(value: unknown): string | null {
 
 export const listingQuery = (city: string): string => `vuokra-asunnot ${city} vapaat vuokrattavat asunnot`;
 
+// Districts of the example listings, so an Espoo watch never shows a Helsinki district. Other cities: not stated.
+const MOCK_DISTRICTS: Record<string, [string, string, string]> = {
+  helsinki: ["Kallio", "Vallila", "Malmi"],
+  espoo: ["Leppävaara", "Tapiola", "Matinkylä"],
+  vantaa: ["Tikkurila", "Myyrmäki", "Martinlaakso"],
+};
+
 // Example listings for mock mode (tests, and a laptop with no keys). Labelled as examples wherever they are shown.
 function mockSearch(city: string): ListingSearch {
   const pageUrl = `https://example.com/vuokra-asunnot/${city.toLowerCase()}`;
+  const districts = MOCK_DISTRICTS[city.trim().toLowerCase()] ?? [null, null, null];
   const listings = [
-    { title: "Esimerkkikatu 4 A", priceEur: 1_040, rooms: 1, areaM2: 31, district: "Kallio" },
-    { title: "Mallitie 12 B", priceEur: 1_180, rooms: 2, areaM2: 44, district: "Vallila" },
-    { title: "Testikuja 7", priceEur: 965, rooms: 1, areaM2: 27, district: "Malmi" },
+    { title: "Esimerkkikatu 4 A", priceEur: 1_040, rooms: 1, areaM2: 31, district: districts[0] },
+    { title: "Mallitie 12 B", priceEur: 1_180, rooms: 2, areaM2: 44, district: districts[1] },
+    { title: "Testikuja 7", priceEur: 965, rooms: 1, areaM2: 27, district: districts[2] },
   ].map((listing, index) => ({ ...listing, city, availableFrom: null, url: `${pageUrl}/${index + 1}`, pageUrl }));
   return { city, topic: null, query: listingQuery(city), pages: [{ url: pageUrl, title: "example.com", listings, dropped: 0, cacheAgeMs: null, tookMs: 0, mock: true }], found: [{ url: pageUrl, title: "Example listings" }], errors: [], retrievedAt: new Date().toISOString(), tookMs: 0, mock: true };
 }
