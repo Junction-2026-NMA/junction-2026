@@ -35,3 +35,10 @@ export async function loadRemote(store: RemoteStore, sessionId: string): Promise
 export async function saveRemote(store: RemoteStore, sessionId: string, state: SisuState, expectedVersion: number): Promise<Saved> {
   return rpc<Saved>(store, "sisu_save", { p_session: sessionId, p_state: state, p_expected: expectedVersion });
 }
+
+// Sessions that have at least one active watch, most recently saved first (the scheduled check, lib/watch/cron.ts).
+// Needs sisu_sessions_with_watches (deploy/supabase/sisu_sessions.sql); answers only ids, never states.
+export async function watchSessionsRemote(store: RemoteStore, limit: number): Promise<string[]> {
+  const ids = await rpc<unknown>(store, "sisu_sessions_with_watches", { p_limit: limit });
+  return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === "string") : [];
+}

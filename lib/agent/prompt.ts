@@ -4,6 +4,7 @@ import { mortgageFor } from "@/lib/finance/mortgage";
 import { lastMonthSpending } from "@/lib/finance/recent";
 import { savingRoom } from "@/lib/finance/saving";
 import { billLabel } from "@/lib/memory";
+import { watchScheduler } from "@/lib/watch/scheduler";
 import { findLanguage } from "./languages";
 import type { AccountsView, AgentAction, CustomerMemory, Overview, PropertyWatch, WatchNotification } from "@/lib/types";
 
@@ -98,8 +99,9 @@ const RULES = [
   "- For an estimate about everyday life (a shorter shower, a lower thermostat, cycling instead of the bus): do not ask the customer for figures first. web_search for typical values, assume once a day or the usual amount unless they said otherwise, calculate, and give the estimate with its main assumption. The card lists the rest.",
   "- web_search with deep: true for an open question about rules or the future that one fact cannot answer (who can get a benefit, what changes for renters next year, how a rule applies to someone like them). A single price, rate or figure is a normal web_search.",
   "- Never ask 'would you like me to look that up?'. They asked: look it up.",
-  "- Looking for a flat to rent within a monthly budget they named ('find me a flat in Helsinki under 900 euros'): search_flats at once with that budget. If it reports nothing fits, it has set up a price watch: ask 'Shall I watch prices and tell you when one fits?' and ask them to tap Approve.",
-  "- Wants to buy something at or under a price they named, or to be told when its price drops ('tell me when an iPhone 15 is under 500 euros', 'find me a used Corolla under 15,000'): search_prices at once with the thing and that price. If it reports nothing fits, it has set up a price watch: ask 'Shall I watch prices and tell you when one fits?' and ask them to tap Approve.",
+  "- Looking for a flat or weighing a move ('find me a flat in Helsinki under 900 euros', 'could moving to Espoo help me save?'): if they named a monthly rent, search_flats at once with it, the goal (their decision in their words) and only the requirements they said (districts, move-by date, commute, deposit, moving cost, money to keep). If they named no rent, ask for it in one short question, with a move-by date and how much they want to keep after moving. If the tool prepared a Project, ask 'Would you like me to keep checking for homes that match these requirements?' and say one tap on Approve starts it. A plain question about flats stays a plain answer.",
+  "- Wants to buy something at or under a price they named, or to know when its price drops ('tell me when an iPhone 15 is under 500 euros'): search_prices at once with the thing and that price. If the tool prepared a Project, ask 'Would you like me to keep checking for offers at this price?' and say one tap on Approve starts it.",
+  "- About what keeps running after approval, say only what the tool result says: Context.dev re-checks the pages every 6 hours, and Sisu reviews the changes when the app checks in (or once a day, if the result says so). Never promise an instant alert.",
   "- A cheaper deal on electricity, mobile or internet: search_offers at once. Never quote offers from memory or ask a question first. If they asked you to go ahead or switch, also prepare_action with switch_contract.",
   "- Buying a home or their mortgage: get_mortgage.",
   "- explain_concept has lessons on: the three baskets, the estimated weekly budget (concept safe-to-spend), fixed versus spot electricity prices, a buffer or emergency fund before investing, compound growth (growth on growth, interest on interest), why switching bills pays, and paying yourself first. When asked to explain or teach any of these, always call it, then ask its question and stop. For any other idea (inflation, credit cards, taxes), explain it yourself in two or three plain sentences, with no tool and no figures.",
@@ -204,21 +206,25 @@ function accountsBlock(accounts: AccountsView | null | undefined): string {
   ].join("\n");
 }
 
-// The watches the customer approved and what they have found, so "did my watch find anything?" gets an answer.
-// Without this Sisu knew nothing about a watch once it had started: it said it had no tool to check.
+// The watches (Projects) the customer approved and what they have found, so "did my watch find anything?" gets an
+// answer. Without this Sisu knew nothing about a watch once it had started: it said it had no tool to check.
 function watchesBlock(watches: PropertyWatch[], notifications: WatchNotification[]): string {
-  const active = watches.filter((watch) => watch.status === "active");
-  if (!active.length && !notifications.length) return "";
+  const live = watches.filter((watch) => watch.status === "active" || watch.status === "paused");
+  if (!live.length && !notifications.length) return "";
   const limit = (watch: PropertyWatch) => `${watch.budgetEur} euros${watch.priceUnit === "EUR/month" ? " a month" : ""} or less`;
   const what = (watch: PropertyWatch) => watch.topic ?? `flats in ${watch.city ?? "the customer's city"}${watch.minRooms ? ` with ${watch.minRooms} or more rooms` : ""}`;
+  const when = (time: string) => time.slice(0, 16).replace("T", " ");
+  const state = (watch: PropertyWatch) =>
+    watch.status === "paused" ? " PAUSED: nothing is checked until they resume it." : watch.pages.length && watch.lastCheckedAt && watch.pages.every((page) => page.lastError) ? " FAILING: no page could be read on the last check." : "";
+  const scheduled = watchScheduler() === "cron" ? "Sisu reviews the changes once a day on its own and whenever the app checks in" : "Sisu reviews the changes only when the app checks in";
   return [
-    "WATCHES THE CUSTOMER APPROVED (the pages are re-checked on a schedule and every price is compared with the limit in code):",
-    ...(active.length
-      ? active.slice(0, 4).map((watch) => `- Watching ${what(watch)} for ${limit(watch)}: ${watch.pages.length} page${watch.pages.length === 1 ? "" : "s"} watched since ${watch.createdAt.slice(0, 10)}${watch.lastCheckedAt ? `, last checked ${watch.lastCheckedAt.slice(0, 16).replace("T", " ")}` : ", not checked again yet"}.`)
+    `WATCHES THE CUSTOMER APPROVED (shown to them as Projects). Context.dev re-checks each page every 6 hours; ${scheduled}; every price is compared with the limit in code:`,
+    ...(live.length
+      ? live.slice(0, 4).map((watch) => `- Watching ${what(watch)} for ${limit(watch)}: ${watch.pages.length} page${watch.pages.length === 1 ? "" : "s"} watched since ${watch.createdAt.slice(0, 10)}${watch.lastCheckedAt ? `, last checked ${when(watch.lastCheckedAt)}` : ", not checked again yet"}${watch.goal ? `. Goal: ${watch.goal}` : ""}.${state(watch)}`)
       : ["- None is running now."]),
     notifications.length ? "WHAT THE WATCHES FOUND (newest first):" : "WHAT THE WATCHES FOUND: nothing has come under the limit yet.",
     ...notifications.slice(0, 4).map((note) => `- ${note.title}. ${note.summary}`),
-    "When the customer asks whether a watch found anything, answer from this list: name what was found, its price and how far under their limit it is, and say so plainly if it was simulated for the demo. If nothing was found, say that and when it was last checked. This needs no tool call; do not search again unless they ask for a new search.",
+    "When the customer asks whether a watch found anything, answer from this list: name what was found, its price and how far under their limit it is, and say so plainly if it was simulated for the demo. If nothing was found, say that and when it was last checked. This needs no tool call; do not search again unless they ask for a new search. Never contact a landlord or seller: offer to open the listing or draft a viewing enquiry for them to send.",
   ].join("\n");
 }
 

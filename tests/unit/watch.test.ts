@@ -505,7 +505,9 @@ describe("a price watch follows the same approval lifecycle as a flat watch", ()
 
   it("starts only on approval, and a simulated drop is told as a price paid once, checked against the balance", async () => {
     const action = preparePriceWatch();
-    assert.match(action.title, /^Watch prices for iPhone 15 and tell me when one is €500 or less$/);
+    // Worded as a proposal that says what will keep running, not a promise to "tell me when" (15 Nov).
+    assert.match(action.title, /^Keep checking prices for iPhone 15 at €500 or less$/);
+    assert.match(action.summary, /^Would you like me to keep checking for offers at this price\?/);
     assert.equal(await startWatch(AINO, action), null);
     const watch = (await startWatch(AINO, approve(action)))!;
     assert.deepEqual([watch.topic, watch.city, watch.priceUnit, watch.budgetEur, watch.searchMonitorId], ["iPhone 15", null, "EUR", 500, null]);
