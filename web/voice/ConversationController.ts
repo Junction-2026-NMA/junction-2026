@@ -38,6 +38,12 @@ export interface ConversationControllerState {
 }
 
 const METER_MS = 50;
+/** Exact digital silence for this long while listening means no audio reaches the meter (see `reviveMicrophone`). */
+const DEAD_METER_MS = 800;
+/** Times the microphone is reopened on a fresh meter before Sisu says it cannot hear. */
+const MAX_REVIVALS = 2;
+/** Said when the microphone stays silent after reopening it. */
+export const CANNOT_HEAR = "Sisu can't hear your microphone. Tap End, then the microphone to try again.";
 
 export class ConversationController extends Store<ConversationControllerState> {
   /** Records from the microphone, or "hears" this clip once when set (screenshots and tests). */
@@ -60,6 +66,8 @@ export class ConversationController extends Store<ConversationControllerState> {
   private resumeWhenQuiet = false;
   private micOpenedAt = 0;
   private fixtureQuestionsLeft = 1;
+  /** Reopenings of a microphone that delivered only digital silence, since sound last reached the meter. */
+  private revivals = 0;
   private disposed = false;
   private readonly unsubscribe: () => void;
 
@@ -119,6 +127,7 @@ export class ConversationController extends Store<ConversationControllerState> {
   start(): void {
     if (this.machine.isOn || this.disposed) return;
     this.fixtureQuestionsLeft = 1;
+    this.revivals = 0;
     // An answer someone else asked for (a question typed in the sheet) is never cut off: the microphone opens when
     // it is done.
     const busy = this.sessionBusy();
@@ -255,7 +264,19 @@ export class ConversationController extends Store<ConversationControllerState> {
     }
   }
 
-  private openMicrophone(): void {
+  /** Reopens a microphone whose meter hears only digital silence, measuring on a fresh context. The flow does not
+   *  change: it is still listening with the microphone open. */
+  private reviveMicrophone(now: number): void {
+    this.revivals += 1;
+    console.warn(`[voice] the microphone delivered only silence; reopening it (${this.revivals}/${MAX_REVIVALS})`);
+    this.token += 1;
+    this.recorder.discard();
+    this.machine.endpointer.reset(now);
+    this.openMicrophone(true);
+  }
+
+  private openMicrophone(freshMeter = false): void {
+    if (!freshMeter) this.revivals = 0; // a normal open (a question, a return to the tab) gets its own reopenings
     this.micOpenedAt = ConversationController.now();
     this.token += 1;
     const token = this.token;
@@ -277,7 +298,7 @@ export class ConversationController extends Store<ConversationControllerState> {
       }
       if (this.recorder.isRecording) return;
       try {
-        this.recorder.start(true);
+        this.recorder.start(true, freshMeter);
       } catch {
         this.recorder.release();
         this.session.setRecording(false);
@@ -385,6 +406,13 @@ export class ConversationController extends Store<ConversationControllerState> {
       const measured = this.recorder.level();
       // The recorder is still starting (permission prompt, getUserMedia): nothing to read yet.
       if (measured === null) return;
+      if (this.recorder.meterIsSilent(DEAD_METER_MS) && this.machine.phase === "listening") {
+        if (this.revivals < MAX_REVIVALS) return this.reviveMicrophone(now);
+        this.setNotice(CANNOT_HEAR);
+      } else if (!this.recorder.meterIsSilent(0)) {
+        this.revivals = 0;
+        if (this.state.notice === CANNOT_HEAR) this.setNotice(null);
+      }
       reading = measured;
     }
     const ring = ConversationPresenter.ringLevel(reading, this.machine.endpointer.noiseFloor);
