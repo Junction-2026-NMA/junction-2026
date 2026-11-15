@@ -18,7 +18,7 @@ const PADDING = 20;
 
 export function PromptInput({
   value, onValueChange, onSubmit, loading, onStop, placeholder, label, textareaRef, maxRows = 4, onFocusChange, className,
-  testIds,
+  testIds, bare = false,
 }: {
   value: string;
   onValueChange: (value: string) => void;
@@ -33,6 +33,8 @@ export function PromptInput({
   onFocusChange?: (focused: boolean) => void;
   className?: string;
   testIds?: { field?: string; send?: string; stop?: string };
+  /** No border, fill or shadow of its own: the caller draws the pill around it (the Sisu tab's dock). */
+  bare?: boolean;
 }) {
   const reduce = useReducedMotion();
   const mirror = useRef<HTMLDivElement>(null);
@@ -61,7 +63,7 @@ export function PromptInput({
   };
 
   return (
-    <form className={cx("sisu-agent-prompt", className)} onSubmit={submit}>
+    <form className={cx("sisu-agent-prompt", className)} data-variant={bare ? "bare" : "framed"} onSubmit={submit}>
       <div className="sisu-agent-prompt-fieldwrap">
         <div ref={mirror} aria-hidden="true" className="sisu-agent-prompt-mirror">{`${value}​`}</div>
         <textarea

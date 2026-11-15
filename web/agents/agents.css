@@ -310,6 +310,15 @@ button.sisu-agent-activity-toggle:active {
   box-shadow: 0 0 0 3px rgba(153, 213, 159, 0.35), 0 6px 20px rgba(24, 33, 28, 0.06);
 }
 
+/* Bare: the caller draws the pill and its focus ring around the field (the Sisu tab's dock). */
+.sisu-agent-prompt[data-variant="bare"],
+.sisu-agent-prompt[data-variant="bare"]:focus-within {
+  min-height: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .sisu-agent-prompt-fieldwrap {
   position: relative;
   flex: 1 1 auto;

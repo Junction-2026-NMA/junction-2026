@@ -1,4 +1,4 @@
-/* The conversation pieces the Sisu tab uses (AskParts.tsx, Composer.tsx, PlaceholderScreen.tsx). Light only.
+/* The conversation pieces the Sisu tab uses (AskParts.tsx, PlaceholderScreen.tsx); the ask box is web/features/Talk/SisuDock.tsx. Light only.
    Spacing and type from web/theme/tokens.css. */
 
 .sisu-ask-title {
@@ -16,49 +16,6 @@
 
 .sisu-ask-notice:has(.sisu-notice-slot:empty) {
   padding: 0;
-}
-
-/* The ask box of the Sisu tab: beUI's PromptInput (web/agents/agents.css), the microphone beside it. */
-.sisu-ask-composer {
-  flex: none;
-  display: flex;
-  align-items: flex-end;
-  gap: calc(var(--sisu-space-grid) * 2);
-}
-
-/* The microphone: the way into the hands-free conversation. Green-tinted, the brand's green glyph. */
-button.sisu-ask-mic {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 52px;
-  height: 52px;
-  min-width: 44px;
-  min-height: 44px;
-  padding: 0;
-  border: 1px solid rgba(0, 120, 65, 0.16);
-  border-radius: 50%;
-  background: var(--sisu-color-selection-fill);
-  color: var(--sisu-color-primary);
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  transition: transform 160ms var(--sisu-motion-ease-out), background-color 200ms ease;
-}
-
-button.sisu-ask-mic:active:not(:disabled) {
-  transform: scale(0.92);
-}
-
-button.sisu-ask-mic:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  button.sisu-ask-mic {
-    transition: none;
-  }
 }
 
 /* The microphone mark in a spoken question's bubble (the bubble itself is beUI's MessageBubble, web/agents). */
