@@ -7,6 +7,7 @@ import { buildSwitchDraft } from "@/lib/actions/drafts";
 import { remember } from "@/lib/memory";
 import { allFillers, investigationFiller, offerFiller, researchFiller } from "@/lib/agent/fillers";
 import { buildSystemPrompt, customerSummary } from "@/lib/agent/prompt";
+import { pathLessonFor } from "@/lib/agent/path";
 import { ensureResearch, waitForUsable } from "@/lib/agent/research";
 import { toResult } from "@/lib/agent/research/compare";
 import { missesFor, parseRequirements, requirementsText } from "@/lib/agent/research/requirements";
@@ -342,5 +343,41 @@ describe("the prompt asks for short answers that do not repeat the cards", () =>
   it("voice: spoken words, contractions and a question back", () => {
     assert.match(prompt("voice"), /contractions/);
     assert.match(prompt("voice"), /short, natural question back/);
+  });
+});
+
+describe("Sisu points learning questions to the Path tab, not every answer", () => {
+  const prompt = (question: string) => buildSystemPrompt({ overview: aino, city: "Helsinki", mode: "text", memory: { customerId: AINO, consent: true, items: [] }, question });
+  it("code picks the lesson from the question, with the title the Path tab shows", () => {
+    const cases: [string, string | null][] = [
+      ["Should I start investing or build savings first?", "buffer-first"],
+      ["What is an emergency fund?", "buffer-first"],
+      ["Mikä on hätärahasto?", "buffer-first"],
+      ["How does compound interest work?", "compound-growth"],
+      ["How do I get into the habit of saving?", "pay-yourself-first"],
+      ["Is it smart to stay loyal to my mobile operator?", "switching-bills"],
+      ["Is spot electricity a good idea?", "fixed-vs-spot"],
+      ["How should I think about budgeting my money?", "safe-to-spend"],
+      ["What is the difference between needs and wants?", "three-baskets"],
+      ["What is inflation?", null],
+      ["How does a credit score work?", null],
+      ["Move 50 euros to my savings now", null],
+    ];
+    for (const [question, concept] of cases) assert.equal(pathLessonFor(question), concept, question);
+    assert.match(prompt("What is an emergency fund?"), /PATH LESSON FOR THIS QUESTION: "Buffer before investing"/);
+    assert.match(prompt("What is inflation?"), /PATH LESSON FOR THIS QUESTION: none fits\. Say nothing about Path\./);
+  });
+  it("the rules: explain_concept first, an extra last sentence, never for figures or actions, no numbers", () => {
+    const text = prompt("What is inflation?");
+    assert.match(text, /is ALWAYS an explain_concept call/);
+    assert.match(text, /The pointer is an extra, never the answer itself/);
+    assert.match(text, /Never point to Path for a plain figure, a lookup, a calculation, a chart, a search, a transfer, a watch or a contract/);
+    assert.match(text, /Use no lesson numbers or counts/);
+    assert.ok(text.indexOf("THE PATH TAB") < text.indexOf("You are talking with"), "the fixed rules stay in the cached start of the prompt");
+    assert.ok(text.lastIndexOf("PATH LESSON FOR THIS QUESTION:") > text.indexOf("You are talking with"), "the per-question line comes after the customer's figures");
+  });
+  it("a lesson taught in the chat names its Path lesson", async () => {
+    const result = await executeTool(toolCall("explain_concept", { concept: "buffer-first" }), context(["Teach me about a buffer"]));
+    assert.match(JSON.parse(result.content).howToUse, /"Buffer before investing" lesson in their Path tab/);
   });
 });
