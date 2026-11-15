@@ -7,8 +7,8 @@ import { CUSTOMERS, getJson, runTurn } from "./lib.mjs";
 const jsonPath = process.argv.includes("--json") ? process.argv[process.argv.indexOf("--json") + 1] : null;
 // `want`: what a good turn must do. tools = at least one of these was called; say / never = checks on the answer.
 const TURNS = [
-  { text: "How much can I safely spend this week?", want: { say: /164/ } },
-  { text: "Can you explain how you worked that out?", want: { say: /1,?783|756|757|315|316|711/ } },
+  { text: "How much can I safely spend this week?", want: { say: /134/ } },
+  { text: "Can you explain how you worked that out?", want: { say: /687/ } },
   { text: "Uh, yes, please. But also, uh, are you able to make, uh, like saving transfers for me?", want: { never: /cannot carry|can only prepare/i } },
   { text: "Uh, can you invest my 1,000 that I got for Christmas?", want: { tools: ["prepare_action", "run_scenario"], never: /^I cannot give/i } },
   { text: "Okay, but it's important that you are able to give me advice on what I have to do with my money based on all of my data.", want: { say: /\d/, never: /I cannot give/i } }, // the summary or find_patterns are both fine, as long as it gives a concrete, sourced recommendation

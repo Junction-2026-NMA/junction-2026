@@ -33,13 +33,27 @@ function describeRequirements(req: WatchRequirements): string[] {
 
 const ONE_OFF_LIMITS: [number, number] = [5, 100_000];
 
+// A budget below today's housing can still be "over" when an average month already comes out short, so the wording
+// follows the sign: never "€-12 a month more", and never "about €0 short".
+function comparedWithToday(changePerMonthEur: number): string {
+  const euros = Math.round(changePerMonthEur);
+  if (euros > 0) return `€${euros} a month more than`;
+  if (euros < 0) return `€${-euros} a month less than`;
+  return "about the same as";
+}
+
+function monthAfter(leftOverAfterEur: number): string {
+  const short = Math.round(-leftOverAfterEur);
+  return short > 0 ? `an average month would still come out about €${short} short` : "an average month would leave nothing over";
+}
+
 // The limit the customer gave, checked against their own figures: a warning to show, and the receipts behind it.
 function checkLimit(overview: Overview, budget: number, monthly: boolean): { warning: string | null; facts: Fact[] } {
   if (monthly) {
     const fit = rentFit(overview, budget);
     const warning =
       fit.verdict === "over"
-        ? `A rent of €${budget} is €${Math.round(fit.changePerMonthEur)} a month more than housing costs you today, and an average month would come out about €${Math.round(-fit.leftOverAfterEur)} short. The watch still uses the budget you gave.`
+        ? `A rent of €${budget} is ${comparedWithToday(fit.changePerMonthEur)} housing costs you today, ${fit.changePerMonthEur < 0 ? "but" : "and"} ${monthAfter(fit.leftOverAfterEur)}. The watch still uses the budget you gave.`
         : fit.verdict === "tight"
           ? `A rent of €${budget} would be ${Math.round(fit.shareOfIncomePct ?? 0)}% of your average income, which is high. The watch still uses the budget you gave.`
           : null;
