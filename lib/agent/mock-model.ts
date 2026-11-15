@@ -74,9 +74,11 @@ function firstTool(question: string): [string, Json] | null {
   if (/remember|kwh/.test(q) && firstNumber(q)) return ["remember", { kind: "yearly_kwh", value: String(firstNumber(q)) }];
   if (/mortgage|apartment|buy a (home|house|flat)/.test(q)) return ["get_mortgage", {}];
   // "Spend 20% less at restaurants": the cut is worked out from the category's 12-month average, by run_scenario.
-  const cut = /(\d{1,3})\s?(%|percent)\s+(less|fewer|lower)|(cut|reduce|lower)\b.*?\bby\s+(\d{1,3})\s?(%|percent)/.exec(q);
+  // The years go along only when the question names them ("in 3 years"); otherwise it is a per-month answer.
+  const cut = /(\d{1,3})\s?(%|percent)\s+(less|fewer|lower)|(cut|cutting|reduce|reducing|lower|lowering)\b.*?\bby\s+(\d{1,3})\s?(%|percent)/.exec(q);
   const cutCategory = CATEGORY.exec(q)?.[1];
-  if (cut && cutCategory) return ["run_scenario", { category: CATEGORY_WORDS[cutCategory], categoryCutPct: Number(cut[1] ?? cut[5]) }];
+  const years = /\b(\d{1,2})\s*years?\b/.exec(q)?.[1];
+  if (cut && cutCategory) return ["run_scenario", { category: CATEGORY_WORDS[cutCategory], categoryCutPct: Number(cut[1] ?? cut[5]), ...(years ? { years: Number(years) } : {}) }];
   // Explaining the idea of a weekly budget is a lesson; asking what it is for them is the cash flow.
   const explainsBudget = /\b(explain|teach)\b/.test(q) || /what (is|are) (an?|the) (estimated )?weekly budget/.test(q);
   if (!explainsBudget && /payday|run out|end of the month|short|spend this week|this week|weekly budget|last until|below zero|negative balance/.test(q)) return ["get_cash_flow", {}];
@@ -112,16 +114,21 @@ function wordAnswer(results: { name: string; body: Json }[], question = ""): str
   }
   const scenario = of("run_scenario");
   const categoryCut = scenario?.categoryCut as Json | undefined;
-  // A cut of one category is answered per month and per year, and stops there: no projection nobody asked for.
-  if (categoryCut) parts.push(`Spending ${categoryCut.cutPct}% less on ${String(categoryCut.category).toLowerCase()} would free about ${categoryCut.freesPerMonthEur} euros a month, or ${categoryCut.freesPerYearEur} euros a year, from your 12-month average.`);
-  else if (scenario) parts.push(`Keeping ${scenario.freedPerMonthEur} euros a month adds up to about ${scenario.extraAfterPeriodIfKeptEur} euros over the period.`);
+  // A cut of one category is answered per month and per year. The years ahead only when the tool projected them,
+  // which it does only when the question asked about them.
+  if (categoryCut) {
+    parts.push(`Spending ${categoryCut.cutPct}% less on ${String(categoryCut.category).toLowerCase()} would free about ${categoryCut.freesPerMonthEur} euros a month, or ${categoryCut.freesPerYearEur} euros a year, from your 12-month average.`);
+    if (typeof scenario?.extraAfterPeriodIfKeptEur === "number") parts.push(`Kept for ${(scenario.input as Json | undefined)?.years} years, that adds up to about ${scenario.extraAfterPeriodIfKeptEur} euros more.`);
+  } else if (scenario) parts.push(`Keeping ${scenario.freedPerMonthEur} euros a month adds up to about ${scenario.extraAfterPeriodIfKeptEur} euros over the period.`);
   const afford = of("check_affordability");
   if (afford) parts.push(`That cost is ${String(afford.verdictMeans)}. Your balance straight after would be ${afford.balanceStraightAfterEur} euros.`);
   const cash = of("get_cash_flow");
   const weekly = cash?.estimatedWeeklyBudgetUntilPayday as Json | null | undefined;
   // "Why does my balance go below zero?" hears how often it did before the budget that helps avoid it.
   if (cash && /below zero|negative/i.test(question) && Number(cash.monthsBelowZeroInLast12) > 0) parts.push(`Your balance went below zero in ${cash.monthsBelowZeroInLast12} of the last 12 months.`);
-  if (cash && weekly) parts.push(`Your estimated weekly budget until payday on ${String(cash.nextPaydayExpected)} is about ${weekly.perWeekEur} euros, after your bills and a protected buffer of ${weekly.protectedBufferEur} euros.`);
+  // A weekly figure far above the usual week is not a budget: the bills are covered, and this much is left after them.
+  if (cash && weekly?.billsBeforePaydayCovered === true) parts.push(`Your bills before payday on ${String(cash.nextPaydayExpected)} are covered: about ${weekly.leftForSpendingEur} euros is left after them and a protected buffer of ${weekly.protectedBufferEur} euros.`);
+  else if (cash && weekly) parts.push(`Your estimated weekly budget until payday on ${String(cash.nextPaydayExpected)} is about ${weekly.perWeekEur} euros, after your bills and a protected buffer of ${weekly.protectedBufferEur} euros.`);
   else if (cash) parts.push(`Your next payday is expected on ${String(cash.nextPaydayExpected)}, and your balance just before it should be about ${cash.expectedBalanceJustBeforePaydayEur} euros.`);
   const mortgage = of("get_mortgage");
   if (mortgage) parts.push(mortgage.onRecord ? `Your mortgage application was ${String(mortgage.decision)}: a loan of ${mortgage.loanEur} euros on a home priced at ${mortgage.propertyPriceEur} euros.` : "There is no mortgage application on record for you.");
@@ -170,5 +177,7 @@ export async function* scriptedMockModel(options: StreamOptions): AsyncGenerator
 
   if (results.length) return yield* speak(wordAnswer(results, question));
   const perWeek = /"estimatedWeeklyBudgetUntilPayday":\{"perWeekEur":\s*([\d.]+)/.exec(system)?.[1];
-  yield* speak(perWeek ? `Mock answer. Your estimated weekly budget until payday is about ${perWeek} euros. Try asking for a cheaper electricity deal, whether you can afford a phone repair, or where your money goes.` : "Mock answer. Try asking for a cheaper electricity deal.");
+  const left = /"billsBeforePaydayCovered":true,"leftAfterBillsAndBufferEur":\s*([\d.]+)/.exec(system)?.[1];
+  const outlook = left ? `Your bills before payday are covered: about ${left} euros is left after them and the buffer.` : perWeek ? `Your estimated weekly budget until payday is about ${perWeek} euros.` : null;
+  yield* speak(outlook ? `Mock answer. ${outlook} Try asking for a cheaper electricity deal, whether you can afford a phone repair, or where your money goes.` : "Mock answer. Try asking for a cheaper electricity deal.");
 }

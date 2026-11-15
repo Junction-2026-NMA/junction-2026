@@ -50,7 +50,7 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
   tool("check_affordability", "Can the customer absorb a one-off or unexpected cost now?", { amountEur: { type: "number" }, what: { type: "string" } }, ["amountEur"]),
   tool(
     "run_scenario",
-    "Projects three futures (change nothing, keep the cash, invest it). For what-if questions, what a saving or a lump sum adds up to, and how long until a target balance.",
+    "Projects three futures (change nothing, keep the cash, invest it). For what-if questions, what a saving or a lump sum adds up to, and how long until a target balance. A category cut asked about per month (no years, future or investing in the question) is answered per month and per year, with no projection.",
     {
       freedPerMonthEur: { type: "number", description: "euros freed per month by a change, taken from a tool result or the customer (a cheaper contract, a category cut to a figure). 0 if none" },
       category: { type: "string", enum: CATEGORIES, description: "with categoryCutPct: the category the customer wants to cut ('dining out' is Restaurants)" },

@@ -12,7 +12,8 @@ const inRange = (value: unknown, [lo, hi]: [number, number]): number | null => (
 export const isSpotOffer = (offer: Pick<RawOffer, "contractType" | "plan">): boolean => SPOT_PATTERN.test(`${offer.contractType ?? ""} ${offer.plan ?? ""}`);
 
 // Two prices by season or time of day: kausisähkö ("Talvi 12,46 c/kWh, Muu aika 8,82 c/kWh"), aikasähkö (day and night).
-const SEASONAL_PATTERN = /kausi|talvi|winter|season|aikasähkö|yösähkö|time[- ]of[- ](day|use)|day[- /]night|päivä[- /]yö/i;
+// "kausi" only at the start of a word: "kuukausimaksu" (monthly fee) and "kuukausihinta" (monthly price) are not seasons.
+const SEASONAL_PATTERN = /(?<!\p{L})kausi|talvi|winter|season|aikasähkö|yösähkö|time[- ]of[- ](day|use)|day[- /]night|päivä[- /]yö/iu;
 export const isSeasonalOffer = (offer: Pick<RawOffer, "contractType" | "plan" | "winterPriceCentsPerKwh" | "otherPriceCentsPerKwh">): boolean => {
   const { winterPriceCentsPerKwh: winter, otherPriceCentsPerKwh: other } = offer;
   const twoPrices = typeof winter === "number" && typeof other === "number" && Math.abs(winter - other) >= 0.01;

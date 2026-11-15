@@ -18,6 +18,19 @@ export function parseBuffer(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) && value >= BUFFER_LIMITS[0] && value <= BUFFER_LIMITS[1] ? round2(value) : null;
 }
 
+// Above this many times the usual everyday spending a week, a weekly figure is not a budget anyone would spend: it
+// is most of the balance. The answer then says the bills before payday are covered and how much is left after them,
+// instead of headlining the weekly figure. The same rule as Today in the app (WeeklyBudget.covered); the weekly
+// figure itself is not capped and stays in the working.
+export const COVERED_FACTOR = 3;
+
+export const billsCovered = (budget: Pick<WeeklyBudget, "leftForSpendingEur" | "perWeekEur" | "usualEverydayPerWeekEur">): boolean =>
+  budget.leftForSpendingEur > 0 && budget.perWeekEur > COVERED_FACTOR * budget.usualEverydayPerWeekEur;
+
+// "Bills before payday are covered: about €25,964 is left after them and the buffer." For cards and the model.
+export const coveredText = (budget: Pick<WeeklyBudget, "leftForSpendingEur" | "nextPayday">): string =>
+  `Bills before payday on ${budget.nextPayday} are covered: about €${Math.round(budget.leftForSpendingEur).toLocaleString("en-US")} is left after them and the buffer.`;
+
 // Where a stated buffer came from: said in this chat, or set in the app (Today or Settings).
 export type BufferFrom = "chat" | "app";
 

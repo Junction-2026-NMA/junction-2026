@@ -78,6 +78,38 @@ function checkAgainstFigures(id: string, monthly: boolean, price: number, overvi
   };
 }
 
+type SummaryParts = { listing: Listing; monthly: boolean; previousPriceEur: number | null; budgetEur: number; underBudgetByEur: number; effect: string | null; unchecked: string[]; simulated: boolean };
+
+// The finding in a few sentences: the price against the limit, the listing, its effect on the customer's money,
+// what the page does not state, and where it came from.
+function findingSummary(parts: SummaryParts): string {
+  const { listing, monthly } = parts;
+  const per = monthly ? " a month" : "";
+  const limit = monthly ? "your budget" : "the price you set";
+  const details = describe(listing);
+  return [
+    `€${Math.round(listing.priceEur)}${per}${parts.previousPriceEur === null ? "" : `, down from €${Math.round(parts.previousPriceEur)}`}: €${Math.round(parts.underBudgetByEur)} under ${limit} of €${Math.round(parts.budgetEur)}.`,
+    details ? `${details}.` : null,
+    parts.effect,
+    parts.unchecked.length ? `Not on the page, so not checked: ${parts.unchecked.join(", ")}.` : null,
+    parts.simulated ? "Simulated for the demo: the page did not really change." : `Check the ${monthly ? "listing" : "offer"}'s own page before you act: Sisu read it, it did not contact anyone.`,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+// A flat's finding after the Project's requirements changed: its housing effect (moving costs, the buffer to keep,
+// the savings goal) worked out again with the requirements as they are now, and its summary to match. The price,
+// the limit and when it was found stay as they were. Other findings come back unchanged.
+export function withCurrentRequirements(note: WatchNotification, watch: PropertyWatch, overview: Overview, now: Date = new Date()): WatchNotification {
+  if (watch.priceUnit !== "EUR/month" || !note.housing) return note;
+  const requirements = watch.requirements ?? {};
+  const housing = housingEffect(overview, note.listing, requirements, `watch:${note.id}:housing`, { simulated: note.simulated });
+  const unchecked = checkRequirements(note.listing, requirements, todayOf(now)).unchecked;
+  const summary = findingSummary({ listing: note.listing, monthly: true, previousPriceEur: note.previousPriceEur, budgetEur: note.budgetEur, underBudgetByEur: note.underBudgetByEur, effect: housing.sentence, unchecked, simulated: note.simulated });
+  return { ...note, housing, summary };
+}
+
 // Turns a finding into what the customer is told, with a receipt for every number in it.
 export function toNotification(watch: PropertyWatch, overview: Overview, event: FitEvent, detectedBy: WatchNotification["detectedBy"], now: Date): WatchNotification {
   const { listing } = event;
@@ -88,7 +120,6 @@ export function toNotification(watch: PropertyWatch, overview: Overview, event: 
   const simulated = detectedBy === "simulation";
   const id = crypto.randomUUID();
   const checked = checkAgainstFigures(id, monthly, price, overview);
-  const details = describe(listing);
   // Flats: the whole effect of moving in (recurring and upfront), in place of the rent-only sentence.
   const housing = monthly ? housingEffect(overview, listing, watch.requirements ?? {}, `watch:${id}:housing`, { simulated }) : null;
   const unchecked = watch.requirements ? checkRequirements(listing, watch.requirements, todayOf(now)).unchecked : [];
@@ -100,15 +131,7 @@ export function toNotification(watch: PropertyWatch, overview: Overview, event: 
     customerId: watch.customerId,
     kind: event.kind,
     title: event.kind === "price_drop" ? `Price drop: ${listing.title} is now €${Math.round(price)}${per}` : `New ${monthly ? "listing" : "offer"}: ${listing.title} at €${Math.round(price)}${per}`,
-    summary: [
-      `€${Math.round(price)}${per}${event.previousPriceEur === null ? "" : `, down from €${Math.round(event.previousPriceEur)}`}: €${Math.round(under)} under ${limit} of €${Math.round(watch.budgetEur)}.`,
-      details ? `${details}.` : null,
-      housing?.sentence ?? (checked.sentence || null),
-      unchecked.length ? `Not on the page, so not checked: ${unchecked.join(", ")}.` : null,
-      simulated ? "Simulated for the demo: the page did not really change." : `Check the ${monthly ? "listing" : "offer"}'s own page before you act: Sisu read it, it did not contact anyone.`,
-    ]
-      .filter(Boolean)
-      .join(" "),
+    summary: findingSummary({ listing, monthly, previousPriceEur: event.previousPriceEur, budgetEur: watch.budgetEur, underBudgetByEur: under, effect: housing?.sentence ?? (checked.sentence || null), unchecked, simulated }),
     listing,
     previousPriceEur: event.previousPriceEur,
     budgetEur: watch.budgetEur,

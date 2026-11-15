@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { before, beforeEach, describe, it } from "node:test";
-import { AINO, collect, freshState, ofType } from "./helpers";
+import { AINO, SANNA, collect, freshState, ofType } from "./helpers";
 import { setMockScript } from "@/lib/agent/mock";
 import { runTurn } from "@/lib/agent/orchestrator";
 import { ensureResearch, waitForUsable } from "@/lib/agent/research";
@@ -55,6 +55,22 @@ describe("mock mode: every feature works with no keys and no network", () => {
     });
   }
 
+  // Regression: QA 15 Nov. The restaurant suggestion led with "More after 5 years if you keep it" and an "invest it" line.
+  it("a category cut asked per month gets a per-month card and no projection; asked over years, it gets one", async () => {
+    const monthly = await collect(runTurn({ customerId: AINO, text: "What would spending 20% less at restaurants save?", mode: "text" }));
+    const stages = ofType(monthly, "stage").map((e) => e.stage);
+    assert.deepEqual(stages.map((stage) => stage.kind), ["calculation"]);
+    assert.ok(stages[0].data.kind === "calculation" && stages[0].data.resultLabel === "Freed per month");
+    assert.equal(ofType(monthly, "visual").length, 0);
+    assert.match(ofType(monthly, "done")[0].text, /^Mock answer\. Spending 20% less on restaurants would free about [\d.]+ euros a month, or [\d.]+ euros a year, from your 12-month average\.\s*$/);
+    assert.doesNotMatch(ofType(monthly, "done")[0].text, /years|invest|undefined|over the period/i);
+    const yearly = await collect(runTurn({ customerId: AINO, text: "What would cutting restaurants by 20% add up to in 3 years?", mode: "text" }));
+    assert.deepEqual(ofType(yearly, "stage").map((e) => e.stage.kind), ["impact"]);
+    assert.equal(ofType(yearly, "visual")[0]?.visual.kind, "futures_lines");
+    assert.match(ofType(yearly, "done")[0].text, /Kept for 3 years, that adds up to about [\d.]+ euros more/);
+    assert.equal(ofType(yearly, "grounding")[0].grounding.ok, true, `ungrounded: ${ofType(yearly, "grounding")[0].grounding.unverified}`);
+  });
+
   for (const question of ["Could I afford to move to Espoo?", "Could moving from Helsinki to Espoo help me reach my savings goal?"]) {
     it(`"${question}" gets one clarifying question, with no tool and no proposal`, async () => {
       const events = await collect(runTurn({ customerId: AINO, text: question, mode: "text" }));
@@ -76,6 +92,18 @@ describe("mock mode: every feature works with no keys and no network", () => {
     assert.ok(card.data.kind === "calculation" && card.data.steps.some((step) => step.label === "Protected buffer" && step.amount === -300 && step.basis === "the amount you set in the app"));
     assert.ok(card.data.kind === "calculation" && !card.data.assumptions.some((line) => /Tell Sisu if you want to keep a different amount/.test(line)), "no invitation to set a buffer that is already set");
     assert.equal(ofType(events, "grounding")[0].grounding.ok, true);
+  });
+
+  it("for a balance far above the usual week, the payday answer says the bills are covered, not a weekly figure", async () => {
+    const events = await collect(runTurn({ customerId: SANNA, text: "I keep running short before payday. What can I spend this week without missing my bills?", mode: "text" }));
+    const text = ofType(events, "done")[0].text;
+    assert.match(text, /bills before payday on 2026-10-15 are covered: about 25964\.13 euros is left after them/);
+    assert.doesNotMatch(text, /12116/);
+    const card = ofType(events, "stage").find((e) => e.stage.kind === "calculation")!.stage;
+    assert.ok(card.data.kind === "calculation" && card.data.resultLabel === "Left for spending until payday");
+    assert.equal(ofType(events, "grounding")[0].grounding.ok, true, `ungrounded: ${ofType(events, "grounding")[0].grounding.unverified}`);
+    const hello = await collect(runTurn({ customerId: SANNA, text: "Hello", mode: "voice" }));
+    assert.match(ofType(hello, "done")[0].text, /bills before payday are covered: about 25964\.13 euros is left/);
   });
 
   it("a plain question is answered from the summary with no tool", async () => {

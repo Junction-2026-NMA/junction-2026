@@ -14,7 +14,7 @@ import type { RawOffer, RawResearch } from "@/lib/agent/research/types";
 import { executeTool, type ToolContext } from "@/lib/agent/tools";
 import { offersVisual, peersVisual, safeToSpendVisual } from "@/lib/agent/visuals";
 import { BASKETS } from "@/lib/finance/baskets";
-import { buildWeeklyBudget, defaultBufferEur } from "@/lib/finance/budget";
+import { billsCovered, buildWeeklyBudget, defaultBufferEur } from "@/lib/finance/budget";
 import { buildCashFlow } from "@/lib/finance/cashflow";
 import { buildOverview } from "@/lib/finance/overview";
 import { CONCEPTS, direction, teachingCard } from "@/lib/finance/teaching";
@@ -152,6 +152,31 @@ describe("estimated weekly budget until payday", () => {
     assert.deepEqual([aino, eetu, sanna].map((o) => Math.round(buildCashFlow(o).weeklyBudget!.perWeekEur)), [aino, eetu, sanna].map(today));
     assert.deepEqual([aino, eetu, sanna].map((o) => Math.round(buildCashFlow(o).weeklyBudget!.perWeekEur)), [134, 1515, 12117]);
     assert.equal(buildCashFlow(aino).weeklyBudget!.perWeekEur, 133.64);
+  });
+
+  // Regression: QA, 15 Nov. Today said "Bills before payday are covered" for Sanna while Sisu headlined €12,116.59 a week.
+  it("far above the usual week, the answer says the bills are covered and what is left, as Today does", async () => {
+    assert.deepEqual([aino, eetu, sanna].map((o) => billsCovered(buildCashFlow(o).weeklyBudget!)), [false, true, true]);
+    assert.equal(billsCovered({ perWeekEur: 301, usualEverydayPerWeekEur: 100, leftForSpendingEur: 600 }), true);
+    assert.equal(billsCovered({ perWeekEur: 300, usualEverydayPerWeekEur: 100, leftForSpendingEur: 600 }), false, "three times is still a budget");
+    assert.equal(billsCovered({ perWeekEur: 0, usualEverydayPerWeekEur: 0, leftForSpendingEur: 0 }), false, "nothing left is never 'covered'");
+    const sannaContext: ToolContext = { ...context(["What can I spend this week without missing my bills?"]), customerId: SANNA, overview: sanna, cashFlow: () => buildCashFlow(sanna) };
+    const result = await executeTool(toolCall("get_cash_flow", {}), sannaContext);
+    const [stage] = result.stages;
+    assert.equal(stage.title, "Bills before payday are covered");
+    assert.ok(stage.data.kind === "calculation" && stage.data.resultLabel === "Left for spending until payday" && stage.data.resultValue === 25_964.13);
+    assert.ok(stage.data.kind === "calculation" && stage.data.steps.some((step) => step.label === "Estimated weekly budget"), "the weekly figure stays in the working");
+    const body = JSON.parse(result.content) as { estimatedWeeklyBudgetUntilPayday: { billsBeforePaydayCovered: boolean }; howToAnswer: string };
+    assert.equal(body.estimatedWeeklyBudgetUntilPayday.billsBeforePaydayCovered, true);
+    assert.match(body.howToAnswer, /Bills before payday on 2026-10-15 are covered: about €25,964 is left after them and the buffer\./);
+    assert.match(body.howToAnswer, /Do not lead with perWeekEur/);
+    const summary = JSON.parse(customerSummary(sanna, "Helsinki")) as { estimatedWeeklyBudgetUntilPayday: { billsBeforePaydayCovered?: boolean; leftAfterBillsAndBufferEur?: number } };
+    assert.deepEqual([summary.estimatedWeeklyBudgetUntilPayday.billsBeforePaydayCovered, summary.estimatedWeeklyBudgetUntilPayday.leftAfterBillsAndBufferEur], [true, 25_964.13]);
+    assert.equal((JSON.parse(customerSummary(aino, "Helsinki")) as { estimatedWeeklyBudgetUntilPayday: { billsBeforePaydayCovered?: boolean } }).estimatedWeeklyBudgetUntilPayday.billsBeforePaydayCovered, undefined);
+    const aino1 = (await executeTool(toolCall("get_cash_flow", {}), context(["What can I spend this week?"]))).stages[0];
+    assert.ok(aino1.title === "Estimated weekly budget until payday" && aino1.data.kind === "calculation" && aino1.data.resultLabel === "Estimated weekly budget");
+    const chart = safeToSpendVisual(sanna);
+    assert.ok(chart.kind === "waterfall" && chart.resultLabel === "Left for spending until payday" && chart.title === "Bills before payday are covered");
   });
 
   it("is never below zero, and says when bills already reach into the buffer", () => {

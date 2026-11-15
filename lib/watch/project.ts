@@ -8,7 +8,7 @@ import { RENT_BUDGET_LIMITS } from "@/lib/finance/rent";
 import { withAudit } from "@/lib/store/audit";
 import { readState, updateState } from "@/lib/store/state";
 import type { Listing, ProjectStatus, PropertyWatch, WatchNotification, WatchProject, WatchRequirements } from "@/lib/types";
-import { fits, ruleFor } from "./detect";
+import { fits, ruleFor, withCurrentRequirements } from "./detect";
 import { findWatch, lastSuccessOf, listNotifications, nextCheckOf, replaceWatch, watchSubject } from "./index";
 import { closeMonitors, openMonitors } from "./monitoring";
 import { mergeRequirements } from "./requirements";
@@ -116,7 +116,11 @@ export function updateWatch(customerId: string, watchId: string, edit: Edit, now
     requirements: edit.requirements ? mergeRequirements(watch.requirements, edit.requirements) : (watch.requirements ?? {}),
   };
   const changed = [edit.budgetEur !== undefined ? `limit €${next.budgetEur}` : null, edit.minRooms !== undefined ? `rooms ${next.minRooms ?? "any"}` : null, edit.goal !== undefined ? "goal" : null, ...Object.keys(edit.requirements ?? {})].filter(Boolean).join(", ");
-  updateState((state) => withAudit(replaceWatch(state, next), { customerId, type: "watch_updated", actor: "user", actionId: watch.actionId, detail: `Changed the requirements for ${watchSubject(watch)}: ${changed || "nothing"}.` }, now));
+  // The findings already made are worked out again with the new requirements, so a finding never says "moving
+  // costs not given" next to the moving costs the customer just saved.
+  const overview = edit.requirements ? buildOverview(customerId) : null;
+  const refresh = (note: WatchNotification): WatchNotification => (overview && note.watchId === watch.id && note.customerId === customerId ? withCurrentRequirements(note, next, overview, now) : note);
+  updateState((state) => withAudit({ ...replaceWatch(state, next), notifications: (state.notifications ?? []).map(refresh) }, { customerId, type: "watch_updated", actor: "user", actionId: watch.actionId, detail: `Changed the requirements for ${watchSubject(watch)}: ${changed || "nothing"}.` }, now));
   return { ok: true, project: getProject(customerId, watchId)! };
 }
 

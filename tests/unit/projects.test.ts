@@ -16,7 +16,7 @@ import { auditFor } from "@/lib/store/audit";
 import { inSession, newSessionId } from "@/lib/store/session";
 import { forgetStoredState } from "@/lib/store/state";
 import type { AgentAction, HealthReport, Listing, WatchProject, WatchRequirements } from "@/lib/types";
-import { checkWatches, listNotifications, listWatches, startWatch } from "@/lib/watch";
+import { checkWatches, listNotifications, listWatches, simulatePriceDrop, startWatch } from "@/lib/watch";
 import { runScheduledChecks } from "@/lib/watch/cron";
 import { getProject, markRead, pauseWatch, projectStatusOf, resumeWatch, updateWatch } from "@/lib/watch/project";
 import { checkRequirements, cleanRequirements } from "@/lib/watch/requirements";
@@ -198,6 +198,35 @@ describe("a Project with Context.dev monitors: status, controls and dedupe", () 
     assert.equal(edited.project.currentMatches[0].housing?.upfront.movingCostEur, 400);
     assert.equal(listWatches(AINO)[0].budgetEur, 1_200);
     assert.ok(!updateWatch(AINO, watch.id, { budgetEur: 50 }).ok);
+  });
+
+  // Regression: QA 15 Nov. After saving moving costs and a buffer to keep, the finding still said both were "not given"
+  // and its balance after moving left the moving costs out, while Fits now used them.
+  it("saving requirements works the findings' housing effect out again, with the new figures", async () => {
+    const watch = (await startWatch(AINO, approvedProject()))!;
+    const dropped = simulatePriceDrop(AINO, watch.id);
+    assert.ok(dropped.ok);
+    const before = dropped.notification;
+    assert.ok(before.housing?.missing.some((line) => /^Moving costs/.test(line)) && before.housing.missing.some((line) => /keep in the account/.test(line)));
+    const budgetOnly = updateWatch(AINO, watch.id, { budgetEur: 950 });
+    assert.ok(budgetOnly.ok);
+    assert.deepEqual(budgetOnly.project.notifications[0].housing, before.housing, "a price limit change leaves the finding as it was found");
+    const edited = updateWatch(AINO, watch.id, { requirements: { movingCostEur: 400, bufferToKeepEur: 1_500 } });
+    assert.ok(edited.ok);
+    const [note] = edited.project.notifications;
+    assert.equal(note.id, before.id);
+    assert.equal(note.housing?.upfront.movingCostEur, 400);
+    assert.equal(note.housing?.buffer.keepEur, 1_500);
+    assert.ok(note.housing && !note.housing.missing.some((line) => /^Moving costs|keep in the account/.test(line)), note.housing?.missing.join(" | "));
+    assert.equal(note.housing?.upfront.rangeEur.low, before.housing!.upfront.rangeEur.low + 400, "the moving costs are in the upfront total");
+    assert.equal(note.housing?.buffer.afterUpfrontEur.low, before.housing!.buffer.afterUpfrontEur.low - 400);
+    assert.ok(note.housing?.facts.some((f) => f.id === `watch:${note.id}:housing:moving` && f.value === 400));
+    assert.ok(note.summary.includes(note.housing!.sentence) && !note.summary.includes(before.housing!.sentence));
+    assert.match(note.summary, /Simulated for the demo/);
+    assert.deepEqual([note.listing.priceEur, note.budgetEur, note.detectedAt], [before.listing.priceEur, before.budgetEur, before.detectedAt], "what was found and when stays");
+    assert.equal(listNotifications(AINO)[0].housing?.upfront.movingCostEur, 400, "stored, so GET /api/watch shows it too");
+    const cleared = updateWatch(AINO, watch.id, { requirements: { movingCostEur: null } });
+    assert.ok(cleared.ok && cleared.project.notifications[0].housing?.missing.some((line) => /^Moving costs/.test(line)));
   });
 
   it("a listing told about once is not told again when it comes back, and findings can be marked read", async () => {
