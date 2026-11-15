@@ -5,7 +5,7 @@
 import { Money } from "@/web/core/Presentation";
 import type { PropertyWatch, WatchRequirements } from "@/web/core/WatchModels";
 
-export type FieldKind = "euros" | "rooms" | "minutes" | "date" | "places" | "place" | "goal";
+export type FieldKind = "euros" | "rooms" | "minutes" | "area" | "date" | "places" | "place" | "goal";
 
 export interface RequirementField {
   key: string;
@@ -44,6 +44,8 @@ export function requirementFields(watch: Pick<PropertyWatch, "budgetEur" | "minR
   return [
     budget,
     field("minRooms", "Rooms at least", "rooms", watch.minRooms, "1 to 6. Leave empty for any."),
+    field("minAreaM2", "Size at least (m²)", "area", req.minAreaM2, "5 to 500 m². A listing that does not state its size needs checking."),
+    field("savingsGoalEurPerMonth", "Keep saving each month (€)", "euros", req.savingsGoalEurPerMonth, "A home that leaves less than this a month is excluded."),
     field("moveBy", "Move in by", "date", req.moveBy),
     field("districts", "Districts", "places", req.districts, "Separate names with commas. Leave empty for anywhere in the city."),
     field("maxDepositEur", "Deposit at most (€)", "euros", req.maxDepositEur),
@@ -85,6 +87,10 @@ export function fieldError(field: RequirementField, text: string, rent: boolean)
       const minutes = readNumber(value);
       return minutes !== null && minutes >= 5 && minutes <= 180 ? null : "Enter 5 to 180 minutes.";
     }
+    case "area": {
+      const area = readNumber(value);
+      return area !== null && area >= 5 && area <= 500 ? null : "Enter 5 to 500 m².";
+    }
     case "date":
       return /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value)) ? null : "Enter a date like 2027-01-31.";
     case "places": {
@@ -118,7 +124,7 @@ export function requirementPatch(fields: readonly RequirementField[], draft: Rea
     const text = current(field, draft).trim();
     if (field.kind === "places") return [field.key, places(text)];
     if (text === "") return [field.key, null];
-    if (field.kind === "euros" || field.kind === "rooms" || field.kind === "minutes") return [field.key, readNumber(text)];
+    if (field.kind === "euros" || field.kind === "rooms" || field.kind === "minutes" || field.kind === "area") return [field.key, readNumber(text)];
     return [field.key, text];
   }));
 }

@@ -14,6 +14,7 @@ import { SisuCard } from "@/web/shared/SisuStyle";
 import { Chevron, Chip, ExternalLink, Note } from "./ProjectParts";
 import { ProjectFindings } from "./ProjectFindings";
 import { ProjectMonitoringStatus } from "./ProjectMonitoringStatus";
+import { ProjectConversation, ProjectHousingDetails, ProjectHousingTop } from "./ProjectHousing";
 import { ProjectRequirements } from "./ProjectRequirements";
 import { ProjectText } from "./ProjectPresenter";
 import { useProjects } from "./useProjects";
@@ -62,8 +63,7 @@ export function ProjectScreen({ id, onClose }: ProjectScreenProps) {
             {state.error ? <p className="sisu-project-error" role="alert">{state.error}</p> : null}
           </SisuCard>
         ) : null}
-        {state && store && watch ? <ProjectMonitoringStatus watch={watch} store={store} /> : null}
-        {state && store && watch ? <ProjectBody watch={watch} store={store} state={state} fresh={fresh} title={title} /> : null}
+        {state && store && watch ? <ProjectBody watch={watch} store={store} state={state} fresh={fresh} title={title} onClose={onClose} /> : null}
       </ScreenStack>
     </Screen>
   );
@@ -89,9 +89,11 @@ interface BodyProps {
   state: ProjectsState;
   fresh: ReadonlySet<string>;
   title: RefObject<HTMLHeadingElement | null>;
+  onClose: () => void;
 }
 
-function ProjectBody({ watch, store, state, fresh, title }: BodyProps) {
+function ProjectBody({ watch, store, state, fresh, title, onClose }: BodyProps) {
+  const evaluation = state.evaluations?.[watch.id] ?? null;
   const status = ProjectText.status(watch);
   const rent = watch.priceUnit === PriceUnit.perMonth || (!watch.priceUnit && !watch.topic);
   const stopped = projectStatusOf(watch) === "stopped";
@@ -113,6 +115,12 @@ function ProjectBody({ watch, store, state, fresh, title }: BodyProps) {
         </div>
         {problems.length > 0 ? <Note title={status.tone === "attention" ? "What needs attention" : "Good to know"} lines={problems} /> : null}
       </SisuCard>
+
+      <ProjectMonitoringStatus watch={watch} store={store} />
+
+      <ProjectHousingTop evaluation={evaluation} />
+      <ProjectConversation watch={watch} onOpened={onClose} />
+      <ProjectHousingDetails watch={watch} evaluation={evaluation} />
 
       <SisuCard>
         <h2 className="sisu-project-h2">Checks</h2>

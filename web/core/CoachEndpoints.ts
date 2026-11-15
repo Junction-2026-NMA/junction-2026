@@ -209,6 +209,16 @@ export class CoachEndpoints {
     return CoachEndpoints.get(baseURL, CoachEndpoints.watchPath(id), [["customerId", customerId]], CoachEndpoints.researchTimeout);
   }
 
+  /** v2 housing: `POST {base}/api/housing/search` with the intake card's requirements (Exa + Context.dev: slow). */
+  static housingSearch(baseURL: string, body: unknown) {
+    return CoachEndpoints.post(baseURL, "/api/housing/search", body, CoachEndpoints.watchCheckTimeout);
+  }
+
+  /** v2 housing: `POST {base}/api/housing/budget` with `{ customerId, savingsGoalEurPerMonth }`. */
+  static housingBudget(baseURL: string, customerId: string, savingsGoalEurPerMonth: number) {
+    return CoachEndpoints.post(baseURL, "/api/housing/budget", { customerId, savingsGoalEurPerMonth });
+  }
+
   /** `POST {base}/api/watch/check` with `{ customerId, runNow? }` (`runNow` sent only when true). */
   static watchCheck(baseURL: string, customerId: string, runNow = false) {
     return CoachEndpoints.post(baseURL, "/api/watch/check", { customerId, runNow: runNow ? true : null }, CoachEndpoints.watchCheckTimeout);

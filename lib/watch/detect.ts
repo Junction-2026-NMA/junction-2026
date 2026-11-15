@@ -6,13 +6,27 @@ import { checkAffordability } from "@/lib/finance/affordability";
 import { buildCashFlow } from "@/lib/finance/cashflow";
 import { fact } from "@/lib/finance/facts";
 import { round2 } from "@/lib/finance/math";
+import { buildOverview } from "@/lib/finance/overview";
 import { housingEffect } from "@/lib/finance/housing";
-import { rentFacts, rentFit, withinBudget } from "@/lib/finance/rent";
+import { currentHousing, rentFacts, rentFit, withinBudget } from "@/lib/finance/rent";
 import type { Fact, Listing, Overview, PropertyWatch, WatchNotification, WatchRequirements } from "@/lib/types";
 import { checkRequirements } from "./requirements";
 
 // requirements and today (YYYY-MM-DD) added 15 Nov: a Project's other requirements, applied after the price.
-export type WatchRule = { budgetEur: number; minRooms: number | null; floorEur?: number; requirements?: WatchRequirements; today?: string };
+// month (v2 housing, flats only): the customer's own average month, so a rent that would leave it short, or leave less
+// than the monthly savings goal, never fits whatever the budget says.
+export type WatchRule = { budgetEur: number; minRooms: number | null; floorEur?: number; requirements?: WatchRequirements; today?: string; month?: MonthFigures };
+export type MonthFigures = { housingNowEur: number; leftOverNowEur: number };
+export const monthFiguresOf = (overview: Overview): MonthFigures => ({ housingNowEur: currentHousing(overview), leftOverNowEur: round2(overview.safeToSpend.gapPerMonth) });
+// What an average month leaves over with this flat: known costs only (stated charges count, unstated ones are unknown).
+export const leftOverWith = (listing: Pick<Listing, "priceEur" | "utilitiesPerMonthEur">, month: MonthFigures): number => round2(month.leftOverNowEur - (listing.priceEur - month.housingNowEur) - (listing.utilitiesPerMonthEur ?? 0));
+// v2 housing: false when the rent breaks the customer's month (left over below zero) or their monthly savings goal.
+export function keepsMonth(listing: Listing, rule: WatchRule): boolean {
+  if (!rule.month) return true;
+  const left = leftOverWith(listing, rule.month);
+  const goal = rule.requirements?.savingsGoalEurPerMonth;
+  return left >= 0 && (typeof goal !== "number" || left >= goal);
+}
 export type FitEvent = { kind: WatchNotification["kind"]; listing: Listing; previousPriceEur: number | null };
 
 const MAX_EVENTS_PER_PAGE = 5;
@@ -22,18 +36,26 @@ export const ACCESSORY_SHARE = 0.3;
 
 const todayOf = (now: Date = new Date()): string => now.toISOString().slice(0, 10);
 
-export const ruleFor = (watch: Pick<PropertyWatch, "budgetEur" | "minRooms" | "topic"> & { requirements?: WatchRequirements | null }, now?: Date): WatchRule => ({
-  budgetEur: watch.budgetEur,
-  minRooms: watch.minRooms,
-  floorEur: watch.topic ? round2(watch.budgetEur * ACCESSORY_SHARE) : 0,
-  ...(watch.requirements ? { requirements: watch.requirements, today: todayOf(now) } : {}),
-});
+// customerId (v2 housing): with it, a flat project that has a monthly savings goal (every project from the housing
+// intake has one, €0 included) also checks each rent against the customer's own month. Older watches keep the
+// budget they were given.
+export function ruleFor(watch: Pick<PropertyWatch, "budgetEur" | "minRooms" | "topic"> & { requirements?: WatchRequirements | null; customerId?: string }, now?: Date): WatchRule {
+  const checksMonth = !watch.topic && !!watch.customerId && typeof watch.requirements?.savingsGoalEurPerMonth === "number";
+  const overview = checksMonth && watch.customerId ? buildOverview(watch.customerId) : null;
+  return {
+    budgetEur: watch.budgetEur,
+    minRooms: watch.minRooms,
+    floorEur: watch.topic ? round2(watch.budgetEur * ACCESSORY_SHARE) : 0,
+    ...(watch.requirements ? { requirements: watch.requirements, today: todayOf(now) } : {}),
+    ...(overview ? { month: monthFiguresOf(overview) } : {}),
+  };
+}
 
 // An offer fits when its price is at or under the limit (and not under the floor), if rooms were asked for the
 // page states enough of them, and it meets the Project's other requirements (a field the page does not state is
 // not held against it).
 export const fits = (listing: Listing, rule: WatchRule): boolean =>
-  withinBudget(listing.priceEur, rule.budgetEur) && listing.priceEur >= (rule.floorEur ?? 0) && (rule.minRooms === null || (listing.rooms ?? 0) >= rule.minRooms) && (!rule.requirements || checkRequirements(listing, rule.requirements, rule.today ?? todayOf()).ok);
+  withinBudget(listing.priceEur, rule.budgetEur) && listing.priceEur >= (rule.floorEur ?? 0) && (rule.minRooms === null || (listing.rooms ?? 0) >= rule.minRooms) && (!rule.requirements || checkRequirements(listing, rule.requirements, rule.today ?? todayOf()).ok) && keepsMonth(listing, rule);
 
 // Compares two readings of the same page. An offer is reported when it fits now AND it is news: it was not on the
 // page before, or its price has come down. One that already fitted at the same price is not reported again, and a

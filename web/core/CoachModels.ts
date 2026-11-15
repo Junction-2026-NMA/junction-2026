@@ -9,6 +9,7 @@
 import { type CalcStep, type EvidenceFilter, type BranchId, BranchId as BranchIds, JSONRead, type JSONObject } from "./Models";
 import { Visual } from "./PlanModels";
 import type { WatchPlan } from "./WatchModels";
+import { type HousingIntake, HousingModels, type HousingSearchResult } from "./HousingModels";
 
 // MARK: - Open enums
 
@@ -472,6 +473,9 @@ export type StageData =
   | { kind: "action"; action: AgentAction }
   | { kind: "impact"; impact: ActionImpact }
   | { kind: "memory"; item: MemoryItem }
+  /** v2 housing: the intake card, and the results of the search it starts. */
+  | { kind: "housing_intake"; intake: HousingIntake }
+  | { kind: "housing_results"; result: HousingSearchResult }
   /** A kind this version of the app does not know. Draw the stage's `title` and `summary` only. */
   | { kind: "unknown"; rawKind: string };
 
@@ -490,6 +494,11 @@ export const StageData = {
       case "action": return { kind, action: JSONRead.object(o.action) as unknown as AgentAction };
       case "impact": return { kind, impact: JSONRead.object(o.impact) as unknown as ActionImpact };
       case "memory": return { kind, item: JSONRead.object(o.item) as unknown as MemoryItem };
+      case "housing_intake": {
+        const intake = HousingModels.intake(o.intake);
+        return intake ? { kind, intake } : { kind: "unknown", rawKind: kind };
+      }
+      case "housing_results": return { kind, result: HousingModels.result(o.result) };
       default: return { kind: "unknown", rawKind: kind };
     }
   },

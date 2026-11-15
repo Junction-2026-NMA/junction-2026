@@ -253,19 +253,21 @@ export function simulatePriceDrop(customerId: string, watchId: string, now: Date
   if (!watch || !overview) return { ok: false, status: 404, reason: "We could not find that watch." };
   if (watch.status !== "active") return { ok: false, status: 409, reason: "This watch has been stopped." };
   const enoughRooms = (listing: Listing): boolean => watch.minRooms === null || (listing.rooms ?? 0) >= watch.minRooms;
-  // The cheapest watched flat that is over the budget, wherever it is listed; one not simulated yet first, so a
-  // second take of the demo makes a new finding (v2 push), and the first one again once all have been used.
+  const droppedTo = Math.floor((watch.budgetEur * 0.97) / 5) * 5;
+  const rule = ruleFor(watch);
+  // The cheapest watched flat that is over the budget and would meet every other requirement at the dropped price
+  // (v2 housing: so the simulated change can really fit, instead of answering 409), wherever it is listed; one not
+  // simulated yet first, so a second take of the demo makes a new finding (v2 push), and the first one again after.
   const simulatedKeys = new Set(listNotifications(customerId).filter((note) => note.simulated && note.watchId === watch.id).map((note) => listingKey(note.listing)));
-  const over = watch.pages.flatMap((candidate) => candidate.listings).filter((listing) => listing.priceEur > watch.budgetEur && enoughRooms(listing)).sort((a, b) => a.priceEur - b.priceEur);
+  const over = watch.pages.flatMap((candidate) => candidate.listings).filter((listing) => listing.priceEur > watch.budgetEur && enoughRooms(listing) && fits({ ...listing, priceEur: droppedTo }, rule)).sort((a, b) => a.priceEur - b.priceEur);
   const target = (options.fresh ? over.find((listing) => !simulatedKeys.has(listingKey(listing))) : undefined) ?? over[0];
   const page = target ? watch.pages.find((candidate) => candidate.listings.includes(target)) : undefined;
   if (!page || !target) return { ok: false, status: 409, reason: "Nothing being watched is over the limit, so there is no price to drop." };
   const already = listNotifications(customerId).find((note) => note.simulated && note.watchId === watch.id && listingKey(note.listing) === listingKey(target));
   if (already) return { ok: true, notification: already };
 
-  const droppedTo = Math.floor((watch.budgetEur * 0.97) / 5) * 5;
   const pretend = page.listings.map((listing) => (listing === target ? { ...listing, priceEur: droppedTo } : listing));
-  const [event] = detectFits(page.listings, pretend, ruleFor(watch));
+  const [event] = detectFits(page.listings, pretend, rule);
   if (!event) return { ok: false, status: 409, reason: "The simulated price did not come in under the budget." };
   const notification = toNotification(watch, overview, event, "simulation", now);
   // The page's reading stays as it is; only its last change says, in plain words, that it was made up.

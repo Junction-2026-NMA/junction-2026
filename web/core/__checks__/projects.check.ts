@@ -247,7 +247,7 @@ async function main() {
   await group("requirements editor: every field the PATCH takes, checked in place (15 Nov QA)", () => {
     const w = PropertyWatch.decode({ ...watchJSON, requirements: { moveBy: "2027-01-31" } })!;
     const fields = requirementFields(w, true);
-    eq(fields.map((f) => f.key), ["budgetEur", "minRooms", "moveBy", "districts", "maxDepositEur", "movingCostEur", "bufferToKeepEur", "savingsGoalEur",
+    eq(fields.map((f) => f.key), ["budgetEur", "minRooms", "minAreaM2", "savingsGoalEurPerMonth", "moveBy", "districts", "maxDepositEur", "movingCostEur", "bufferToKeepEur", "savingsGoalEur",
       "maxCommuteMinutes", "commuteTo", "goal"], "every field the PATCH takes, for a rent");
     eq(fields[0].label, "Rent at most (€ a month)", "the limit is named as a rent");
     eq(requirementFields(w, false).map((f) => [f.key, f.label]), [["budgetEur", "Price at most (€)"], ["goal", "The goal, in your words"]], "a price watch: its limit and goal");

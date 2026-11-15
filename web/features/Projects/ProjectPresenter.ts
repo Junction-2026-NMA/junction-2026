@@ -18,6 +18,7 @@ const money = (eur: number) => Money.format(eur, "en");
 const REQUIREMENT_LABEL: Readonly<Record<string, string>> = {
   moveBy: "Move in by", districts: "Districts", maxDepositEur: "Deposit at most", movingCostEur: "Moving costs (your estimate)",
   bufferToKeepEur: "Keep in the account after moving", savingsGoalEur: "Savings goal", maxCommuteMinutes: "Commute at most", commuteTo: "Commute to",
+  minAreaM2: "Size at least", savingsGoalEurPerMonth: "Keep saving each month",
 };
 const isRent = (s: Pick<Subject, "priceUnit" | "topic">) => s.priceUnit === PriceUnit.perMonth || (s.priceUnit == null && !s.topic);
 /** "flats" → "Flats"; "iPhone 15" stays as written. */
@@ -105,6 +106,8 @@ export const ProjectText = {
     const covered = new Set(["city", "topic", "budgetEur", "minRooms", "priceUnit", "goal"]);
     Object.entries(s.requirements ?? {}).forEach(([key, value]) => {
       const text = typeof value === "number" && /Eur$/.test(key) ? money(value)
+        : typeof value === "number" && /EurPerMonth$/.test(key) ? `${money(value)} a month`
+        : typeof value === "number" && /M2$/.test(key) ? `${value} m²`
         : typeof value === "number" && /Minutes$/.test(key) ? `${value} minutes` : ProjectText.value(value);
       if (!covered.has(key) && text !== null) rows.push({ label: REQUIREMENT_LABEL[key] ?? ProjectText.label(key), value: text });
     });

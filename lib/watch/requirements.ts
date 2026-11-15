@@ -37,7 +37,7 @@ export function cleanRequirements(input: unknown, said: (value: number) => boole
     }
     return value;
   };
-  for (const [key, label] of [["maxDepositEur", "deposit limit"], ["movingCostEur", "moving cost"], ["bufferToKeepEur", "buffer to keep"], ["savingsGoalEur", "savings goal"]] as const) {
+  for (const [key, label] of [["maxDepositEur", "deposit limit"], ["movingCostEur", "moving cost"], ["bufferToKeepEur", "buffer to keep"], ["savingsGoalEur", "savings goal"], ["savingsGoalEurPerMonth", "monthly savings goal"]] as const) {
     const value = own(key, label);
     if (value !== undefined) out[key] = value;
   }
@@ -55,6 +55,12 @@ export function cleanRequirements(input: unknown, said: (value: number) => boole
     if (minutes === null) out.maxCommuteMinutes = null;
     else if (typeof minutes === "number" && minutes >= 5 && minutes <= 180) out.maxCommuteMinutes = Math.round(minutes);
     else dropped.push("commute limit (5 to 180 minutes)");
+  }
+  if ("minAreaM2" in raw) {
+    const area = raw.minAreaM2;
+    if (area === null) out.minAreaM2 = null;
+    else if (typeof area === "number" && area >= 5 && area <= 500) out.minAreaM2 = Math.round(area);
+    else dropped.push("minimum size (5 to 500 m²)");
   }
   if ("commuteTo" in raw) {
     const place = raw.commuteTo === null ? null : safeName(raw.commuteTo, 60);
@@ -93,6 +99,10 @@ export function checkRequirements(listing: Listing, requirements: WatchRequireme
   if (typeof req.maxDepositEur === "number") {
     if (typeof listing.depositEur !== "number") unchecked.push("deposit not stated");
     else if (listing.depositEur > req.maxDepositEur) reasons.push(`deposit €${Math.round(listing.depositEur)} is over €${req.maxDepositEur}`);
+  }
+  if (typeof req.minAreaM2 === "number") {
+    if (typeof listing.areaM2 !== "number") unchecked.push("size not stated");
+    else if (listing.areaM2 < req.minAreaM2) reasons.push(`${listing.areaM2} m², smaller than ${req.minAreaM2} m²`);
   }
   if (typeof req.maxCommuteMinutes === "number") unchecked.push("commute time not measured");
   return { ok: reasons.length === 0, reasons, unchecked };

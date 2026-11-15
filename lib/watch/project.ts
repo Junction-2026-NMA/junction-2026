@@ -5,9 +5,10 @@ import { listingKey } from "@/lib/agent/research/listings";
 import { housingEffect } from "@/lib/finance/housing";
 import { buildOverview } from "@/lib/finance/overview";
 import { RENT_BUDGET_LIMITS } from "@/lib/finance/rent";
+import { evaluateListings } from "@/lib/housing/evaluate";
 import { withAudit } from "@/lib/store/audit";
 import { readState, updateState } from "@/lib/store/state";
-import type { Listing, ProjectStatus, PropertyWatch, WatchNotification, WatchProject, WatchRequirements } from "@/lib/types";
+import type { HousingEvaluation, Listing, ProjectStatus, PropertyWatch, WatchNotification, WatchPlan, WatchProject, WatchRequirements } from "@/lib/types";
 import { fits, ruleFor, withCurrentRequirements } from "./detect";
 import { currentSession } from "@/lib/store/session";
 import { findWatch, lastSuccessOf, listNotifications, nextCheckOf, replaceWatch, watchSubject } from "./index";
@@ -27,6 +28,9 @@ export function projectStatusOf(watch: PropertyWatch): ProjectStatus {
   return watch.lastCheckedAt && watch.pages.length > 0 && watch.pages.every((page) => page.lastError) ? "failing" : "active";
 }
 
+// v2 housing: the plan of the action that started the watch, where the conversation and the research are kept.
+const planOf = (watch: PropertyWatch): WatchPlan | null => (readState().actions ?? []).find((action) => action.id === watch.actionId && action.customerId === watch.customerId)?.watch ?? null;
+
 // The watch as the API answers it: every Project field set, for watches stored before they existed too.
 // v2 push: the webhook secrets never leave the server; the status fields are always set.
 export const withoutSecrets = (watch: PropertyWatch): PropertyWatch => {
@@ -44,6 +48,8 @@ export const asProject = (watch: PropertyWatch): PropertyWatch => ({
   lastFailure: watch.lastFailure ?? null,
   retryAt: watch.status === "active" ? (watch.retryAt ?? null) : null,
   webhooks: watch.webhooks ?? false,
+  conversation: watch.conversation ?? planOf(watch)?.conversation ?? null,
+  research: watch.research ?? planOf(watch)?.research ?? null,
   goal: watch.goal ?? null,
   requirements: watch.requirements ?? {},
   projectStatus: projectStatusOf(watch),
@@ -70,11 +76,37 @@ export function currentMatches(watch: PropertyWatch): WatchProject["currentMatch
     .map((listing: Listing) => ({ listing, housing: overview && watch.priceUnit === "EUR/month" ? housingEffect(overview, listing, watch.requirements ?? {}, `project:${watch.id}:${listingKey(listing)}`) : null }));
 }
 
+// v2 housing: every listing last read, judged against the requirements as they are now (flats only).
+// A finding's effect is worked out by judging the listings again with the finding's price in place.
+export function evaluationOf(watch: PropertyWatch, now: Date = new Date()): HousingEvaluation | null {
+  const overview = buildOverview(watch.customerId);
+  if (!overview || watch.priceUnit !== "EUR/month" || !watch.city) return null;
+  const criteria = { city: watch.city, budgetEur: watch.budgetEur, budgetFrom: "customer" as const, minRooms: watch.minRooms, requirements: watch.requirements ?? {} };
+  const today = now.toISOString().slice(0, 10);
+  const listings = watch.pages.flatMap((page) => page.listings);
+  const judge = (all: Listing[]) => evaluateListings(overview, all, criteria, today, `project:${watch.id}`);
+  const base = judge(listings);
+  const top = (evaluation: HousingEvaluation): string | null => (evaluation.best ?? evaluation.closest)?.key ?? null;
+  const eur = (value: number): string => `€${Math.round(value).toLocaleString("en-US")}`;
+  const changes = notesOf(watch).slice(0, 5).map((note) => {
+    const key = listingKey(note.listing);
+    const after = judge([note.listing, ...listings.filter((listing) => listingKey(listing) !== key)]);
+    const mine = [...after.fitting, ...after.needsChecking, ...after.excluded].find((one) => one.key === key);
+    const verdict = mine?.verdict ?? "excluded";
+    const bestChanged = top(after) !== top(base);
+    const what = note.previousPriceEur === null ? `New listing at ${eur(note.listing.priceEur)}` : `Rent dropped ${eur(note.previousPriceEur)} → ${eur(note.listing.priceEur)}`;
+    const status = verdict === "fits" ? "now meets every requirement" : verdict === "needs_checking" ? "now within budget, needs checking" : "still excluded";
+    const line = [what, status, bestChanged ? (after.best ? "best match changed" : "closest match changed") : null].filter(Boolean).join(" · ");
+    return { notificationId: note.id, title: note.title, detectedAt: note.detectedAt, detectedBy: note.detectedBy, simulated: note.simulated, beforeEur: note.previousPriceEur, afterEur: note.listing.priceEur, verdict, bestChanged, line };
+  });
+  return { ...base, changes };
+}
+
 export function getProject(customerId: string, watchId: string): WatchProject | null {
   const watch = findWatch(customerId, watchId);
   if (!watch) return null;
   const notifications = notesOf(watch);
-  return { customerId, watch: asProject(watch), notifications, unread: notifications.filter((note) => !note.readAt).length, currentMatches: currentMatches(watch), scheduler: watchScheduler() };
+  return { customerId, watch: asProject(watch), notifications, unread: notifications.filter((note) => !note.readAt).length, currentMatches: currentMatches(watch), scheduler: watchScheduler(), evaluation: evaluationOf(watch) };
 }
 
 // The visitor's app looked at its watches: keeps them from stopping for inactivity. Saved at most once an hour.
