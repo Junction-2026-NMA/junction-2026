@@ -5,7 +5,7 @@
 // saving. Optional Swift outputs are `T | null` here; optional inputs accept `null` or `undefined`.
 import type { CalcStep, RecurringBill, ScenarioResponse } from "@/web/core/Models";
 import type {
-  ActionImpact, ActionStatus, AffordabilityVerdict, AgentAction, AuditEvent, Fact, Grounding, Offer, ResearchResult, Stage,
+  ActionImpact, ActionKind, ActionStatus, AffordabilityVerdict, AgentAction, AuditEvent, Fact, Grounding, Offer, ResearchResult, Stage,
   TeachingCard, ToolTrace,
 } from "@/web/core/CoachModels";
 import { CustomerMemory, TurnTimings } from "@/web/core/CoachModels";
@@ -20,9 +20,11 @@ import type { ResearchStage, RiveValueMap } from "@/web/core/RiveContract";
 export namespace CoachText {
   export function pick(language: SisuLanguage, en: string, fi: string): string { return language === "en" ? en : fi; }
 
-  /** The tag every action card carries: `Simulated, no real switch`. */
-  export function simulatedTag(language: SisuLanguage = "en"): string {
-    return pick(language, "Simulated, no real switch", "Simuloitu, ei oikeaa vaihtoa");
+  /** The tag every action card carries: `Simulated, no real switch`, or for a transfer `Simulated, no money moves`. */
+  export function simulatedTag(language: SisuLanguage = "en", kind: ActionKind | null = null): string {
+    return ActionPresenter.isTransfer(kind)
+      ? pick(language, "Simulated, no money moves", "Simuloitu, rahaa ei siirry")
+      : pick(language, "Simulated, no real switch", "Simuloitu, ei oikeaa vaihtoa");
   }
 
   /** `Sample data`: for anything served from the bundled recordings. */
@@ -162,11 +164,15 @@ export namespace OfferPresenter {
     return Array.isArray(offer.misses) ? offer.misses.filter((one): one is string => typeof one === "string" && one.trim() !== "") : [];
   }
 
-  /** True when a fee the cost depends on was not stated (the server then counts it as nothing). */
+  /** True when a fee the cost depends on was not stated (the server then counts it as nothing). Without the
+   *  backend's flag, the rule of lib/agent/research/compare.ts: an electricity cost (energy price stated) leaves the
+   *  one-off setup fee out, so only a missing monthly base fee makes it incomplete; another bill's cost spreads the
+   *  setup fee over 12 months, so a missing setup fee does too. A missing fee is still shown as unknown, never €0. */
   export function feesUnknown(offer: Offer): boolean {
     if (offer.feesUnknown === true || offer.feesKnown === false) return true;
     if (offer.feesUnknown === false || offer.feesKnown === true) return false;
-    return offer.monthlyPriceEur == null || offer.setupFeeEur == null;
+    if (offer.monthlyPriceEur == null) return true;
+    return offer.energyPriceCentsPerKwh == null && offer.setupFeeEur == null;
   }
 
   /** The fees as stated: `Base fee €3.90 a month · Setup fee unknown`, `No setup fee`, or `Fees unknown`. */
@@ -235,23 +241,36 @@ export namespace OfferPresenter {
   }
 
   /** True when no offer meets the user's requirements: the backend says so (`noMatch`, `matchingCount` 0, or
-   *  every offer marked as not meeting them), or the answer's own text says none qualifies. */
+   *  every offer marked as not meeting them), or, when the requirements were not judged offer by offer, the
+   *  answer's own text says none qualifies. Offers judged against stated requirements outweigh the words. */
   export function noMatch(research: ResearchResult, answerText = ""): boolean {
     if (research.noMatch === true) return true;
     const flags = research.offers.map(qualifies);
     const flagged = flags.some((flag) => flag !== null);
-    const asked = research.requirements != null || (typeof research.requirementsText === "string" && research.requirementsText.trim() !== "");
+    const req = research.requirements;
+    const asked = (req != null && typeof req === "object" && Object.keys(req).length > 0)
+      || (typeof research.requirementsText === "string" && research.requirementsText.trim() !== "");
     if (research.matchingCount === 0 && (asked || flagged)) return true;
     if (flagged && !flags.some((flag) => flag === true)) return true;
+    if (asked && flagged) return false;
     return textSaysNoMatch(answerText);
   }
 
-  /** The answer says that no option meets what the user asked for (the backend's model filters in words only). */
+  /** The answer says that no option meets what the user asked for (the backend's model filters in words only):
+   *  "None of the offers I found have a contract of 6 months or less", "There are no electricity contracts of 6
+   *  months or less", "The offers I found are all 24-month contracts, not 12 months or less". A sentence that only
+   *  says nothing is cheaper is not one. */
   export function textSaysNoMatch(text: string): boolean {
     const t = text.toLowerCase().replace(/[’]/g, "'");
+    const things = "(?:offers?|options?|deals?|plans?|contracts?|subscriptions?)";
+    const found = "(?: (?:that )?(?:i|sisu|we) (?:found|compared|checked|could find|looked at))?";
     return /\bno (matching|suitable|qualifying) (options?|offers?|deals?|plans?|contracts?)\b/.test(t)
       || /\bnone of (them|these|those|the (offers?|options?|deals?|plans?|contracts?))\b[^.]*\b(meets?|match(es)?|qualif|fits?)/.test(t)
       || /\b(none|no (offer|option|deal|plan|contract)s?) (meets?|match(es)?|qualif|fits?)/.test(t)
+      || new RegExp(`\\bnone of (?:the|these|those) (?:[\\w-]+ )?${things}${found} (?:have|has|are|is|offers?|comes?)\\b(?! (?:any )?(?:cheaper|lower|less expensive))`).test(t)
+      || new RegExp(`\\bthere (?:are|were|is) no (?![^.]*\\bcheaper\\b)[\\w -]{0,40}?${things} (?:of|under|with|shorter|lasting|that (?:meet|match|fit)|for \\d)`).test(t)
+      || /\b(?:are|were) all \d+[- ]months?\b[^.]*?\b(?:not|none|no)\b/.test(t)
+      || /\b(?:could not|couldn't|did not|didn't|cannot|can't) find any [^.]*\b(?:\d+ months? or (?:less|shorter)|that (?:meets?|match(?:es)?|fits?))/.test(t)
       || /\bei (yhtään )?sopiv/.test(t);
   }
 
@@ -377,7 +396,7 @@ export namespace StagePresenter {
         cardLines = [CardLine.make(data.card.question)];
         break;
       case "action":
-        cardLines = [CardLine.make(data.action.title, ActionPresenter.statusSentence(data.action.status, language))];
+        cardLines = [CardLine.make(data.action.title, ActionPresenter.statusSentence(data.action.status, language, data.action.kind))];
         break;
       case "impact":
         cardLines = FuturesPresenter.impactSeries(data.impact, language).map((one) => CardLine.make(one.label, one.endLabel, one.rangeLabel));
@@ -418,10 +437,17 @@ export interface ActionCardState {
   checklist: string[];
   /** Show these near the saving. */
   assumptions: string[];
-  /** `€2.01 a month`: what the action frees, from the server. */
+  /** `€2.01 a month`: what the action frees, from the server; `€50` for a one-off transfer. */
   monthly: string;
+  /** Beside the amount: `freed` for a switch, `to your savings` for a transfer. */
+  amountNote: string;
+  /** `What a real switch takes (3 steps)`, or `What a real transfer takes (3 steps)`. */
+  checklistLabel: string;
+  /** The celebration's line after approval: `€2.01 a month freed. Simulated, no real switch.`, or for a
+   *  transfer `€50 to your savings. Simulated, no money moved.` */
+  approvedLine: string;
   statusSentence: string;
-  /** Always `Simulated, no real switch`. */
+  /** `Simulated, no real switch`, or `Simulated, no money moves` for a transfer. */
   simulatedTag: string;
   /** True while Approve and Decline make sense. */
   canDecide: boolean;
@@ -442,10 +468,19 @@ export interface ActionCardState {
 const nonEmpty = (text: string | null | undefined): string | null => (text != null && text !== "" ? text : null);
 
 export namespace ActionPresenter {
-  export function statusSentence(status: ActionStatus, language: SisuLanguage = "en"): string {
+  /** A one-off or standing transfer: its words say "transfer" and "no money moved", never "switch" or "freed". */
+  export function isTransfer(kind: ActionKind | null | undefined): boolean {
+    const raw = kind == null ? "" : rawOf(kind);
+    return raw === "one_off_transfer" || raw === "standing_transfer";
+  }
+
+  export function statusSentence(status: ActionStatus, language: SisuLanguage = "en", kind: ActionKind | null = null): string {
     switch (rawOf(status)) {
       case "awaiting_approval": return pick(language, "Waiting for your approval. Nothing has been done.", "Odottaa hyväksyntääsi. Mitään ei ole tehty.");
-      case "executed_simulated": return pick(language, "Approved. Simulated, no real switch was made.", "Hyväksytty. Simuloitu, oikeaa vaihtoa ei tehty.");
+      case "executed_simulated":
+        return isTransfer(kind)
+          ? pick(language, "Approved. Simulated, no money moved.", "Hyväksytty. Simuloitu, rahaa ei siirretty.")
+          : pick(language, "Approved. Simulated, no real switch was made.", "Hyväksytty. Simuloitu, oikeaa vaihtoa ei tehty.");
       case "declined": return pick(language, "Declined. Nothing was done.", "Hylätty. Mitään ei tehty.");
       case "expired":
         return pick(language, "Expired. Prices may have changed. Ask Sisu to prepare it again.",
@@ -454,17 +489,37 @@ export namespace ActionPresenter {
     }
   }
 
+  /** The amount as it moves: `€50` once for a one-off transfer, `€50 a month` for a standing one or a switch. */
+  export function amount(action: AgentAction, language: SisuLanguage = "en"): string {
+    return rawOf(action.kind) === "one_off_transfer"
+      ? CoachText.value(action.monthlyAmountEur, "EUR", language)
+      : CoachText.value(action.monthlyAmountEur, "EUR/month", language);
+  }
+
   export function card(action: AgentAction, language: SisuLanguage = "en", timeZone: string = Dates.currentTimeZone()): ActionCardState {
     const waiting = rawOf(action.status) === "awaiting_approval";
+    const transfer = isTransfer(action.kind);
+    const checklist = action.checklist ?? [];
+    const steps = pick(language, checklist.length === 1 ? "1 step" : `${checklist.length} steps`, `${checklist.length} vaihetta`);
+    const to = destination(action, language);
+    const monthly = amount(action, language);
+    const amountNote = transfer ? (to ?? pick(language, "To your savings", "Säästöihisi")).toLowerCase() : pick(language, "freed", "vapautuu");
     return {
       id: action.id,
       title: action.title,
       summary: action.summary,
-      checklist: action.checklist ?? [],
+      checklist,
       assumptions: action.assumptions ?? [],
-      monthly: CoachText.value(action.monthlyAmountEur, "EUR/month", language),
-      statusSentence: statusSentence(action.status, language),
-      simulatedTag: CoachText.simulatedTag(language),
+      monthly,
+      amountNote,
+      checklistLabel: transfer
+        ? pick(language, `What a real transfer takes (${steps})`, `Mitä oikea siirto vaatii (${steps})`)
+        : pick(language, `What a real switch takes (${steps})`, `Mitä oikea vaihto vaatii (${steps})`),
+      approvedLine: transfer
+        ? `${monthly} ${amountNote}. ` + pick(language, "Simulated, no money moved.", "Simuloitu, rahaa ei siirretty.")
+        : `${monthly} ${amountNote}. ${CoachText.simulatedTag(language)}.`,
+      statusSentence: statusSentence(action.status, language, action.kind),
+      simulatedTag: CoachText.simulatedTag(language, action.kind),
       canDecide: waiting,
       impactSummary: action.impact?.summary ?? null,
       validUntil: waiting ? pick(language, "Valid until ", "Voimassa: ") + Dates.shortDateTime(action.expiresAt, language, timeZone) : null,
@@ -522,7 +577,7 @@ export namespace GroundingPresenter {
     if (grounding.ok && missing === 0) {
       if (!(grounding.checked > 0)) return null;
       const text = grounding.checked === 1
-        ? pick(language, "The 1 number has a source", "Luvulla on lähde")
+        ? pick(language, "1 number has a source", "Luvulla on lähde")
         : pick(language, `All ${grounding.checked} numbers have a source`, `Kaikilla ${grounding.checked} luvulla on lähde`);
       return { text, isWarning: false };
     }

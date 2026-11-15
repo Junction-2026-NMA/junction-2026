@@ -3,9 +3,10 @@
 // uses), its contract, energy price and fees as stated (unknown fees say so, never €0), its saving (marked
 // incomplete when a fee is unknown), and whether it meets the user's requirements. "Best match" only ever marks an
 // offer that meets them. Offers that miss a requirement are listed apart, after the ones that meet them, with what
-// they miss and their page but no cost or saving, so nothing that fails the request reads as an option.
+// they miss and their page but no cost or saving, so nothing that fails the request reads as an option. An answer
+// that compared several bills lists each bill apart, with its own bill now.
 // Port of OfferTable in AskCards.swift, reworked on 15 Nov.
-import type { AnswerOffers } from "@/web/core/AnswerPresentation";
+import type { AnswerOffers, OfferSection } from "@/web/core/AnswerPresentation";
 import type { OfferRow } from "@/web/core/CoachPresentation";
 import { Footnote, Note, validURL } from "./CardParts";
 import "./answer.css";
@@ -59,14 +60,24 @@ function offerLabel(row: OfferRow): string {
     .filter(Boolean).join(", ");
 }
 
-/** Everything about the offers: what was asked for, the bill now, the table and where it was read. */
+/** Everything about the offers: what was asked for (unless the result card says it), then each bill's part: its
+ *  bill now, the offers that meet the request, those that do not, and where they were read. */
 export function OffersDetail({ offers }: { offers: AnswerOffers }) {
-  const meeting = offers.rows.filter((row) => row.meets !== false);
-  const missing = offers.rows.filter((row) => row.meets === false);
   return (
     <div className="sisu-answer-section">
       {offers.requirement ? <p className="sisu-ask-body">{offers.requirement}</p> : null}
-      {offers.baseline ? <p className="sisu-ask-body sisu-ask-muted">{offers.baseline}</p> : null}
+      {offers.sections.map((section) => <OfferSectionView key={section.id} section={section} />)}
+    </div>
+  );
+}
+
+function OfferSectionView({ section }: { section: OfferSection }) {
+  const meeting = section.rows.filter((row) => row.meets !== false);
+  const missing = section.rows.filter((row) => row.meets === false);
+  return (
+    <div className="sisu-answer-offer-section" data-testid={`answer.offers.${section.id}`}>
+      {section.title ? <h4 className="sisu-ask-label sisu-answer-offer-section-title">{section.title}</h4> : null}
+      {section.baseline ? <p className="sisu-ask-body sisu-ask-muted">{section.baseline}</p> : null}
       {meeting.length > 0 ? <OfferTable rows={meeting} /> : null}
       {missing.length > 0 ? (
         <>
@@ -76,9 +87,9 @@ export function OffersDetail({ offers }: { offers: AnswerOffers }) {
           <OfferTable rows={missing} />
         </>
       ) : null}
-      {offers.problems.length > 0 ? <Note text="Some pages could not be read, so a few offers may be missing." lines={offers.problems} /> : null}
-      {offers.pagesNote ? <Footnote text={offers.pagesNote} /> : null}
-      {offers.fetched ? <Footnote text={offers.fetched} /> : null}
+      {section.problems.length > 0 ? <Note text="Some pages could not be read, so a few offers may be missing." lines={section.problems} /> : null}
+      {section.pagesNote ? <Footnote text={section.pagesNote} /> : null}
+      {section.fetched ? <Footnote text={section.fetched} /> : null}
     </div>
   );
 }

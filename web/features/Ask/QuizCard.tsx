@@ -1,6 +1,7 @@
 "use client";
 // The teaching question: guess first (Rive ChoiceCards), then the reveal. Port of QuizCard in AskCards.swift
-// (no reward counter since the 15 Nov rework).
+// (no reward counter since the 15 Nov rework). When the answer's text already ends with the question, the card does
+// not print it again (it stays for screen readers).
 import { useState } from "react";
 import { useCoach, useCoachStore } from "@/web/app/AppProvider";
 import type { TeachingCard } from "@/web/core/CoachModels";
@@ -11,7 +12,8 @@ import { useReducedMotion } from "@/web/theme/motion";
 
 const language = "en";
 
-export function QuizCard({ card }: { card: TeachingCard }) {
+/** `askedInText`: the answer above already ends with this question. */
+export function QuizCard({ card, askedInText = false }: { card: TeachingCard; askedInText?: boolean }) {
   const store = useCoachStore();
   useCoach(); // re-render when the pick is recorded (quizChoices)
   const reduceMotion = useReducedMotion();
@@ -29,7 +31,7 @@ export function QuizCard({ card }: { card: TeachingCard }) {
       <div className="sisu-ask-quiz-top">
         <Eyebrow text="Guess first" />
       </div>
-      <h3 className="sisu-ask-h3">{card.question}</h3>
+      <h3 className={askedInText ? "sisu-visually-hidden" : "sisu-ask-h3"}>{card.question}</h3>
       {TeachingQuiz.choices(quiz).map((values, index) => (
         <div key={index} className="sisu-ask-choice" data-locked={revealed ? "true" : "false"}>
           <RiveComponent

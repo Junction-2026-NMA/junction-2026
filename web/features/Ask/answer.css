@@ -101,10 +101,11 @@
   box-shadow: inset 0 0 0 1.5px var(--sisu-color-primary);
 }
 
+/* 44 px tall (Apple's touch size; the demo is used standing at a booth), the underline still hugging the words. */
 .sisu-answer-result > button.sisu-answer-link,
 .sisu-answer-section > button.sisu-answer-link {
-  min-height: 32px;
-  margin: 0;
+  min-height: 44px;
+  margin: -6px 0;
   padding: 0;
   border: 0;
   background: none;
@@ -280,6 +281,24 @@
 .sisu-answer-offer[data-meets="false"] .sisu-answer-offer-name,
 .sisu-answer-offer[data-meets="false"] .sisu-answer-offer-cost {
   color: var(--sisu-color-text-muted);
+}
+
+/* One bill's part of "Offers compared" (an answer can compare several bills). */
+.sisu-answer-offer-section {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 2);
+}
+
+.sisu-answer-offer-section + .sisu-answer-offer-section {
+  margin-top: calc(var(--sisu-space-grid) * 3);
+  padding-top: calc(var(--sisu-space-grid) * 3);
+  border-top: 1px solid var(--sisu-neutral-200);
+}
+
+.sisu-answer-offer-section-title {
+  margin: 0;
+  color: var(--sisu-color-text);
 }
 
 .sisu-answer-offers-apart {

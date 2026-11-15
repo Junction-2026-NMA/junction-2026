@@ -10,7 +10,7 @@ export async function decideAction(action: AgentAction, approve: boolean, store:
   if (!decided) return;
   if (approve && decided.status === ActionStatus.executedSimulated) {
     const card = ActionPresenter.card(decided, "en");
-    showCelebration(model, { headline: "Approved.", detail: `${card.monthly} freed. ${card.simulatedTag}.` });
+    showCelebration(model, { headline: "Approved.", detail: card.approvedLine });
   }
 }
 

@@ -273,14 +273,65 @@ export namespace StepPresenter {
     return pending ? pick(language, "What Sisu is doing", "Mitä Sisu tekee") : pick(language, "What Sisu did", "Mitä Sisu teki");
   }
 
-  /** The rows of a reply's steps. A step still running when the reply has ended (a cancelled turn) is not shown as running. */
-  export function rows(message: CoachMessage, language: SisuLanguage = "en"): StepRow[] {
-    return (message.steps ?? []).map((step) => ({
-      id: step.id, label: step.label,
-      state: !step.ok ? "failed" : step.done || !message.pending ? "done" : "running",
-      duration: step.tookMs != null ? ToolPresenter.duration(step.tookMs, language) : null,
-      result: step.result ?? null,
-    }));
+  /** The rows of a reply's steps. A step still running when the reply has ended (a cancelled turn) is not shown as
+   *  running, and a finished one says what it did (`Searched …`, not `Searching …`). A web search that reused
+   *  results fetched earlier (it took under 0.1 s, or the research says it was cached) shows when those results
+   *  were fetched instead of two durations that contradict each other. */
+  export function rows(message: CoachMessage, language: SisuLanguage = "en", timeZone: string = Dates.currentTimeZone()): StepRow[] {
+    return (message.steps ?? []).map((step) => {
+      const state: StepRow.State = !step.ok ? "failed" : step.done || !message.pending ? "done" : "running";
+      const reused = state === "done" ? reusedAt(message, step.id, step.tookMs) : null;
+      const duration = reused == null && step.tookMs != null ? ToolPresenter.duration(step.tookMs, language) : null;
+      return {
+        id: step.id,
+        label: state === "done" ? pastTense(step.label) : step.label,
+        state,
+        duration,
+        // One time per row: the row's own duration, or when reused results were fetched; never the server's too.
+        result: reused != null ? withReuse(step.result, reused, language, timeZone) : duration != null && step.result ? withoutDuration(step.result) : step.result ?? null,
+      };
+    });
+  }
+
+  const PAST: readonly (readonly [RegExp, string])[] = [
+    [/^Searching\b/, "Searched"], [/^Checking\b/, "Checked"], [/^Adding up\b/, "Added up"], [/^Working out\b/, "Worked out"],
+    [/^Reading\b/, "Read"], [/^Looking\b/, "Looked"], [/^Finding\b/, "Found"], [/^Comparing\b/, "Compared"],
+    [/^Preparing\b/, "Prepared"], [/^Projecting\b/, "Projected"], [/^Building\b/, "Built"], [/^Setting up\b/, "Set up"],
+    [/^Calculating\b/, "Calculated"], [/^Getting\b/, "Got"], [/\band reading\b/, "and read"],
+  ];
+
+  /** `Searched today's offers … and read the pages` for `Searching today's offers … and reading the pages`. */
+  export function pastTense(label: string): string {
+    return PAST.reduce((text, [pattern, past]) => text.replace(pattern, past), label);
+  }
+
+  /** When the results a web step reused were fetched ("" when not known); null for a step that fetched afresh. */
+  function reusedAt(message: CoachMessage, id: string, tookMs: number | null): string | null {
+    const trace = (message.tools ?? []).find((one) => one.id === id);
+    const web = trace != null && (trace.name === "search_offers" || /exa|context\.dev/i.test(trace.source));
+    if (!web) return null;
+    const research = message.research as (typeof message.research & { cached?: unknown }) | null;
+    const quick = tookMs != null && Number.isFinite(tookMs) && tookMs < 50;
+    if (!quick && research?.cached !== true) return null;
+    const stage = (message.stages ?? []).find((one) => one.toolCallId === id && one.data.kind === "research");
+    if (stage?.data.kind === "research" && stage.data.retrievedAt) return stage.data.retrievedAt;
+    return research?.finishedAt ?? research?.startedAt ?? "";
+  }
+
+  /** `15 offers from 3 pages` for `15 offers from 3 pages in 3.6 s`. */
+  function withoutDuration(result: string): string {
+    return result.replace(/ in \d+(?:[.,]\d+)? s\b/g, "").trim();
+  }
+
+  function withReuse(result: string | null, iso: string, language: SisuLanguage, timeZone: string): string {
+    const moment = Dates.parseMoment(iso);
+    const parts = moment ? Dates.zonedParts(moment, timeZone) : null;
+    const time = parts ? `${String(parts.hour).padStart(2, "0")}${language === "en" ? ":" : "."}${String(parts.minute).padStart(2, "0")}` : null;
+    const note = time
+      ? pick(language, `reused results from ${time}`, `käytetty klo ${time} haettuja tuloksia`)
+      : pick(language, "reused earlier results", "käytetty aiemmin haettuja tuloksia");
+    const base = withoutDuration(result ?? "");
+    return base === "" ? note.charAt(0).toUpperCase() + note.slice(1) : `${base} · ${note}`;
   }
 }
 

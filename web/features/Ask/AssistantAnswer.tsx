@@ -6,6 +6,7 @@
 // Every figure and sentence comes from the payload through AnswerPresenter / SisuCore presenters.
 import { useMemo } from "react";
 import type { AgentAction, TeachingCard } from "@/web/core/CoachModels";
+import { useCoachSessionState } from "@/web/app/AppProvider";
 import { AnswerPresenter, CardText, messageActions } from "@/web/core/AnswerPresentation";
 import { StagePresenter } from "@/web/core/CoachPresentation";
 import type { CoachMessage } from "@/web/core/CoachSession";
@@ -35,7 +36,8 @@ export function AssistantAnswer({ message, actions, retry, isNew }: {
 }) {
   const reduceMotion = useReducedMotion();
   const enter = (id: string) => (isNew(id) ? SisuMotion.entrance(reduceMotion) : undefined);
-  const view = useMemo(() => AnswerPresenter.view(message, language), [message]);
+  const question = useQuestion(message.id);
+  const view = useMemo(() => AnswerPresenter.view(message, language, undefined, question), [message, question]);
   const stage = message.pending ? StagePresenter.researchStage(message) : null;
   const anchor = (suffix: string) => `${message.id}-${suffix}`;
   const teaching = teachingCard(message);
@@ -69,7 +71,9 @@ export function AssistantAnswer({ message, actions, retry, isNew }: {
         </div>
       ))}
       {teaching ? (
-        <div data-anchor={anchor("quiz")} className={enter(`${message.id}/quiz`)}><QuizCard card={teaching} /></div>
+        <div data-anchor={anchor("quiz")} className={enter(`${message.id}/quiz`)}>
+          <QuizCard card={teaching} askedInText={endsWithQuestion(message.text, teaching.question)} />
+        </div>
       ) : null}
       {own.map((action) => (
         <div key={action.id} data-anchor={anchor("action")} className={enter(`${message.id}/action/${action.id}`)}>
@@ -81,6 +85,21 @@ export function AssistantAnswer({ message, actions, retry, isNew }: {
       ))}
     </div>
   );
+}
+
+/** What the user asked just before this answer (its requirements apply to the offers), "" when unknown. */
+function useQuestion(id: string): string {
+  const messages = useCoachSessionState()?.messages ?? [];
+  const index = messages.findIndex((one) => one.id === id);
+  const previous = index > 0 ? messages[index - 1] : null;
+  return previous?.role === "user" ? previous.text : "";
+}
+
+/** True when the answer's text ends with the quiz question (case, spacing and punctuation aside). */
+function endsWithQuestion(text: string, question: string): boolean {
+  const norm = (value: string) => value.toLowerCase().replace(/[\s.?!…]+$/g, "").replace(/\s+/g, " ").trim();
+  const asked = norm(question);
+  return asked !== "" && norm(text).endsWith(asked);
 }
 
 /** The quiz of the answer: from a teaching stage, or the `teaching` event. */

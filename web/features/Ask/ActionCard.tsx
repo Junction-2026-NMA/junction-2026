@@ -1,13 +1,17 @@
 "use client";
 // The approval card of a prepared action: a clear "Simulated" tag (a switch or a transfer here never happens for
-// real), what it does, the warning, what it frees, what a real switch takes (closed at first), Approve / Decline,
-// and the futures once approved. Its assumptions and sources are in the answer's Details, said once there.
+// real), what it does, the warning, what it frees (a switch) or moves (a transfer: `€50` once, never "a month"),
+// what a real switch or transfer takes (closed at first) and Approve / Decline. Once approved, a switch's
+// five-year projection stays behind a closed "If you keep the saving for 5 years" (the person asked about a
+// monthly saving, not about investing, so the invest line is left out); a transfer shows the server's sentence.
+// Its assumptions and sources are in the answer's Details, said once there.
 // Port of ActionCard in AskCards.swift, reworked on 15 Nov.
 import { useRef } from "react";
 import { useAppModel, useCoach, useCoachStore } from "@/web/app/AppProvider";
 import type { AgentAction } from "@/web/core/CoachModels";
-import { ActionPresenter, FuturesPresenter } from "@/web/core/CoachPresentation";
-import { rawOf } from "@/web/core/Presentation";
+import type { ActionImpact } from "@/web/core/CoachModels";
+import { SourceTags } from "@/web/core/AnswerPresentation";
+import { ActionPresenter, CoachText, FuturesPresenter } from "@/web/core/CoachPresentation";
 import { RiveBindings } from "@/web/core/RiveContract";
 import { RiveComponent } from "@/web/rive/RiveComponent";
 import { SisuButton, SisuCard, riveAccessible } from "@/web/shared/SisuStyle";
@@ -15,6 +19,7 @@ import { decideAction } from "./answerActions";
 import { Footnote, Note } from "./CardParts";
 import { Disclosure } from "./Disclosure";
 import { ImpactChart } from "./ImpactChart";
+import { SourceChips } from "./ResultLine";
 import { isWatchKind } from "@/web/core/WatchModels";
 import { WatchActionCard, showsWatchCard } from "@/web/features/Projects/WatchActionCard";
 
@@ -28,12 +33,11 @@ export function ActionCard({ action, mismatch = false }: { action: AgentAction; 
   return <SimulatedActionCard action={action} mismatch={mismatch} />;
 }
 
-/** `Simulated · no real switch`, `Simulated · no money moves`, or (an action the server says is real, such as a
- *  watch the Projects card does not draw yet) `Needs your approval`. */
+/** `Simulated, no real switch`, `Simulated, no money moves` for a transfer, or (an action the server says is real,
+ *  such as a watch the Projects card does not draw yet) `Needs your approval`. */
 function tagText(action: AgentAction): { text: string; tone: "amber" | "neutral" } {
   if (action.simulated === false) return { text: "Needs your approval", tone: "neutral" };
-  const kind = rawOf(action.kind);
-  return { text: kind === "standing_transfer" || kind === "one_off_transfer" ? "Simulated · no money moves" : "Simulated · no real switch", tone: "amber" };
+  return { text: CoachText.simulatedTag(language, action.kind), tone: "amber" };
 }
 
 function SimulatedActionCard({ action, mismatch }: { action: AgentAction; mismatch: boolean }) {
@@ -63,10 +67,10 @@ function SimulatedActionCard({ action, mismatch }: { action: AgentAction; mismat
       {card.warning ? <Note text={card.warning} /> : null}
       <div className="sisu-ask-baseline">
         <span className="sisu-ask-h3">{card.monthly}</span>
-        <span className="sisu-ask-body sisu-ask-muted">{card.destination ? card.destination.toLowerCase() : "freed"}</span>
+        <span className="sisu-ask-body sisu-ask-muted">{card.amountNote}</span>
       </div>
       {card.checklist.length > 0 ? (
-        <Disclosure label={`What a real switch takes (${card.checklist.length} steps)`} testId="checklist">
+        <Disclosure label={card.checklistLabel} testId="checklist">
           <ol className="sisu-ask-checklist">
             {card.checklist.map((step, index) => (
               <li key={index} className="sisu-ask-checklist-step">
@@ -87,12 +91,23 @@ function SimulatedActionCard({ action, mismatch }: { action: AgentAction; mismat
           <SisuButton label="Decline" style="secondary" enabled={!busy} action={() => decide(false)} />
         </>
       ) : null}
-      {action.impact ? (
-        <>
-          <ImpactChart series={FuturesPresenter.series(action.impact, language)} />
-          <p className="sisu-ask-body">{card.impactSummary ?? action.impact.summary}</p>
-        </>
-      ) : null}
+      {action.impact ? <ImpactAfterApproval impact={action.impact} summary={card.impactSummary ?? action.impact.summary} /> : null}
     </SisuCard>
+  );
+}
+
+/** After approval: the server's sentence, and for a projection over the years its bars behind a closed control,
+ *  labelled as an estimate and without the "invest it" line. */
+function ImpactAfterApproval({ impact, summary }: { impact: ActionImpact; summary: string }) {
+  const series = FuturesPresenter.series(impact, language).filter((line) => line.id !== "invest");
+  if (series.length === 0) return summary !== "" ? <p className="sisu-ask-body">{summary}</p> : null;
+  const years = impact.horizonYears;
+  const label = `If you keep the saving for ${years} ${years === 1 ? "year" : "years"}`;
+  return (
+    <Disclosure label={label} testId="impact">
+      <SourceChips tags={[SourceTags.estimate(language)]} />
+      <ImpactChart series={series} />
+      {summary !== "" ? <p className="sisu-ask-caption sisu-ask-muted">{summary}</p> : null}
+    </Disclosure>
   );
 }

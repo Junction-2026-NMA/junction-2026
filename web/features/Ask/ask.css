@@ -34,7 +34,7 @@
   gap: var(--sisu-space-grid);
   min-height: 52px;
   box-sizing: border-box;
-  padding: 4px 4px 4px 0;
+  padding: 3px 3px 3px 0;
   border: 1px solid var(--sisu-color-hairline);
   border-radius: 26px;
   background: var(--sisu-color-card);
@@ -51,7 +51,7 @@
   flex: 1 1 auto;
   min-width: 0;
   box-sizing: border-box;
-  min-height: 42px;
+  min-height: 44px; /* Apple's touch size: the demo is used standing at a booth */
   margin: 0;
   padding: 10px 4px 10px 18px;
   border: 0;
@@ -80,8 +80,10 @@ button.sisu-ask-send {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   padding: 0;
   border: 0;
   border-radius: 50%;
@@ -120,6 +122,8 @@ button.sisu-ask-mic {
   justify-content: center;
   width: 52px;
   height: 52px;
+  min-width: 44px;
+  min-height: 44px;
   padding: 0;
   border: 1px solid rgba(0, 120, 65, 0.16);
   border-radius: 50%;

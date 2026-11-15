@@ -389,7 +389,7 @@ group("Coach presentation", () => {
   const approved = fixture<{ action: AgentAction }>(`coach/action-transfer-${aino}-approve.json`).action;
   ok(ActionPresenter.confirmation(approved)?.startsWith("Done (simulation). Reference SIM-") ?? false, "approved confirmation");
   const card = ActionPresenter.card(waiting, "en", "Europe/Helsinki");
-  eq([card.warning, card.confirmation, card.destination, card.canDecide, card.simulatedTag], [waiting.warning, null, "To your savings", true, "Simulated, no real switch"], "action card");
+  eq([card.warning, card.confirmation, card.destination, card.canDecide, card.simulatedTag], [waiting.warning, null, "To your savings", true, "Simulated, no money moves"], "action card (a transfer moves no money)");
   ok(card.validUntil?.startsWith("Valid until ") ?? false, "valid until");
   eq(ActionPresenter.card(approved, "en", "Europe/Helsinki").confirmation, approved.confirmation, "approved card");
 });

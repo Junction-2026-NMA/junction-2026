@@ -1,11 +1,15 @@
 // Checks for short answers (rework of 15 Nov): one result, details said once, source labels, readable dates and
 // minus signs, and offers that respect the user's requirements (never "Best" for one that misses them, "No matching
-// options found" when none meets them, unknown fees never counted as known).
+// options found" when none meets them, unknown fees never counted as known). QA of 15 Nov: requirements read from the
+// question when the backend sends none, several bills in one turn, transfers worded as transfers, the synthetic
+// peer label, numbers said once, and reused web results.
 // Run: npx tsx web/core/__checks__/answers.check.ts
 import { AnswerPresenter, CardText, SourceTags } from "@/web/core/AnswerPresentation";
-import type { Offer, ResearchResult, Stage } from "@/web/core/CoachModels";
-import { OfferPresenter } from "@/web/core/CoachPresentation";
-import { CoachMessage } from "@/web/core/CoachSession";
+import { AskedRequirements } from "@/web/core/AnswerRequirements";
+import type { AgentAction, Fact, Offer, ResearchResult, Stage, ToolTrace } from "@/web/core/CoachModels";
+import { ActionPresenter, GroundingPresenter, OfferPresenter } from "@/web/core/CoachPresentation";
+import { StepPresenter } from "@/web/core/ChartPresentation";
+import { CoachMessage, CoachStep } from "@/web/core/CoachSession";
 import { Visual } from "@/web/core/PlanModels";
 
 let failures = 0, passes = 0;
@@ -101,6 +105,134 @@ group("answer: other results", () => {
   eq([view.result?.value, view.result?.detail], ["€177.12", null], "a summary that repeats the value is dropped");
   const empty = AnswerPresenter.view(CoachMessage.make("m", "assistant", { text: "Hello" }), "en");
   eq([empty.result, empty.how.length, empty.assumptions.length], [null, 0, 0], "a plain reply has no result card");
+});
+
+// MARK: - QA of 15 Nov
+
+const trace = (id: string, name: string, args: Record<string, string>, tookMs: number, summary: string): ToolTrace =>
+  ({ id, name, args, source: name === "search_offers" ? "exa+context.dev" : "finance", startedAtMs: 0, tookMs, ok: true, summary, joinedPrefetch: tookMs === 0 });
+const searched = (id: string, bill: string, at = "2026-11-15T10:00:05Z"): Stage => ({ id: `${id}-r`, kind: "research", title: `Searched today's ${bill} offers`, summary: "", source: "exa",
+  toolCallId: id, atMs: 0, facts: [], data: { kind: "research", query: "q", searchedWith: "exa", pages: [{ title: `${bill} page`, url: `https://example.com/${bill}`, retrievedAt: at }], retrievedAt: at, mock: false } });
+const read = (id: string, offers: Offer[]): Stage => ({ id: `${id}-x`, kind: "extraction", title: "Read the offer pages", summary: "", source: "context.dev", toolCallId: id, atMs: 0, facts: [],
+  data: { kind: "extraction", extractedWith: "context.dev", pagesRead: 1, pagesTotal: 1, offers, problems: [] } });
+const saving = (id: string, provider: string, bill: number, yearly: number): Stage => ({ id: `${id}-c`, kind: "calculation", title: `Saving with ${provider}`, summary: "", source: "calculation",
+  toolCallId: id, atMs: 0, facts: [], data: { kind: "calculation", resultLabel: "Estimated saving per year", resultValue: yearly, unit: "EUR/year", assumptions: [],
+    steps: [{ label: "Your bill per month", amount: bill, basis: "average" }, { label: "Estimated saving per year", amount: yearly, basis: "monthly saving times 12" }] } });
+
+group("requirements read from the question when the backend sent none (live: 24-month 'Best match')", () => {
+  const ask = AskedRequirements.maxContractMonths;
+  eq(["Find me electricity contracts of 12 months or less", "at most 6 months please", "a plan up to 12 months", "max 24 months", "a contract of a year or less",
+    "twelve-month contracts or shorter", "Find me a cheaper electricity deal", "12-month contract"].map(ask), [12, 6, 12, 24, 12, 12, null, null], "phrasings");
+  eq(["The electricity offers I found are all 24-month contracts, not 12 months or less.", "None of the offers I found have a contract of 6 months or less.",
+    "There are no electricity contracts of 6 months or less on the pages I read.", "No example offer is cheaper than your current bill.",
+    "None of the offers are cheaper than what you pay now.", "There are no cheaper offers today."].map(OfferPresenter.textSaysNoMatch),
+  [true, true, true, false, false, false], "the live sentences, and sentences that only say nothing is cheaper");
+
+  const long = offer("Pohjois-Karjalan Sähkö Oy", 24, 66.72, { setupFeeEur: null, monthlyPriceEur: 0 });
+  const offers = [long, offer("Vaasan Sähkö", 24, 35.88), offer("Hehku", 36, -55.92), offer("Väre", 0, 0, { contractMonths: null, comparable: false, estimatedYearlySavingEur: null })];
+  const live = research(offers, { requirements: undefined, matchingCount: undefined, noMatch: undefined });
+  const text = "The electricity offers I found are all 24-month contracts, not 12 months or less. The cheapest 24-month option saves about 66.72 euros a year.";
+  const message = CoachMessage.make("m", "assistant", { text, research: live, stages: [searched("t1", "electricity"), read("t1", offers), saving("t1", long.provider, 39.83, 66.72)] });
+  const view = AnswerPresenter.view(message, "en", "Europe/Helsinki", "Find me electricity contracts of 12 months or less");
+  eq([view.result?.label, view.result?.value, view.result?.detail, view.noMatch], ["No matching options found", null, "You asked for a contract of 12 months or less.", true], "the No matching card");
+  eq([view.offers?.rows.some((row) => row.isBest), view.offers?.rows.every((row) => row.meets === false)], [false, true], "nothing is Best match; every offer is listed as missing");
+  eq(view.offers?.rows.map((row) => row.misses[0]), ["24-month contract (you asked for 12 months or less)", "24-month contract (you asked for 12 months or less)",
+    "36-month contract (you asked for 12 months or less)", "contract length not stated"], "a length not stated is not a match");
+  eq([view.how.length, view.offers?.requirement], [0, null], "no saving of a 24-month offer, and the requirement said once (on the card)");
+  eq(view.steps.length, 0, "no tool steps in this fixture");
+
+  const short = offer("Lyhyt Sähkö", 12, 20, { estimatedMonthlyCostEur: 38.16 });
+  const mixed = research([long, short], { requirements: undefined, best: long });
+  const some = AnswerPresenter.view(CoachMessage.make("m2", "assistant", { text: "x", research: mixed, stages: [read("t1", [long, short]), saving("t1", long.provider, 39.83, 66.72)] }),
+    "en", "Europe/Helsinki", "Find me electricity contracts of 12 months or less");
+  eq([some.result?.label, some.result?.value, some.offers?.rows.find((row) => row.isBest)?.provider], ["Estimated saving with Lyhyt Sähkö", "€20 a year", "Lyhyt Sähkö"],
+    "the 12-month offer leads; the 24-month saving is not shown");
+  eq(some.offers?.rows.map((row) => [row.provider, row.meets]), [["Lyhyt Sähkö", true], [long.provider, false]], "the miss is listed apart");
+  const unasked = AnswerPresenter.view(CoachMessage.make("m3", "assistant", { text: "x", research: mixed }), "en", "Europe/Helsinki", "Find me a cheaper deal");
+  eq(unasked.offers?.rows.find((row) => row.isBest)?.provider, long.provider, "nothing asked, nothing judged");
+  const stated = research([long], { requirements: { minContractMonths: 24 }, matchingCount: 1 });
+  eq(AskedRequirements.apply(stated, "12 months or less"), stated, "the backend's own requirements stand");
+});
+
+group("several bills in one turn: one result, offers per bill (live: €47.76 'With Valoo')", () => {
+  const elec = offer("Vaasan Sähkö Myynti Oy", 24, 47.76);
+  const mobile = offer("Moi", 12, 112.92, { plan: "Moi 5G", energyPriceCentsPerKwh: null });
+  const net = offer("Valoo", 12, 136.32, { plan: "Netti L 1000M", energyPriceCentsPerKwh: null });
+  const tools = [trace("e", "search_offers", { billType: "electricity" }, 4300, "15 offers from 3 pages in 4.3 s"),
+    trace("m", "search_offers", { billType: "mobile" }, 4500, "18 offers"), trace("i", "search_offers", { billType: "internet" }, 4500, "18 offers")];
+  const stages = (order: string[]) => order.flatMap((id) => {
+    const [bill, o, base] = id === "e" ? ["electricity", elec, 39.83] as const : id === "m" ? ["mobile", mobile, 24.83] as const : ["internet", net, 30.36] as const;
+    return [searched(id, bill), read(id, [o]), saving(id, o.provider, base, o.estimatedYearlySavingEur!)];
+  });
+  const text = "The biggest saving is on internet: Valoo Netti L 1000M, about 136 euros a year.";
+  const last = research([net], { billType: "internet", baselineMonthlyEur: 30.36, best: net });
+  const view = AnswerPresenter.view(CoachMessage.make("m", "assistant", { text, research: last, tools, stages: stages(["e", "m", "i"]) }), "en", "Europe/Helsinki", "Find a cheaper plan that meets my needs.");
+  eq([view.result?.value, view.result?.detail], ["€136.32 a year", "With Valoo (Netti L 1000M)"], "value and offer from the same bill");
+  eq(view.offers?.sections.map((section) => [section.title, section.baseline, section.rows.map((row) => row.provider).join()]),
+    [["Electricity offers", "Your bill now: about €40 a month", elec.provider], ["Mobile offers", "Your bill now: about €25 a month", "Moi"], ["Internet offers", "Your bill now: about €30 a month", "Valoo"]],
+    "every bill, each with its own bill now");
+  eq(view.how.map((block) => block.title), ["Saving with Vaasan Sähkö Myynti Oy", "Saving with Moi", "Saving with Valoo"], "every bill's working");
+  eq(view.how[2].lines.map((line) => line.label), ["Your bill per month"], "the result's own total is not repeated");
+  const electricityLast = research([elec], { billType: "electricity", best: elec });
+  const reordered = AnswerPresenter.view(CoachMessage.make("m", "assistant", { text, research: electricityLast, tools, stages: stages(["i", "m", "e"]) }), "en");
+  eq([reordered.result?.value, reordered.result?.detail], ["€136.32 a year", "With Valoo (Netti L 1000M)"], "the largest saving leads whichever bill came last");
+});
+
+group("transfers are worded as transfers (live: '€50 a month freed')", () => {
+  const action = (kind: string, amount: number, status = "executed_simulated"): AgentAction => ({ id: kind, kind, status, simulated: true, title: "t", summary: "s",
+    checklist: ["a", "b", "c"], monthlyAmountEur: amount, facts: [], sources: [], assumptions: [], expiresAt: "2026-11-15T12:00:00Z", destination: kind === "switch_contract" ? null : "savings" });
+  const once = ActionPresenter.card(action("one_off_transfer", 50), "en", "Europe/Helsinki");
+  eq([once.monthly, once.amountNote, once.statusSentence, once.simulatedTag, once.checklistLabel, once.approvedLine],
+    ["€50", "to your savings", "Approved. Simulated, no money moved.", "Simulated, no money moves", "What a real transfer takes (3 steps)", "€50 to your savings. Simulated, no money moved."], "one-off");
+  eq(ActionPresenter.card(action("standing_transfer", 50), "en").approvedLine, "€50 a month to your savings. Simulated, no money moved.", "standing");
+  const sw = ActionPresenter.card(action("switch_contract", 2.01), "en");
+  eq([sw.monthly, sw.statusSentence, sw.checklistLabel, sw.approvedLine], ["€2.01 a month", "Approved. Simulated, no real switch was made.", "What a real switch takes (3 steps)",
+    "€2.01 a month freed. Simulated, no real switch."], "switch");
+});
+
+group("peer comparisons carry the synthetic label (live: 'people your age')", () => {
+  const fact = (id: string, label: string, value: number, unit = "EUR"): Fact => ({ id, label, value, unit, source: "bank-data", basis: "ages 18-24" });
+  const grounding = { ok: true, checked: 1, unverified: [], numbers: [{ value: 419, status: "receipt", factId: "overview:peers" }], corrections: [] };
+  const peers = AnswerPresenter.view(CoachMessage.make("m", "assistant", { text: "Your peer group is 419 customers aged 18-24.", grounding, facts: [fact("overview:peers", "Customers in the same age band", 419, "count")] }), "en");
+  eq(peers.tags.map((tag) => tag.kind), ["bank", "synthetic"], "synthetic tag in Sources");
+  eq(peers.how.map((block) => [block.title, block.lines.map((line) => [line.label, line.value, line.detail])]),
+    [["Figures behind this answer", [["Customers in the same age band", "419", "ages 18-24"]]]], "an answer without a calculation shows its figures");
+  const plain = AnswerPresenter.view(CoachMessage.make("m", "assistant", { text: "Your balance is 1220.35 euros.", facts: [fact("overview:balance", "Balance", 1220.35), fact("overview:peers", "Customers in the same age band", 419)] }), "en");
+  eq([plain.tags.some((tag) => tag.kind === "synthetic"), plain.how[0]?.lines.map((line) => line.label)], [false, ["Balance"]], "unused peer facts add no tag; a figure the text never says is left out");
+});
+
+group("each number said once; readable working", () => {
+  const budget: Stage = { id: "c", kind: "calculation", title: "Estimated weekly budget until payday", summary: "About €134 a week until 2026-10-15", source: "calculation", toolCallId: "p", atMs: 0, facts: [],
+    data: { kind: "calculation", resultLabel: "Estimated weekly budget", resultValue: 133.82, unit: "EUR", assumptions: ["Payday is expected on 2026-10-15."],
+      steps: [{ label: "Balance today", amount: 1220.35, basis: "on 2026-09-30" }, { label: "Estimated weekly budget", amount: 133.82, basis: "divided by 2.14 weeks" },
+        { label: "If you spend as usual: balance just before payday", amount: 177.12, basis: "after usual spending" }] } };
+  const steps = [{ ...CoachStep.make("p", "Working out your balance from now until payday"), done: true, tookMs: 1, result: "Next payday 2026-10-15; expected balance just before it €177.12; estimated weekly budget €133.82" }];
+  const view = AnswerPresenter.view(CoachMessage.make("m", "assistant", { text: "Your estimated weekly budget is about 133.82 euros.", stages: [budget], steps,
+    tools: [trace("p", "get_cash_flow", {}, 1, "")] }), "en");
+  eq([view.result?.value, view.result?.detail], ["€133.82", null], "a summary that says the result rounded is left out");
+  eq(view.how[0].lines.map((line) => line.label), ["Balance today", "If you spend as usual: balance just before payday"], "the result step goes wherever it stands");
+  eq([view.steps[0].label, view.steps[0].result], ["Worked out your balance from now until payday", null], "past tense; a tool line that only repeats numbers is left out");
+  eq(view.assumptions, ["Payday is expected on 15 Oct 2026."], "readable assumptions");
+  eq([CardText.humanize("€2010.63 on Restaurants"), CardText.humanize("about 1220.35 euros, then -22.88 euros"), CardText.humanize("Utilities in 2026-09"), CardText.humanize("1,783.33 euros")],
+    ["€2,010.63 on Restaurants", "about €1,220.35, then −€22.88", "Utilities in Sep 2026", "€1,783.33"], "amounts and months");
+  eq([CardText.words("Must-pay costs in a month"), CardText.words("regular plus now-and-then baskets"), CardText.words("Safe to spend per week")],
+    ["Essential costs in a month", "regular plus occasional essentials", "Weekly room in an average month"], "the app's words");
+  eq(GroundingPresenter.line({ ok: true, checked: 1, unverified: [], numbers: [], corrections: [] })?.text, "1 number has a source", "badge wording");
+});
+
+group("fees and reused results", () => {
+  const stated = offer("A", 12, 24, { setupFeeEur: null, monthlyPriceEur: 3.9 });
+  eq([OfferPresenter.feesUnknown(stated), OfferPresenter.row(stated).saving, OfferPresenter.row(stated).fees], [false, "About €24 less a year", "Base fee €3.90 a month · Setup fee unknown"],
+    "electricity: an unstated setup fee is shown as unknown but does not make the saving incomplete");
+  eq(OfferPresenter.feesUnknown(offer("B", 12, 24, { monthlyPriceEur: null })), true, "a missing base fee does");
+  eq(OfferPresenter.feesUnknown(offer("C", 12, 24, { energyPriceCentsPerKwh: null, setupFeeEur: null })), true, "another bill spreads its setup fee: unknown, incomplete");
+  const step = { ...CoachStep.make("s", "Searching today's electricity offers with Exa and reading the pages with Context.dev"), done: true, tookMs: 0, result: "3 offers from 1 page in 0.9 s" };
+  const message = CoachMessage.make("m", "assistant", { steps: [step], tools: [trace("s", "search_offers", { billType: "electricity" }, 0, step.result)], stages: [searched("s", "electricity", "2026-11-15T00:43:07Z")] });
+  eq(StepPresenter.rows(message, "en", "Europe/Helsinki").map((row) => [row.label, row.result, row.duration]),
+    [["Searched today's electricity offers with Exa and read the pages with Context.dev", "3 offers from 1 page · reused results from 02:43", null]], "one honest time");
+  const fresh = { ...step, tookMs: 3671, result: "15 offers from 3 pages in 3.6 s; best saves €67 a year" };
+  const live = CoachMessage.make("m", "assistant", { steps: [fresh], tools: [trace("s", "search_offers", { billType: "electricity" }, 3671, fresh.result)] });
+  eq(StepPresenter.rows(live, "en").map((row) => [row.result, row.duration]), [["15 offers from 3 pages; best saves €67 a year", "3.7 s"]], "a fresh search: its own duration once");
 });
 
 console.log(`\n${passes} passed, ${failures} failed`);
