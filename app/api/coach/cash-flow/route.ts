@@ -13,6 +13,6 @@ export const GET = withVisitor(async function GET(request: Request) {
   const raw = context.params.get("bufferEur");
   const bufferEur = raw === null || raw.trim() === "" ? null : parseBuffer(Number(raw));
   if (raw !== null && raw.trim() !== "" && bufferEur === null) return Response.json({ error: "bufferEur must be a number of euros between 0 and 100000." }, { status: 400 });
-  const cashFlow = bufferEur === null ? context.cashFlow : buildCashFlow(context.overview, { bufferEur });
+  const cashFlow = bufferEur === null ? context.cashFlow : buildCashFlow(context.overview, { bufferEur, bufferFrom: "app" }); // the app sends the buffer set on Today or in Settings
   return Response.json({ ...cashFlow, currency: "EUR" });
 });

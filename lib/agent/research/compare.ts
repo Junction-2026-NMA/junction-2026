@@ -1,6 +1,6 @@
 // Turns shared market data into one customer's comparison. All arithmetic lives here, never in the model.
 import type { BillType, Offer, OfferRequirements, ResearchResult } from "@/lib/types";
-import { isSpotOffer, missesFor, requirementsText } from "./requirements";
+import { isSeasonalOffer, isSpotOffer, missesFor, requirementsText } from "./requirements";
 import type { RawOffer, RawResearch } from "./types";
 
 // Used only when the customer has no bill to estimate from.
@@ -27,13 +27,29 @@ function feesUnknown(offer: RawOffer, billType: BillType): boolean {
   return billType === "electricity" ? offer.monthlyPriceEur === null : offer.setupFeeEur === null;
 }
 
-// Can this offer's price be compared fairly? A spot contract's listed price is only the margin on top
-// of a market price that changes hourly, so it cannot.
+// Can this offer's price be compared fairly? A spot contract's listed price is only the margin on top of a market
+// price that changes hourly, so it cannot. Nor can a seasonal or day/night contract: its cost depends on when the
+// electricity is used, which the bank data does not show, and pricing it at one of its rates makes it look cheaper
+// (or dearer) than it is.
 function isComparable(offer: RawOffer, billType: BillType): boolean {
   if (billType === "electricity") {
-    return !isSpot(offer) && offer.energyPriceCentsPerKwh !== null && within(offer.energyPriceCentsPerKwh, PLAUSIBLE_CENTS_PER_KWH);
+    return !isSpot(offer) && !isSeasonalOffer(offer) && offer.energyPriceCentsPerKwh !== null && within(offer.energyPriceCentsPerKwh, PLAUSIBLE_CENTS_PER_KWH);
   }
   return offer.monthlyPriceEur !== null && within(offer.monthlyPriceEur, PLAUSIBLE_MONTHLY_EUR);
+}
+
+const cents = (value: number | null | undefined): string | null => (typeof value === "number" ? `${value} c/kWh` : null);
+
+// Why an offer is listed but not ranked, in words for its card. Null when it is ranked.
+function notComparableReason(offer: RawOffer, billType: BillType): string | null {
+  if (isComparable(offer, billType)) return null;
+  if (billType !== "electricity") return "The page does not state a monthly price that can be compared.";
+  if (isSpot(offer)) return "Spot price: it changes every hour, so it is listed but not ranked.";
+  if (isSeasonalOffer(offer)) {
+    const prices = [cents(offer.winterPriceCentsPerKwh) && `winter ${cents(offer.winterPriceCentsPerKwh)}`, cents(offer.otherPriceCentsPerKwh) && `other times ${cents(offer.otherPriceCentsPerKwh)}`].filter(Boolean).join(", ");
+    return `Seasonal price, not comparable${prices ? ` (${prices})` : ""}: its cost depends on when you use electricity, so it is listed but not ranked.`;
+  }
+  return "The page does not state an energy price that can be compared.";
 }
 
 function monthlyCost(offer: RawOffer, billType: BillType, yearlyKwh: number): number | null {
@@ -122,7 +138,7 @@ export function toResult(raw: RawResearch, baselineMonthlyEur: number | null, st
       const cost = monthlyCost(offer, raw.billType, usage?.yearlyKwh ?? 0);
       const saving = cost !== null && compareAgainst !== null ? round2((compareAgainst - cost) * 12) : null;
       const misses = missesFor(offer, requirements, cost);
-      return { ...offer, comparable: cost !== null, estimatedMonthlyCostEur: cost, estimatedYearlySavingEur: saving, meetsRequirements: misses.length === 0, misses, feesUnknown: feesUnknown(offer, raw.billType) };
+      return { ...offer, comparable: cost !== null, estimatedMonthlyCostEur: cost, estimatedYearlySavingEur: saving, meetsRequirements: misses.length === 0, misses, feesUnknown: feesUnknown(offer, raw.billType), notComparableReason: notComparableReason(offer, raw.billType) };
     })
     // Offers that meet the requirements come first, each group cheapest first.
     .sort((a, b) => Number(b.meetsRequirements) - Number(a.meetsRequirements) || (a.estimatedMonthlyCostEur ?? Infinity) - (b.estimatedMonthlyCostEur ?? Infinity));
@@ -155,6 +171,7 @@ export function toResult(raw: RawResearch, baselineMonthlyEur: number | null, st
     citations: raw.citations,
     assumptions: [
       ...assumptionsFor(raw.billType, baselineMonthlyEur, usage, energyPart),
+      ...(raw.billType === "electricity" && unique.some(isSeasonalOffer) ? ["Seasonal and day/night contracts are listed but not ranked: their cost depends on when you use electricity, which your bank data does not show."] : []),
       ...(stated ? [`Only offers that meet what you asked for (${stated}) can be the best offer. An offer whose page does not state one of these counts as not meeting it.`] : []),
       ...(best?.feesUnknown ? [`${best.provider}'s page does not state its ${raw.billType === "electricity" ? "monthly fee" : "setup fee"}, so the cost leaves it out and the saving is incomplete: the real saving is likely smaller.`] : []),
     ],

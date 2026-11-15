@@ -7,7 +7,8 @@ export type ToolContext = {
   overview: Overview;
   city: string;
   memory: CustomerMemory;
-  cashFlow: () => CashFlow; // worked out on first use
+  cashFlow: () => CashFlow; // worked out on first use, with the buffer below when the customer set one
+  bufferEur?: number | null; // the protected buffer the customer set in the app (Today or Settings); null or missing = none set, the default is assumed
   userTexts: string[]; // what the user has actually said this conversation; used to check "remember" requests
   sisuTexts: string[]; // what Sisu said earlier in this conversation (answers that already passed the number check)
   signal?: AbortSignal;

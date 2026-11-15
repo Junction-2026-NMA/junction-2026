@@ -24,8 +24,14 @@ function placeCorrect(seed: string, correct: string, candidates: string[], why: 
 type FollowUpDraft = { question: string; correct: string; wrong: string[]; reveal: string };
 type Draft = Omit<TeachingCard, "id" | "concept" | "options" | "correctIndex" | "whyWrong" | "followUp"> & { correct: string; wrong: string[]; why: { correct: string; wrong: string[] }; followUp: FollowUpDraft };
 
-// "That is more than…" / "That is less than…", so a wrong guess hears which way it was off, kindly.
-const direction = (guess: number, actual: number, unit: string): string => (guess > actual ? `Not quite: that is more than the real ${unit}.` : `Close, but the real ${unit} is higher than that.`);
+// "That is more than…" / "The real one is higher…", so a wrong guess hears which way it was off, kindly and accurately:
+// "Close" only for a guess within about a fifth of the real figure, never for one that is half or double it.
+const CLOSE_WITHIN = 0.2;
+export function direction(guess: number, actual: number, unit: string): string {
+  const close = Math.abs(guess - actual) <= Math.abs(actual) * CLOSE_WITHIN;
+  if (guess > actual) return close ? `Close, but that is more than the real ${unit}.` : `Not quite: that is more than the real ${unit}.`;
+  return close ? `Close, but the real ${unit} is higher than that.` : `Not quite: the real ${unit} is higher than that.`;
+}
 
 function draftFor(concept: ConceptId, o: Overview): Draft {
   const window = { from: o.windowFrom, to: o.windowTo };
@@ -175,7 +181,7 @@ function draftFor(concept: ConceptId, o: Overview): Draft {
         question: `Your ${bills.length} monthly bills arrive one at a time. What do you think they add up to in a year?`,
         correct: `About ${euros(yearly)}`,
         wrong: [`About ${euros(yearly * 0.5)}`, `About ${euros(yearly * 1.7)}`],
-        why: { correct: `Yes: about ${euros(yearly)} a year.`, wrong: ["Close, but one bill at a time hides the total: it is more than that.", "Not quite: that is more than your bills add up to."] },
+        why: { correct: `Yes: about ${euros(yearly)} a year.`, wrong: ["Not quite: one bill at a time hides the total, and it is more than that.", "Not quite: that is more than your bills add up to."] },
         followUp: {
           question: "When is usually the best time to compare a fixed-term contract?",
           correct: "A month or two before the term ends",

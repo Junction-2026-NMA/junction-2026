@@ -44,9 +44,10 @@ export const POST = withVisitor(async function POST(request: Request) {
     }
   })();
   // The text is filled in after transcription; a placeholder lets the same validation run now.
-  const parsed = parseAgentRequest({ customerId: form?.get("customerId"), text: "voice", history, focusBill: form?.get("focusBill") }, "voice");
+  // bufferEur: the protected buffer the customer set in the app, so Sisu's weekly budget matches Today's.
+  const parsed = parseAgentRequest({ customerId: form?.get("customerId"), text: "voice", history, focusBill: form?.get("focusBill"), bufferEur: form?.get("bufferEur") }, "voice");
   if (typeof parsed === "string") return jsonError(parsed, 400);
-  const { customerId, history: turns, focusBill } = parsed;
+  const { customerId, history: turns, focusBill, bufferEur } = parsed;
   const spoken = typeof form?.get("language") === "string" ? String(form?.get("language")) : AUTO;
-  return eventStream(voiceTurn(audio, { customerId, mode: "voice", history: turns, focusBill }, spoken, request.signal));
+  return eventStream(voiceTurn(audio, { customerId, mode: "voice", history: turns, focusBill, ...(bufferEur === undefined ? {} : { bufferEur }) }, spoken, request.signal));
 });

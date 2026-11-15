@@ -28,6 +28,25 @@ describe("offer comparison: the arithmetic is honest", () => {
     assert.ok(result.offers.filter((o) => !o.comparable).every((o) => o.estimatedYearlySavingEur === null));
   });
 
+  // Regression: QA on the hosted demo, 15 Nov. Pohjois-Karjalan Sähkö's seasonal contract ("Kausisähkö · Talvi 12,46
+  // c/kWh · Muu aika 8,82 c/kWh") was priced at its off-season rate alone and shown as the "Best match" saving.
+  it("never ranks a seasonal or day/night contract at one of its rates, and says why", () => {
+    const seasonal = offer({ provider: "Pohjois-Karjalan Sähkö Oy", plan: "Optimi takuu 24 kuukautta", contractType: "fixed", contractMonths: 24, monthlyPriceEur: 0, energyPriceCentsPerKwh: 8.82, winterPriceCentsPerKwh: 12.46, otherPriceCentsPerKwh: 8.82 });
+    const named = offer({ provider: "Kausi Oy", plan: "Kausisähkö 12 kk", contractMonths: 12, monthlyPriceEur: 2, energyPriceCentsPerKwh: 6 });
+    const dayNight = offer({ provider: "Yö Oy", contractType: "time-of-day", monthlyPriceEur: 2, energyPriceCentsPerKwh: 5 });
+    const result = toResult(raw([seasonal, named, dayNight, offer({ provider: "Plain", energyPriceCentsPerKwh: 9.5, monthlyPriceEur: 3 })]), 39.83, 2_000);
+    assert.equal(result.best?.provider, "Plain");
+    const unranked = result.offers.filter((o) => !o.comparable);
+    assert.deepEqual(unranked.map((o) => o.provider).sort(), ["Kausi Oy", "Pohjois-Karjalan Sähkö Oy", "Yö Oy"]);
+    assert.ok(unranked.every((o) => o.estimatedMonthlyCostEur === null && o.estimatedYearlySavingEur === null));
+    assert.equal(unranked.find((o) => o.provider === "Pohjois-Karjalan Sähkö Oy")?.notComparableReason, "Seasonal price, not comparable (winter 12.46 c/kWh, other times 8.82 c/kWh): its cost depends on when you use electricity, so it is listed but not ranked.");
+    assert.match(unranked.find((o) => o.provider === "Kausi Oy")?.notComparableReason ?? "", /^Seasonal price, not comparable:/);
+    assert.ok(result.assumptions.some((line) => /Seasonal and day\/night contracts are listed but not ranked/.test(line)));
+    assert.equal(result.offers.find((o) => o.provider === "Plain")?.notComparableReason, null);
+    // With nothing else to rank, there is no best offer: never a seasonal one.
+    assert.equal(toResult(raw([seasonal]), 39.83, 2_000).best, null);
+  });
+
   it("ignores prices that cannot be real instead of calling them a bargain", () => {
     const result = toResult(raw([offer({ provider: "Typo", energyPriceCentsPerKwh: 0.01 }), offer({ provider: "Absurd", energyPriceCentsPerKwh: 900 }), offer({ provider: "Negative", energyPriceCentsPerKwh: -4 }), offer({ provider: "NoPrice", energyPriceCentsPerKwh: null }), offer({ provider: "Real", energyPriceCentsPerKwh: 8 })]), 40);
     assert.deepEqual(result.offers.filter((o) => o.comparable).map((o) => o.provider), ["Real"]);
