@@ -113,16 +113,27 @@ export interface OfferRow {
   plan: string;
   /** `€3.90 a month + 8.9 c/kWh`, one of the two, or `not stated`. */
   price: string;
+  /** `8.9 c/kWh` for an electricity offer; null otherwise. */
+  energy: string | null;
   /** `24 months`, or `not stated`. */
   contract: string;
-  /** `About €38 a month`, or `not stated`. */
+  /** `About €38 a month` (the cost the answer and the saving use), or `Cost not estimated`. */
   estimatedMonthlyCost: string;
   /** From the server's `estimatedYearlySavingEur`, never recomputed. */
   saving: string;
   /** False for offers whose price cannot be compared fairly: show them, do not rank them. */
   comparable: boolean;
+  /** Never true for an offer that does not meet the user's requirements. */
   isBest: boolean;
   sourceUrl: string;
+  /** Whether it meets the user's requirements: null when the backend did not say. */
+  meets: boolean | null;
+  /** Why it does not meet them, as the backend said. */
+  misses: string[];
+  /** True when a fee was not stated: the cost leaves it out, so the saving is incomplete. */
+  feesUnknown: boolean;
+  /** `Base fee €3.90 a month · Setup fee unknown`, or `Fees unknown`. Never a made-up €0. */
+  fees: string;
 }
 
 export namespace OfferPresenter {
@@ -137,7 +148,44 @@ export namespace OfferPresenter {
     }
     const saving = offer.estimatedYearlySavingEur;
     if (saving == null || !Number.isFinite(saving)) return CoachText.notStated(language);
-    return yearly(saving, language);
+    return feesUnknown(offer) ? yearly(saving, language) + pick(language, " · incomplete", " · vajaa") : yearly(saving, language);
+  }
+
+  /** Whether the offer meets the user's requirements: null when the backend did not say. */
+  export function qualifies(offer: Offer): boolean | null {
+    const flag = offer.meetsRequirements ?? offer.matchesRequirements;
+    return typeof flag === "boolean" ? flag : null;
+  }
+
+  /** The backend's reasons an offer misses the requirements (strings only). */
+  export function misses(offer: Offer): string[] {
+    return Array.isArray(offer.misses) ? offer.misses.filter((one): one is string => typeof one === "string" && one.trim() !== "") : [];
+  }
+
+  /** True when a fee the cost depends on was not stated (the server then counts it as nothing). */
+  export function feesUnknown(offer: Offer): boolean {
+    if (offer.feesKnown === false) return true;
+    if (offer.feesKnown === true) return false;
+    return offer.monthlyPriceEur == null || offer.setupFeeEur == null;
+  }
+
+  /** The fees as stated: `Base fee €3.90 a month · Setup fee unknown`, `No setup fee`, or `Fees unknown`. */
+  export function fees(offer: Offer, language: SisuLanguage = "en"): string {
+    const monthlyFee = offer.monthlyPriceEur;
+    const setup = offer.setupFeeEur;
+    if (monthlyFee == null && setup == null) return pick(language, "Fees unknown", "Maksut eivät tiedossa");
+    const isEnergy = offer.energyPriceCentsPerKwh != null;
+    const parts: string[] = [];
+    if (monthlyFee != null) {
+      const amount = Money.format(monthlyFee, language, monthlyFee !== roundAway(monthlyFee)) + monthly(language);
+      parts.push(isEnergy ? pick(language, "Base fee ", "Perusmaksu ") + amount : amount);
+    } else {
+      parts.push(pick(language, "Monthly fee unknown", "Kuukausimaksu ei tiedossa"));
+    }
+    if (setup == null) parts.push(pick(language, "Setup fee unknown", "Avausmaksu ei tiedossa"));
+    else if (setup === 0) parts.push(pick(language, "No setup fee", "Ei avausmaksua"));
+    else parts.push(pick(language, "Setup fee ", "Avausmaksu ") + Money.format(setup, language, setup !== roundAway(setup)));
+    return parts.join(" · ");
   }
 
   /** `About €24 less a year` for a positive yearly saving, `About €24 more a year` for a negative one. */
@@ -157,31 +205,79 @@ export namespace OfferPresenter {
     if (offer.energyPriceCentsPerKwh != null) priceParts.push(CoachText.number(offer.energyPriceCentsPerKwh, 2, language) + " c/kWh");
     const contract = offer.contractMonths != null ? CoachText.value(offer.contractMonths, "months", language) : CoachText.notStated(language);
     const cost = offer.estimatedMonthlyCostEur != null
-      ? pick(language, "About ", "Noin ") + Money.format(offer.estimatedMonthlyCostEur, language) + monthly(language)
-      : CoachText.notStated(language);
+      ? pick(language, "About ", "Noin ") + Money.format(offer.estimatedMonthlyCostEur, language, offer.estimatedMonthlyCostEur !== roundAway(offer.estimatedMonthlyCostEur)) + monthly(language)
+      : pick(language, "Cost not estimated", "Hintaa ei arvioitu");
+    const meets = qualifies(offer);
     return {
       id: offer.provider + "|" + (offer.plan ?? ""),
       provider: offer.provider,
       plan: offer.plan ?? CoachText.notStated(language),
       price: priceParts.length === 0 ? CoachText.notStated(language) : priceParts.join(" + "),
+      energy: offer.energyPriceCentsPerKwh != null ? CoachText.number(offer.energyPriceCentsPerKwh, 2, language) + " c/kWh" : null,
       contract,
       estimatedMonthlyCost: cost,
       saving: savingText(offer, language),
       comparable: offer.comparable,
-      isBest,
+      isBest: isBest && meets !== false,
       sourceUrl: offer.sourceUrl,
+      meets,
+      misses: misses(offer),
+      feesUnknown: feesUnknown(offer),
+      fees: fees(offer, language),
     };
   }
 
-  /** The offer table, in the server's order. The best offer is flagged. */
-  export function rows(research: ResearchResult, language: SisuLanguage = "en"): OfferRow[] {
-    return research.offers.map((offer) => row(offer, research.best != null && jsonEqual(research.best, offer), language));
+  /** The offer table, in the server's order, offers that meet the requirements first when the backend says which do.
+   *  The best offer is flagged, unless nothing meets the requirements (`noMatch`). */
+  export function rows(research: ResearchResult, language: SisuLanguage = "en", noMatch = false): OfferRow[] {
+    const all = research.offers.map((offer) => row(offer, !noMatch && research.best != null && jsonEqual(research.best, offer), language));
+    return [...all.filter((one) => one.meets !== false), ...all.filter((one) => one.meets === false)];
+  }
+
+  /** True when no offer meets the user's requirements: the backend says so (`noMatch`, `matchingCount` 0, or
+   *  every offer marked as not meeting them), or the answer's own text says none qualifies. */
+  export function noMatch(research: ResearchResult, answerText = ""): boolean {
+    if (research.noMatch === true) return true;
+    const flags = research.offers.map(qualifies);
+    const flagged = flags.some((flag) => flag !== null);
+    if (research.matchingCount === 0 && (research.requirements != null || flagged)) return true;
+    if (flagged && !flags.some((flag) => flag === true)) return true;
+    return textSaysNoMatch(answerText);
+  }
+
+  /** The answer says that no option meets what the user asked for (the backend's model filters in words only). */
+  export function textSaysNoMatch(text: string): boolean {
+    const t = text.toLowerCase().replace(/[’]/g, "'");
+    return /\bno (matching|suitable|qualifying) (options?|offers?|deals?|plans?|contracts?)\b/.test(t)
+      || /\bnone of (them|these|those|the (offers?|options?|deals?|plans?|contracts?))\b[^.]*\b(meets?|match(es)?|qualif|fits?)/.test(t)
+      || /\b(none|no (offer|option|deal|plan|contract)s?) (meets?|match(es)?|qualif|fits?)/.test(t)
+      || /\bei (yhtään )?sopiv/.test(t);
+  }
+
+  /** `You asked for: a contract of 12 months or less, a fixed price.` from the requirements the backend sent; null
+   *  when there are none it can name. */
+  export function requirementText(research: ResearchResult, language: SisuLanguage = "en"): string | null {
+    const req = research.requirements;
+    if (req == null || typeof req !== "object") return null;
+    const parts: string[] = [];
+    const num = (key: string) => (typeof req[key] === "number" && Number.isFinite(req[key]) ? (req[key] as number) : null);
+    const max = num("maxContractMonths"), min = num("minContractMonths"), fee = num("maxMonthlyFeeEur");
+    if (max != null) parts.push(pick(language, `a contract of ${max} months or less`, `enintään ${max} kk sopimus`));
+    if (min != null) parts.push(pick(language, `a contract of at least ${min} months`, `vähintään ${min} kk sopimus`));
+    if (req.contractType === "fixed") parts.push(pick(language, "a fixed price", "kiinteä hinta"));
+    if (req.contractType === "spot") parts.push(pick(language, "a spot price", "pörssihinta"));
+    if (fee != null) parts.push(pick(language, `a monthly fee of ${Money.format(fee, language, fee !== roundAway(fee))} or less`, `kuukausimaksu enintään ${Money.format(fee, language, true)}`));
+    if (req.noSetupFee === true) parts.push(pick(language, "no setup fee", "ei avausmaksua"));
+    if (req.greenEnergy === true) parts.push(pick(language, "green energy", "vihreä sähkö"));
+    return parts.length === 0 ? null : pick(language, "You asked for ", "Toiveesi: ") + parts.join(", ") + ".";
   }
 
   /** `About €24 less a year with Example Energia`, or `Nothing cheaper today`. */
-  export function headline(research: ResearchResult, language: SisuLanguage = "en"): string {
+  export function headline(research: ResearchResult, language: SisuLanguage = "en", noMatching = false): string {
+    if (noMatching) return pick(language, "No matching options found", "Ei sopivia vaihtoehtoja");
     const best = research.best;
     const saving = best?.estimatedYearlySavingEur;
+    if (best != null && qualifies(best) === false) return pick(language, "Nothing cheaper that meets your requirements", "Ei halvempaa, joka täyttää toiveesi");
     if (best == null || saving == null || !(roundAway(saving) > 0)) return pick(language, "Nothing cheaper today", "Ei halvempaa tänään");
     return yearly(saving, language) + pick(language, ` with ${best.provider}`, ` – ${best.provider}`);
   }

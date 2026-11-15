@@ -1,31 +1,32 @@
 "use client";
-// The cards of one answer from Sisu: the text, the live research stage, the stage cards in arrival order, the offer
-// table, the quiz, the approval card, the grounding line and the "How Sisu worked this out" drawer. Port of
-// AssistantAnswer in AskCards.swift. Every figure and sentence comes from the payload or a SisuCore presenter.
-// Web additions (the session fills them, the iOS screen does not draw them yet): the steps list and the agent's
-// charts (`visuals`), and the TypingDots beside "Sisu is thinking…".
-import type { AgentAction } from "@/web/core/CoachModels";
-import { GroundingPresenter, StagePresenter } from "@/web/core/CoachPresentation";
+// One answer from Sisu, short by default (rework of 15 Nov): the answer card holds the text, then ONE result with
+// the most useful number, then the details closed (offers compared, how it was worked out, assumptions, sources),
+// each figure said once. While the answer is on its way the live research stage and the steps show under it.
+// Charts that say more than the card, the quiz and the approval cards stay open, since they need a look or a tap.
+// Every figure and sentence comes from the payload through AnswerPresenter / SisuCore presenters.
+import { useMemo } from "react";
+import type { AgentAction, TeachingCard } from "@/web/core/CoachModels";
+import { AnswerPresenter, CardText, messageActions } from "@/web/core/AnswerPresentation";
+import { StagePresenter } from "@/web/core/CoachPresentation";
 import type { CoachMessage } from "@/web/core/CoachSession";
-import type { Visual } from "@/web/core/PlanModels";
 import { RiveBindings } from "@/web/core/RiveContract";
 import { RiveComponent } from "@/web/rive/RiveComponent";
 import { SisuButton, SisuCard, SisuMotion, riveAccessible } from "@/web/shared/SisuStyle";
 import { useReducedMotion } from "@/web/theme/motion";
 import { ActionCard } from "./ActionCard";
-import { MemoryCard } from "./CardParts";
+import { AnswerDetails } from "./AnswerDetails";
+import { MemoryLine } from "./CardParts";
 import { ChartCard } from "./ChartCard";
-import { ResearchCard } from "./Offers";
 import { QuizCard } from "./QuizCard";
-import { StageView } from "./StageView";
+import { ResultLine } from "./ResultLine";
 import { StepsCard } from "./StepsCard";
-import { TraceDrawer } from "./TraceDrawer";
+import "./answer.css";
 
 const language = "en";
 
 export function AssistantAnswer({ message, actions, retry, isNew }: {
   message: CoachMessage;
-  /** The session's actions, newest copy of each (an action stage shows the newest). */
+  /** The session's actions, newest copy of each (an action card shows the newest). */
   actions: readonly AgentAction[];
   /** Asks the question again; null when there is no question to repeat (an unheard voice turn). */
   retry: (() => void) | null;
@@ -34,67 +35,65 @@ export function AssistantAnswer({ message, actions, retry, isNew }: {
 }) {
   const reduceMotion = useReducedMotion();
   const enter = (id: string) => (isNew(id) ? SisuMotion.entrance(reduceMotion) : undefined);
-  const kinds = new Set(message.stages.map((stage) => String(stage.kind)));
+  const view = useMemo(() => AnswerPresenter.view(message, language), [message]);
   const stage = message.pending ? StagePresenter.researchStage(message) : null;
-  const teaching = message.teaching;
-  const action = message.action;
   const anchor = (suffix: string) => `${message.id}-${suffix}`;
+  const teaching = teachingCard(message);
+  const own = messageActions(message).map((action) => actions.find((one) => one.id === action.id) ?? action);
+  const remembered = [
+    ...message.stages.flatMap((one) => (one.data.kind === "memory" ? [one.data.item] : [])),
+    ...message.remembered,
+  ].filter((item, index, all) => all.findIndex((other) => other.id === item.id) === index);
 
   return (
     <div className="sisu-ask-answer">
-      <TextCard message={message} retry={retry} />
+      <SisuCard>
+        <AnswerText message={message} retry={retry} />
+        {view.result ? (
+          <div data-anchor={anchor("result")} className={enter(`${message.id}/result`)}>
+            <ResultLine result={view.result} />
+          </div>
+        ) : null}
+        {!message.pending ? <div data-anchor={anchor("details")}><AnswerDetails view={view} /></div> : null}
+      </SisuCard>
       {stage != null && stage !== "done" ? (
         <div data-anchor={anchor("indicator")}>
           <RiveComponent component="StageIndicator" values={RiveBindings.stageIndicator(stage, language)}
             {...riveAccessible(RiveBindings.stageLabel(stage, language))} />
         </div>
       ) : null}
-      <StepsCard message={message} />
-      {message.stages.map((one) => (
-        <div key={one.id} data-anchor={anchor(String(one.kind))} className={enter(`${message.id}/${one.id}`)}>
-          <StageView stage={one} message={message} actions={actions} />
-        </div>
-      ))}
-      {extraVisuals(message, kinds).map((visual) => (
+      {message.pending ? <StepsCard message={message} /> : null}
+      {view.visuals.map((visual) => (
         <div key={visual.id} data-anchor={anchor(`visual-${visual.id}`)} className={enter(`${message.id}/visual/${visual.id}`)}>
           <ChartCard visual={visual} />
         </div>
       ))}
-      {message.research && !kinds.has("extraction") ? (
-        <div data-anchor={anchor("offers")}><ResearchCard research={message.research} /></div>
+      {teaching ? (
+        <div data-anchor={anchor("quiz")} className={enter(`${message.id}/quiz`)}><QuizCard card={teaching} /></div>
       ) : null}
-      {teaching && !message.stages.some((one) => one.data.kind === "teaching" && one.data.card.id === teaching.id) ? (
-        <div data-anchor={anchor("quiz")}><QuizCard card={teaching} /></div>
-      ) : null}
-      {action && !message.stages.some((one) => one.data.kind === "action" && one.data.action.id === action.id) ? (
-        <div data-anchor={anchor("action")}><ActionCard action={action} /></div>
-      ) : null}
-      {message.remembered.length > 0 && !kinds.has("memory")
-        ? message.remembered.map((item) => <MemoryCard key={item.id} text={item.value} />)
-        : null}
-      {!message.pending ? <Receipts message={message} /> : null}
+      {own.map((action) => (
+        <div key={action.id} data-anchor={anchor("action")} className={enter(`${message.id}/action/${action.id}`)}>
+          <ActionCard action={action} mismatch={view.mismatchedActionIds.includes(action.id)} />
+        </div>
+      ))}
+      {remembered.map((item) => (
+        <div key={item.id} className="sisu-answer-memory"><MemoryLine text={item.value} /></div>
+      ))}
     </div>
   );
 }
 
-/** The agent's charts that say more than the cards already on screen: the offer bars repeat the offer table, the
- *  futures lines the futures card and the waterfall the working, so those are left to the cards iOS draws. */
-function extraVisuals(message: CoachMessage, kinds: Set<string>): Visual[] {
-  return message.visuals.filter((visual) => {
-    switch (visual.content.kind) {
-      case "offerBars": return !kinds.has("extraction") && message.research == null;
-      case "futuresLines": return !kinds.has("impact") && !(message.action?.impact);
-      case "waterfall": return !kinds.has("calculation");
-      default: return true;
-    }
-  });
+/** The quiz of the answer: from a teaching stage, or the `teaching` event. */
+function teachingCard(message: CoachMessage): TeachingCard | null {
+  const staged = message.stages.find((one) => one.data.kind === "teaching");
+  return staged?.data.kind === "teaching" ? staged.data.card : message.teaching;
 }
 
-function TextCard({ message, retry }: { message: CoachMessage; retry: (() => void) | null }) {
+function AnswerText({ message, retry }: { message: CoachMessage; retry: (() => void) | null }) {
   const thinking = message.text === "" && message.pending;
   return (
-    <SisuCard>
-      {message.text !== "" ? <p className="sisu-ask-body-large" data-selectable>{message.text}</p> : null}
+    <>
+      {message.text !== "" ? <p className="sisu-ask-body-large" data-selectable>{CardText.humanize(message.text, language)}</p> : null}
       {thinking ? (
         <div className="sisu-ask-thinking" role="status">
           <span aria-hidden="true" className="sisu-ask-dots">
@@ -112,20 +111,6 @@ function TextCard({ message, retry }: { message: CoachMessage; retry: (() => voi
           {retry ? <SisuButton label="Try again" style="secondary" action={retry} /> : null}
         </>
       ) : null}
-    </SisuCard>
-  );
-}
-
-function Receipts({ message }: { message: CoachMessage }) {
-  const grounding = message.grounding ? GroundingPresenter.line(message.grounding, language) : null;
-  const hasTrace = message.tools.length > 0 || message.citations.length > 0;
-  if (!grounding && !hasTrace) return null;
-  return (
-    <div className="sisu-ask-receipts">
-      {grounding ? (
-        <span className="sisu-ask-label sisu-ask-grounding" data-warning={grounding.isWarning ? "true" : "false"}>{grounding.text}</span>
-      ) : null}
-      {hasTrace ? <TraceDrawer message={message} /> : null}
-    </div>
+    </>
   );
 }

@@ -1,69 +1,67 @@
 "use client";
-// The offer table, the research card of a typed question and the footer under any offer table (assumptions,
-// partial failure and the fetched time). Port of OfferTable, ResearchCard and ResearchFooter in AskCards.swift.
-import type { ResearchResult } from "@/web/core/CoachModels";
-import { OfferPresenter, type OfferRow } from "@/web/core/CoachPresentation";
-import { RiveBindings } from "@/web/core/RiveContract";
-import { RiveComponent } from "@/web/rive/RiveComponent";
-import { Eyebrow, SisuCard, riveAccessible } from "@/web/shared/SisuStyle";
-import { Assumptions, Divider, Footnote, Note } from "./CardParts";
-
-const language = "en";
+// The offers Sisu compared, inside an answer's details: each offer's estimated monthly cost (the figure the answer
+// uses), its contract, energy price and fees as stated (unknown fees say so, never €0), its saving (marked
+// incomplete when a fee is unknown), and whether it meets the user's requirements. "Best match" only ever marks an
+// offer that meets them. Port of OfferTable in AskCards.swift, reworked on 15 Nov.
+import type { AnswerOffers } from "@/web/core/AnswerPresentation";
+import type { OfferRow } from "@/web/core/CoachPresentation";
+import { Footnote, Note, validURL } from "./CardParts";
+import "./answer.css";
 
 export function OfferTable({ rows }: { rows: OfferRow[] }) {
   return (
-    <div className="sisu-ask-offers">
-      {rows.map((row, index) => (
-        <div key={index} className="sisu-ask-offer-wrap">
-          {index > 0 ? <Divider /> : null}
-          <div className="sisu-ask-offer" aria-label={offerLabel(row)} role="group">
-            <div className="sisu-ask-offer-top" aria-hidden="true">
-              <span className="sisu-ask-button-text">{row.provider}</span>
-              <span className={`${row.isBest ? "sisu-ask-button-text" : "sisu-ask-label"} sisu-ask-offer-saving${row.comparable ? "" : " sisu-ask-muted"}`}>
-                {row.saving}
-              </span>
+    <ul className="sisu-answer-offers">
+      {rows.map((row, index) => {
+        const href = validURL(row.sourceUrl);
+        return (
+          <li key={`${row.id}-${index}`} className="sisu-answer-offer" data-meets={row.meets === false ? "false" : "true"} aria-label={offerLabel(row)}>
+            <div className="sisu-answer-offer-top" aria-hidden="true">
+              {href ? (
+                <a className="sisu-ask-label sisu-answer-offer-name" href={href} target="_blank" rel="noopener noreferrer" tabIndex={-1}>{row.provider}</a>
+              ) : <span className="sisu-ask-label sisu-answer-offer-name">{row.provider}</span>}
+              <span className="sisu-ask-label sisu-answer-offer-cost">{row.estimatedMonthlyCost}</span>
             </div>
-            <span className="sisu-ask-caption sisu-ask-muted" aria-hidden="true">{row.plan + " · " + row.price}</span>
-            {row.isBest ? (
-              <RiveComponent component="Tag" values={RiveBindings.tag("Best offer", "neutral")} {...riveAccessible("Best offer")} />
+            <span className="sisu-ask-caption sisu-ask-muted" aria-hidden="true">{`${row.plan} · ${contractText(row)}`}</span>
+            <span className="sisu-ask-caption sisu-ask-muted" aria-hidden="true">{[row.energy, row.fees].filter(Boolean).join(" · ")}</span>
+            <div className="sisu-answer-offer-bottom" aria-hidden="true">
+              <span className={`sisu-ask-caption${row.comparable ? "" : " sisu-ask-muted"}`}>{row.saving}</span>
+              {row.isBest ? <span className="sisu-answer-pill" data-tone="good">Best match</span> : null}
+              {row.meets === false ? <span className="sisu-answer-pill" data-tone="warn">Does not meet your requirements</span> : null}
+            </div>
+            {row.misses.length > 0 ? (
+              <ul className="sisu-answer-misses" aria-hidden="true">
+                {row.misses.map((miss, i) => <li key={i} className="sisu-ask-caption">{miss}</li>)}
+              </ul>
             ) : null}
-          </div>
-        </div>
-      ))}
-    </div>
+            {href ? <a className="sisu-answer-offer-open" href={href} target="_blank" rel="noopener noreferrer">{`Open ${row.provider}'s page`}</a> : null}
+          </li>
+        );
+      })}
+    </ul>
   );
+}
+
+function contractText(row: OfferRow): string {
+  return row.contract === "not stated" ? "contract length not stated" : `${row.contract.replace(/^(\d+) months?$/, "$1-month")} contract`;
 }
 
 function offerLabel(row: OfferRow): string {
-  return [row.provider, row.saving, row.plan + " · " + row.price, row.isBest ? "Best offer" : null].filter(Boolean).join(", ");
+  return [
+    row.provider, row.plan, row.estimatedMonthlyCost, contractText(row), row.energy, row.fees, row.saving,
+    row.isBest ? "Best match" : null, row.meets === false ? "Does not meet your requirements" : null, ...row.misses,
+  ].filter(Boolean).join(", ");
 }
 
-/** Offer research from a typed question (no extraction stage): the headline, the table and its notes. */
-export function ResearchCard({ research }: { research: ResearchResult }) {
-  const baseline = OfferPresenter.baseline(research, language);
+/** Everything about the offers: what was asked for, the bill now, the table and where it was read. */
+export function OffersDetail({ offers }: { offers: AnswerOffers }) {
   return (
-    <SisuCard>
-      <Eyebrow text="Offers Sisu found" />
-      <h3 className="sisu-ask-h3">{OfferPresenter.headline(research, language)}</h3>
-      {baseline ? <p className="sisu-ask-body sisu-ask-muted">{baseline}</p> : null}
-      <OfferTable rows={OfferPresenter.rows(research, language)} />
-      {/* The footer's fetched line already ends in "Mock data" when the server says the offers are examples. */}
-      <ResearchFooter research={research} />
-    </SisuCard>
-  );
-}
-
-/** Assumptions, partial failure and the fetched time, under any offer table. */
-export function ResearchFooter({ research }: { research: ResearchResult }) {
-  const partial = research.status === "partial" || research.status === "failed" || research.errors.length > 0;
-  return (
-    <>
-      {research.best == null ? (
-        <p className="sisu-ask-body">{OfferPresenter.headline(research, language) + ". Your current deal holds up."}</p>
-      ) : null}
-      {partial ? <Note text="Some offer pages could not be read. These are the offers Sisu could check." lines={research.errors} /> : null}
-      <Assumptions items={research.assumptions} />
-      <Footnote text={OfferPresenter.fetchedNote(research, language)} />
-    </>
+    <div className="sisu-answer-section">
+      {offers.requirement ? <p className="sisu-ask-body">{offers.requirement}</p> : null}
+      {offers.baseline ? <p className="sisu-ask-body sisu-ask-muted">{offers.baseline}</p> : null}
+      <OfferTable rows={offers.rows} />
+      {offers.problems.length > 0 ? <Note text="Some pages could not be read, so a few offers may be missing." lines={offers.problems} /> : null}
+      {offers.pagesNote ? <Footnote text={offers.pagesNote} /> : null}
+      {offers.fetched ? <Footnote text={offers.fetched} /> : null}
+    </div>
   );
 }
