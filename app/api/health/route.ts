@@ -44,7 +44,9 @@ export const GET = withVisitor(async function GET() {
       "Transactions never leave the finance engine. The model receives computed totals and a few selected facts, never the raw rows or the customer ID.",
       "Exa and Context.dev receive only a bill type and a city, or a search query stripped of names, IDs, postal codes and euro amounts.",
       "The reasoning model runs on our own GPU. If it stalls, the same request goes to the backup and the turn's timings say so.",
-      `Money actions (switches and transfers) are simulated. A watch is real once approved: Context.dev re-checks its pages every 6 hours and Sisu reviews the changes ${watchScheduler() === "cron" ? "once a day on its own and whenever the app checks in" : "only when the app checks in"}. Everything needs an explicit approval and every step is written to a hash-chained audit log.`,
+      config.isMock
+        ? "Mock mode: money actions are simulated and a watch only re-reads example pages; nothing on the web is watched. Everything needs an explicit approval and every step is written to a hash-chained audit log."
+        : `Money actions (switches and transfers) are simulated. A watch is real once approved: Context.dev re-checks its pages every 6 hours and Sisu reviews the changes ${watchScheduler() === "cron" ? "once a day on its own and whenever the app checks in" : "only when the app checks in"}. Everything needs an explicit approval and every step is written to a hash-chained audit log.`,
     ],
     store: storeInfo(),
     checkedAt: new Date().toISOString(),

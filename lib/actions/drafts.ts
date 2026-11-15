@@ -133,7 +133,7 @@ export function buildTransferDraft(customerId: string, amountEur: number, option
   const room = savingRoom(overview, cashFlow);
   const safe = overview.safeToSpend;
   if (once && amount > overview.balance) return { ok: false, status: 409, reason: `€${amount.toFixed(0)} is more than the €${overview.balance.toFixed(0)} in the account, so it cannot be moved. About €${room.nowEur} could be moved today.` };
-  if (!once && amount > safe.perMonth) return { ok: false, status: 409, reason: `€${amount.toFixed(0)} a month is more than the €${safe.perMonth.toFixed(0)} left after must-pay costs, so it cannot be set aside. About €${room.perMonthEur} a month is left over today.` };
+  if (!once && amount > safe.perMonth) return { ok: false, status: 409, reason: `€${amount.toFixed(0)} a month is more than the €${safe.perMonth.toFixed(0)} left after essential costs, so it cannot be set aside. About €${room.perMonthEur} a month is left over today.` };
 
   const lowAfter = round2((cashFlow.projectedLowPointEur ?? overview.balance) - amount);
   const warnings = [
@@ -141,7 +141,7 @@ export function buildTransferDraft(customerId: string, amountEur: number, option
     once && lowAfter >= 0 && amount > room.nowEur ? `After moving €${amount.toFixed(0)} about €${lowAfter.toFixed(0)} would be left just before payday, less than a week of everyday spending. About €${room.nowEur} leaves that week in hand.` : null,
     // The fall is worked out from the figure the sentence prints, so the sentence adds up (€100 over €80 is €20).
     !once && amount > room.perMonthEur ? `€${amount.toFixed(0)} a month is more than the €${room.perMonthEur} an average month leaves over, so everyday spending would have to fall by about €${round2(amount - room.perMonthEur).toFixed(0)} a month.` : null,
-    destination === "investments" && overview.runwayMonths < 3 ? `The balance covers ${overview.runwayMonths} months of must-pay costs. A buffer of about three months (€${round2(overview.monthlyMandatory * 3).toFixed(0)}) usually comes before investing.` : null,
+    destination === "investments" && overview.runwayMonths < 3 ? `The balance covers ${overview.runwayMonths} months of essential costs. A buffer of about three months (€${round2(overview.monthlyMandatory * 3).toFixed(0)}) usually comes before investing.` : null,
   ].filter((line): line is string => line !== null);
 
   const where = DESTINATION[destination];
@@ -171,7 +171,7 @@ export function buildTransferDraft(customerId: string, amountEur: number, option
         ...(once ? [fact("transfer:low-after", "Expected balance just before payday, after the transfer", lowAfter, "EUR", "payday projection minus the transfer", { source: "calculation" })] : []),
         fact("transfer:room-now", "Could be moved today", room.nowEur, "EUR", room.basis, { source: "calculation" }),
         fact("transfer:room-monthly", "Could be moved every month", room.perMonthEur, "EUR/month", room.basis, { source: "calculation" }),
-        fact("transfer:left-over", "Left over in an average month today", safe.gapPerMonth, "EUR/month", "safe to spend minus actual everyday spending", { source: "calculation" }),
+        fact("transfer:left-over", "Left over in an average month today", safe.gapPerMonth, "EUR/month", "monthly budget from averages minus actual everyday spending", { source: "calculation" }),
       ],
       sources: [],
       assumptions: [

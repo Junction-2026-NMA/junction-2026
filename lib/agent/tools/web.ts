@@ -113,7 +113,7 @@ export async function searchOffers(args: Record<string, unknown>, ctx: ToolConte
       matchingOffers: research.requirementsText ? research.matchingCount : undefined,
       best: best ? { ...compact(best), estimatedMonthlySavingEur: round2((best.estimatedYearlySavingEur ?? 0) / 12), savingIncomplete: research.savingIncomplete || undefined } : null,
       note: noMatch
-        ? `No offer meets the requirements (${research.requirementsText}). Say "No matching options found", name the requirement, and offer to broaden it or keep checking. Do not recommend, name as best or prepare any offer.`
+        ? `No offer meets the requirements (${research.requirementsText}). Say "No matching options found", name the requirement, and offer to broaden it or look further. Nothing keeps checking offers later: do not promise it. Do not recommend, name as best or prepare any offer.`
         : best
           ? undefined
           : "No comparable offer is cheaper than the current bill. Say so honestly.",

@@ -71,7 +71,7 @@ function checkAgainstFigures(id: string, monthly: boolean, price: number, overvi
   if (typeof afford === "string") return { sentence: "", leftOverAfterEur: null, balanceAfterEur: null, facts: [] };
   const low = afford.projectedLowPointEur ?? afford.balanceAfterEur;
   return {
-    sentence: afford.verdict === "not-yet" ? `Paying it now would leave your account about €${Math.round(-low)} below zero just before payday, on your own figures.` : `After paying it you would have about €${Math.round(low)} just before payday${afford.verdict === "tight" ? ", which is less than a month of must-pay costs" : ""}.`,
+    sentence: afford.verdict === "not-yet" ? `Paying it now would leave your account about €${Math.round(-low)} below zero just before payday, on your own figures.` : `After paying it you would have about €${Math.round(low)} just before payday${afford.verdict === "tight" ? ", which is less than a month of essential costs" : ""}.`,
     leftOverAfterEur: null,
     balanceAfterEur: low,
     facts: [fact(`watch:${id}:balance`, "Balance today", overview.balance, "EUR", `account balance on ${overview.dataTimestamp}`), fact(`watch:${id}:after`, "Expected balance just before payday, after paying this", low, "EUR", "payday projection minus the price", { source: "calculation" })],

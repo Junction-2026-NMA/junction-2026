@@ -214,17 +214,17 @@ export function checkAffordabilityTool(args: Record<string, unknown>, ctx: ToolC
   const result = checkAffordability(current, current === ctx.overview ? ctx.cashFlow() : buildCashFlow(current), Number(args.amountEur));
   if (typeof result === "string") return failure("finance", result);
   const what = typeof args.what === "string" ? args.what.slice(0, 60) : "this cost";
-  const verdictText = { comfortable: "affordable now with a buffer left", tight: "possible, but it leaves less than a month of must-pay costs before payday", "not-yet": "not affordable now without going below zero before payday" }[result.verdict];
+  const verdictText = { comfortable: "affordable now with a buffer left", tight: "possible, but it leaves less than a month of essential costs before payday", "not-yet": "not affordable now without going below zero before payday" }[result.verdict];
   const facts: Fact[] = [
     fact("afford:amount", `Cost of ${what}`, result.amountEur, "EUR", "the amount asked about", { source: "customer-stated" }),
     fact("afford:balance-after", "Balance straight after paying", result.balanceAfterEur, "EUR", "balance minus the cost", { source: "calculation" }),
     ...(result.projectedLowPointEur === null ? [] : [fact("afford:low", "Expected balance just before payday", result.projectedLowPointEur, "EUR", "after the cost, bills due and usual spending", { source: "calculation" })]),
-    fact("afford:buffer", "Months of must-pay costs still covered", result.bufferMonthsAfter, "months", "expected low point divided by monthly must-pay costs", { source: "calculation" }),
+    fact("afford:buffer", "Months of essential costs still covered", result.bufferMonthsAfter, "months", "expected low point divided by monthly essential costs", { source: "calculation" }),
     ...(result.monthsToSaveUp === null ? [] : [fact("afford:save-up", "Months of saving needed", result.monthsToSaveUp, "months", "shortfall divided by the average monthly surplus", { source: "calculation" })]),
     ...result.steps.map((step, index) => fact(`afford:step:${index}`, step.label, step.amount, "EUR", step.basis, { source: "calculation" })),
   ];
   return outcome({
-    content: JSON.stringify({ what, amountEur: result.amountEur, verdict: result.verdict, verdictMeans: verdictText, balanceStraightAfterEur: result.balanceAfterEur, expectedBalanceJustBeforePaydayEur: result.projectedLowPointEur, monthsOfMustPayCostsStillCovered: result.bufferMonthsAfter, monthsOfSavingNeededFirst: result.monthsToSaveUp, workings: result.steps, thisIsAnEstimate: result.assumptions }),
+    content: JSON.stringify({ what, amountEur: result.amountEur, verdict: result.verdict, verdictMeans: verdictText, balanceStraightAfterEur: result.balanceAfterEur, expectedBalanceJustBeforePaydayEur: result.projectedLowPointEur, monthsOfEssentialCostsStillCovered: result.bufferMonthsAfter, monthsOfSavingNeededFirst: result.monthsToSaveUp, workings: result.steps, thisIsAnEstimate: result.assumptions }),
     summary: `€${result.amountEur.toFixed(0)} for ${what}: ${verdictText}`,
     facts,
     stages: [{ kind: "calculation", title: `Can you afford €${result.amountEur.toFixed(0)}?`, summary: verdictText, source: "calculation", data: { kind: "calculation", steps: result.steps, resultLabel: "Expected balance just before payday", resultValue: result.projectedLowPointEur ?? result.balanceAfterEur, unit: "EUR", assumptions: result.assumptions } }],
@@ -244,7 +244,7 @@ export function runScenarioTool(args: Record<string, unknown>, ctx: ToolContext)
   const input = cleanInput({ billSavingPerMonth: Number.isFinite(freed) ? freed : 0, everydayCutPct: Number(args.everydayCutPct ?? 0) || 0, years: Number(args.years) || (cutCategory ? DEFAULT_CUT_YEARS : NaN), oneOffEur: typeof args.oneOffEur === "number" ? args.oneOffEur : 0 });
   if (typeof input === "string") return failure("finance", input);
   const result = runScenario(ctx.overview, input);
-  const branches = result.branches.map((b) => ({ future: b.label, endTotalEur: b.endTotal, lowEur: b.endLow, highEur: b.endHigh, monthsOfMustPayCostsCoveredAfterYear1: b.runwayMonthsAtYear1 }));
+  const branches = result.branches.map((b) => ({ future: b.label, endTotalEur: b.endTotal, lowEur: b.endLow, highEur: b.endHigh, monthsOfEssentialCostsCoveredAfterYear1: b.runwayMonthsAtYear1 }));
   const end = (id: string) => result.branches.find((b) => b.id === id)?.endTotal ?? 0;
   const gain = round2(end("save") - end("nothing"));
   // What the lump sum itself would be worth at the end, in each scenario: the same growth rule the projection uses.

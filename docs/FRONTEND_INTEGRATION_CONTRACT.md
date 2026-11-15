@@ -667,6 +667,9 @@ enquiry for the customer to send. Sisu never contacts a landlord.
 | `POST /api/watch/:id/read` | `{ customerId, notificationIds? }` (none = all of this project) | `{ marked, unread }` |
 
 `POST /api/watch/:id/stop` still stops for good. `GET /api/watch` now also returns `scheduler`.
+Approving a watch answers the new Project at once: `POST /api/actions/:id/approve` returns `{ action, watch, scheduler }`
+with `watch` filled like `GET /api/watch/:id` fills it (`projectStatus`, `lastSuccessAt`, `nextCheckAt`, `goal`,
+`requirements`...), and `POST /api/actions/approve-all` adds `watches` and `scheduler` when the tap started any.
 
 **Saying honestly what runs.** `GET /api/health` has `watchScheduler` and `GET /api/watch` has `scheduler`:
 `"cron"` or `"on-open"` (missing = treat as `"on-open"`).

@@ -159,7 +159,7 @@ export type Branch = {
   endTotal: number;
   endLow: number;
   endHigh: number;
-  runwayMonthsAtYear1: number; // months of must-pay costs covered by cash alone after 12 months
+  runwayMonthsAtYear1: number; // months of essential costs covered by cash alone after 12 months
 };
 
 export type ScenarioResult = {
@@ -391,7 +391,7 @@ export type Affordability = {
   verdict: AffordabilityVerdict;
   balanceAfterEur: number;
   projectedLowPointEur: number | null;
-  bufferMonthsAfter: number; // months of must-pay costs still covered by the balance afterwards
+  bufferMonthsAfter: number; // months of essential costs still covered by the balance afterwards
   monthsToSaveUp: number | null; // if not affordable now: months of current surplus needed
   steps: CalcStep[];
   assumptions: string[];

@@ -79,7 +79,7 @@ export function monthsVisual(overview: Overview): Visual {
     id: "months",
     kind: "month_bars",
     title: "Money in and money out, month by month",
-    caption: `${monthLabel(overview.windowFrom.slice(0, 7))} to ${monthLabel(overview.windowTo.slice(0, 7))}. Spending is bills, now-and-then costs and everyday spending together.`,
+    caption: `${monthLabel(overview.windowFrom.slice(0, 7))} to ${monthLabel(overview.windowTo.slice(0, 7))}. Spending is regular essentials, occasional essentials and everyday spending together.`,
     summary: `${over.length ? `In ${over.length} of the ${months.length} months more went out than came in: ${over.map((m) => m.label).join(", ")}.` : `In none of the ${months.length} months did more go out than came in.`} The most went out in ${highest.label}: ${eur(highest.spending)}.`,
     source: "bank-data",
     facts: [fact("chart:months:over", "Months where more went out than came in", over.length, "count", "counted month by month", { source: "calculation" }), fact("chart:months:count", "Months shown", months.length, "count", "the window"), ...months.flatMap((m) => [fact(`chart:months:${m.month}:in`, `Income in ${m.label}`, m.income, "EUR", "money that came in that month"), fact(`chart:months:${m.month}:out`, `Spending in ${m.label}`, m.spending, "EUR", "money that went out that month")])],

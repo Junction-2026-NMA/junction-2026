@@ -158,7 +158,7 @@ export function buildOverview(customerId: string): Overview | null {
       "Synthetic S-Pankki data. Names are invented; the dataset has customer IDs only.",
       `All averages cover ${months[0]} to ${months[months.length - 1]}, the last ${WINDOW_MONTHS} months in the dataset.`,
       "Bills have no payee in the data, so bill names are Sisu's guesses until you confirm them.",
-      "Runway counts only this account's balance against must-pay costs. Other savings are not visible here.",
+      "Runway counts only this account's balance against essential costs. Other savings are not visible here.",
       "Peer figures are averages over every customer in the same age band, including those who spent nothing.",
     ],
   };

@@ -3,6 +3,8 @@ import { impactOf } from "@/lib/actions/drafts";
 import { TOO_MANY, allowRequest, jsonError, parseCustomerId } from "@/lib/agent/http";
 import { withVisitor } from "@/lib/agent/visitor";
 import { isWatchKind, startWatch } from "@/lib/watch";
+import { asProject } from "@/lib/watch/project";
+import { watchScheduler } from "@/lib/watch/scheduler";
 
 export const runtime = "nodejs";
 
@@ -19,6 +21,7 @@ export const POST = withVisitor(async function POST(request: Request, { params }
   const result = await approveActionStored(customerId, id, impactOf);
   if (!result.ok) return jsonError(result.reason, result.status);
   // A property watch is the one action that is not a simulation: the approval just stored is what starts it.
-  const watch = isWatchKind(result.action.kind) ? await startWatch(customerId, result.action) : undefined;
-  return Response.json({ action: result.action, ...(watch ? { watch } : {}) });
+  // The watch comes back as a Project (projectStatus, lastSuccessAt, nextCheckAt...), like GET /api/watch/:id.
+  const watch = isWatchKind(result.action.kind) ? await startWatch(customerId, result.action) : null;
+  return Response.json({ action: result.action, ...(watch ? { watch: asProject(watch), scheduler: watchScheduler() } : {}) });
 });

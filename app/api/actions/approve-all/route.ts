@@ -1,9 +1,11 @@
 import { approveActionsStored } from "@/lib/actions";
 import { impactOf } from "@/lib/actions/drafts";
 import { TOO_MANY, allowRequest, jsonError, parseCustomerId } from "@/lib/agent/http";
-import type { AgentAction } from "@/lib/types";
+import type { AgentAction, PropertyWatch } from "@/lib/types";
 import { withVisitor } from "@/lib/agent/visitor";
 import { isWatchKind, startWatch } from "@/lib/watch";
+import { asProject } from "@/lib/watch/project";
+import { watchScheduler } from "@/lib/watch/scheduler";
 
 export const runtime = "nodejs";
 const MAX_AT_ONCE = 6;
@@ -25,10 +27,13 @@ export const POST = withVisitor(async function POST(request: Request) {
   const results = await approveActionsStored(customerId, ids, impactOf);
   const approved: AgentAction[] = [];
   const failed: { actionId: string; reason: string }[] = [];
+  const watches: PropertyWatch[] = [];
   for (const [index, result] of results.entries()) {
-    if (result.ok && isWatchKind(result.action.kind)) await startWatch(customerId, result.action);
+    const watch = result.ok && isWatchKind(result.action.kind) ? await startWatch(customerId, result.action) : null;
+    if (watch) watches.push(asProject(watch));
     if (result.ok) approved.push(result.action);
     else failed.push({ actionId: ids[index], reason: result.reason });
   }
-  return Response.json({ approved, failed }, { status: approved.length ? 200 : 409 });
+  // Watches started by this tap come back as Projects, like GET /api/watch/:id answers them.
+  return Response.json({ approved, failed, ...(watches.length ? { watches, scheduler: watchScheduler() } : {}) }, { status: approved.length ? 200 : 409 });
 });

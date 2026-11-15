@@ -1,8 +1,11 @@
 // Projects (15 Nov): a watch with a goal and requirements, a housing effect worked out in code, honest wording about
 // what runs, pause/resume/edit/read controls, dedupe against earlier findings, and the daily scheduled review.
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { AINO, EETU, freshState, stubFetch } from "./helpers";
+import { AINO, EETU, collect, freshState, ofType, stubFetch } from "./helpers";
+import { runTurn } from "@/lib/agent/orchestrator";
+
 import { approveAction, saveDraft } from "@/lib/actions";
 import { impactOf } from "@/lib/actions/drafts";
 import { buildWatchDraft } from "@/lib/actions/watch";
@@ -22,6 +25,8 @@ import { POST as pauseRoute } from "@/app/api/watch/[id]/pause/route";
 import { POST as readRoute } from "@/app/api/watch/[id]/read/route";
 import { GET as cronRoute } from "@/app/api/watch/cron/route";
 import { GET as health } from "@/app/api/health/route";
+import { POST as approveRoute } from "@/app/api/actions/[id]/approve/route";
+import { POST as approveAllRoute } from "@/app/api/actions/approve-all/route";
 
 const PAGE = "https://www.vuokraovi.com/vuokra-asunnot/espoo";
 const flat = (overrides: Partial<Listing> = {}): Listing => ({ title: "Tapiontori 1", priceEur: 940, rooms: 2, areaM2: 45, district: "Tapiola", availableFrom: "1.12.2026", url: "https://www.vuokraovi.com/kohde/a1", pageUrl: PAGE, ...overrides });
@@ -248,6 +253,26 @@ describe("Project routes and the scheduled review", () => {
     assert.equal((await readRoute(req(`/api/watch/${watch.id}/read`, anna, "POST", { customerId: AINO }), ctx(watch.id))).status, 200);
   });
 
+  it("approve and approve-all answer the new watch as a Project, with its derived fields", async () => {
+    const anna = newSessionId();
+    const prepared = (budgetEur: number) =>
+      inSession(anna, () => {
+        const built = buildWatchDraft(AINO, { city: "Espoo", budgetEur, minRooms: null, search: searchOf([flat(), OTHER]), preparedBy: "sisu-agent", goal: "Move to Espoo to save for a deposit", requirements: {} });
+        assert.ok(built.ok, built.ok ? "" : built.reason);
+        const saved = saveDraft(AINO, built.draft);
+        assert.ok(saved.ok);
+        return saved.action;
+      });
+    const one = prepared(900);
+    const single = (await (await approveRoute(req(`/api/actions/${one.id}/approve`, anna, "POST", { customerId: AINO, confirm: true }), ctx(one.id))).json()) as { watch: WatchProject["watch"]; scheduler: string };
+    assert.deepEqual([single.watch.projectStatus, single.watch.goal, single.scheduler], ["active", "Move to Espoo to save for a deposit", "on-open"]);
+    assert.ok(single.watch.lastSuccessAt && "nextCheckAt" in single.watch && single.watch.requirements);
+    const two = prepared(950);
+    const all = (await (await approveAllRoute(req("/api/actions/approve-all", anna, "POST", { customerId: AINO, actionIds: [two.id], confirm: true }))).json()) as { approved: AgentAction[]; watches: WatchProject["watch"][]; scheduler: string };
+    assert.equal(all.approved.length, 1);
+    assert.deepEqual([all.watches.length, all.watches[0].projectStatus, all.watches[0].budgetEur, all.scheduler], [1, "active", 950, "on-open"]);
+  });
+
   it("the cron route is off without CRON_SECRET and refuses a wrong one", async () => {
     delete process.env.CRON_SECRET;
     assert.equal((await cronRoute(new Request("https://sisu.test/api/watch/cron"))).status, 503);
@@ -271,5 +296,24 @@ describe("Project routes and the scheduled review", () => {
     const stopped = inSession(ben, () => listWatches(EETU)[0]);
     assert.deepEqual([stopped.id, stopped.status, stopped.stoppedBecause], [old.id, "stopped", "inactive"]);
     assert.match(inSession(ben, () => auditFor(EETU).events.at(-1)?.detail ?? ""), /had not checked in for 14 days/);
+  });
+});
+
+describe("mock mode can start a Project from a question, and the buttons speak the same language", () => {
+  beforeEach(() => void freshState());
+
+  it("'keep an eye on flats in Espoo under 900 euros' prepares a property watch that asks for consent", async () => {
+    const events = await collect(runTurn({ customerId: AINO, text: "Can you keep an eye on flats in Espoo under 900 euros?", mode: "text" }));
+    const action = ofType(events, "action")[0]?.action;
+    assert.equal(action?.kind, "property_watch");
+    assert.equal(action?.watch?.city, "Espoo");
+    assert.match(ofType(events, "done")[0].text, /Would you like me to keep checking for homes that match these requirements\?/);
+    assert.doesNotMatch(ofType(events, "done")[0].text, /tell you the moment|instantly|right away/);
+  });
+
+  it("buttons compare with other demo profiles, never 'people my age', and call a watch a project", () => {
+    const source = readFileSync("lib/agent/suggestions.ts", "utf8").replace(/\/\/.*$/gm, "");
+    assert.doesNotMatch(source, /people my age|ikätoverit|my watch/);
+    assert.match(source, /Me vs other demo profiles/);
   });
 });

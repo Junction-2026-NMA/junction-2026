@@ -62,7 +62,7 @@ export function housingEffect(overview: Overview, listing: ListingFacts, require
     options.simulated ? fact(`${prefix}:rent`, "Rent of this flat per month (simulated)", rent, "EUR/month", "made up by the demo's simulate button", { source: "assumption" }) : fact(`${prefix}:rent`, "Rent of this flat per month", rent, "EUR/month", "read from the listing", { source: "context.dev", ...url }),
     fact(`${prefix}:housing-now`, "Housing cost per month today", housingNow, "EUR/month", "Housing payments, 12-month average", { evidence: { from: overview.windowFrom, to: overview.windowTo, category: "Housing" } }),
     fact(`${prefix}:change`, "Known change per month", knownChange, "EUR/month", utilities === null ? "rent minus housing today" : "rent plus stated charges minus housing today", { source: "calculation" }),
-    fact(`${prefix}:left-over-now`, "Left over in an average month today", fit.leftOverNowEur, "EUR/month", "safe to spend minus actual everyday spending", { source: "calculation" }),
+    fact(`${prefix}:left-over-now`, "Left over in an average month today", fit.leftOverNowEur, "EUR/month", "monthly budget from averages minus actual everyday spending", { source: "calculation" }),
     fact(`${prefix}:left-over-after`, "Left over in an average month after moving", leftOverAfter, "EUR/month", "left over today minus the known change", { source: "calculation" }),
     ...(utilities === null ? [] : [fact(`${prefix}:utilities`, "Monthly charges on top of the rent", utilities, "EUR/month", "stated on the listing", { source: "context.dev", ...url })]),
     ...(deposit === null ? [] : [fact(`${prefix}:deposit`, "Deposit", deposit, "EUR", "stated on the listing", { source: "context.dev", ...url })]),

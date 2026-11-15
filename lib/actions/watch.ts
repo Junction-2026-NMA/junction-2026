@@ -52,7 +52,7 @@ function checkLimit(overview: Overview, budget: number, monthly: boolean): { war
     afford.verdict === "not-yet"
       ? `Paying €${budget} today would leave your account about €${Math.round(-low)} below zero just before payday. The watch still uses the price you gave.`
       : afford.verdict === "tight"
-        ? `After paying €${budget} you would have about €${Math.round(low)} just before payday, less than a month of must-pay costs. The watch still uses the price you gave.`
+        ? `After paying €${budget} you would have about €${Math.round(low)} just before payday, less than a month of essential costs. The watch still uses the price you gave.`
         : null;
   return { warning, facts: [fact("watch:balance", "Balance today", overview.balance, "EUR", `account balance on ${overview.dataTimestamp}`), fact("watch:after", "Expected balance just before payday, after paying the price you set", low, "EUR", "payday projection minus the price", { source: "calculation" })] };
 }
