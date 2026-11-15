@@ -1,0 +1,338 @@
+/* OnboardingView.tsx, OnboardingTopBar.tsx, OnboardingSteps.tsx: the first run. */
+
+.sisu-onboarding {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  /* Transparent: the app's textured background shows through. */
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Top bar: HStack(spacing: 12), 12 px sides (margin - 2 grid), 4 px top. */
+.sisu-onb-topbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 3);
+  padding: var(--sisu-space-grid) calc(var(--sisu-space-margin) - var(--sisu-space-grid) * 2) 0;
+}
+
+.sisu-onb-topbar-back {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--sisu-space-touch-target);
+  height: var(--sisu-space-touch-target);
+}
+
+.sisu-onb-topbar-progress {
+  flex: 1 1 auto;
+}
+
+.sisu-onb-topbar-skip {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--sisu-space-touch-target) + var(--sisu-space-grid) * 2);
+  height: var(--sisu-space-touch-target);
+}
+
+.sisu-onb-skip {
+  min-width: var(--sisu-space-touch-target);
+  min-height: var(--sisu-space-touch-target);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: var(--sisu-type-button);
+  color: var(--sisu-color-primary);
+  cursor: pointer;
+}
+
+.sisu-onb-skip:active {
+  opacity: 0.6;
+}
+
+/* The ZStack the screens slide in: fills the rest, clipped. */
+.sisu-onb-pages {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sisu-onb-page {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sisu-onb-page[data-phase="entering"] {
+  animation-name: sisu-onb-page-in;
+  animation-fill-mode: both;
+}
+
+.sisu-onb-page[data-phase="leaving"] {
+  animation-name: sisu-onb-page-out;
+  animation-fill-mode: both;
+  pointer-events: none;
+}
+
+/* .move(edge:).combined(with: .opacity); --sisu-onb-shift is +-100 % (set per layer). */
+@keyframes sisu-onb-page-in {
+  from { opacity: 0; transform: translateX(var(--sisu-onb-shift, 100%)); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes sisu-onb-page-out {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(var(--sisu-onb-shift, -100%)); }
+}
+
+/* A screen of the first run: 20 px sides, 16 px above the home indicator. */
+.sisu-onb-step {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  gap: var(--sisu-space-card);
+  padding: 0 var(--sisu-space-margin) calc(var(--sisu-space-card) + env(safe-area-inset-bottom, 0px));
+}
+
+.sisu-onb-welcome,
+.sisu-onb-reading {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.sisu-onb-reading {
+  align-items: center;
+}
+
+.sisu-onb-reading > [data-rive="Button"] {
+  align-self: stretch;
+}
+
+.sisu-onb-spacer {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.sisu-onb-spacer-section {
+  min-height: var(--sisu-space-section);
+}
+
+.sisu-onb-liito {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.sisu-onb-wordmark {
+  margin: 0;
+  font: var(--sisu-type-h2);
+  color: var(--sisu-color-primary);
+}
+
+.sisu-onb-h1 {
+  margin: 0;
+  font: var(--sisu-type-h1);
+  color: var(--sisu-color-text);
+}
+
+.sisu-onb-h2 {
+  margin: 0;
+  font: var(--sisu-type-h2);
+  color: var(--sisu-color-text);
+}
+
+.sisu-onb-h3 {
+  margin: 0;
+  font: var(--sisu-type-h3);
+  color: var(--sisu-color-text);
+}
+
+.sisu-onb-body-large {
+  margin: 0;
+  font: var(--sisu-type-body-large);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-onb-body-muted {
+  margin: 0;
+  font: var(--sisu-type-body);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-onb-label-muted {
+  margin: 0;
+  font: var(--sisu-type-label);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-onb-text {
+  color: var(--sisu-color-text);
+}
+
+.sisu-onb-center {
+  text-align: center;
+}
+
+/* 2. The promise: a scrolling column above the button. */
+.sisu-onb-promise {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.sisu-onb-promise-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.sisu-onb-promise-scroll::-webkit-scrollbar,
+.sisu-onb-welcome::-webkit-scrollbar,
+.sisu-onb-reading::-webkit-scrollbar {
+  display: none;
+}
+
+.sisu-onb-promise-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sisu-space-card);
+  padding: 0 var(--sisu-space-margin);
+}
+
+.sisu-onb-promise-title {
+  padding-top: var(--sisu-space-card);
+}
+
+.sisu-onb-button-row {
+  flex: none;
+  padding: 0 var(--sisu-space-margin);
+}
+
+.sisu-onb-divider {
+  height: 1px;
+  background: var(--sisu-neutral-200);
+}
+
+.sisu-onb-basket-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: calc(var(--sisu-space-grid) * 2);
+}
+
+/* A basket's name chip: one text size for all three (the label style), the icon in the basket's green. */
+.sisu-onb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+  max-width: 100%;
+  min-height: 32px;
+  padding: calc(var(--sisu-space-grid) * 1) calc(var(--sisu-space-grid) * 4) calc(var(--sisu-space-grid) * 1) calc(var(--sisu-space-grid) * 3);
+  border-radius: var(--sisu-radius-pill);
+  background: var(--sisu-green-100);
+  color: var(--sisu-green-900);
+  font: var(--sisu-type-label);
+}
+
+.sisu-onb-chip-icon {
+  display: inline-flex;
+  flex: none;
+}
+
+.sisu-onb-then {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 3);
+  padding: 0 var(--sisu-space-grid);
+}
+
+.sisu-onb-then-list {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sisu-onb-then-line {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 3);
+}
+
+.sisu-onb-then-check {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--sisu-color-primary);
+  color: var(--sisu-color-on-primary);
+}
+
+/* Short screens (an iPhone SE, a browser tab with its toolbars): Liito shrinks so the button below the text
+   stays on screen instead of being pushed off it. */
+.sisu-onb-welcome .sisu-onb-liito > .sisu-rive {
+  width: min(240px, 26dvh) !important;
+  height: min(240px, 26dvh) !important;
+}
+
+.sisu-onb-reading [data-rive="Liito"] {
+  width: min(200px, 24dvh) !important;
+  height: min(200px, 24dvh) !important;
+}
+
+/* The welcome button never leaves the screen: on a very short screen the text scrolls under it. */
+.sisu-onb-welcome > [data-rive="Button"] {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+}
+
+/* The voice step (VoiceStep.tsx): a scrolling column over a fixed Continue button. */
+.sisu-onb-voice-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Like the promise step: the column and the button row each take the side margins, so Continue is as wide as the
+   other steps' buttons. */
+.sisu-onb-voice {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.sisu-onb-voice-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sisu-space-card);
+  padding: calc(var(--sisu-space-grid) * 4) var(--sisu-space-margin) var(--sisu-space-card);
+}
+
+.sisu-onb-voice-content > p { margin: 0; }
+
+.sisu-onb-voice-card {
+  padding: var(--sisu-space-card);
+  border-radius: var(--sisu-radius-card);
+  border: 1px solid var(--sisu-color-hairline);
+  background: var(--sisu-color-card);
+}

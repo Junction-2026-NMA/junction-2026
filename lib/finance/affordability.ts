@@ -3,7 +3,7 @@ import type { Affordability, AffordabilityVerdict, CalcStep, CashFlow, Overview 
 import { round2 } from "./math";
 
 export const AMOUNT_LIMITS: [number, number] = [1, 100_000];
-const COMFORT_BUFFER_MONTHS = 1; // keeping at least a month of must-pay costs afterwards counts as comfortable
+const COMFORT_BUFFER_MONTHS = 1; // keeping at least a month of essential costs afterwards counts as comfortable
 
 export function checkAffordability(overview: Overview, cashFlow: CashFlow, amountEur: number): Affordability | string {
   if (!Number.isFinite(amountEur) || amountEur < AMOUNT_LIMITS[0] || amountEur > AMOUNT_LIMITS[1]) return "Give an amount in euros between 1 and 100,000.";
@@ -24,7 +24,7 @@ export function checkAffordability(overview: Overview, cashFlow: CashFlow, amoun
     { label: "This cost", amount: -amount, basis: "the amount asked about" },
     ...cashFlow.steps.slice(1, 3),
     { label: "Expected balance just before payday", amount: lowPoint, basis: cashFlow.nextPayday ? `next payday expected on ${cashFlow.nextPayday}` : "no payday found in the data" },
-    { label: "Must-pay costs in a month", amount: overview.monthlyMandatory, basis: "regular plus now-and-then baskets, 12-month average" },
+    { label: "Essential costs in a month", amount: overview.monthlyMandatory, basis: "regular plus occasional essentials, 12-month average" },
   ];
 
   return {
@@ -37,7 +37,7 @@ export function checkAffordability(overview: Overview, cashFlow: CashFlow, amoun
     steps,
     assumptions: [
       ...cashFlow.assumptions,
-      `"Comfortable" means at least ${COMFORT_BUFFER_MONTHS} month of must-pay costs is still covered just before payday. "Tight" means the balance stays above zero but below that.`,
+      `"Comfortable" means at least ${COMFORT_BUFFER_MONTHS} month of essential costs is still covered just before payday. "Tight" means the balance stays above zero but below that.`,
       monthlySurplus > 0 ? `An average month leaves €${monthlySurplus.toFixed(2)} after all spending and existing savings.` : "An average month leaves nothing over after spending, so saving up would need a change first.",
     ],
   };

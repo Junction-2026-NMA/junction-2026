@@ -4,7 +4,7 @@
 import { buildCashFlow } from "@/lib/finance/cashflow";
 import { fact } from "@/lib/finance/facts";
 import { lastMonthSpending } from "@/lib/finance/recent";
-import type { Fact, Grounding, NumberCheck, NumberCorrection, Overview } from "@/lib/types";
+import type { Fact, Grounding, NumberCheck, NumberCorrection, Overview, WeeklyBudget } from "@/lib/types";
 
 const TRIVIAL_MAX = 12; // small counts ("three offers", "12 months") are not financial claims
 // Numbers as people write them, in English and Finnish: 1,932.43 · 1 932,43 · 139,47 · 40. Digits glued to
@@ -55,8 +55,10 @@ const SLIP_RELATIVE = 0.001;
 
 // What kind of quantity the words around a number say it is. A figure said as "euros a year" may only be
 // checked against yearly euro receipts, never against a percentage or a monthly figure that happens to be close.
-type Hint = "money" | "money-month" | "money-year" | "percent" | "kwh" | "price" | "time" | "count" | null;
-type Found = { value: number; raw: string; index: number; isYear: boolean; hint: Hint };
+type Hint = "money" | "money-day" | "money-week" | "money-month" | "money-year" | "percent" | "kwh" | "price" | "time" | "count" | null;
+// `negative`: the clause says the figure is a shortfall or a difference ("12 euros short", "minus 12", "12 less"),
+// so it may stand for a negative receipt. Without such a word, "12 euros" is never the receipt −12.17.
+type Found = { value: number; raw: string; index: number; isYear: boolean; hint: Hint; negative: boolean };
 
 function toNumber(raw: string): number {
   if (/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(raw)) return Number(raw.replace(/,/g, "")); // 1,932.43
@@ -68,18 +70,42 @@ function toNumber(raw: string): number {
 const MONEY_AFTER = /^\s?(€|eur\b|euros?\b|euroa\b|euron\b|евро|यूरो|يورو)/i;
 const PER_MONTH = /\b(a|per|each|every)\s+month\b|\bmonthly\b|\/\s?(mo|month|kk)\b|kuukaudessa|kuussa|\b(pro|im|je)\s+Monat\b|\bmonatlich\b|\b(per|i)\s+månad(en)?\b/i;
 const PER_YEAR = /\b(a|per|each|every)\s+year\b|\byearly\b|\bannual(ly)?\b|\/\s?(yr|year|v)\b|vuodessa|\b(pro|im|je)\s+Jahr\b|\bjährlich\b|\b(per|om)\s+år(et)?\b/i;
+// "12 euros a day", "202 a week": a daily or weekly amount is only ever checked against daily or weekly receipts.
+const PER_DAY = /\b(a|per|each|every)\s+day\b|\bdaily\b|\/\s?(d|day|pv)\b|päivässä|\b(pro|je)\s+Tag\b|\btäglich\b|\bper\s+dag\b|\bom\s+dagen\b/i;
+const PER_WEEK = /\b(a|per|each|every)\s+week\b|\bweekly\b|\/\s?(wk|week|vk|vko)\b|viikossa|\b(pro|je)\s+Woche\b|\bwöchentlich\b|\b(per|i)\s+vecka(n)?\b/i;
+const PERIODS: [RegExp, Hint][] = [[PER_DAY, "money-day"], [PER_WEEK, "money-week"], [PER_MONTH, "money-month"], [PER_YEAR, "money-year"]];
+
+// The period named nearest after the figure: "12 euros a day, about 360 a month" is a daily figure.
+function periodHint(clause: string): Hint {
+  const named = PERIODS.map(([pattern, hint]) => ({ hint, at: clause.search(pattern) })).filter((p) => p.at >= 0);
+  return named.length ? named.reduce((first, p) => (p.at < first.at ? p : first)).hint : "money";
+}
+
+// Words that make a figure a shortfall or a difference, in the clause around it. A sign written before the figure counts too.
+const NEGATIVE_WORDS = /\b(short(fall)?|over\w*|below|less|lower|minus|negative|under|deficit|more|above|exceed\w*|too much|behind|vähemmän|alle|miinus|vaje\w*|yli|enemmän|unter|weniger|mindre)\b/i;
+const CLAUSE_END = /[.;!?](?=\s|$)|,\s/;
+
+// A minus sign written straight before the figure: "-12.17" in a tool's JSON, "−€12" in a sentence.
+const signedMinus = (text: string, index: number): boolean => /[-−–]\s?€?\s?$/.test(text.slice(Math.max(0, index - 4), index));
+
+function saysNegative(text: string, raw: string, index: number): boolean {
+  const before = text.slice(Math.max(0, index - 60), index);
+  if (signedMinus(text, index) || /\bminus\s?€?\s?$/i.test(before)) return true;
+  const clauseBefore = before.split(CLAUSE_END).pop() ?? "";
+  const clauseAfter = text.slice(index + raw.length, index + raw.length + 60).split(CLAUSE_END)[0];
+  return NEGATIVE_WORDS.test(clauseBefore) || NEGATIVE_WORDS.test(clauseAfter);
+}
 
 function hintFor(text: string, raw: string, index: number): Hint {
   const after = text.slice(index + raw.length, index + raw.length + 40);
-  const isMoney = text[index - 1] === "€" || text.slice(Math.max(0, index - 2), index) === "€ " || MONEY_AFTER.test(after);
-  if (isMoney) {
-    const clause = after.split(/[.;!?]|,\s/)[0];
-    return PER_MONTH.test(clause) ? "money-month" : PER_YEAR.test(clause) ? "money-year" : "money";
-  }
+  // A tool's JSON names its euro fields: {"perWeekEur":133.64}.
+  const isMoney = text[index - 1] === "€" || text.slice(Math.max(0, index - 2), index) === "€ " || MONEY_AFTER.test(after) || /Eur(os)?"\s?:\s?-?$/.test(text.slice(Math.max(0, index - 12), index));
+  if (isMoney) return periodHint(after.split(/[.;!?]|,\s/)[0]);
   if (/^\s?(%|percent\b|prosent)/i.test(after)) return "percent";
   if (/^\s?kwh\b/i.test(after)) return "kwh";
   if (/^\s?(c\b|cents?\b|snt\b)/i.test(after)) return "price";
-  if (/^\s?(days?|months?|years?|weeks?|purchases?|transactions?|payments?|kk\b|pv\b|päiv|viik|kuukau|vuo(?:si|de|tta|sia))/i.test(after)) return "time";
+  // "12 months" and "a 12-month average" are periods of time.
+  if (/^[\s-]?(days?|months?|years?|weeks?|purchases?|transactions?|payments?|kk\b|pv\b|päiv|viik|kuukau|vuo(?:si|de|tta|sia))/i.test(after)) return "time";
   if (COUNTED.test(after)) return "count";
   return null;
 }
@@ -101,16 +127,28 @@ const AMOUNT_WORDS = [
 ].join("|");
 const COUNTED = new RegExp(`^\\s?(?!(?:${AMOUNT_WORDS})(?![\\p{L}\\p{N}]))\\p{L}`, "iu");
 
-const COMPATIBLE: Record<Exclude<Hint, null>, Fact["unit"][]> = {
-  money: ["EUR", "EUR/month", "EUR/year"],
-  "money-month": ["EUR/month", "EUR"],
-  "money-year": ["EUR/year", "EUR"],
-  percent: ["percent"],
-  kwh: ["kWh/year"],
-  price: ["c/kWh"],
-  time: ["months", "years", "days", "count"],
-  count: ["count"],
+// A euro receipt in plain "EUR" can still be a daily or weekly figure: its label says so ("average per day",
+// "Estimated weekly budget"). Those may only stand for a figure said per day or per week.
+type Period = "day" | "week" | null;
+const periodOf = (f: Fact): Period => (f.unit !== "EUR" ? null : /\b(per|a|each)\s+day\b|\bdaily\b/i.test(f.label) ? "day" : /\bweek(ly)?\b/i.test(f.label) ? "week" : null);
+
+const COMPATIBLE: Record<Exclude<Hint, null>, (f: Fact) => boolean> = {
+  money: (f) => ["EUR", "EUR/month", "EUR/year"].includes(f.unit),
+  "money-day": (f) => periodOf(f) === "day",
+  "money-week": (f) => periodOf(f) === "week",
+  "money-month": (f) => f.unit === "EUR/month" || (f.unit === "EUR" && periodOf(f) === null),
+  "money-year": (f) => f.unit === "EUR/year" || (f.unit === "EUR" && periodOf(f) === null),
+  percent: (f) => f.unit === "percent",
+  kwh: (f) => f.unit === "kWh/year",
+  price: (f) => f.unit === "c/kWh",
+  time: (f) => ["months", "years", "days", "count"].includes(f.unit),
+  count: (f) => f.unit === "count",
 };
+const isMoneyHint = (hint: Hint): boolean => hint !== null && hint.startsWith("money");
+// Which figures in the context may back a euro amount: euros, or an unmarked figure. Never a duration, a count, a
+// share or a price ("12 euros a day" may not lean on "12 months"), and never a small unmarked whole number such as
+// the 12 in "52/12", which is a divisor, not an amount.
+const backsEuros = (n: ContextNumber): boolean => isMoneyHint(n.hint) || (n.hint === null && !(Number.isInteger(n.value) && n.value <= TRIVIAL_MAX));
 
 // "2027" on its own (or "the 2027 prices") is a year. "€2,027", "2027 euros" or "2027 kWh" is an amount.
 const isYearToken = (text: string, raw: string, index: number, hint: Hint): boolean => /^20\d{2}$/.test(raw) && (hint === null || hint === "count") && !/^\s?(a|per)\s+(month|year|week)\b/i.test(text.slice(index + raw.length));
@@ -121,7 +159,7 @@ function findNumbers(text: string): Found[] {
   return [...blanked.matchAll(NUMBER)]
     .map((match) => {
       const hint = hintFor(blanked, match[0], match.index);
-      return { value: toNumber(match[0]), raw: match[0], index: match.index, hint, isYear: isYearToken(blanked, match[0], match.index, hint) };
+      return { value: toNumber(match[0]), raw: match[0], index: match.index, hint, isYear: isYearToken(blanked, match[0], match.index, hint), negative: saysNegative(blanked, match[0], match.index) };
     })
     .filter((n) => Number.isFinite(n.value));
 }
@@ -161,24 +199,39 @@ export type Sources = { facts: Fact[]; contextTexts: string[]; userTexts: string
 // 3. trivial: a year or a small count.
 // The "about" allowance applies only to receipts of the right kind, so an invented round figure cannot ride on
 // some unrelated number that happens to be near it.
-function classify({ value, isYear, hint }: Pick<Found, "value" | "isYear" | "hint">, sources: Sources, contextNumbers: number[]): NumberCheck {
-  const kinds = hint === null ? null : COMPATIBLE[hint];
+// A negative receipt (a gap, a shortfall, a balance below zero) stands for a figure only when the words say it is
+// one. The exception is a deduction in a working ("Bills expected before payday −500", "Protected buffer −247"):
+// its sign only says it is taken off, so "bills of 500 euros" is that figure.
+const isDeduction = (f: Fact): boolean => /(^|:)(step|budget-week|safe):\d+$/.test(f.id) && !/balance|left for|budget/i.test(f.label);
+const signFits = (f: Fact, negative: boolean): boolean => f.value >= 0 || negative || isDeduction(f);
+
+// A figure in the context, with its kind and whether it was written with a minus sign.
+type ContextNumber = { value: number; hint: Hint; minus: boolean };
+
+function classify({ value, isYear, hint, negative }: Pick<Found, "value" | "isYear" | "hint" | "negative">, sources: Sources, contextNumbers: ContextNumber[]): NumberCheck {
+  const fits = hint === null ? null : COMPATIBLE[hint];
   // A count is said as it is: no "about" allowance, and in the context only the very same figure counts.
   const close = hint === "count" ? sameFigure : matches;
-  const inContext = (n: number): boolean => (hint === "count" ? Math.abs(n - value) < 0.005 : sameFigure(value, n));
-  const receipt = sources.facts.find((f) => (kinds === null ? sameFigure(value, f.value) : kinds.includes(f.unit) && close(value, f.value)));
+  const money = isMoneyHint(hint);
+  const inContext = (n: ContextNumber): boolean => (money && !backsEuros(n)) || (n.minus && !negative) ? false : hint === "count" ? Math.abs(n.value - value) < 0.005 : sameFigure(value, n.value);
+  const receipt = sources.facts.find((f) => signFits(f, negative) && (fits === null ? sameFigure(value, f.value) : fits(f) && close(value, f.value)));
   if (receipt) return { value, status: "receipt", factId: receipt.id };
   if (contextNumbers.some(inContext)) return { value, status: "context", factId: null };
   if (isYear) return { value, status: "trivial", factId: null }; // "September 2026", "next year, 2027": a date, not an amount
   // The monthly version of a yearly receipt, or the other way round: "about 12 a month" for 139 a year.
   const derived =
-    hint === "money-month" ? sources.facts.find((f) => f.unit === "EUR/year" && sameFigure(value, f.value / 12)) : hint === "money-year" ? sources.facts.find((f) => f.unit === "EUR/month" && sameFigure(value, f.value * 12)) : undefined;
+    hint === "money-month" ? sources.facts.find((f) => f.unit === "EUR/year" && signFits(f, negative) && sameFigure(value, f.value / 12)) : hint === "money-year" ? sources.facts.find((f) => f.unit === "EUR/month" && signFits(f, negative) && sameFigure(value, f.value * 12)) : undefined;
   if (derived) return { value, status: "context", factId: derived.id };
-  if (Number.isInteger(value) && value <= TRIVIAL_MAX) return { value, status: "trivial", factId: null };
+  // A small count is not a financial claim. A small amount of money is: "12 euros a day" needs a source like any other.
+  if (Number.isInteger(value) && value <= TRIVIAL_MAX && !money) return { value, status: "trivial", factId: null };
   return { value, status: "unverified", factId: null };
 }
 
-const contextNumbersOf = (sources: Sources): number[] => [...sources.contextTexts, ...sources.userTexts].flatMap((text) => numbersIn(spelledToDigits(text)));
+const contextNumbersOf = (sources: Sources): ContextNumber[] =>
+  [...sources.contextTexts, ...sources.userTexts].flatMap((text) => {
+    const digits = spelledToDigits(text);
+    return findNumbers(digits).map((n) => ({ value: n.value, hint: n.hint, minus: signedMinus(digits, n.index) }));
+  });
 
 // Fixes slipped digits. A number with no source that sits within a hair of a receipt (1,059.49 for 1,059.47) is
 // replaced by the receipt's value, written the way the model wrote it. Anything further away is left for the report.
@@ -190,7 +243,7 @@ export function correctNumbers(text: string, sources: Sources): { text: string; 
     if (found.hint === "count") continue; // a count of things is not a euro figure with a slipped digit
     if (classify(found, sources, contextNumbers).status !== "unverified") continue;
     // Only a figure of some size can have a "slipped digit": 0.05 is not a slip of 0.
-    const near = sources.facts.find((f) => Math.abs(f.value) >= 1 && Math.abs(Math.abs(f.value) - found.value) <= Math.max(SLIP_ABSOLUTE, Math.abs(f.value) * SLIP_RELATIVE));
+    const near = sources.facts.find((f) => signFits(f, found.negative) && Math.abs(f.value) >= 1 && Math.abs(Math.abs(f.value) - found.value) <= Math.max(SLIP_ABSOLUTE, Math.abs(f.value) * SLIP_RELATIVE));
     if (!near) continue;
     const decimals = /[.,]\d{1,2}$/.test(found.raw) ? found.raw.split(/[.,]/).pop()!.length : 0;
     const replacement = Math.abs(near.value).toFixed(decimals);
@@ -257,11 +310,25 @@ export function checkGrounding(answer: string, facts: Fact[], contextTexts: stri
 }
 
 // Receipts for the figures in the customer summary, so an answer that needed no tool still has sources.
-export function overviewFacts(o: Overview): Fact[] {
+// The estimated weekly budget until payday and its inputs, so the answer can say them and the card can show them.
+export function weeklyBudgetFacts(budget: WeeklyBudget | null | undefined, prefix = "budget"): Fact[] {
+  if (!budget) return [];
+  return [
+    fact(`${prefix}:per-week`, "Estimated weekly budget until payday", budget.perWeekEur, "EUR", `(balance - bills due - protected buffer) / ${budget.weeksToPayday} weeks`, { source: "calculation" }),
+    fact(`${prefix}:left`, "Left for spending until payday", budget.leftForSpendingEur, "EUR", "balance minus bills due before payday and the protected buffer", { source: "calculation" }),
+    fact(`${prefix}:buffer`, "Protected buffer", budget.bufferEur, "EUR", budget.steps.find((step) => step.label === "Protected buffer")?.basis ?? "the amount the customer chose", { source: budget.bufferSource === "default" ? "assumption" : "customer-stated" }),
+    fact(`${prefix}:weeks`, "Weeks until payday", budget.weeksToPayday, "count", `${budget.daysToPayday} days to ${budget.nextPayday}, divided by 7`, { source: "calculation" }),
+    fact(`${prefix}:usual-week`, "Usual everyday spending per week", budget.usualEverydayPerWeekEur, "EUR", "12-month average", { source: "calculation" }),
+    fact(`${prefix}:difference`, "Weekly budget minus usual weekly spending", budget.differencePerWeekEur, "EUR", "negative means usual spending is above the budget", { source: "calculation" }),
+  ];
+}
+
+// `bufferEur`: the protected buffer the customer set in the app, if any, so the weekly budget's receipts match Today.
+export function overviewFacts(o: Overview, bufferEur: number | null = null): Fact[] {
   const window = { from: o.windowFrom, to: o.windowTo };
   const basis = `average of the last ${o.windowMonths} months`;
   const last = lastMonthSpending(o);
-  const flow = buildCashFlow(o);
+  const flow = buildCashFlow(o, { bufferEur, bufferFrom: "app" });
   return [
     fact("last-month:total", `All spending in ${last.month}`, last.totalEur, "EUR", `sum of ${last.transactions} transactions`, { evidence: last.evidence }),
     ...last.categories.flatMap((c) => [
@@ -276,25 +343,26 @@ export function overviewFacts(o: Overview): Fact[] {
     fact("overview:income", "Income per month", o.monthlyIncome, "EUR/month", basis, { evidence: window }),
     fact("overview:spending", "Spending per month", o.monthlySpending, "EUR/month", basis, { evidence: window }),
     fact("overview:saved", "Saved per month", o.monthlySaved, "EUR/month", `investment deposits, ${basis}`, { evidence: { ...window, category: "Invest Deposit" } }),
-    fact("overview:mandatory", "Must-pay costs per month", o.monthlyMandatory, "EUR/month", basis, { evidence: window }),
+    fact("overview:mandatory", "Essential costs per month", o.monthlyMandatory, "EUR/month", basis, { evidence: window }),
     fact("overview:everyday", "Everyday spending per month", o.monthlyEveryday, "EUR/month", basis, { evidence: { ...window, basket: "everyday" } }),
-    fact("overview:runway", "Months of must-pay costs covered", o.runwayMonths, "months", "balance divided by must-pay costs", { source: "calculation" }),
+    fact("overview:runway", "Months of essential costs covered", o.runwayMonths, "months", "balance divided by essential costs", { source: "calculation" }),
     fact("overview:runway-all", "Months of all spending covered", o.monthlySpending > 0 ? Math.max(o.balance, 0) / o.monthlySpending : 0, "months", "balance divided by average monthly spending", { source: "calculation" }),
-    fact("overview:buffer-3", "A three-month buffer", o.monthlyMandatory * 3, "EUR", "three times monthly must-pay costs", { source: "calculation" }),
-    fact("overview:buffer-6", "A six-month buffer", o.monthlyMandatory * 6, "EUR", "six times monthly must-pay costs", { source: "calculation" }),
-    fact("overview:safe-week", "Safe to spend per week", o.safeToSpend.perWeek, "EUR", "safe to spend per month divided by weeks in a month", { source: "calculation" }),
-    fact("overview:safe-month", "Safe to spend per month", o.safeToSpend.perMonth, "EUR/month", "income minus must-pays, now-and-then costs and savings", { source: "calculation" }),
-    fact("overview:safe-gap", "Gap between safe to spend and actual everyday spending", o.safeToSpend.gapPerMonth, "EUR/month", "safe to spend minus actual", { source: "calculation" }),
+    fact("overview:buffer-3", "A three-month buffer", o.monthlyMandatory * 3, "EUR", "three times monthly essential costs", { source: "calculation" }),
+    fact("overview:buffer-6", "A six-month buffer", o.monthlyMandatory * 6, "EUR", "six times monthly essential costs", { source: "calculation" }),
+    fact("overview:safe-week", "Estimated weekly budget from 12-month averages", o.safeToSpend.perWeek, "EUR", "the monthly figure divided by weeks in a month", { source: "calculation" }),
+    fact("overview:safe-month", "Estimated monthly budget for everyday spending, from 12-month averages", o.safeToSpend.perMonth, "EUR/month", "income minus regular essentials, occasional essentials and savings", { source: "calculation" }),
+    fact("overview:safe-gap", "Gap between that budget and actual everyday spending", o.safeToSpend.gapPerMonth, "EUR/month", "budget minus actual", { source: "calculation" }),
+    ...weeklyBudgetFacts(flow.weeklyBudget),
     fact("overview:weeks", "Weeks in a month", 52 / 12, "count", "52 weeks divided by 12 months", { source: "calculation" }),
     fact("overview:age", "Age", o.age, "years", "customer record"),
-    fact("overview:peers", "Customers in the same age band", o.peerCount, "count", `ages ${o.ageBand}`),
+    fact("overview:peers", "Other demo profiles in the same age band", o.peerCount, "count", `ages ${o.ageBand}, synthetic demo data`, { synthetic: true }),
     ...o.baskets.flatMap((b) => [
       fact(`overview:basket:${b.id}`, `${b.label}, per month`, b.monthlyAvg, "EUR/month", basis, { evidence: { ...window, basket: b.id } }),
       fact(`overview:basket:${b.id}:share`, `${b.label}, share of spending`, Math.round(b.share * 100), "percent", "basket divided by all spending", { source: "calculation" }),
       ...b.categories.flatMap((c) => [
         fact(`overview:category:${c.category}`, `${c.category}, per month`, c.monthlyAvg, "EUR/month", `${c.count} transactions, ${basis}`, { evidence: { ...window, category: c.category } }),
-        ...(c.peerMonthlyAvg === null ? [] : [fact(`overview:category:${c.category}:peers`, `${c.category}, age ${o.ageBand} average`, c.peerMonthlyAvg, "EUR/month", `${o.peerCount} customers in the same age band`)]),
-        ...(c.peerMonthlyAvg === null ? [] : [fact(`overview:category:${c.category}:gap`, `${c.category}, gap to peers`, c.monthlyAvg - c.peerMonthlyAvg, "EUR/month", "your average minus the peer average", { source: "calculation" })]),
+        ...(c.peerMonthlyAvg === null ? [] : [fact(`overview:category:${c.category}:peers`, `${c.category}, average of demo profiles aged ${o.ageBand}`, c.peerMonthlyAvg, "EUR/month", `${o.peerCount} other profiles in the synthetic demo data`, { synthetic: true })]),
+        ...(c.peerMonthlyAvg === null ? [] : [fact(`overview:category:${c.category}:gap`, `${c.category}, gap to demo profiles`, c.monthlyAvg - c.peerMonthlyAvg, "EUR/month", "your average minus theirs, within the demo data", { source: "calculation", synthetic: true })]),
       ]),
     ]),
     ...o.recurringBills.flatMap((bill) => [

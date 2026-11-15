@@ -1,0 +1,73 @@
+/* The voice lab (VoiceLabScreen.tsx). */
+
+.sisu-voicelab {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+}
+
+.sisu-voicelab > .sisu-screen {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+}
+
+.sisu-voicelab-loading {
+  padding: var(--sisu-space-margin);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-voicelab-header {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 2);
+  padding: calc(var(--sisu-space-grid) * 2) var(--sisu-space-margin);
+  color: var(--sisu-color-text);
+}
+
+.sisu-voicelab-header h1 { margin: 0; }
+
+.sisu-voicelab-tags {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+}
+
+.sisu-voicelab p { margin: 0; color: var(--sisu-color-text); }
+.sisu-voicelab .sisu-voicelab-muted { color: var(--sisu-color-text-muted); }
+
+.sisu-voicelab-row {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 3);
+}
+
+.sisu-voicelab-row-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--sisu-space-grid);
+  color: var(--sisu-color-text);
+}
+
+/* Above the floating tab bar's room. */
+.sisu-voicelab-talk {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+  padding: calc(var(--sisu-space-grid) * 3) 0;
+  padding-bottom: calc(var(--sisu-tabbar-room) + var(--sisu-space-grid) * 3);
+}
+
+.sisu-voicelab .sisu-voicelab-notice {
+  padding: calc(var(--sisu-space-grid) * 2) calc(var(--sisu-space-grid) * 4);
+  margin: 0 var(--sisu-space-margin);
+  border-radius: var(--sisu-radius-pill);
+  background: var(--sisu-green-100);
+  text-align: center;
+  color: var(--sisu-color-text);
+}

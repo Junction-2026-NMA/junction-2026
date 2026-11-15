@@ -1,0 +1,421 @@
+/* The sheets (web/features/Sheets). Port of ios/Sisu/Features/Sheets/Sheets.swift. Tokens: web/theme/tokens.css. */
+
+/* ---- SheetFrame: title and close button ---- */
+.sisu-sheet-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sisu-space-card);
+  /* 24 from the sheet's top edge; BottomSheet's grabber row already takes 10 of it. */
+  padding: calc(var(--sisu-space-margin) + var(--sisu-space-grid) - 10px) var(--sisu-space-margin) var(--sisu-space-card);
+}
+
+.sisu-sheet-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font: var(--sisu-type-h2);
+  color: var(--sisu-color-text);
+}
+
+.sisu-sheet-title-row > .sisu-rive { flex: none; }
+
+/* The scrolling column of a sheet: 20 px sides, 16 between rows, 32 under the last. */
+.sisu-sheet-content {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--sisu-space-card);
+  padding: 0 var(--sisu-space-margin) var(--sisu-space-section);
+}
+
+/* ---- Text ---- */
+.sisu-sheet-h2 { flex: none; font: var(--sisu-type-h2); color: var(--sisu-color-text); }
+.sisu-sheet-h3 { margin: 0; font: var(--sisu-type-h3); color: var(--sisu-color-text); }
+.sisu-sheet-text { font: var(--sisu-type-body); color: var(--sisu-color-text); }
+.sisu-sheet-button-text { font: var(--sisu-type-button); color: var(--sisu-color-text); }
+.sisu-sheet-label { margin: 0; font: var(--sisu-type-label); color: var(--sisu-color-text); }
+.sisu-sheet-label-muted { font: var(--sisu-type-label); color: var(--sisu-color-text-muted); }
+.sisu-sheet-caption { margin: 0; font: var(--sisu-type-caption); color: var(--sisu-color-text-muted); }
+
+.sisu-sheet-divider {
+  width: 100%;
+  height: 1px;
+  margin: 0;
+  border: 0;
+  background: var(--sisu-neutral-200);
+}
+
+.sisu-sheet-divider-strong { background: var(--sisu-green-900); }
+
+/* ---- Maths ---- */
+.sisu-maths-item {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 3);
+}
+
+.sisu-maths-line {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sisu-space-card);
+}
+
+.sisu-maths-text {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--sisu-space-grid);
+}
+
+.sisu-maths-line > :last-child { flex: none; white-space: nowrap; }
+
+/* ---- Transactions ---- */
+.sisu-tx {
+  display: flex;
+  flex-direction: column;
+}
+
+/* The total stays above the list (outside the ScrollView on iOS). */
+.sisu-tx-summary {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 2);
+  padding: 0 var(--sisu-space-margin) calc(var(--sisu-space-grid) * 3);
+  /* Opaque over the scrolling list, with the same grain as the sheet (seamless noise, so no visible edge). */
+  background-color: var(--sisu-color-background);
+  background-image: var(--sisu-texture);
+  background-size: var(--sisu-texture-size);
+}
+
+.sisu-tx-list {
+  margin: 0 var(--sisu-space-margin) var(--sisu-space-section);
+  padding: 0 var(--sisu-space-margin);
+  list-style: none;
+}
+
+.sisu-tx-item { display: block; }
+
+.sisu-tx-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--sisu-space-grid) * 2);
+  padding: calc(var(--sisu-space-grid) * 3) 0;
+}
+
+.sisu-tx-row-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sisu-tx-row > :last-child { flex: none; white-space: nowrap; }
+
+.sisu-tx-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sisu-space-card);
+}
+
+.sisu-tx-loading { padding-top: var(--sisu-space-section); }
+
+.sisu-tx-retry {
+  align-self: stretch;
+  padding: 0 var(--sisu-space-margin);
+}
+
+.sisu-tx-message {
+  width: 100%;
+  margin: 0;
+  padding-top: var(--sisu-space-card);
+  font: var(--sisu-type-body);
+  color: var(--sisu-color-text-muted);
+  text-align: center;
+}
+
+/* ---- Settings ---- */
+.sisu-sheet-form { margin: 0; }
+
+.sisu-sheet-input {
+  display: block;
+  width: 100%;
+  height: var(--sisu-space-touch-target);
+  padding: 0 calc(var(--sisu-space-grid) * 4);
+  border: 1px solid var(--sisu-neutral-400);
+  border-radius: var(--sisu-radius-button);
+  background: var(--sisu-green-25);
+  color: var(--sisu-color-text);
+  font: var(--sisu-type-body);
+  font-size: max(16px, 1em);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.sisu-sheet-input::placeholder { color: var(--sisu-color-text-muted); opacity: 0.7; }
+.sisu-sheet-input:focus-visible { border-color: var(--sisu-green-700); }
+
+.sisu-settings-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sisu-space-card);
+}
+
+.sisu-settings-toggle-row > .sisu-rive { flex: none; }
+
+/* The switch's hit area: 44 px tall around the 64 x 36 Rive toggle. A press on the extra edge toggles too. */
+.sisu-settings-switch {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 0 0 calc(var(--sisu-space-grid) * 2);
+  cursor: pointer;
+}
+
+/* ---- Settings sections ---- */
+.sisu-settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 2);
+}
+
+/* Lined up with the sheet's title and the captions: no side padding of its own. */
+.sisu-settings-heading {
+  margin: 0;
+  padding: 0;
+  font: var(--sisu-type-h3);
+  color: var(--sisu-color-text);
+}
+
+.sisu-settings-subheading {
+  margin: calc(var(--sisu-space-grid) * 2) 0 0;
+  font: var(--sisu-type-label);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-settings-voice,
+.sisu-settings-privacy,
+.sisu-settings-buffer,
+.sisu-settings-status {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 3);
+  margin: 0;
+}
+
+.sisu-settings-privacy p,
+.sisu-settings-buffer p,
+.sisu-settings-status p { margin: 0; }
+
+.sisu-settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 2);
+  margin: 0;
+  padding-left: calc(var(--sisu-space-grid) * 5);
+  list-style: disc;
+}
+
+.sisu-settings-list > li::marker { color: var(--sisu-green-700); }
+
+.sisu-settings-select-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sisu-space-card);
+  min-height: var(--sisu-space-touch-target);
+}
+
+/* The label keeps one line ("Sisu answers in" never breaks); the select gives way instead. */
+.sisu-settings-select-row > .sisu-sheet-text {
+  flex: none;
+  white-space: nowrap;
+}
+
+.sisu-settings-select {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 60%;
+  height: 40px;
+  padding: 0 calc(var(--sisu-space-grid) * 8) 0 calc(var(--sisu-space-grid) * 3);
+  border: 1px solid var(--sisu-color-hairline);
+  border-radius: var(--sisu-radius-button);
+  background: var(--sisu-green-25) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%23007841' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center;
+  color: var(--sisu-color-text);
+  font: var(--sisu-type-button);
+  font-size: max(16px, 1em);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.sisu-settings-select:focus-visible { border-color: var(--sisu-green-700); }
+
+.sisu-settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 2);
+  padding-top: calc(var(--sisu-space-grid) * 1);
+}
+
+.sisu-settings-voice-row {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+  padding: calc(var(--sisu-space-grid) * 2) calc(var(--sisu-space-grid) * 3);
+  border: 1px solid var(--sisu-color-hairline);
+  border-radius: var(--sisu-radius-button);
+  background: var(--sisu-white);
+  transition: border-color var(--sisu-motion-press-duration) var(--sisu-motion-ease-standard),
+    background-color var(--sisu-motion-press-duration) var(--sisu-motion-ease-standard);
+}
+
+.sisu-settings-voice-row[data-selected="true"] {
+  border-color: var(--sisu-green-500);
+  background: var(--sisu-green-25);
+}
+
+.sisu-settings-voice-row .sisu-settings-voice-pick {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 3);
+  min-height: 44px;
+  text-align: left;
+}
+
+.sisu-settings-voice-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.sisu-settings-radio {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--sisu-neutral-400);
+  transition: border-color var(--sisu-motion-press-duration) var(--sisu-motion-ease-standard),
+    box-shadow var(--sisu-motion-press-duration) var(--sisu-motion-ease-standard);
+}
+
+.sisu-settings-voice-row[data-selected="true"] .sisu-settings-radio {
+  border-color: var(--sisu-green-700);
+  box-shadow: inset 0 0 0 4px var(--sisu-white), inset 0 0 0 10px var(--sisu-green-700);
+}
+
+.sisu-settings-voice-row .sisu-settings-preview {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 calc(var(--sisu-space-grid) * 3);
+  border-radius: var(--sisu-radius-pill);
+  background: var(--sisu-green-50);
+  color: var(--sisu-green-900);
+  font: var(--sisu-type-label);
+  transition: transform var(--sisu-motion-press-duration) var(--sisu-motion-ease-standard);
+}
+
+.sisu-settings-voice-row .sisu-settings-preview:active { transform: scale(0.96); }
+
+.sisu-settings-spinner {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--sisu-green-100);
+  border-top-color: var(--sisu-green-700);
+  animation: sisu-settings-spin 0.9s linear infinite;
+}
+
+@keyframes sisu-settings-spin { to { transform: rotate(360deg); } }
+
+.sisu-settings-toggle-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sisu-settings-buffer-row {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+}
+
+.sisu-settings-buffer-field {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sisu-settings-euro {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font: var(--sisu-type-body);
+  color: var(--sisu-color-text-muted);
+  pointer-events: none;
+}
+
+.sisu-settings-buffer-field .sisu-settings-buffer-input { padding-left: 32px; }
+
+.sisu-settings-buffer-row .sisu-settings-save {
+  flex: none;
+  min-height: var(--sisu-space-touch-target);
+  padding: 0 calc(var(--sisu-space-grid) * 5);
+  border-radius: var(--sisu-radius-button);
+  background: var(--sisu-green-700);
+  color: var(--sisu-white);
+  font: var(--sisu-type-button);
+}
+
+.sisu-settings-buffer-row .sisu-settings-save:disabled { opacity: 0.45; }
+
+.sisu-settings-demo {
+  border-radius: var(--sisu-radius-card);
+}
+
+.sisu-settings-demo-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: calc(var(--sisu-space-grid) * 3) 0;
+  list-style: none;
+  cursor: pointer;
+}
+
+.sisu-settings-demo-summary::-webkit-details-marker { display: none; }
+
+.sisu-settings-demo-summary .sisu-settings-heading::after {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 10px;
+  border-right: 2px solid var(--sisu-green-700);
+  border-bottom: 2px solid var(--sisu-green-700);
+  transform: translateY(-3px) rotate(45deg);
+  transition: transform var(--sisu-motion-enter-duration) var(--sisu-motion-ease-standard);
+}
+
+.sisu-settings-demo[open] .sisu-settings-heading::after { transform: translateY(0) rotate(225deg); }
+
+.sisu-settings-demo-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sisu-space-card);
+  animation: sisu-enter-soft-kf var(--sisu-motion-enter-duration) var(--sisu-motion-ease-emphasized) both;
+}

@@ -5,6 +5,7 @@ import { toResult } from "@/lib/agent/research/compare";
 import { ensureResearch, waitForUsable } from "@/lib/agent/research";
 import { singleTypes } from "@/lib/agent/research/exa";
 import { forgetRecentPages, readOffers } from "@/lib/agent/research/reader";
+import { isSeasonalOffer } from "@/lib/agent/research/requirements";
 import type { RawOffer, RawResearch } from "@/lib/agent/research/types";
 
 const offer = (o: Partial<RawOffer>): RawOffer => ({ provider: "P", plan: null, contractType: "fixed", contractMonths: 12, monthlyPriceEur: 4, energyPriceCentsPerKwh: 9, setupFeeEur: null, sourceUrl: "https://example.com/a", ...o });
@@ -26,6 +27,44 @@ describe("offer comparison: the arithmetic is honest", () => {
     assert.equal(result.best?.provider, "Cheap");
     assert.deepEqual(result.offers.filter((o) => !o.comparable).map((o) => o.provider).sort(), ["Pörssi", "Spotty"]);
     assert.ok(result.offers.filter((o) => !o.comparable).every((o) => o.estimatedYearlySavingEur === null));
+  });
+
+  // Regression: QA on the hosted demo, 15 Nov. Pohjois-Karjalan Sähkö's seasonal contract ("Kausisähkö · Talvi 12,46
+  // c/kWh · Muu aika 8,82 c/kWh") was priced at its off-season rate alone and shown as the "Best match" saving.
+  it("never ranks a seasonal or day/night contract at one of its rates, and says why", () => {
+    const seasonal = offer({ provider: "Pohjois-Karjalan Sähkö Oy", plan: "Optimi takuu 24 kuukautta", contractType: "fixed", contractMonths: 24, monthlyPriceEur: 0, energyPriceCentsPerKwh: 8.82, winterPriceCentsPerKwh: 12.46, otherPriceCentsPerKwh: 8.82 });
+    const named = offer({ provider: "Kausi Oy", plan: "Kausisähkö 12 kk", contractMonths: 12, monthlyPriceEur: 2, energyPriceCentsPerKwh: 6 });
+    const dayNight = offer({ provider: "Yö Oy", contractType: "time-of-day", monthlyPriceEur: 2, energyPriceCentsPerKwh: 5 });
+    const result = toResult(raw([seasonal, named, dayNight, offer({ provider: "Plain", energyPriceCentsPerKwh: 9.5, monthlyPriceEur: 3 })]), 39.83, 2_000);
+    assert.equal(result.best?.provider, "Plain");
+    const unranked = result.offers.filter((o) => !o.comparable);
+    assert.deepEqual(unranked.map((o) => o.provider).sort(), ["Kausi Oy", "Pohjois-Karjalan Sähkö Oy", "Yö Oy"]);
+    assert.ok(unranked.every((o) => o.estimatedMonthlyCostEur === null && o.estimatedYearlySavingEur === null));
+    assert.equal(unranked.find((o) => o.provider === "Pohjois-Karjalan Sähkö Oy")?.notComparableReason, "Seasonal price, not comparable (winter 12.46 c/kWh, other times 8.82 c/kWh): its cost depends on when you use electricity, so it is listed but not ranked.");
+    assert.match(unranked.find((o) => o.provider === "Kausi Oy")?.notComparableReason ?? "", /^Seasonal price, not comparable:/);
+    assert.ok(result.assumptions.some((line) => /Seasonal and day\/night contracts are listed but not ranked/.test(line)));
+    assert.equal(result.offers.find((o) => o.provider === "Plain")?.notComparableReason, null);
+    // With nothing else to rank, there is no best offer: never a seasonal one.
+    assert.equal(toResult(raw([seasonal]), 39.83, 2_000).best, null);
+  });
+
+  // Regression: QA 15 Nov. "kausi" matched inside "kuukausi" (month), so a fixed plan "ilman kuukausimaksua" (no
+  // monthly fee) was listed as seasonal and never ranked, and the seasonal assumption showed with no seasonal offer.
+  it("a monthly fee or monthly price in the plan name is not a season", () => {
+    const fixed = (plan: string) => offer({ plan, contractType: "fixed" });
+    assert.equal(isSeasonalOffer(fixed("Kiinteä ilman kuukausimaksua 12 kk")), false);
+    assert.equal(isSeasonalOffer(fixed("Kiinteä kuukausihinta 24 kk")), false);
+    assert.equal(isSeasonalOffer(fixed("Kiinteä hinta, ei kuukausimaksua")), false);
+    assert.equal(isSeasonalOffer(fixed("Kausisähkö 24 kk")), true);
+    assert.equal(isSeasonalOffer(fixed("Sähkö Kausi 12")), true);
+    assert.equal(isSeasonalOffer(fixed("Kesä-talvi kiinteä")), true);
+    const result = toResult(raw([offer({ provider: "NoFee", plan: "Kiinteä ilman kuukausimaksua 12 kk", energyPriceCentsPerKwh: 7, monthlyPriceEur: 0 }), offer({ provider: "MonthPrice", plan: "Kiinteä kuukausihinta 24 kk", energyPriceCentsPerKwh: 8, monthlyPriceEur: 2 }), offer({ provider: "Spot", plan: "Pörssisähkö ilman kuukausimaksua", contractType: "spot", energyPriceCentsPerKwh: 0.5 })]), 39.83, 2_000);
+    assert.equal(result.best?.provider, "NoFee");
+    assert.deepEqual(result.offers.filter((o) => o.comparable).map((o) => o.provider), ["NoFee", "MonthPrice"]);
+    assert.ok(!result.assumptions.some((line) => /Seasonal and day\/night/.test(line)), "no seasonal offer, no seasonal assumption");
+    const withSeason = toResult(raw([offer({ provider: "NoFee", plan: "Kiinteä ilman kuukausimaksua 12 kk", energyPriceCentsPerKwh: 7 }), offer({ provider: "Season", plan: "Kausisähkö 24 kk", energyPriceCentsPerKwh: 6 })]), 39.83, 2_000);
+    assert.equal(withSeason.offers.find((o) => o.provider === "Season")?.comparable, false);
+    assert.ok(withSeason.assumptions.some((line) => /Seasonal and day\/night/.test(line)));
   });
 
   it("ignores prices that cannot be real instead of calling them a bargain", () => {

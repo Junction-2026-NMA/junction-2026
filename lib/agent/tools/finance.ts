@@ -12,12 +12,16 @@ import { basketsVisual, futuresVisual } from "../visuals";
 import { CONCEPTS, teachingCard } from "@/lib/finance/teaching";
 import { filterTransactions } from "@/lib/finance/transactions";
 import { billLabel } from "@/lib/memory";
-import type { BasketId, BillType, ConceptId, EvidenceFilter, Fact, Transaction } from "@/lib/types";
+import type { BasketId, BillType, ConceptId, EvidenceFilter, Fact, SourceKind, Transaction } from "@/lib/types";
 import { CATEGORIES, GROUPINGS, MERCHANT_TYPES } from "./schemas";
 import { type ToolContext, type ToolOutcome, factsForModel, failure, outcome } from "./types";
 import { accountsFor } from "@/lib/actions";
 import { buildCashFlow } from "@/lib/finance/cashflow";
 import { withCurrentAccount } from "@/lib/actions/bank";
+import { COVERED_FACTOR, billsCovered, coveredText, parseBuffer } from "@/lib/finance/budget";
+import { weeklyBudgetFacts } from "../grounding";
+import { digitsOf } from "./act";
+import { DEFAULT_CUT_YEARS, categoryCutFacts, categoryCutOutcome, wantsProjection } from "./category-cut";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_GROUPS = 12;
@@ -64,7 +68,7 @@ export function getSpending(args: Record<string, unknown>, ctx: ToolContext): To
   const perMonthEur = round2(totalEur / (days / (365 / 12)));
   // An empty period is easy to misread as "you never spend on this". The usual figure is given alongside.
   const usual = category ? ctx.overview.baskets.flatMap((b) => b.categories).find((c) => c.category === category) : undefined;
-  const emptyNote = count === 0 && usual ? `Nothing in this period, but the 12-month average for ${category} is ${usual.monthlyAvg} euros a month. Say both.` : undefined;
+  const emptyNote = count === 0 && usual ? `Nothing in this period, but the 12-month average for ${category} is ${usual.monthlyAvg} euros a month. Mention both in one sentence.` : undefined;
 
   const facts: Fact[] = [
     fact("spending:total", `Spent on ${what}, ${from} to ${to}`, totalEur, "EUR", `sum of ${count} transactions`, { evidence }),
@@ -121,8 +125,17 @@ export function listBills(ctx: ToolContext): ToolOutcome {
   });
 }
 
-export function getCashFlow(ctx: ToolContext): ToolOutcome {
-  const flow = ctx.cashFlow();
+// A buffer the model passes counts only if the customer said that amount in this conversation. Otherwise the
+// buffer they set in the app is used (ctx.cashFlow already carries it), and with neither, the default assumption.
+function statedBuffer(args: Record<string, unknown>, ctx: ToolContext): number | null {
+  const buffer = parseBuffer(args.bufferEur);
+  return buffer !== null && ctx.userTexts.some((text) => digitsOf(text).some((n) => Math.abs(n - buffer) < 0.005)) ? buffer : null;
+}
+
+export function getCashFlow(ctx: ToolContext, args: Record<string, unknown> = {}): ToolOutcome {
+  const said = statedBuffer(args, ctx);
+  const flow = said === null || said === ctx.bufferEur ? ctx.cashFlow() : buildCashFlow(ctx.overview, { bufferEur: said });
+  const budget = flow.weeklyBudget ?? null;
   const recent = flow.cycles.slice(-6);
   const facts: Fact[] = [
     ...(flow.typicalPayday === null ? [] : [fact("cash:payday", "Usual payday (day of month)", flow.typicalPayday, "days", "the usual salary day in the history")]),
@@ -134,8 +147,17 @@ export function getCashFlow(ctx: ToolContext): ToolOutcome {
     ...flow.steps.map((step, index) => fact(`cash:step:${index}`, step.label, step.amount, "EUR", step.basis, { source: "calculation" })),
     ...flow.billsDueBeforePayday.map((bill) => fact(`cash:due:${bill.billId}`, `${bill.label} due ${bill.expectedOn}`, bill.amount, "EUR", "the bill's 12-month average")),
     ...recent.map((cycle) => fact(`cash:low:${cycle.payday}`, `Lowest balance in the cycle from ${cycle.payday}`, cycle.lowestBalance, "EUR", `on ${cycle.lowestOn}`)),
+    ...weeklyBudgetFacts(budget, "cash:budget"),
   ];
   const low = flow.projectedLowPointEur;
+  // When the weekly figure is far above the usual pace (most of the balance), the answer is that the bills before
+  // payday are covered and what is left after them, as on Today. The weekly figure stays in the working.
+  const covered = budget !== null && billsCovered(budget);
+  // The stage leads with the weekly budget when there is one: it answers "what can I spend this week", and its
+  // working (balance, bills, buffer, weeks) is on the card, so the answer itself can stay short.
+  const budgetStage = budget
+    ? [{ kind: "calculation" as const, title: covered ? "Bills before payday are covered" : "Estimated weekly budget until payday", summary: covered ? `Bills before payday on ${budget.nextPayday} are covered, and the buffer is kept` : `About €${budget.perWeekEur.toFixed(0)} a week until ${budget.nextPayday}${budget.shortBeforePayday ? "; the bills due already reach into the buffer" : ""}`, source: "calculation" as const, data: { kind: "calculation" as const, steps: [...budget.steps, ...(low === null ? [] : [{ label: "If you spend as usual: balance just before payday", amount: low, basis: `after usual everyday spending of €${flow.averageDailyEverydayEur.toFixed(2)} a day` }])], resultLabel: covered ? "Left for spending until payday" : "Estimated weekly budget", resultValue: covered ? budget.leftForSpendingEur : budget.perWeekEur, unit: "EUR" as const, assumptions: [...budget.assumptions, ...flow.assumptions.slice(1, 2)] } }]
+    : [];
   return outcome({
     content: JSON.stringify({
       usualPaydayDayOfMonth: flow.typicalPayday,
@@ -148,11 +170,19 @@ export function getCashFlow(ctx: ToolContext): ToolOutcome {
       shareOfEverydaySpendingInWeekAfterPaydayPct: flow.firstWeekShare === null ? null : Math.round(flow.firstWeekShare * 100),
       monthsBelowZeroInLast12: flow.negativeMonths,
       lastCycles: recent.map((cycle) => ({ payday: cycle.payday, lowestBalanceEur: cycle.lowestBalance, lowestOn: cycle.lowestOn, daysFromPaydayToLowest: cycle.daysToLowest })),
-      thisIsAnEstimate: flow.assumptions,
+      estimatedWeeklyBudgetUntilPayday: budget
+        ? { perWeekEur: budget.perWeekEur, weeksToPayday: budget.weeksToPayday, leftForSpendingEur: budget.leftForSpendingEur, protectedBufferEur: budget.bufferEur, bufferIs: budget.bufferSource === "default" ? "an assumption: one week of essentials" : said === null || said === ctx.bufferEur ? "the amount the customer set in the app" : "what the customer said", usualEverydaySpendingPerWeekEur: budget.usualEverydayPerWeekEur, budgetMinusUsualPerWeekEur: budget.differencePerWeekEur, billsAlreadyReachIntoBuffer: budget.shortBeforePayday, billsBeforePaydayCovered: covered }
+        : null,
+      howToAnswer: covered
+        ? `The weekly figure is more than ${COVERED_FACTOR} times their usual everyday spending a week, so it is not a budget to headline. Say the bills before payday are covered and about leftForSpendingEur is left after them and the buffer (in words like: "${coveredText(budget)}"). Do not lead with perWeekEur; never call anything 'safe to spend'. The card shows the working: do not list it.`
+        : budget
+          ? "For 'what can I spend this week' or 'will my money last': lead with the estimated weekly budget (call it that, never 'safe to spend'), then one realistic step. If budgetMinusUsualPerWeekEur is negative, say usual spending runs above it and suggest one adjustment. If the buffer is an assumption, ask in a few words whether they want to keep a different amount. The card shows the working: do not list it."
+          : undefined,
     }),
-    summary: low === null ? "No payday found in the data" : `Next payday ${flow.nextPayday}; expected balance just before it €${low.toFixed(2)}`,
+    summary: low === null ? "No payday found in the data" : `Next payday ${flow.nextPayday}; expected balance just before it €${low.toFixed(2)}${budget ? (covered ? `; bills before it covered, €${budget.leftForSpendingEur.toFixed(2)} left after them and the buffer` : `; estimated weekly budget €${budget.perWeekEur.toFixed(2)}`) : ""}`,
     facts,
-    stages: [{ kind: "calculation", title: "Balance before the next payday", summary: low === null ? "No payday found" : `About €${low.toFixed(0)} expected on ${flow.nextPayday}`, source: "calculation", data: { kind: "calculation", steps: flow.steps, resultLabel: "Expected balance just before payday", resultValue: low ?? 0, unit: "EUR", assumptions: flow.assumptions } }],
+    // One card: the weekly budget with the usual-spending balance as its last line, or the balance alone without a payday.
+    stages: budgetStage.length ? budgetStage : [{ kind: "calculation", title: "Balance before the next payday", summary: low === null ? "No payday found" : `About €${low.toFixed(0)} expected on ${flow.nextPayday}`, source: "calculation", data: { kind: "calculation", steps: flow.steps, resultLabel: "Expected balance just before payday", resultValue: low ?? 0, unit: "EUR", assumptions: flow.assumptions } }],
   });
 }
 
@@ -174,7 +204,7 @@ export function findPatternsTool(ctx: ToolContext): ToolOutcome {
       important: "Never add amounts together yourself. If a total helps, use twoLargestTogether, which is already worked out.",
       twoLargestTogether: combined,
       threeBaskets: ctx.overview.baskets.map((basket) => ({ basket: basket.label, perMonthEur: round2(basket.monthlyAvg), shareOfSpendingPct: Math.round(basket.share * 100) })),
-      framing: "When they ask where their money goes or what kind of spender they are, start from threeBaskets (which basket is biggest, and how large everyday choices are), then give the largest finding.",
+      framing: "When they ask where their money goes or what kind of spender they are, start from threeBaskets in a sentence, then the largest finding and one step. The baskets chart is on screen. Peer gaps compare with other profiles in the demo data, never 'people your age'.",
       patterns: patterns.map((p) => ({ id: p.id, what: p.title, detail: p.detail, yearlyEur: p.yearlyImpactEur, confidence: p.confidence, canResearchOffersFor: p.billType, usefulNextTools: p.nextSteps, numbers: factsForModel(p.facts) })),
     }),
     summary: patterns.length ? `${patterns.length} patterns found; top: ${patterns[0].title}` : "No notable pattern found",
@@ -184,6 +214,14 @@ export function findPatternsTool(ctx: ToolContext): ToolOutcome {
   });
 }
 
+// Where each line of the affordability working comes from: the cost is what the customer asked about, the projection
+// is worked out, and the balance, the bills and the everyday spending are read from their bank data.
+function affordStepSource(label: string): SourceKind {
+  if (label === "This cost") return "customer-stated";
+  if (/^Expected balance/.test(label)) return "calculation";
+  return "bank-data";
+}
+
 export function checkAffordabilityTool(args: Record<string, unknown>, ctx: ToolContext): ToolOutcome {
   // After an approved transfer the money is no longer in the current account, so the answer starts from what is left.
   const accounts = accountsFor(ctx.overview.customerId);
@@ -191,24 +229,22 @@ export function checkAffordabilityTool(args: Record<string, unknown>, ctx: ToolC
   const result = checkAffordability(current, current === ctx.overview ? ctx.cashFlow() : buildCashFlow(current), Number(args.amountEur));
   if (typeof result === "string") return failure("finance", result);
   const what = typeof args.what === "string" ? args.what.slice(0, 60) : "this cost";
-  const verdictText = { comfortable: "affordable now with a buffer left", tight: "possible, but it leaves less than a month of must-pay costs before payday", "not-yet": "not affordable now without going below zero before payday" }[result.verdict];
+  const verdictText = { comfortable: "affordable now with a buffer left", tight: "possible, but it leaves less than a month of essential costs before payday", "not-yet": "not affordable now without going below zero before payday" }[result.verdict];
   const facts: Fact[] = [
     fact("afford:amount", `Cost of ${what}`, result.amountEur, "EUR", "the amount asked about", { source: "customer-stated" }),
     fact("afford:balance-after", "Balance straight after paying", result.balanceAfterEur, "EUR", "balance minus the cost", { source: "calculation" }),
     ...(result.projectedLowPointEur === null ? [] : [fact("afford:low", "Expected balance just before payday", result.projectedLowPointEur, "EUR", "after the cost, bills due and usual spending", { source: "calculation" })]),
-    fact("afford:buffer", "Months of must-pay costs still covered", result.bufferMonthsAfter, "months", "expected low point divided by monthly must-pay costs", { source: "calculation" }),
+    fact("afford:buffer", "Months of essential costs still covered", result.bufferMonthsAfter, "months", "expected low point divided by monthly essential costs", { source: "calculation" }),
     ...(result.monthsToSaveUp === null ? [] : [fact("afford:save-up", "Months of saving needed", result.monthsToSaveUp, "months", "shortfall divided by the average monthly surplus", { source: "calculation" })]),
-    ...result.steps.map((step, index) => fact(`afford:step:${index}`, step.label, step.amount, "EUR", step.basis, { source: "calculation" })),
+    ...result.steps.map((step, index) => fact(`afford:step:${index}`, step.label, step.amount, "EUR", step.basis, { source: affordStepSource(step.label) })),
   ];
   return outcome({
-    content: JSON.stringify({ what, amountEur: result.amountEur, verdict: result.verdict, verdictMeans: verdictText, balanceStraightAfterEur: result.balanceAfterEur, expectedBalanceJustBeforePaydayEur: result.projectedLowPointEur, monthsOfMustPayCostsStillCovered: result.bufferMonthsAfter, monthsOfSavingNeededFirst: result.monthsToSaveUp, workings: result.steps, thisIsAnEstimate: result.assumptions }),
+    content: JSON.stringify({ what, amountEur: result.amountEur, verdict: result.verdict, verdictMeans: verdictText, balanceStraightAfterEur: result.balanceAfterEur, expectedBalanceJustBeforePaydayEur: result.projectedLowPointEur, monthsOfEssentialCostsStillCovered: result.bufferMonthsAfter, monthsOfSavingNeededFirst: result.monthsToSaveUp, workings: result.steps, thisIsAnEstimate: result.assumptions }),
     summary: `€${result.amountEur.toFixed(0)} for ${what}: ${verdictText}`,
     facts,
     stages: [{ kind: "calculation", title: `Can you afford €${result.amountEur.toFixed(0)}?`, summary: verdictText, source: "calculation", data: { kind: "calculation", steps: result.steps, resultLabel: "Expected balance just before payday", resultValue: result.projectedLowPointEur ?? result.balanceAfterEur, unit: "EUR", assumptions: result.assumptions } }],
   });
 }
-
-const DEFAULT_CUT_YEARS = 5; // "how much could I save if I cut X by 20%?" names no horizon
 
 export function runScenarioTool(args: Record<string, unknown>, ctx: ToolContext): ToolOutcome {
   // "Reduce dining out by 20%": the euros come from the category's 12-month average, worked out here. Using one
@@ -217,13 +253,15 @@ export function runScenarioTool(args: Record<string, unknown>, ctx: ToolContext)
   const cutCategory = typeof args.category === "string" && Number.isFinite(cutPct) && cutPct > 0 && cutPct <= 100 ? categoryAverages(ctx.overview).find((entry) => entry.category === args.category) : undefined;
   if (typeof args.category === "string" && args.categoryCutPct !== undefined && !cutCategory) return failure("finance", `There is no spending in ${args.category} in the last ${ctx.overview.windowMonths} months, or the percentage is not between 1 and 100.`);
   const fromCategory = cutCategory ? round2((cutCategory.monthly * cutPct) / 100) : 0;
+  // A monthly-savings question is answered per month and per year; the projection only when the years were asked about.
+  if (cutCategory && !wantsProjection(args, ctx.userTexts.at(-1) ?? "")) return categoryCutOutcome(ctx.overview, cutCategory, cutPct, fromCategory);
   const freed = cutCategory ? fromCategory : Number(args.freedPerMonthEur ?? args.billSavingPerMonth ?? 0);
   const cleaned = cleanInput({ billSavingPerMonth: Number.isFinite(freed) ? freed : 0, everydayCutPct: Number(args.everydayCutPct ?? 0) || 0, years: Number(args.years) || (cutCategory ? DEFAULT_CUT_YEARS : NaN), oneOffEur: typeof args.oneOffEur === "number" ? args.oneOffEur : 0 });
   if (typeof cleaned === "string") return failure("finance", cleaned);
   // The UI bill-saving cap must not truncate a cut computed from actual category spending.
   const input = cutCategory ? { ...cleaned, billSavingPerMonth: fromCategory } : cleaned;
   const result = runScenario(ctx.overview, input);
-  const branches = result.branches.map((b) => ({ future: b.label, endTotalEur: b.endTotal, lowEur: b.endLow, highEur: b.endHigh, monthsOfMustPayCostsCoveredAfterYear1: b.runwayMonthsAtYear1 }));
+  const branches = result.branches.map((b) => ({ future: b.label, endTotalEur: b.endTotal, lowEur: b.endLow, highEur: b.endHigh, monthsOfEssentialCostsCoveredAfterYear1: b.runwayMonthsAtYear1 }));
   const end = (id: string) => result.branches.find((b) => b.id === id)?.endTotal ?? 0;
   const gain = round2(end("save") - end("nothing"));
   // What the lump sum itself would be worth at the end, in each scenario: the same growth rule the projection uses.
@@ -232,14 +270,7 @@ export function runScenarioTool(args: Record<string, unknown>, ctx: ToolContext)
   const facts: Fact[] = [
     fact("scenario:freed", "Freed per month", result.freedPerMonth, "EUR/month", "bill saving plus the trimmed share of everyday spending", { source: "calculation" }),
     fact("scenario:years", "Years ahead", input.years, "years", "the horizon asked for", { source: "customer-stated" }),
-    ...(cutCategory
-      ? [
-          fact("scenario:category-avg", `${cutCategory.category}, average per month`, cutCategory.monthly, "EUR/month", `average of the last ${ctx.overview.windowMonths} months`, { evidence: { from: ctx.overview.windowFrom, to: ctx.overview.windowTo, category: cutCategory.category } }),
-          fact("scenario:category-cut-pct", "Cut asked for", cutPct, "percent", "the percentage the customer named", { source: "customer-stated" }),
-          fact("scenario:category-freed", `Cutting ${cutCategory.category} by ${cutPct}% frees, per month`, fromCategory, "EUR/month", `${cutPct}% of the monthly average`, { source: "calculation" }),
-          fact("scenario:category-freed-yearly", `Cutting ${cutCategory.category} by ${cutPct}% frees, per year`, round2(fromCategory * 12), "EUR/year", "the monthly figure times 12", { source: "calculation" }),
-        ]
-      : []),
+    ...(cutCategory ? categoryCutFacts(ctx.overview, cutCategory, cutPct, fromCategory) : []),
     fact("scenario:gain", "Extra after the period if the money is kept", gain, "EUR", "'keep the cash' minus 'change nothing'", { source: "calculation" }),
     ...(input.oneOffEur
       ? [
@@ -268,7 +299,7 @@ export function runScenarioTool(args: Record<string, unknown>, ctx: ToolContext)
     content: JSON.stringify({
       input,
       ...(cutCategory
-        ? { categoryCut: { category: cutCategory.category, averagePerMonthEur: cutCategory.monthly, cutPct, freesPerMonthEur: fromCategory, freesPerYearEur: round2(fromCategory * 12), basis: `the ${ctx.overview.windowMonths}-month average, not any single month`, say: "Lead with what the cut frees per month and per year, say it is based on their average, then what it adds up to." } }
+        ? { categoryCut: { category: cutCategory.category, averagePerMonthEur: cutCategory.monthly, cutPct, freesPerMonthEur: fromCategory, freesPerYearEur: round2(fromCategory * 12), basis: `the ${ctx.overview.windowMonths}-month average, not any single month`, say: "Lead with what the cut frees per month (and per year if useful), from their average, then what it adds up to over the years they asked about; the chart shows it." } }
         : {}),
       freedPerMonthEur: result.freedPerMonth,
       extraAfterPeriodIfKeptEur: gain,
@@ -276,7 +307,7 @@ export function runScenarioTool(args: Record<string, unknown>, ctx: ToolContext)
         ? {
             lumpSumEur: input.oneOffEur,
             lumpSumCouldBecomeEur: lumpBecomes,
-            forTheLumpSumSay: `The ${input.oneOffEur} euros could become about ${lumpBecomes.middleScenario} after ${input.years} years, between ${lumpBecomes.lowScenario} and ${lumpBecomes.highScenario}. Left in the account it stays ${input.oneOffEur}. These are scenarios, not forecasts, and investments can lose value. Do not quote the branch totals below for the lump sum: they are the whole account.`,
+            forTheLumpSum: `In your own words, one or two sentences: about ${lumpBecomes.middleScenario} after ${input.years} years in the middle scenario (range ${lumpBecomes.lowScenario} to ${lumpBecomes.highScenario}); left in the account it stays ${input.oneOffEur}. Say it is a scenario, not a forecast, and that investments can lose value. Do not quote the branch totals below for the lump sum: they are the whole account.`,
           }
         : {}),
       branches,
@@ -338,7 +369,7 @@ export function explainConcept(args: Record<string, unknown>, ctx: ToolContext):
   const card = teachingCard(concept, ctx.overview);
   return outcome({
     content: JSON.stringify({
-      howToUse: "Explain the idea in one or two sentences, then ask the question (in the customer's language, same meaning) and STOP. You do not know the answer: the app reveals it after the customer guesses, so do not state or hint at any figure.",
+      howToUse: "Explain the idea in one or two short sentences, in your own words, then ask the question (in the customer's language, same meaning) and STOP. The answer options are on the card. You do not know the answer: the app reveals it after the customer guesses, so do not state or hint at any figure.",
       title: card.title,
       idea: card.explanation,
       questionToAsk: card.question,

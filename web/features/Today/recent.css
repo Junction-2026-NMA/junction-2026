@@ -1,0 +1,75 @@
+/* The newest transactions at the bottom of Today (RecentTransactions.tsx). */
+
+.sisu-recent { display: flex; flex-direction: column; gap: calc(var(--sisu-space-grid) * 3); }
+
+.sisu-recent-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: calc(var(--sisu-space-grid) * 2);
+}
+
+.sisu-recent-title {
+  margin: 0;
+  font: var(--sisu-type-h2);
+  color: var(--sisu-color-text);
+}
+
+button.sisu-recent-all {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--sisu-green-700);
+  font: var(--sisu-type-button);
+  cursor: pointer;
+}
+
+button.sisu-recent-all:active { opacity: 0.6; }
+button.sisu-recent-all:focus-visible { outline: 2px solid var(--sisu-green-500); outline-offset: 2px; border-radius: 8px; }
+
+.sisu-recent-list { margin: 0; padding: 0; list-style: none; }
+
+.sisu-recent-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--sisu-space-grid) * 3);
+  padding: calc(var(--sisu-space-grid) * 3) 0;
+}
+
+.sisu-recent-row + .sisu-recent-row { border-top: 1px solid var(--sisu-neutral-200); }
+.sisu-recent-row:first-child { padding-top: 0; }
+.sisu-recent-row:last-child { padding-bottom: 0; }
+
+.sisu-recent-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+.sisu-recent-category {
+  font: var(--sisu-type-button);
+  color: var(--sisu-color-text);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.sisu-recent-date {
+  font: var(--sisu-type-caption);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-recent-amount {
+  flex: none;
+  font: var(--sisu-type-button);
+  color: var(--sisu-color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.sisu-recent-in { color: var(--sisu-green-700); }
+
+.sisu-recent-message {
+  display: flex;
+  justify-content: center;
+  margin: 0;
+  font: var(--sisu-type-label);
+  color: var(--sisu-color-text-muted);
+}

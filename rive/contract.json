@@ -58,7 +58,13 @@
       "focused",
       "cosy",
       "sleepy",
-      "thinking"
+      "thinking",
+      "listening",
+      "writing",
+      "searching",
+      "calculating",
+      "comparing",
+      "presenting"
     ],
     "StickerKind": [
       "firstJar",
@@ -496,7 +502,7 @@
             240
           ],
           "sizing": "contain",
-          "purpose": "The mascot. Mood follows the user's effort, never their balance.",
+          "purpose": "The mascot. Mood follows the user's effort, never their balance. The last six moods (listening, writing, searching, calculating, comparing, presenting) show Liito doing the task the agent is doing at that moment.",
           "properties": [
             {
               "name": "mood",

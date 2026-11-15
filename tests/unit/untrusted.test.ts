@@ -67,6 +67,11 @@ describe("untrusted web text", () => {
     assert.equal(offers[1].contractType, null); // hostile text in a side field is blanked, the offer survives
     assert.equal(offers[1].monthlyPriceEur, null); // a non-number never becomes a price
   });
+
+  it("keeps a seasonal contract's two prices, and only as numbers", () => {
+    const { offers } = cleanOffers([{ provider: "Pohjois-Karjalan Sähkö Oy", plan: "Optimi takuu 24 kuukautta", contractType: "seasonal", energyPriceCentsPerKwh: 8.82, winterPriceCentsPerKwh: 12.46, otherPriceCentsPerKwh: "8,82" as unknown as number }], "https://example.com/offers");
+    assert.deepEqual([offers[0].winterPriceCentsPerKwh, offers[0].otherPriceCentsPerKwh], [12.46, null]);
+  });
 });
 
 describe("text the customer typed that is dressed up as something else", () => {

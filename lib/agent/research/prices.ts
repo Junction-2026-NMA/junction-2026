@@ -81,7 +81,12 @@ export function cleanItems(extracted: RawItem[], pageUrl: string, topic: string)
   return { listings, dropped: candidates.length - listings.length };
 }
 
+// Mock mode re-reads the example page as it was, like readListings.
 export async function readPrices(url: string, topic: string, options: { fresh?: boolean; signal?: AbortSignal } = {}): Promise<ListingPage> {
+  if (getConfig().isMock) {
+    const page = mockSearch(topic).pages[0];
+    return page.url === url ? page : { ...page, url, title: hostName(url), listings: [] };
+  }
   const read = await scrapeJson<{ items?: RawItem[] }>(url, ITEM_SCHEMA, itemInstructions(topic), options);
   const { listings, dropped } = cleanItems(read.data?.items ?? [], url, topic);
   return { url, title: hostName(url), listings, dropped, cacheAgeMs: read.cacheAgeMs, tookMs: read.tookMs, mock: false };

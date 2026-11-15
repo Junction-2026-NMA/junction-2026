@@ -2,6 +2,7 @@
 import type { AgentRequest, BillType, ChatTurn, SisuEvent } from "@/lib/types";
 import { SHARED, currentSession, inSession } from "@/lib/store/session";
 import { settleSession } from "@/lib/store/state";
+import { parseBuffer } from "@/lib/finance/budget";
 import { languageCode } from "./languages";
 
 const MAX_TEXT_CHARS = 500;
@@ -27,6 +28,14 @@ export function parseHistory(value: unknown): ChatTurn[] {
     .map((turn) => ({ role: turn.role, content: turn.content.slice(0, MAX_TEXT_CHARS * 2) }));
 }
 
+// The protected buffer the customer set in the app: a number of euros (a form field arrives as text). Missing or
+// blank means none was set; anything else that is not 0 to 100,000 euros is refused.
+export function parseBufferField(value: unknown): number | null | "invalid" {
+  if (value === undefined || value === null || (typeof value === "string" && value.trim() === "")) return null;
+  const buffer = parseBuffer(typeof value === "string" ? Number(value) : value);
+  return buffer === null ? "invalid" : buffer;
+}
+
 // Turns an untrusted request body into an AgentRequest, or returns the message to show.
 export function parseAgentRequest(body: unknown, mode: "voice" | "text"): AgentRequest | string {
   const input = (body ?? {}) as Record<string, unknown>;
@@ -35,6 +44,8 @@ export function parseAgentRequest(body: unknown, mode: "voice" | "text"): AgentR
   const text = typeof input.text === "string" ? input.text.trim() : "";
   if (!text) return "Ask Sisu a question.";
   if (text.length > MAX_TEXT_CHARS) return `Please keep questions under ${MAX_TEXT_CHARS} characters.`;
+  const bufferEur = parseBufferField(input.bufferEur);
+  if (bufferEur === "invalid") return "The buffer to keep must be an amount of euros between 0 and 100,000.";
   return {
     customerId,
     text,
@@ -42,6 +53,7 @@ export function parseAgentRequest(body: unknown, mode: "voice" | "text"): AgentR
     history: parseHistory(input.history),
     focusBill: parseBillType(input.focusBill),
     language: languageCode(input.language) ?? undefined,
+    ...(bufferEur === null ? {} : { bufferEur }),
   };
 }
 

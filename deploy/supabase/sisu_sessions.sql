@@ -120,3 +120,4 @@ grant execute on function public.sisu_load(text) to anon, service_role;
 grant execute on function public.sisu_save(text, jsonb, integer) to anon, service_role;
 
 -- Housekeeping, when wanted: delete from public.sisu_sessions where updated_at < now() - interval '7 days';
+-- The scheduled watch check needs one more function: run deploy/supabase/sisu_watch_sessions.sql after this file.

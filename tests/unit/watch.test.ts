@@ -17,6 +17,7 @@ import { forgetStoredState, readState } from "@/lib/store/state";
 import type { AgentAction, Listing } from "@/lib/types";
 import { checkWatches, listNotifications, listWatches, simulatePriceDrop, startWatch, stopWatch } from "@/lib/watch";
 import { detectFits, fits, ruleFor } from "@/lib/watch/detect";
+import { pauseWatch } from "@/lib/watch/project";
 import { GET as watchRoute } from "@/app/api/watch/route";
 import { POST as approveRoute } from "@/app/api/actions/[id]/approve/route";
 import { POST as simulateRoute } from "@/app/api/watch/[id]/simulate-drop/route";
@@ -180,7 +181,7 @@ describe("a property watch starts only with the user's approval", () => {
 
   it("approval starts it once, and the log says who approved and what was started", async () => {
     const approved = approve(prepareWatch());
-    assert.match(approved.confirmation ?? "", /^Approved\. The watch is starting\. Reference WATCH-/);
+    assert.match(approved.confirmation ?? "", /^Reference WATCH-[0-9A-F]{8}\.$/); // the card says "The project is set up"; this adds only the reference
     const watch = await startWatch(AINO, approved);
     assert.ok(watch && watch.status === "active" && watch.budgetEur === 900 && watch.pages[0].listings.length === 2);
     assert.equal((await startWatch(AINO, approved))?.id, watch.id);
@@ -201,6 +202,17 @@ describe("a property watch starts only with the user's approval", () => {
     assert.deepEqual(result.notifications, []);
     assert.deepEqual(listNotifications(AINO), []);
     assert.equal(auditFor(AINO).events.at(-1)?.type, "watch_stopped");
+  });
+
+  it("a pending check cannot resume a Project paused while it was awaiting I/O", async () => {
+    const watch = (await startWatch(AINO, approve(prepareWatch())))!;
+    const pending = checkWatches(AINO);
+    assert.ok((await pauseWatch(AINO, watch.id)).ok);
+    const result = await pending;
+    assert.equal(listWatches(AINO)[0].status, "paused");
+    assert.deepEqual(result.notifications, []);
+    assert.deepEqual(listNotifications(AINO), []);
+    assert.equal(auditFor(AINO).events.at(-1)?.type, "watch_paused");
   });
 
   it("a simulated price drop produces one notification, marked as simulated, with a receipt for every number", async () => {
@@ -516,7 +528,9 @@ describe("a price watch follows the same approval lifecycle as a flat watch", ()
 
   it("starts only on approval, and a simulated drop is told as a price paid once, checked against the balance", async () => {
     const action = preparePriceWatch();
-    assert.match(action.title, /^Watch prices for iPhone 15 and tell me when one is €500 or less$/);
+    // Worded as a proposal that says what will keep running, not a promise to "tell me when" (15 Nov).
+    assert.match(action.title, /^Keep checking prices for iPhone 15 at €500 or less$/);
+    assert.match(action.summary, /^Would you like me to keep checking for offers at this price\?/);
     assert.equal(await startWatch(AINO, action), null);
     const watch = (await startWatch(AINO, approve(action)))!;
     assert.deepEqual([watch.topic, watch.city, watch.priceUnit, watch.budgetEur, watch.searchMonitorId], ["iPhone 15", null, "EUR", 500, null]);

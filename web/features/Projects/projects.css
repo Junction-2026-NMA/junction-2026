@@ -1,0 +1,131 @@
+/* Projects: the drawer list, the project view and the watch approval card. Every class is sisu-project-*. */
+
+.sisu-project-h1 { font: var(--sisu-type-h2); color: var(--sisu-color-text); margin: 0; }
+.sisu-project-h2 { font: var(--sisu-type-h3); color: var(--sisu-color-text); margin: 0; }
+.sisu-project-h3 { font: 700 17px/1.3 var(--sisu-font-text); color: var(--sisu-color-text); margin: 0; }
+.sisu-project-body { font: var(--sisu-type-body); color: var(--sisu-color-text); margin: 0; }
+.sisu-project-muted { font: var(--sisu-type-caption); color: var(--sisu-color-text-muted); margin: 0; }
+.sisu-project-label { font: var(--sisu-type-label); color: var(--sisu-color-text-muted); margin: 0; letter-spacing: 0.01em; }
+
+/* Status and provenance chips */
+.sisu-project-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.sisu-project-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: var(--sisu-radius-pill);
+  font: var(--sisu-type-label); white-space: nowrap; background: var(--sisu-green-50); color: var(--sisu-green-900);
+}
+.sisu-project-chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.8; }
+.sisu-project-chip[data-tone="paused"] { background: var(--sisu-info-background); color: var(--sisu-info-text); }
+.sisu-project-chip[data-tone="stopped"] { background: var(--sisu-neutral-200); color: var(--sisu-neutral-600); }
+.sisu-project-chip[data-tone="attention"],
+.sisu-project-chip[data-tone="simulated"] { background: var(--sisu-amber-background); color: var(--sisu-amber-text); }
+.sisu-project-chip[data-tone="new"] { background: var(--sisu-color-primary); color: var(--sisu-color-on-primary); }
+.sisu-project-chip[data-tone="plain"] { background: var(--sisu-green-25); color: var(--sisu-green-700); }
+.sisu-project-chip[data-tone="plain"]::before,
+.sisu-project-chip[data-tone="new"]::before { display: none; }
+
+/* Label/value rows */
+.sisu-project-rows { display: flex; flex-direction: column; gap: 8px; margin: 0; }
+.sisu-project-row-line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.sisu-project-row-line dt { font: var(--sisu-type-body); color: var(--sisu-color-text-muted); }
+.sisu-project-row-line dd { font: var(--sisu-type-label); color: var(--sisu-color-text); margin: 0; text-align: right; }
+
+.sisu-project-note {
+  display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 14px;
+  background: var(--sisu-amber-background); color: var(--sisu-amber-text); font: var(--sisu-type-caption);
+}
+.sisu-project-note strong { font: var(--sisu-type-label); }
+.sisu-project-error { font: var(--sisu-type-caption); color: var(--sisu-error-text); background: var(--sisu-error-background); padding: 8px 12px; border-radius: 12px; margin: 0; }
+
+/* Links and small buttons. `[type]` (every button here has one) outranks the `.sisu-root button` reset of tokens.css.
+   Every tap target is at least 44 px tall (15 Nov QA): a page link gets vertical padding, the buttons a 44 px floor. */
+.sisu-project-links { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.sisu-project-link {
+  font: var(--sisu-type-label); color: var(--sisu-green-700); text-decoration: underline; text-underline-offset: 3px; word-break: break-word;
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 2px; box-sizing: border-box;
+}
+.sisu-project-muted .sisu-project-link { font: inherit; display: inline; min-height: 0; padding: 16px 2px; } /* inline: the padding widens the tap area, not the line */
+.sisu-project-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.sisu-project-small,
+.sisu-project-small[type] {
+  appearance: none; border: 1px solid var(--sisu-color-hairline); background: var(--sisu-color-card); color: var(--sisu-green-900);
+  font: var(--sisu-type-label); padding: 0 16px; min-height: 44px; border-radius: var(--sisu-radius-pill); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+  transition: background-color var(--sisu-motion-state-duration) var(--sisu-motion-state-easing), transform 120ms var(--sisu-motion-ease-out);
+}
+.sisu-project-small:active { transform: scale(0.97); background: var(--sisu-green-25); }
+.sisu-project-small[data-kind="primary"] { background: var(--sisu-color-primary); color: var(--sisu-color-on-primary); border-color: transparent; }
+.sisu-project-small[data-kind="danger"] { color: var(--sisu-error-text); }
+.sisu-project-small:disabled { opacity: 0.55; cursor: default; }
+
+/* The drawer section */
+.sisu-project-section { display: flex; flex-direction: column; gap: 8px; }
+.sisu-project-failed { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.sisu-project-failed .sisu-project-error { flex: 1 1 12em; }
+.sisu-project-section-head { display: flex; align-items: baseline; justify-content: space-between; }
+.sisu-project-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.sisu-project-item,
+.sisu-project-item[type] {
+  appearance: none; width: 100%; text-align: left; border: 1px solid var(--sisu-color-hairline); background: var(--sisu-color-card);
+  border-radius: 18px; padding: 12px 14px; display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; cursor: pointer;
+  transition: transform 140ms var(--sisu-motion-ease-out), background-color var(--sisu-motion-state-duration) var(--sisu-motion-state-easing);
+}
+.sisu-project-item:active { transform: scale(0.985); background: var(--sisu-green-25); }
+.sisu-project-item-title { font: var(--sisu-type-label); color: var(--sisu-color-text); grid-column: 1; }
+.sisu-project-item-meta { grid-column: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font: var(--sisu-type-caption); color: var(--sisu-color-text-muted); }
+.sisu-project-badge {
+  grid-column: 2; grid-row: 1 / span 2; align-self: center; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 12px;
+  background: var(--sisu-color-primary); color: var(--sisu-color-on-primary); font: var(--sisu-type-label);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+/* The project view. The header has the Sisu header's top room (talk.css .sisu-talk-header: the status bar plus
+   16 px), and content scrolling up under it fades over 16 px instead of being cut mid-line (as on Today): the mask
+   sits on the scroll view's own box, and the stack's top padding is as tall as the fade, so nothing fades at rest. */
+.sisu-project-top {
+  display: flex; align-items: center; gap: 8px; min-height: 56px; box-sizing: border-box;
+  padding: calc(env(safe-area-inset-top, 0px) + var(--sisu-space-grid) * 4) var(--sisu-space-margin) 0;
+}
+.sisu-project-screen > .sisu-screen-scroll {
+  --sisu-project-fade: calc(var(--sisu-space-grid) * 4);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--sisu-project-fade));
+  mask-image: linear-gradient(to bottom, transparent 0, #000 var(--sisu-project-fade));
+}
+.sisu-project-stack { padding-top: calc(var(--sisu-space-grid) * 4); }
+.sisu-project-h1:focus { outline: none; }
+.sisu-project-h1:focus-visible { outline: 3px solid var(--sisu-color-outline); outline-offset: 4px; border-radius: 6px; }
+.sisu-project-back,
+.sisu-project-back[type] {
+  appearance: none; border: 1px solid var(--sisu-color-hairline); background: var(--sisu-color-card); color: var(--sisu-green-900);
+  font: var(--sisu-type-label); min-height: 44px; padding: 0 16px 0 12px; border-radius: var(--sisu-radius-pill);
+  display: inline-flex; align-items: center; gap: 4px; cursor: pointer;
+}
+.sisu-project-back:active { background: var(--sisu-green-25); }
+.sisu-project-head { display: flex; flex-direction: column; gap: 8px; }
+/* Findings and "Fits now": one card each, its heading inside, one article per home or offer. */
+.sisu-project-finding { display: flex; flex-direction: column; gap: 10px; margin: 0; }
+.sisu-project-finding + .sisu-project-finding { border-top: 1px solid var(--sisu-color-hairline); padding-top: 16px; margin-top: 4px; }
+.sisu-project-finding[data-new="true"] { box-shadow: inset 3px 0 0 var(--sisu-color-primary); padding-left: 12px; }
+.sisu-project-subhead { font: var(--sisu-type-label); color: var(--sisu-color-text); margin: 4px 0 0; }
+.sisu-project-list-plain { margin: 0; padding-left: 18px; font: var(--sisu-type-caption); color: var(--sisu-color-text-muted); display: flex; flex-direction: column; gap: 2px; }
+.sisu-project-enquiry {
+  width: 100%; box-sizing: border-box; min-height: 168px; resize: vertical; border: 1px solid var(--sisu-color-hairline);
+  border-radius: 14px; padding: 10px 12px; font: var(--sisu-type-body); color: var(--sisu-color-text); background: var(--sisu-color-input-fill);
+  user-select: text; -webkit-user-select: text;
+}
+.sisu-project-input {
+  width: 100%; box-sizing: border-box; border: 1px solid var(--sisu-color-hairline); border-radius: 12px; padding: 8px 10px;
+  font: var(--sisu-type-body); color: var(--sisu-color-text); background: var(--sisu-color-input-fill); min-height: 44px;
+}
+.sisu-project-input[aria-invalid="true"] { border-color: var(--sisu-error-text); }
+.sisu-project-field { display: flex; flex-direction: column; gap: 4px; }
+.sisu-project-field-error { font: var(--sisu-type-caption); color: var(--sisu-error-text); margin: 0; }
+.sisu-project-form { display: flex; flex-direction: column; gap: 14px; }
+.sisu-project-notice { scroll-margin-bottom: var(--sisu-tabbar-room); }
+.sisu-project-confirm { scroll-margin-bottom: var(--sisu-tabbar-room); display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 16px; background: var(--sisu-error-background); }
+.sisu-project-confirm p { font: var(--sisu-type-label); color: var(--sisu-error-text); margin: 0; }
+.sisu-project-enter { animation: sisu-project-rise var(--sisu-motion-state-duration) var(--sisu-motion-state-easing) both; }
+@keyframes sisu-project-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .sisu-project-enter { animation: none; }
+  .sisu-project-item, .sisu-project-small { transition: none; }
+}

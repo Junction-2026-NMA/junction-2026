@@ -8,7 +8,8 @@ final class RiveBindingsTests: XCTestCase {
         XCTAssertEqual(RiveBindings.ChoiceState.allCases.map(\.rawValue), ["idle", "selected", "correct", "wrong"])
         XCTAssertEqual(RiveBindings.VoiceState.allCases.map(\.rawValue), ["idle", "recording", "thinking", "speaking"])
         XCTAssertEqual(RiveBindings.LiitoMood.allCases.map(\.rawValue),
-                       ["idle", "cheering", "proud", "gliding", "curious", "found", "focused", "cosy", "sleepy", "thinking"])
+                       ["idle", "cheering", "proud", "gliding", "curious", "found", "focused", "cosy", "sleepy", "thinking",
+                        "listening", "writing", "searching", "calculating", "comparing", "presenting"])
         XCTAssertEqual(RiveBindings.StatKind.allCases.map(\.rawValue), ["streak", "berries"])
         XCTAssertEqual(RiveBindings.TagTone.allCases.map(\.rawValue), ["neutral", "amber", "info"])
         XCTAssertEqual(RiveBindings.StickerKind.allCases.map(\.rawValue), ["firstJar", "leakPlugged", "streak", "lesson"])

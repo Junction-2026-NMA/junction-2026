@@ -1,0 +1,346 @@
+data: {"type":"start","turnId":"59d50a02-1325-4fd4-8afe-c412f90b2426","provider":"mock","model":"mock","mock":true}
+
+data: {"type":"speculation","billType":"electricity","reason":"An investigation usually needs live electricity offers, so research started early."}
+
+data: {"type":"filler","text":"Give me a moment, Eetu. I'm going through your last twelve months."}
+
+data: {"type":"tool_start","id":"mock_find_patterns_c2icbt","name":"find_patterns","args":{},"label":"Scanning twelve months of your transactions for what stands out"}
+
+data: {"type":"tool_end","trace":{"id":"mock_find_patterns_c2icbt","name":"find_patterns","args":{},"source":"finance","startedAtMs":254,"tookMs":1,"ok":true,"summary":"5 patterns found; top: Entertainment is up 168% on a year ago","joinedPrefetch":false}}
+
+data: {"type":"stage","stage":{"kind":"lead","title":"What Sisu noticed","summary":"Entertainment is up 168% on a year ago","source":"bank-data","data":{"kind":"lead","patterns":[{"id":"category-drift:Entertainment","kind":"category-drift","title":"Entertainment is up 168% on a year ago","detail":"You averaged €236 a month on Entertainment the year before and €632 a month in the last 12 months: €4755 more a year.","yearlyImpactEur":4755,"confidence":"high","billType":null,"evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Entertainment"},"facts":[{"id":"drift:Entertainment:now","label":"Entertainment, per month now","value":632.33,"unit":"EUR/month","source":"bank-data","basis":"last 12 months","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Entertainment"}},{"id":"drift:Entertainment:before","label":"Entertainment, per month a year earlier","value":236.08,"unit":"EUR/month","source":"bank-data","basis":"the 12 months before","evidence":{"from":"2024-10-01","to":"2025-09-30","category":"Entertainment"}},{"id":"drift:Entertainment:extra","label":"Entertainment, extra per year","value":4755,"unit":"EUR/year","source":"calculation","basis":"difference times 12"}],"nextSteps":["get_spending","run_scenario"]},{"id":"peer-gap:Entertainment","kind":"peer-gap","title":"Entertainment: €495 a month above people your age","detail":"You average €632 a month; the 362 customers aged 25-30 average €137. That gap is €5944 a year.","yearlyImpactEur":5943.72,"confidence":"medium","billType":null,"evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Entertainment"},"facts":[{"id":"peer:Entertainment:mine","label":"Entertainment, your monthly average","value":632.33,"unit":"EUR/month","source":"bank-data","basis":"50 purchases in the last 12 months","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Entertainment"}},{"id":"peer:Entertainment:peers","label":"Entertainment, age 25-30 average","value":137.02,"unit":"EUR/month","source":"bank-data","basis":"362 customers in the same age band"},{"id":"peer:Entertainment:gap-yearly","label":"Entertainment, gap per year","value":5943.72,"unit":"EUR/year","source":"calculation","basis":"monthly gap times 12"}],"nextSteps":["get_spending","run_scenario"]},{"id":"bill-opportunity:utilities-1","kind":"bill-opportunity","title":"Electricity: €947 a year","detail":"Paid in 12 of the last 12 months, between €56 and €115; the amount moves, so it looks usage-based. Contracts like this are often cheaper for new customers than for loyal ones, so it is worth checking today's offers.","yearlyImpactEur":null,"confidence":"high","billType":"electricity","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Utilities"},"facts":[{"id":"utilities-1:monthly","label":"Electricity, average per month","value":78.94,"unit":"EUR/month","source":"bank-data","basis":"average of 12 payments in the last 12 months","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Utilities"}},{"id":"utilities-1:yearly","label":"Electricity, per year","value":947.28,"unit":"EUR/year","source":"calculation","basis":"monthly average times 12","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Utilities"}}],"nextSteps":["search_offers","explain_concept"]},{"id":"lumpy-costs","kind":"lumpy-costs","title":"Now-and-then costs average €342 a month, but one was €1134","detail":"Costs in this basket arrive in lumps: the largest was a Home & Tech payment on 2026-09-29. Setting aside the monthly average means a lump does not have to come out of that month's money.","yearlyImpactEur":null,"confidence":"high","billType":null,"evidence":{"from":"2025-10-01","to":"2026-09-30","basket":"irregular"},"facts":[{"id":"lumpy:monthly","label":"Now-and-then costs, average per month","value":342.44,"unit":"EUR/month","source":"bank-data","basis":"last 12 months","evidence":{"from":"2025-10-01","to":"2026-09-30","basket":"irregular"}},{"id":"lumpy:largest","label":"Largest single now-and-then cost","value":1134.47,"unit":"EUR","source":"bank-data","basis":"Home & Tech on 2026-09-29","evidence":{"from":"2025-10-01","to":"2026-09-30","basket":"irregular"}}],"nextSteps":["check_affordability","explain_concept","prepare_action"]},{"id":"bill-opportunity:utilities-2","kind":"bill-opportunity","title":"Home internet: €737 a year","detail":"Paid in 12 of the last 12 months, between €29 and €85; the amount moves, so it looks usage-based. Contracts like this are often cheaper for new customers than for loyal ones, so it is worth checking today's offers.","yearlyImpactEur":null,"confidence":"high","billType":"internet","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Utilities"},"facts":[{"id":"utilities-2:monthly","label":"Home internet, average per month","value":61.42,"unit":"EUR/month","source":"bank-data","basis":"average of 12 payments in the last 12 months","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Utilities"}},{"id":"utilities-2:yearly","label":"Home internet, per year","value":737.04,"unit":"EUR/year","source":"calculation","basis":"monthly average times 12","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Utilities"}}],"nextSteps":["search_offers","explain_concept"]}]},"id":"59d50a02-1325-4fd4-8afe-c412f90b2426:0","toolCallId":"mock_find_patterns_c2icbt","atMs":255,"facts":[{"id":"drift:Entertainment:now","label":"Entertainment, per month now","value":632.33,"unit":"EUR/month","source":"bank-data","basis":"last 12 months","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Entertainment"}},{"id":"drift:Entertainment:before","label":"Entertainment, per month a year earlier","value":236.08,"unit":"EUR/month","source":"bank-data","basis":"the 12 months before","evidence":{"from":"2024-10-01","to":"2025-09-30","category":"Entertainment"}},{"id":"drift:Entertainment:extra","label":"Entertainment, extra per year","value":4755,"unit":"EUR/year","source":"calculation","basis":"difference times 12"},{"id":"peer:Entertainment:mine","label":"Entertainment, your monthly average","value":632.33,"unit":"EUR/month","source":"bank-data","basis":"50 purchases in the last 12 months","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Entertainment"}},{"id":"peer:Entertainment:peers","label":"Entertainment, age 25-30 average","value":137.02,"unit":"EUR/month","source":"bank-data","basis":"362 customers in the same age band"},{"id":"peer:Entertainment:gap-yearly","label":"Entertainment, gap per year","value":5943.72,"unit":"EUR/year","source":"calculation","basis":"monthly gap times 12"},{"id":"utilities-1:monthly","label":"Electricity, average per month","value":78.94,"unit":"EUR/month","source":"bank-data","basis":"average of 12 payments in the last 12 months","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Utilities"}},{"id":"utilities-1:yearly","label":"Electricity, per year","value":947.28,"unit":"EUR/year","source":"calculation","basis":"monthly average times 12","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Utilities"}},{"id":"lumpy:monthly","label":"Now-and-then costs, average per month","value":342.44,"unit":"EUR/month","source":"bank-data","basis":"last 12 months","evidence":{"from":"2025-10-01","to":"2026-09-30","basket":"irregular"}},{"id":"lumpy:largest","label":"Largest single now-and-then cost","value":1134.47,"unit":"EUR","source":"bank-data","basis":"Home & Tech on 2026-09-29","evidence":{"from":"2025-10-01","to":"2026-09-30","basket":"irregular"}},{"id":"utilities-2:monthly","label":"Home internet, average per month","value":61.42,"unit":"EUR/month","source":"bank-data","basis":"average of 12 payments in the last 12 months","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Utilities"}},{"id":"utilities-2:yearly","label":"Home internet, per year","value":737.04,"unit":"EUR/year","source":"calculation","basis":"monthly average times 12","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Utilities"}}]}}
+
+data: {"type":"visual","visual":{"id":"budget","kind":"budget_donut","title":"Where your money goes in an average month","caption":"Average of the last 12 months, Oct 25 to Sep 26","summary":"All spending averages €3,439 a month. The largest part is Entertainment at €632, then Housing at €622 and Groceries at €533.","source":"bank-data","facts":[{"id":"chart:budget:Entertainment","label":"Entertainment, average per month","value":632.33,"unit":"EUR/month","source":"bank-data","basis":"Average of the last 12 months, Oct 25 to Sep 26","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Entertainment"}},{"id":"chart:budget:Housing","label":"Housing, average per month","value":622.21,"unit":"EUR/month","source":"bank-data","basis":"Average of the last 12 months, Oct 25 to Sep 26","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Housing"}},{"id":"chart:budget:Groceries","label":"Groceries, average per month","value":532.77,"unit":"EUR/month","source":"bank-data","basis":"Average of the last 12 months, Oct 25 to Sep 26","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Groceries"}},{"id":"chart:budget:Restaurants","label":"Restaurants, average per month","value":387.04,"unit":"EUR/month","source":"bank-data","basis":"Average of the last 12 months, Oct 25 to Sep 26","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Restaurants"}},{"id":"chart:budget:Invest Deposit","label":"Invest Deposit, average per month","value":293.73,"unit":"EUR/month","source":"bank-data","basis":"Average of the last 12 months, Oct 25 to Sep 26","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Invest Deposit"}},{"id":"chart:budget:Other","label":"Other, average per month","value":971.26,"unit":"EUR/month","source":"bank-data","basis":"Average of the last 12 months, Oct 25 to Sep 26"},{"id":"chart:budget:total","label":"All spending, average per month","value":3439.34,"unit":"EUR/month","source":"calculation","basis":"the sum of the categories"}],"slices":[{"label":"Entertainment","value":632.33,"share":18.39},{"label":"Housing","value":622.21,"share":18.09},{"label":"Groceries","value":532.77,"share":15.49},{"label":"Restaurants","value":387.04,"share":11.25},{"label":"Invest Deposit","value":293.73,"share":8.54},{"label":"Other","value":971.26,"share":28.24}],"total":3439.34,"centerLabel":"a month"}}
+
+data: {"type":"tool_start","id":"mock_search_offers_gn55v4","name":"search_offers","args":{"billType":"electricity"},"label":"Searching today's electricity offers with Exa and reading the pages with Context.dev"}
+
+data: {"type":"tool_end","trace":{"id":"mock_search_offers_gn55v4","name":"search_offers","args":{"billType":"electricity"},"source":"exa+context.dev","startedAtMs":506,"tookMs":0,"ok":true,"summary":"3 offers from 1 pages in 0.9 s; best saves €47 a year","joinedPrefetch":true}}
+
+data: {"type":"research","result":{"key":"electricity:espoo","billType":"electricity","city":"Espoo","status":"done","mock":true,"query":"cheapest electricity contract Espoo Finland price comparison","startedAt":"2026-11-14T11:26:24.899Z","finishedAt":"2026-11-14T11:26:25.800Z","tookMs":901,"pagesDone":1,"pagesTotal":1,"baselineMonthlyEur":78.94,"assumedYearlyKwh":9592,"usageSource":"estimated-from-bill","offers":[{"provider":"Example Energia","plan":"Fixed 24","contractType":"fixed","contractMonths":24,"monthlyPriceEur":3.9,"energyPriceCentsPerKwh":8.9,"setupFeeEur":null,"sourceUrl":"https://example.com/mock-offers","comparable":true,"estimatedMonthlyCostEur":75.04,"estimatedYearlySavingEur":46.8},{"provider":"Demo Sähkö","plan":"Fixed 12","contractType":"fixed","contractMonths":12,"monthlyPriceEur":4.5,"energyPriceCentsPerKwh":9.8,"setupFeeEur":null,"sourceUrl":"https://example.com/mock-offers","comparable":true,"estimatedMonthlyCostEur":82.83,"estimatedYearlySavingEur":-46.68},{"provider":"Sample Voima","plan":"Spot","contractType":"spot","contractMonths":null,"monthlyPriceEur":0,"energyPriceCentsPerKwh":0.6,"setupFeeEur":null,"sourceUrl":"https://example.com/mock-offers","comparable":false,"estimatedMonthlyCostEur":null,"estimatedYearlySavingEur":null}],"best":{"provider":"Example Energia","plan":"Fixed 24","contractType":"fixed","contractMonths":24,"monthlyPriceEur":3.9,"energyPriceCentsPerKwh":8.9,"setupFeeEur":null,"sourceUrl":"https://example.com/mock-offers","comparable":true,"estimatedMonthlyCostEur":75.04,"estimatedYearlySavingEur":46.8},"citations":[{"title":"Mock offers (example data)","url":"https://example.com/mock-offers","retrievedAt":"2026-11-14T11:26:25.800Z","cacheAgeMs":null}],"assumptions":["Prices are as stated on the linked pages at the time shown. Check the provider's own page before switching.","Savings compare each offer with your average bill of €78.94 a month over the last 12 months.","The bank data has no payee names, so which bill this is rests on the name you confirmed.","Your electricity use is not in the bank data. We estimate about 9592 kWh a year from your bill, assuming you now pay today's typical fixed price (9.35 c/kWh). Tell Sisu your real yearly kWh, printed on your bill, for an exact figure.","If your bill also covers grid (distribution) fees, the real saving is smaller: those fees do not change when you switch seller.","Spot-price contracts are listed but not ranked, because their price changes every hour."],"errors":[]}}
+
+data: {"type":"stage","stage":{"kind":"research","title":"Searched today's electricity offers","summary":"1 pages found for \"cheapest electricity contract Espoo Finland price comparison\"","source":"exa","data":{"kind":"research","query":"cheapest electricity contract Espoo Finland price comparison","searchedWith":"exa","pages":[{"title":"Mock offers (example data)","url":"https://example.com/mock-offers","retrievedAt":"2026-11-14T11:26:25.800Z","cacheAgeMs":null}],"retrievedAt":"2026-11-14T11:26:25.800Z","mock":true},"id":"59d50a02-1325-4fd4-8afe-c412f90b2426:1","toolCallId":"mock_search_offers_gn55v4","atMs":506,"facts":[{"id":"offers:baseline","label":"Current bill per month","value":78.94,"unit":"EUR/month","source":"bank-data","basis":"average of the last 12 months"},{"id":"offers:kwh","label":"Yearly electricity use in the estimate","value":9592,"unit":"kWh/year","source":"assumption","basis":"estimated from the bill at today's typical price"},{"id":"offers:0:price","label":"Example Energia: energy price","value":8.9,"unit":"c/kWh","source":"context.dev","basis":"extracted from the provider's page","url":"https://example.com/mock-offers"},{"id":"offers:0:fee","label":"Example Energia: monthly price or fee","value":3.9,"unit":"EUR/month","source":"context.dev","basis":"extracted from the provider's page","url":"https://example.com/mock-offers"},{"id":"offers:0:term","label":"Example Energia: contract length","value":24,"unit":"months","source":"context.dev","basis":"extracted from the provider's page","url":"https://example.com/mock-offers"},{"id":"offers:0:cost","label":"Example Energia: estimated cost per month","value":75.04,"unit":"EUR/month","source":"calculation","basis":"extracted price applied to the estimated use","url":"https://example.com/mock-offers"},{"id":"offers:0:saving","label":"Example Energia: estimated saving per year","value":46.8,"unit":"EUR/year","source":"calculation","basis":"current bill minus estimated cost, times 12","url":"https://example.com/mock-offers"},{"id":"offers:0:saving-monthly","label":"Example Energia: estimated saving per month","value":3.9,"unit":"EUR/month","source":"calculation","basis":"yearly saving divided by 12","url":"https://example.com/mock-offers"},{"id":"offers:1:price","label":"Demo Sähkö: energy price","value":9.8,"unit":"c/kWh","source":"context.dev","basis":"extracted from the provider's page","url":"https://example.com/mock-offers"},{"id":"offers:1:fee","label":"Demo Sähkö: monthly price or fee","value":4.5,"unit":"EUR/month","source":"context.dev","basis":"extracted from the provider's page","url":"https://example.com/mock-offers"},{"id":"offers:1:term","label":"Demo Sähkö: contract length","value":12,"unit":"months","source":"context.dev","basis":"extracted from the provider's page","url":"https://example.com/mock-offers"},{"id":"offers:1:cost","label":"Demo Sähkö: estimated cost per month","value":82.83,"unit":"EUR/month","source":"calculation","basis":"extracted price applied to the estimated use","url":"https://example.com/mock-offers"},{"id":"offers:1:saving","label":"Demo Sähkö: estimated saving per year","value":-46.68,"unit":"EUR/year","source":"calculation","basis":"current bill minus estimated cost, times 12","url":"https://example.com/mock-offers"},{"id":"offers:1:saving-monthly","label":"Demo Sähkö: estimated saving per month","value":-3.89,"unit":"EUR/month","source":"calculation","basis":"yearly saving divided by 12","url":"https://example.com/mock-offers"}]}}
+
+data: {"type":"stage","stage":{"kind":"extraction","title":"Read the offer pages","summary":"3 offers from 1 of 1 pages","source":"context.dev","data":{"kind":"extraction","extractedWith":"context.dev","pagesRead":1,"pagesTotal":1,"offers":[{"provider":"Example Energia","plan":"Fixed 24","contractType":"fixed","contractMonths":24,"monthlyPriceEur":3.9,"energyPriceCentsPerKwh":8.9,"setupFeeEur":null,"sourceUrl":"https://example.com/mock-offers","comparable":true,"estimatedMonthlyCostEur":75.04,"estimatedYearlySavingEur":46.8},{"provider":"Demo Sähkö","plan":"Fixed 12","contractType":"fixed","contractMonths":12,"monthlyPriceEur":4.5,"energyPriceCentsPerKwh":9.8,"setupFeeEur":null,"sourceUrl":"https://example.com/mock-offers","comparable":true,"estimatedMonthlyCostEur":82.83,"estimatedYearlySavingEur":-46.68},{"provider":"Sample Voima","plan":"Spot","contractType":"spot","contractMonths":null,"monthlyPriceEur":0,"energyPriceCentsPerKwh":0.6,"setupFeeEur":null,"sourceUrl":"https://example.com/mock-offers","comparable":false,"estimatedMonthlyCostEur":null,"estimatedYearlySavingEur":null}],"problems":[]},"id":"59d50a02-1325-4fd4-8afe-c412f90b2426:2","toolCallId":"mock_search_offers_gn55v4","atMs":506,"facts":[{"id":"offers:baseline","label":"Current bill per month","value":78.94,"unit":"EUR/month","source":"bank-data","basis":"average of the last 12 months"},{"id":"offers:kwh","label":"Yearly electricity use in the estimate","value":9592,"unit":"kWh/year","source":"assumption","basis":"estimated from the bill at today's typical price"},{"id":"offers:0:price","label":"Example Energia: energy price","value":8.9,"unit":"c/kWh","source":"context.dev","basis":"extracted from the provider's page","url":"https://example.com/mock-offers"},{"id":"offers:0:fee","label":"Example Energia: monthly price or fee","value":3.9,"unit":"EUR/month","source":"context.dev","basis":"extracted from the provider's page","url":"https://example.com/mock-offers"},{"id":"offers:0:term","label":"Example Energia: contract length","value":24,"unit":"months","source":"context.dev","basis":"extracted from the provider's page","url":"https://example.com/mock-offers"},{"id":"offers:0:cost","label":"Example Energia: estimated cost per month","value":75.04,"unit":"EUR/month","source":"calculation","basis":"extracted price applied to the estimated use","url":"https://example.com/mock-offers"},{"id":"offers:0:saving","label":"Example Energia: estimated saving per year","value":46.8,"unit":"EUR/year","source":"calculation","basis":"current bill minus estimated cost, times 12","url":"https://example.com/mock-offers"},{"id":"offers:0:saving-monthly","label":"Example Energia: estimated saving per month","value":3.9,"unit":"EUR/month","source":"calculation","basis":"yearly saving divided by 12","url":"https://example.com/mock-offers"},{"id":"offers:1:price","label":"Demo Sähkö: energy price","value":9.8,"unit":"c/kWh","source":"context.dev","basis":"extracted from the provider's page","url":"https://example.com/mock-offers"},{"id":"offers:1:fee","label":"Demo Sähkö: monthly price or fee","value":4.5,"unit":"EUR/month","source":"context.dev","basis":"extracted from the provider's page","url":"https://example.com/mock-offers"},{"id":"offers:1:term","label":"Demo Sähkö: contract length","value":12,"unit":"months","source":"context.dev","basis":"extracted from the provider's page","url":"https://example.com/mock-offers"},{"id":"offers:1:cost","label":"Demo Sähkö: estimated cost per month","value":82.83,"unit":"EUR/month","source":"calculation","basis":"extracted price applied to the estimated use","url":"https://example.com/mock-offers"},{"id":"offers:1:saving","label":"Demo Sähkö: estimated saving per year","value":-46.68,"unit":"EUR/year","source":"calculation","basis":"current bill minus estimated cost, times 12","url":"https://example.com/mock-offers"},{"id":"offers:1:saving-monthly","label":"Demo Sähkö: estimated saving per month","value":-3.89,"unit":"EUR/month","source":"calculation","basis":"yearly saving divided by 12","url":"https://example.com/mock-offers"}]}}
+
+data: {"type":"stage","stage":{"kind":"calculation","title":"Saving with Example Energia","summary":"About €47 a year","source":"calculation","data":{"kind":"calculation","steps":[{"label":"Your bill per month","amount":78.94,"basis":"average of the last 12 months, from your bank data"},{"label":"Example Energia: energy","amount":-71.14,"basis":"9592 kWh a year ÷ 12 × 8.9 c/kWh from the provider's page"},{"label":"Example Energia: monthly fee","amount":-3.9,"basis":"from the provider's page"},{"label":"Estimated saving per month","amount":3.9,"basis":"what a new seller can change minus the offer's cost"},{"label":"Estimated saving per year","amount":46.8,"basis":"monthly saving times 12"}],"resultLabel":"Estimated saving per year","resultValue":46.8,"unit":"EUR/year","assumptions":["Prices are as stated on the linked pages at the time shown. Check the provider's own page before switching.","Savings compare each offer with your average bill of €78.94 a month over the last 12 months.","The bank data has no payee names, so which bill this is rests on the name you confirmed.","Your electricity use is not in the bank data. We estimate about 9592 kWh a year from your bill, assuming you now pay today's typical fixed price (9.35 c/kWh). Tell Sisu your real yearly kWh, printed on your bill, for an exact figure.","If your bill also covers grid (distribution) fees, the real saving is smaller: those fees do not change when you switch seller.","Spot-price contracts are listed but not ranked, because their price changes every hour."]},"id":"59d50a02-1325-4fd4-8afe-c412f90b2426:3","toolCallId":"mock_search_offers_gn55v4","atMs":507,"facts":[{"id":"offers:baseline","label":"Current bill per month","value":78.94,"unit":"EUR/month","source":"bank-data","basis":"average of the last 12 months"},{"id":"offers:kwh","label":"Yearly electricity use in the estimate","value":9592,"unit":"kWh/year","source":"assumption","basis":"estimated from the bill at today's typical price"},{"id":"offers:0:price","label":"Example Energia: energy price","value":8.9,"unit":"c/kWh","source":"context.dev","basis":"extracted from the provider's page","url":"https://example.com/mock-offers"},{"id":"offers:0:fee","label":"Example Energia: monthly price or fee","value":3.9,"unit":"EUR/month","source":"context.dev","basis":"extracted from the provider's page","url":"https://example.com/mock-offers"},{"id":"offers:0:term","label":"Example Energia: contract length","value":24,"unit":"months","source":"context.dev","basis":"extracted from the provider's page","url":"https://example.com/mock-offers"},{"id":"offers:0:cost","label":"Example Energia: estimated cost per month","value":75.04,"unit":"EUR/month","source":"calculation","basis":"extracted price applied to the estimated use","url":"https://example.com/mock-offers"},{"id":"offers:0:saving","label":"Example Energia: estimated saving per year","value":46.8,"unit":"EUR/year","source":"calculation","basis":"current bill minus estimated cost, times 12","url":"https://example.com/mock-offers"},{"id":"offers:0:saving-monthly","label":"Example Energia: estimated saving per month","value":3.9,"unit":"EUR/month","source":"calculation","basis":"yearly saving divided by 12","url":"https://example.com/mock-offers"},{"id":"offers:1:price","label":"Demo Sähkö: energy price","value":9.8,"unit":"c/kWh","source":"context.dev","basis":"extracted from the provider's page","url":"https://example.com/mock-offers"},{"id":"offers:1:fee","label":"Demo Sähkö: monthly price or fee","value":4.5,"unit":"EUR/month","source":"context.dev","basis":"extracted from the provider's page","url":"https://example.com/mock-offers"},{"id":"offers:1:term","label":"Demo Sähkö: contract length","value":12,"unit":"months","source":"context.dev","basis":"extracted from the provider's page","url":"https://example.com/mock-offers"},{"id":"offers:1:cost","label":"Demo Sähkö: estimated cost per month","value":82.83,"unit":"EUR/month","source":"calculation","basis":"extracted price applied to the estimated use","url":"https://example.com/mock-offers"},{"id":"offers:1:saving","label":"Demo Sähkö: estimated saving per year","value":-46.68,"unit":"EUR/year","source":"calculation","basis":"current bill minus estimated cost, times 12","url":"https://example.com/mock-offers"},{"id":"offers:1:saving-monthly","label":"Demo Sähkö: estimated saving per month","value":-3.89,"unit":"EUR/month","source":"calculation","basis":"yearly saving divided by 12","url":"https://example.com/mock-offers"}]}}
+
+data: {"type":"visual","visual":{"id":"offers:electricity","kind":"offer_bars","title":"Your electricity bill beside today's offers","caption":"Estimated cost a month. 1 pages read, 2026-11-14 11:26 UTC.","summary":"The cheapest comparable offer is Example Energia at about €75 a month, against your €79 now.","source":"context.dev","facts":[{"id":"chart:offers:current","label":"Your bill per month","value":78.94,"unit":"EUR/month","source":"bank-data","basis":"average of the last 12 months"},{"id":"chart:offers:0","label":"Example Energia, estimated per month","value":75.04,"unit":"EUR/month","source":"calculation","basis":"price from the provider's page, applied to your use","url":"https://example.com/mock-offers"},{"id":"chart:offers:1","label":"Demo Sähkö, estimated per month","value":82.83,"unit":"EUR/month","source":"calculation","basis":"price from the provider's page, applied to your use","url":"https://example.com/mock-offers"}],"currentMonthlyEur":78.94,"offers":[{"provider":"Example Energia","plan":"Fixed 24","monthlyEur":75.04,"yearlySavingEur":46.8,"url":"https://example.com/mock-offers"},{"provider":"Demo Sähkö","plan":"Fixed 12","monthlyEur":82.83,"yearlySavingEur":-46.68,"url":"https://example.com/mock-offers"}],"mock":true}}
+
+data: {"type":"tool_start","id":"mock_run_scenario_g27tj1","name":"run_scenario","args":{"billSavingPerMonth":3.9,"everydayCutPct":0,"years":5},"label":"Projecting 5 years ahead from your real averages"}
+
+data: {"type":"tool_end","trace":{"id":"mock_run_scenario_g27tj1","name":"run_scenario","args":{"billSavingPerMonth":3.9,"everydayCutPct":0,"years":5},"source":"finance","startedAtMs":758,"tookMs":1,"ok":true,"summary":"€4 a month freed, projected over 5 years","joinedPrefetch":false}}
+
+data: {"type":"stage","stage":{"kind":"impact","title":"5 years ahead","summary":"About €234 more after 5 years if the freed money is kept.","source":"calculation","data":{"kind":"impact","impact":{"monthlyEur":3.9,"yearlyEur":46.8,"horizonYears":5,"branches":[{"id":"nothing","label":"Change nothing","endTotal":29345.86,"endLow":27379.43,"endHigh":31002.31},{"id":"save","label":"Make the change, keep the cash","endTotal":29579.86,"endLow":27613.43,"endHigh":31236.31},{"id":"invest","label":"Make the change, invest it","endTotal":29610.79,"endLow":27618.26,"endHigh":31289.24}],"gainVsNothingEur":234,"summary":"About €234 more after 5 years if the freed money is kept."}},"id":"59d50a02-1325-4fd4-8afe-c412f90b2426:4","toolCallId":"mock_run_scenario_g27tj1","atMs":759,"facts":[{"id":"scenario:freed","label":"Freed per month","value":3.9,"unit":"EUR/month","source":"calculation","basis":"bill saving plus the trimmed share of everyday spending"},{"id":"scenario:years","label":"Years ahead","value":5,"unit":"years","source":"customer-stated","basis":"the horizon asked for"},{"id":"scenario:gain","label":"Extra after the period if the money is kept","value":234,"unit":"EUR","source":"calculation","basis":"'keep the cash' minus 'change nothing'"},{"id":"scenario:nothing:end","label":"Change nothing: total at the end","value":29345.86,"unit":"EUR","source":"calculation","basis":"projected from 12-month averages"},{"id":"scenario:nothing:low","label":"Change nothing: low case","value":27379.43,"unit":"EUR","source":"calculation","basis":"1% a year scenario"},{"id":"scenario:nothing:high","label":"Change nothing: high case","value":31002.31,"unit":"EUR","source":"calculation","basis":"8% a year scenario"},{"id":"scenario:save:end","label":"Make the change, keep the cash: total at the end","value":29579.86,"unit":"EUR","source":"calculation","basis":"projected from 12-month averages"},{"id":"scenario:save:low","label":"Make the change, keep the cash: low case","value":27613.43,"unit":"EUR","source":"calculation","basis":"1% a year scenario"},{"id":"scenario:save:high","label":"Make the change, keep the cash: high case","value":31236.31,"unit":"EUR","source":"calculation","basis":"8% a year scenario"},{"id":"scenario:invest:end","label":"Make the change, invest it: total at the end","value":29610.79,"unit":"EUR","source":"calculation","basis":"projected from 12-month averages"},{"id":"scenario:invest:low","label":"Make the change, invest it: low case","value":27618.26,"unit":"EUR","source":"calculation","basis":"1% a year scenario"},{"id":"scenario:invest:high","label":"Make the change, invest it: high case","value":31289.24,"unit":"EUR","source":"calculation","basis":"8% a year scenario"}]}}
+
+data: {"type":"visual","visual":{"id":"futures","kind":"futures_lines","title":"Three futures over 5 years","caption":"With €3.9 a month freed. A scenario, not a forecast; investments can lose value.","summary":"After 5 years: change nothing €29,346, make the change, keep the cash €29,580, make the change, invest it €29,611.","source":"calculation","facts":[{"id":"chart:futures:nothing","label":"Change nothing, after 5 years","value":29345.86,"unit":"EUR","source":"calculation","basis":"the scenario engine's projection"},{"id":"chart:futures:save","label":"Make the change, keep the cash, after 5 years","value":29579.86,"unit":"EUR","source":"calculation","basis":"the scenario engine's projection"},{"id":"chart:futures:invest","label":"Make the change, invest it, after 5 years","value":29610.79,"unit":"EUR","source":"calculation","basis":"the scenario engine's projection"}],"years":5,"series":[{"id":"nothing","label":"Change nothing","points":[{"year":0,"value":4183.34,"low":4183.34,"high":4183.34},{"year":1,"value":8842.94,"low":8765.25,"high":8902.47},{"year":2,"value":13680.07,"low":13375.59,"high":13918.91},{"year":3,"value":18703.43,"low":18014.58,"high":19256.69},{"year":4,"value":23922.16,"low":22682.45,"high":24941.8},{"year":5,"value":29345.86,"low":27379.43,"high":31002.31}]},{"id":"save","label":"Make the change, keep the cash","points":[{"year":0,"value":4183.34,"low":4183.34,"high":4183.34},{"year":1,"value":8889.74,"low":8812.05,"high":8949.27},{"year":2,"value":13773.67,"low":13469.19,"high":14012.51},{"year":3,"value":18843.83,"low":18154.98,"high":19397.09},{"year":4,"value":24109.36,"low":22869.65,"high":25129},{"year":5,"value":29579.86,"low":27613.43,"high":31236.31}]},{"id":"invest","label":"Make the change, invest it","points":[{"year":0,"value":4183.34,"low":4183.34,"high":4183.34},{"year":1,"value":8890.98,"low":8812.25,"high":8951.29},{"year":2,"value":13778.49,"low":13469.97,"high":14020.5},{"year":3,"value":18854.72,"low":18156.72,"high":19415.33},{"year":4,"value":24128.91,"low":22872.74,"high":25162.08},{"year":5,"value":29610.79,"low":27618.26,"high":31289.24}]}]}}
+
+data: {"type":"tool_start","id":"mock_explain_concept_od9xfb","name":"explain_concept","args":{"concept":"switching-bills"},"label":"Building a short lesson from your own numbers"}
+
+data: {"type":"tool_end","trace":{"id":"mock_explain_concept_od9xfb","name":"explain_concept","args":{"concept":"switching-bills"},"source":"finance","startedAtMs":1011,"tookMs":0,"ok":true,"summary":"Lesson: Loyalty rarely pays","joinedPrefetch":false}}
+
+data: {"type":"stage","stage":{"kind":"teaching","title":"Loyalty rarely pays","summary":"Your 3 monthly bills arrive one at a time. What do you think they add up to in a year?","source":"bank-data","facts":[{"id":"teach:switch:yearly","label":"Monthly bills, per year","value":2259.96,"unit":"EUR/year","source":"bank-data","basis":"3 recurring bills, 12-month average times 12","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Utilities"}},{"id":"teach:switch:tenth","label":"A tenth of that","value":226,"unit":"EUR/year","source":"calculation","basis":"illustration only"}],"data":{"kind":"teaching","card":{"id":"switching-bills","concept":"switching-bills","title":"Loyalty rarely pays","explanation":"Providers usually keep their best prices for new customers. Checking the market once a year takes a few minutes, and a switch does not cut your service: the new provider handles the changeover.","question":"Your 3 monthly bills arrive one at a time. What do you think they add up to in a year?","reveal":"About €2,260 a year. A saving of even a tenth of that is €226 for one comparison.","facts":[{"id":"teach:switch:yearly","label":"Monthly bills, per year","value":2259.96,"unit":"EUR/year","source":"bank-data","basis":"3 recurring bills, 12-month average times 12","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Utilities"}},{"id":"teach:switch:tenth","label":"A tenth of that","value":226,"unit":"EUR/year","source":"calculation","basis":"illustration only"}],"options":["About €1,130","About €2,260","About €3,842"],"correctIndex":1}},"id":"59d50a02-1325-4fd4-8afe-c412f90b2426:5","toolCallId":"mock_explain_concept_od9xfb","atMs":1011}}
+
+data: {"type":"teaching","card":{"id":"switching-bills","concept":"switching-bills","title":"Loyalty rarely pays","explanation":"Providers usually keep their best prices for new customers. Checking the market once a year takes a few minutes, and a switch does not cut your service: the new provider handles the changeover.","question":"Your 3 monthly bills arrive one at a time. What do you think they add up to in a year?","reveal":"About €2,260 a year. A saving of even a tenth of that is €226 for one comparison.","facts":[{"id":"teach:switch:yearly","label":"Monthly bills, per year","value":2259.96,"unit":"EUR/year","source":"bank-data","basis":"3 recurring bills, 12-month average times 12","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Utilities"}},{"id":"teach:switch:tenth","label":"A tenth of that","value":226,"unit":"EUR/year","source":"calculation","basis":"illustration only"}],"options":["About €1,130","About €2,260","About €3,842"],"correctIndex":1}}
+
+data: {"type":"tool_start","id":"mock_prepare_action_ceon5o","name":"prepare_action","args":{"kind":"switch_contract","billType":"electricity"},"label":"Setting up the electricity switch for you to approve"}
+
+data: {"type":"tool_end","trace":{"id":"mock_prepare_action_ceon5o","name":"prepare_action","args":{"kind":"switch_contract","billType":"electricity"},"source":"finance","startedAtMs":1263,"tookMs":3,"ok":true,"summary":"Prepared for approval: Switch electricity contract to Example Energia (Fixed 24)","joinedPrefetch":false}}
+
+data: {"type":"stage","stage":{"kind":"action","title":"Switch electricity contract to Example Energia (Fixed 24)","summary":"Set up and waiting for your tap on Approve.","source":"calculation","data":{"kind":"action","action":{"kind":"switch_contract","title":"Switch electricity contract to Example Energia (Fixed 24)","summary":"Estimated saving about €47 a year (€3.90 a month) against your current bill of €78.94 a month. Simulation only: Sisu does not contact the provider.","checklist":["Check when your current contract ends. A fixed-term contract usually cannot be ended early without a fee.","Find your metering point number on a recent electricity bill. The new seller needs it.","Order Fixed 24 from Example Energia on their own page, and check the price there first.","The new seller ends your old sales contract for you. Your grid (distribution) contract stays as it is.","A switch normally takes about two weeks, and an online order can be cancelled within 14 days."],"draftMessage":"Hello Example Energia,\n\nI would like to order Fixed 24 (24 months) as shown on your page.\nMetering point number: [from your electricity bill]\nPlease confirm the price and the start date before the contract begins.\n\nKind regards,\n[your name]","billType":"electricity","offer":{"provider":"Example Energia","plan":"Fixed 24","contractType":"fixed","contractMonths":24,"monthlyPriceEur":3.9,"energyPriceCentsPerKwh":8.9,"setupFeeEur":null,"sourceUrl":"https://example.com/mock-offers","comparable":true,"estimatedMonthlyCostEur":75.04,"estimatedYearlySavingEur":46.8},"monthlyAmountEur":3.9,"facts":[{"id":"action:current-bill","label":"Current bill per month","value":78.94,"unit":"EUR/month","source":"bank-data","basis":"average of the last 12 months; the bill's name is Sisu's guess","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Utilities"}},{"id":"action:offer-monthly","label":"Example Energia, estimated cost per month","value":75.04,"unit":"EUR/month","source":"context.dev","basis":"price extracted from the provider's page, applied to your estimated use","url":"https://example.com/mock-offers"},{"id":"action:saving-yearly","label":"Estimated saving per year","value":46.8,"unit":"EUR/year","source":"calculation","basis":"current bill minus the offer's estimated cost, times 12"},{"id":"action:saving-monthly","label":"Estimated saving per month","value":3.9,"unit":"EUR/month","source":"calculation","basis":"yearly saving divided by 12"},{"id":"action:kwh","label":"Yearly electricity use in the estimate","value":9592,"unit":"kWh/year","source":"assumption","basis":"estimated from your bill"}],"sources":[{"title":"Mock offers (example data)","url":"https://example.com/mock-offers","retrievedAt":"2026-11-14T11:26:25.800Z","cacheAgeMs":null}],"assumptions":["Prices are as stated on the linked pages at the time shown. Check the provider's own page before switching.","Savings compare each offer with your average bill of €78.94 a month over the last 12 months.","The bank data has no payee names, so which bill this is rests on the name you confirmed.","Your electricity use is not in the bank data. We estimate about 9592 kWh a year from your bill, assuming you now pay today's typical fixed price (9.35 c/kWh). Tell Sisu your real yearly kWh, printed on your bill, for an exact figure.","If your bill also covers grid (distribution) fees, the real saving is smaller: those fees do not change when you switch seller.","Spot-price contracts are listed but not ranked, because their price changes every hour.","Switching steps are the usual ones in Finland. The provider's own terms decide."],"preparedBy":"sisu-agent","id":"4be09c7d-1b44-4cbd-803e-3188e3e422b7","customerId":"CUST04414","status":"awaiting_approval","simulated":true,"createdAt":"2026-11-14T11:29:37.012Z","expiresAt":"2026-11-14T11:59:37.012Z","decidedAt":null,"impact":null}},"id":"59d50a02-1325-4fd4-8afe-c412f90b2426:6","toolCallId":"mock_prepare_action_ceon5o","atMs":1266,"facts":[{"id":"action:current-bill","label":"Current bill per month","value":78.94,"unit":"EUR/month","source":"bank-data","basis":"average of the last 12 months; the bill's name is Sisu's guess","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Utilities"}},{"id":"action:offer-monthly","label":"Example Energia, estimated cost per month","value":75.04,"unit":"EUR/month","source":"context.dev","basis":"price extracted from the provider's page, applied to your estimated use","url":"https://example.com/mock-offers"},{"id":"action:saving-yearly","label":"Estimated saving per year","value":46.8,"unit":"EUR/year","source":"calculation","basis":"current bill minus the offer's estimated cost, times 12"},{"id":"action:saving-monthly","label":"Estimated saving per month","value":3.9,"unit":"EUR/month","source":"calculation","basis":"yearly saving divided by 12"},{"id":"action:kwh","label":"Yearly electricity use in the estimate","value":9592,"unit":"kWh/year","source":"assumption","basis":"estimated from your bill"}]}}
+
+data: {"type":"action","action":{"kind":"switch_contract","title":"Switch electricity contract to Example Energia (Fixed 24)","summary":"Estimated saving about €47 a year (€3.90 a month) against your current bill of €78.94 a month. Simulation only: Sisu does not contact the provider.","checklist":["Check when your current contract ends. A fixed-term contract usually cannot be ended early without a fee.","Find your metering point number on a recent electricity bill. The new seller needs it.","Order Fixed 24 from Example Energia on their own page, and check the price there first.","The new seller ends your old sales contract for you. Your grid (distribution) contract stays as it is.","A switch normally takes about two weeks, and an online order can be cancelled within 14 days."],"draftMessage":"Hello Example Energia,\n\nI would like to order Fixed 24 (24 months) as shown on your page.\nMetering point number: [from your electricity bill]\nPlease confirm the price and the start date before the contract begins.\n\nKind regards,\n[your name]","billType":"electricity","offer":{"provider":"Example Energia","plan":"Fixed 24","contractType":"fixed","contractMonths":24,"monthlyPriceEur":3.9,"energyPriceCentsPerKwh":8.9,"setupFeeEur":null,"sourceUrl":"https://example.com/mock-offers","comparable":true,"estimatedMonthlyCostEur":75.04,"estimatedYearlySavingEur":46.8},"monthlyAmountEur":3.9,"facts":[{"id":"action:current-bill","label":"Current bill per month","value":78.94,"unit":"EUR/month","source":"bank-data","basis":"average of the last 12 months; the bill's name is Sisu's guess","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Utilities"}},{"id":"action:offer-monthly","label":"Example Energia, estimated cost per month","value":75.04,"unit":"EUR/month","source":"context.dev","basis":"price extracted from the provider's page, applied to your estimated use","url":"https://example.com/mock-offers"},{"id":"action:saving-yearly","label":"Estimated saving per year","value":46.8,"unit":"EUR/year","source":"calculation","basis":"current bill minus the offer's estimated cost, times 12"},{"id":"action:saving-monthly","label":"Estimated saving per month","value":3.9,"unit":"EUR/month","source":"calculation","basis":"yearly saving divided by 12"},{"id":"action:kwh","label":"Yearly electricity use in the estimate","value":9592,"unit":"kWh/year","source":"assumption","basis":"estimated from your bill"}],"sources":[{"title":"Mock offers (example data)","url":"https://example.com/mock-offers","retrievedAt":"2026-11-14T11:26:25.800Z","cacheAgeMs":null}],"assumptions":["Prices are as stated on the linked pages at the time shown. Check the provider's own page before switching.","Savings compare each offer with your average bill of €78.94 a month over the last 12 months.","The bank data has no payee names, so which bill this is rests on the name you confirmed.","Your electricity use is not in the bank data. We estimate about 9592 kWh a year from your bill, assuming you now pay today's typical fixed price (9.35 c/kWh). Tell Sisu your real yearly kWh, printed on your bill, for an exact figure.","If your bill also covers grid (distribution) fees, the real saving is smaller: those fees do not change when you switch seller.","Spot-price contracts are listed but not ranked, because their price changes every hour.","Switching steps are the usual ones in Finland. The provider's own terms decide."],"preparedBy":"sisu-agent","id":"4be09c7d-1b44-4cbd-803e-3188e3e422b7","customerId":"CUST04414","status":"awaiting_approval","simulated":true,"createdAt":"2026-11-14T11:29:37.012Z","expiresAt":"2026-11-14T11:59:37.012Z","decidedAt":null,"impact":null}}
+
+data: {"type":"delta","text":"Mock "}
+
+data: {"type":"delta","text":"answer. "}
+
+data: {"type":"delta","text":"The "}
+
+data: {"type":"delta","text":"thing "}
+
+data: {"type":"delta","text":"that "}
+
+data: {"type":"delta","text":"stands "}
+
+data: {"type":"delta","text":"out "}
+
+data: {"type":"delta","text":"most: "}
+
+data: {"type":"delta","text":"Entertainment "}
+
+data: {"type":"delta","text":"is "}
+
+data: {"type":"delta","text":"up "}
+
+data: {"type":"delta","text":"168% "}
+
+data: {"type":"delta","text":"on "}
+
+data: {"type":"delta","text":"a "}
+
+data: {"type":"delta","text":"year "}
+
+data: {"type":"delta","text":"ago. "}
+
+data: {"type":"sentence","index":0,"text":"Mock answer. The thing that stands out most: Entertainment is up 168% on a year ago."}
+
+data: {"type":"delta","text":"Example "}
+
+data: {"type":"delta","text":"Energia "}
+
+data: {"type":"delta","text":"looks "}
+
+data: {"type":"delta","text":"cheapest "}
+
+data: {"type":"delta","text":"at "}
+
+data: {"type":"delta","text":"about "}
+
+data: {"type":"delta","text":"75.04 "}
+
+data: {"type":"delta","text":"euros "}
+
+data: {"type":"delta","text":"a "}
+
+data: {"type":"delta","text":"month, "}
+
+data: {"type":"delta","text":"saving "}
+
+data: {"type":"delta","text":"about "}
+
+data: {"type":"delta","text":"46.8 "}
+
+data: {"type":"delta","text":"euros "}
+
+data: {"type":"delta","text":"a "}
+
+data: {"type":"delta","text":"year "}
+
+data: {"type":"delta","text":"against "}
+
+data: {"type":"delta","text":"your "}
+
+data: {"type":"delta","text":"bill "}
+
+data: {"type":"delta","text":"of "}
+
+data: {"type":"delta","text":"78.94 "}
+
+data: {"type":"delta","text":"euros "}
+
+data: {"type":"delta","text":"a "}
+
+data: {"type":"delta","text":"month. "}
+
+data: {"type":"sentence","index":1,"text":"Example Energia looks cheapest at about 75.04 euros a month, saving about 46.8 euros a year against your bill of 78.94 euros a month."}
+
+data: {"type":"delta","text":"These "}
+
+data: {"type":"delta","text":"are "}
+
+data: {"type":"delta","text":"example "}
+
+data: {"type":"delta","text":"offers, "}
+
+data: {"type":"delta","text":"not "}
+
+data: {"type":"delta","text":"live "}
+
+data: {"type":"delta","text":"prices. "}
+
+data: {"type":"sentence","index":2,"text":"These are example offers, not live prices."}
+
+data: {"type":"delta","text":"Keeping "}
+
+data: {"type":"delta","text":"3.9 "}
+
+data: {"type":"delta","text":"euros "}
+
+data: {"type":"delta","text":"a "}
+
+data: {"type":"delta","text":"month "}
+
+data: {"type":"delta","text":"adds "}
+
+data: {"type":"delta","text":"up "}
+
+data: {"type":"delta","text":"to "}
+
+data: {"type":"delta","text":"about "}
+
+data: {"type":"delta","text":"234 "}
+
+data: {"type":"delta","text":"euros "}
+
+data: {"type":"delta","text":"over "}
+
+data: {"type":"delta","text":"the "}
+
+data: {"type":"delta","text":"period. "}
+
+data: {"type":"sentence","index":3,"text":"Keeping 3.9 euros a month adds up to about 234 euros over the period."}
+
+data: {"type":"delta","text":"I "}
+
+data: {"type":"delta","text":"have "}
+
+data: {"type":"delta","text":"prepared "}
+
+data: {"type":"delta","text":"it "}
+
+data: {"type":"delta","text":"for "}
+
+data: {"type":"delta","text":"you "}
+
+data: {"type":"delta","text":"to "}
+
+data: {"type":"delta","text":"review. "}
+
+data: {"type":"sentence","index":4,"text":"I have prepared it for you to review."}
+
+data: {"type":"delta","text":"Nothing "}
+
+data: {"type":"delta","text":"happens "}
+
+data: {"type":"delta","text":"until "}
+
+data: {"type":"delta","text":"you "}
+
+data: {"type":"delta","text":"tap "}
+
+data: {"type":"delta","text":"Approve, "}
+
+data: {"type":"delta","text":"and "}
+
+data: {"type":"delta","text":"even "}
+
+data: {"type":"delta","text":"then "}
+
+data: {"type":"delta","text":"it "}
+
+data: {"type":"delta","text":"is "}
+
+data: {"type":"delta","text":"a "}
+
+data: {"type":"delta","text":"simulation. "}
+
+data: {"type":"sentence","index":5,"text":"Nothing happens until you tap Approve, and even then it is a simulation."}
+
+data: {"type":"delta","text":"Providers "}
+
+data: {"type":"delta","text":"usually "}
+
+data: {"type":"delta","text":"keep "}
+
+data: {"type":"delta","text":"their "}
+
+data: {"type":"delta","text":"best "}
+
+data: {"type":"delta","text":"prices "}
+
+data: {"type":"delta","text":"for "}
+
+data: {"type":"delta","text":"new "}
+
+data: {"type":"delta","text":"customers. "}
+
+data: {"type":"sentence","index":6,"text":"Providers usually keep their best prices for new customers."}
+
+data: {"type":"delta","text":"Checking "}
+
+data: {"type":"delta","text":"the "}
+
+data: {"type":"delta","text":"market "}
+
+data: {"type":"delta","text":"once "}
+
+data: {"type":"delta","text":"a "}
+
+data: {"type":"delta","text":"year "}
+
+data: {"type":"delta","text":"takes "}
+
+data: {"type":"delta","text":"a "}
+
+data: {"type":"delta","text":"few "}
+
+data: {"type":"delta","text":"minutes, "}
+
+data: {"type":"delta","text":"and "}
+
+data: {"type":"delta","text":"a "}
+
+data: {"type":"delta","text":"switch "}
+
+data: {"type":"delta","text":"does "}
+
+data: {"type":"delta","text":"not "}
+
+data: {"type":"delta","text":"cut "}
+
+data: {"type":"delta","text":"your "}
+
+data: {"type":"delta","text":"service: "}
+
+data: {"type":"delta","text":"the "}
+
+data: {"type":"delta","text":"new "}
+
+data: {"type":"delta","text":"provider "}
+
+data: {"type":"delta","text":"handles "}
+
+data: {"type":"delta","text":"the "}
+
+data: {"type":"delta","text":"changeover. "}
+
+data: {"type":"sentence","index":7,"text":"Checking the market once a year takes a few minutes, and a switch does not cut your service: the new provider handles the changeover."}
+
+data: {"type":"delta","text":"Your "}
+
+data: {"type":"delta","text":"3 "}
+
+data: {"type":"delta","text":"monthly "}
+
+data: {"type":"delta","text":"bills "}
+
+data: {"type":"delta","text":"arrive "}
+
+data: {"type":"delta","text":"one "}
+
+data: {"type":"delta","text":"at "}
+
+data: {"type":"delta","text":"a "}
+
+data: {"type":"delta","text":"time. "}
+
+data: {"type":"sentence","index":8,"text":"Your 3 monthly bills arrive one at a time."}
+
+data: {"type":"delta","text":"What "}
+
+data: {"type":"delta","text":"do "}
+
+data: {"type":"delta","text":"you "}
+
+data: {"type":"delta","text":"think "}
+
+data: {"type":"delta","text":"they "}
+
+data: {"type":"delta","text":"add "}
+
+data: {"type":"delta","text":"up "}
+
+data: {"type":"delta","text":"to "}
+
+data: {"type":"delta","text":"in "}
+
+data: {"type":"delta","text":"a "}
+
+data: {"type":"delta","text":"year? "}
+
+data: {"type":"sentence","index":9,"text":"What do you think they add up to in a year?"}
+
+data: {"type":"grounding","grounding":{"ok":true,"checked":7,"unverified":[],"numbers":[{"value":168,"status":"context","factId":null},{"value":75.04,"status":"receipt","factId":"offers:0:cost"},{"value":46.8,"status":"receipt","factId":"offers:0:saving"},{"value":78.94,"status":"receipt","factId":"utilities-1:monthly"},{"value":3.9,"status":"receipt","factId":"offers:0:fee"},{"value":234,"status":"receipt","factId":"scenario:gain"},{"value":3,"status":"receipt","factId":"last-month:Utilities:count"}],"corrections":[]},"facts":[{"id":"drift:Entertainment:now","label":"Entertainment, per month now","value":632.33,"unit":"EUR/month","source":"bank-data","basis":"last 12 months","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Entertainment"}},{"id":"drift:Entertainment:before","label":"Entertainment, per month a year earlier","value":236.08,"unit":"EUR/month","source":"bank-data","basis":"the 12 months before","evidence":{"from":"2024-10-01","to":"2025-09-30","category":"Entertainment"}},{"id":"drift:Entertainment:extra","label":"Entertainment, extra per year","value":4755,"unit":"EUR/year","source":"calculation","basis":"difference times 12"},{"id":"peer:Entertainment:mine","label":"Entertainment, your monthly average","value":632.33,"unit":"EUR/month","source":"bank-data","basis":"50 purchases in the last 12 months","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Entertainment"}},{"id":"peer:Entertainment:peers","label":"Entertainment, age 25-30 average","value":137.02,"unit":"EUR/month","source":"bank-data","basis":"362 customers in the same age band"},{"id":"peer:Entertainment:gap-yearly","label":"Entertainment, gap per year","value":5943.72,"unit":"EUR/year","source":"calculation","basis":"monthly gap times 12"},{"id":"utilities-1:monthly","label":"Electricity, average per month","value":78.94,"unit":"EUR/month","source":"bank-data","basis":"average of 12 payments in the last 12 months","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Utilities"}},{"id":"utilities-1:yearly","label":"Electricity, per year","value":947.28,"unit":"EUR/year","source":"calculation","basis":"monthly average times 12","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Utilities"}},{"id":"lumpy:monthly","label":"Now-and-then costs, average per month","value":342.44,"unit":"EUR/month","source":"bank-data","basis":"last 12 months","evidence":{"from":"2025-10-01","to":"2026-09-30","basket":"irregular"}},{"id":"lumpy:largest","label":"Largest single now-and-then cost","value":1134.47,"unit":"EUR","source":"bank-data","basis":"Home & Tech on 2026-09-29","evidence":{"from":"2025-10-01","to":"2026-09-30","basket":"irregular"}},{"id":"utilities-2:monthly","label":"Home internet, average per month","value":61.42,"unit":"EUR/month","source":"bank-data","basis":"average of 12 payments in the last 12 months","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Utilities"}},{"id":"utilities-2:yearly","label":"Home internet, per year","value":737.04,"unit":"EUR/year","source":"calculation","basis":"monthly average times 12","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Utilities"}},{"id":"offers:baseline","label":"Current bill per month","value":78.94,"unit":"EUR/month","source":"bank-data","basis":"average of the last 12 months"},{"id":"offers:kwh","label":"Yearly electricity use in the estimate","value":9592,"unit":"kWh/year","source":"assumption","basis":"estimated from the bill at today's typical price"},{"id":"offers:0:price","label":"Example Energia: energy price","value":8.9,"unit":"c/kWh","source":"context.dev","basis":"extracted from the provider's page","url":"https://example.com/mock-offers"},{"id":"offers:0:fee","label":"Example Energia: monthly price or fee","value":3.9,"unit":"EUR/month","source":"context.dev","basis":"extracted from the provider's page","url":"https://example.com/mock-offers"},{"id":"offers:0:term","label":"Example Energia: contract length","value":24,"unit":"months","source":"context.dev","basis":"extracted from the provider's page","url":"https://example.com/mock-offers"},{"id":"offers:0:cost","label":"Example Energia: estimated cost per month","value":75.04,"unit":"EUR/month","source":"calculation","basis":"extracted price applied to the estimated use","url":"https://example.com/mock-offers"},{"id":"offers:0:saving","label":"Example Energia: estimated saving per year","value":46.8,"unit":"EUR/year","source":"calculation","basis":"current bill minus estimated cost, times 12","url":"https://example.com/mock-offers"},{"id":"offers:0:saving-monthly","label":"Example Energia: estimated saving per month","value":3.9,"unit":"EUR/month","source":"calculation","basis":"yearly saving divided by 12","url":"https://example.com/mock-offers"},{"id":"offers:1:price","label":"Demo Sähkö: energy price","value":9.8,"unit":"c/kWh","source":"context.dev","basis":"extracted from the provider's page","url":"https://example.com/mock-offers"},{"id":"offers:1:fee","label":"Demo Sähkö: monthly price or fee","value":4.5,"unit":"EUR/month","source":"context.dev","basis":"extracted from the provider's page","url":"https://example.com/mock-offers"},{"id":"offers:1:term","label":"Demo Sähkö: contract length","value":12,"unit":"months","source":"context.dev","basis":"extracted from the provider's page","url":"https://example.com/mock-offers"},{"id":"offers:1:cost","label":"Demo Sähkö: estimated cost per month","value":82.83,"unit":"EUR/month","source":"calculation","basis":"extracted price applied to the estimated use","url":"https://example.com/mock-offers"},{"id":"offers:1:saving","label":"Demo Sähkö: estimated saving per year","value":-46.68,"unit":"EUR/year","source":"calculation","basis":"current bill minus estimated cost, times 12","url":"https://example.com/mock-offers"},{"id":"offers:1:saving-monthly","label":"Demo Sähkö: estimated saving per month","value":-3.89,"unit":"EUR/month","source":"calculation","basis":"yearly saving divided by 12","url":"https://example.com/mock-offers"},{"id":"scenario:freed","label":"Freed per month","value":3.9,"unit":"EUR/month","source":"calculation","basis":"bill saving plus the trimmed share of everyday spending"},{"id":"scenario:years","label":"Years ahead","value":5,"unit":"years","source":"customer-stated","basis":"the horizon asked for"},{"id":"scenario:gain","label":"Extra after the period if the money is kept","value":234,"unit":"EUR","source":"calculation","basis":"'keep the cash' minus 'change nothing'"},{"id":"scenario:nothing:end","label":"Change nothing: total at the end","value":29345.86,"unit":"EUR","source":"calculation","basis":"projected from 12-month averages"},{"id":"scenario:nothing:low","label":"Change nothing: low case","value":27379.43,"unit":"EUR","source":"calculation","basis":"1% a year scenario"},{"id":"scenario:nothing:high","label":"Change nothing: high case","value":31002.31,"unit":"EUR","source":"calculation","basis":"8% a year scenario"},{"id":"scenario:save:end","label":"Make the change, keep the cash: total at the end","value":29579.86,"unit":"EUR","source":"calculation","basis":"projected from 12-month averages"},{"id":"scenario:save:low","label":"Make the change, keep the cash: low case","value":27613.43,"unit":"EUR","source":"calculation","basis":"1% a year scenario"},{"id":"scenario:save:high","label":"Make the change, keep the cash: high case","value":31236.31,"unit":"EUR","source":"calculation","basis":"8% a year scenario"},{"id":"scenario:invest:end","label":"Make the change, invest it: total at the end","value":29610.79,"unit":"EUR","source":"calculation","basis":"projected from 12-month averages"},{"id":"scenario:invest:low","label":"Make the change, invest it: low case","value":27618.26,"unit":"EUR","source":"calculation","basis":"1% a year scenario"},{"id":"scenario:invest:high","label":"Make the change, invest it: high case","value":31289.24,"unit":"EUR","source":"calculation","basis":"8% a year scenario"},{"id":"action:current-bill","label":"Current bill per month","value":78.94,"unit":"EUR/month","source":"bank-data","basis":"average of the last 12 months; the bill's name is Sisu's guess","evidence":{"from":"2025-10-01","to":"2026-09-30","category":"Utilities"}},{"id":"action:offer-monthly","label":"Example Energia, estimated cost per month","value":75.04,"unit":"EUR/month","source":"context.dev","basis":"price extracted from the provider's page, applied to your estimated use","url":"https://example.com/mock-offers"},{"id":"action:saving-yearly","label":"Estimated saving per year","value":46.8,"unit":"EUR/year","source":"calculation","basis":"current bill minus the offer's estimated cost, times 12"},{"id":"action:saving-monthly","label":"Estimated saving per month","value":3.9,"unit":"EUR/month","source":"calculation","basis":"yearly saving divided by 12"},{"id":"action:kwh","label":"Yearly electricity use in the estimate","value":9592,"unit":"kWh/year","source":"assumption","basis":"estimated from your bill"},{"id":"last-month:Utilities:count","label":"Utilities purchases in 2026-09","value":3,"unit":"count","source":"bank-data","basis":"number of transactions","evidence":{"from":"2026-09-01","to":"2026-09-30","category":"Utilities"}}]}
+
+data: {"type":"done","text":"Mock answer. The thing that stands out most: Entertainment is up 168% on a year ago. Example Energia looks cheapest at about 75.04 euros a month, saving about 46.8 euros a year against your bill of 78.94 euros a month. These are example offers, not live prices. Keeping 3.9 euros a month adds up to about 234 euros over the period. I have prepared it for you to review. Nothing happens until you tap Approve, and even then it is a simulation. Providers usually keep their best prices for new customers. Checking the market once a year takes a few minutes, and a switch does not cut your service: the new provider handles the changeover. Your 3 monthly bills arrive one at a time. What do you think they add up to in a year?","citations":[{"title":"Mock offers (example data)","url":"https://example.com/mock-offers","retrievedAt":"2026-11-14T11:26:25.800Z","cacheAgeMs":null}],"timings":{"sttMs":null,"firstTokenMs":1293,"firstSentenceMs":1685,"totalMs":4796,"modelSteps":[{"model":"mock","provider":"mock","usedBackup":false,"firstTokenMs":250,"totalMs":250},{"model":"mock","provider":"mock","usedBackup":false,"firstTokenMs":250,"totalMs":250},{"model":"mock","provider":"mock","usedBackup":false,"firstTokenMs":250,"totalMs":250},{"model":"mock","provider":"mock","usedBackup":false,"firstTokenMs":250,"totalMs":250},{"model":"mock","provider":"mock","usedBackup":false,"firstTokenMs":250,"totalMs":250},{"model":"mock","provider":"mock","usedBackup":false,"firstTokenMs":27,"totalMs":3528}]}}
+

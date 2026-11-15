@@ -1,0 +1,376 @@
+/* A short answer (AssistantAnswer, ResultLine, AnswerDetails, Disclosure, Offers): the result strip, the source
+   chips, the closed details and the offer list. Cards stay solid; motion follows the state spring and is instant
+   under reduced motion. */
+
+/* The result: one tinted strip inside the answer card. */
+.sisu-answer-result {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: calc(var(--sisu-space-grid) * 1.5);
+  padding: calc(var(--sisu-space-grid) * 3.5) var(--sisu-space-card);
+  border-radius: calc(var(--sisu-radius-card) - 6px);
+  background: var(--sisu-green-25);
+  box-shadow: inset 0 0 0 1px var(--sisu-green-100);
+}
+
+.sisu-answer-result[data-tone="nomatch"] {
+  background: var(--sisu-amber-background);
+  box-shadow: none;
+}
+
+.sisu-answer-result-label {
+  font: var(--sisu-type-label);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-answer-result-value {
+  font: var(--sisu-type-h1);
+  color: var(--sisu-green-900);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+
+.sisu-answer-result-heading {
+  margin: 0;
+  font: var(--sisu-type-h3);
+  color: var(--sisu-amber-text);
+}
+
+.sisu-answer-result-detail {
+  margin: 0;
+  font: var(--sisu-type-body);
+  color: var(--sisu-color-text);
+}
+
+.sisu-answer-result[data-tone="nomatch"] .sisu-answer-result-detail {
+  color: var(--sisu-amber-text);
+}
+
+/* Source chips. */
+.sisu-answer-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sisu-answer-chip {
+  padding: 3px 10px;
+  border-radius: var(--sisu-radius-pill);
+  font: var(--sisu-type-caption);
+  line-height: 18px;
+  color: var(--sisu-color-text);
+  background: var(--sisu-white);
+  box-shadow: inset 0 0 0 1px var(--sisu-color-hairline);
+}
+
+.sisu-answer-chip[data-kind="bank"] { background: var(--sisu-green-50); color: var(--sisu-green-900); box-shadow: none; }
+.sisu-answer-chip[data-kind="input"] { background: var(--sisu-info-background); color: var(--sisu-info-text); box-shadow: none; }
+.sisu-answer-chip[data-kind="synthetic"],
+.sisu-answer-chip[data-kind="simulated"],
+.sisu-answer-chip[data-kind="mock"] { background: var(--sisu-amber-background); color: var(--sisu-amber-text); box-shadow: none; }
+.sisu-answer-result[data-tone="nomatch"] .sisu-answer-chip { background: var(--sisu-white); }
+
+/* Follow-ups after "No matching options found", and small text links. */
+.sisu-answer-followups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--sisu-space-grid) * 2);
+  margin-top: var(--sisu-space-grid);
+}
+
+/* Buttons beat the root reset (`.sisu-root button`) by specificity, not by file order. */
+.sisu-answer-followups > button.sisu-answer-followup {
+  min-height: 40px;
+  padding: 0 var(--sisu-space-card);
+  border: 0;
+  border-radius: var(--sisu-radius-pill);
+  font: var(--sisu-type-label);
+  color: var(--sisu-color-on-primary);
+  background: var(--sisu-color-primary);
+  cursor: pointer;
+}
+
+.sisu-answer-followups > button.sisu-answer-followup + button.sisu-answer-followup {
+  color: var(--sisu-color-primary);
+  background: var(--sisu-white);
+  box-shadow: inset 0 0 0 1.5px var(--sisu-color-primary);
+}
+
+/* 44 px tall (Apple's touch size; the demo is used standing at a booth), the underline still hugging the words. */
+.sisu-answer-result > button.sisu-answer-link,
+.sisu-answer-section > button.sisu-answer-link {
+  min-height: 44px;
+  margin: -6px 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: var(--sisu-type-label);
+  color: var(--sisu-color-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* Details. */
+.sisu-answer-details {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--sisu-neutral-200);
+  padding-top: calc(var(--sisu-space-grid) * 3);
+}
+
+.sisu-answer-details-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--sisu-space-grid) * 2);
+  padding-bottom: var(--sisu-space-grid);
+}
+
+.sisu-answer-grounding {
+  font: var(--sisu-type-caption);
+  color: var(--sisu-green-700);
+}
+
+.sisu-answer-grounding[data-warning="true"] {
+  color: var(--sisu-amber-text);
+}
+
+.sisu-answer-disclosure + .sisu-answer-disclosure {
+  border-top: 1px solid var(--sisu-neutral-200);
+}
+
+.sisu-answer-disclosure > button.sisu-answer-disclosure-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--sisu-space-grid) * 2);
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--sisu-color-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.sisu-answer-disclosure-label {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+  font: var(--sisu-type-label);
+}
+
+.sisu-answer-count {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: var(--sisu-radius-pill);
+  font: var(--sisu-type-caption);
+  line-height: 20px;
+  text-align: center;
+  color: var(--sisu-green-900);
+  background: var(--sisu-green-50);
+}
+
+.sisu-answer-chevron {
+  flex: none;
+  transition: transform var(--sisu-motion-state-duration) var(--sisu-motion-state-easing);
+}
+
+.sisu-answer-chevron[data-open="true"] {
+  transform: rotate(180deg);
+}
+
+/* The panel grows to its content's height. */
+.sisu-answer-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows var(--sisu-motion-state-duration) var(--sisu-motion-state-easing),
+    opacity var(--sisu-motion-state-duration) var(--sisu-motion-ease-out);
+}
+
+.sisu-answer-panel[data-open="true"] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.sisu-answer-panel-clip {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sisu-answer-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sisu-space-card);
+  padding: var(--sisu-space-grid) 0 var(--sisu-space-card);
+}
+
+.sisu-answer-section {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: calc(var(--sisu-space-grid) * 2);
+}
+
+.sisu-answer-section > button.sisu-answer-link { align-self: flex-start; }
+
+.sisu-answer-list {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 2);
+  margin: 0;
+  padding: 0 0 0 18px;
+}
+
+.sisu-answer-list > li::marker { color: var(--sisu-green-500); }
+
+.sisu-answer-source {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sisu-answer-steps {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 2);
+  margin: 0;
+  padding: 0 0 0 18px;
+}
+
+.sisu-answer-step {
+  display: list-item;
+}
+
+.sisu-answer-step > span { display: block; }
+.sisu-answer-step::marker { font: var(--sisu-type-caption); color: var(--sisu-color-text-muted); }
+.sisu-answer-step[data-state="failed"]::marker { color: var(--sisu-amber-text); }
+
+/* Offers. */
+.sisu-answer-offers {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sisu-answer-offer {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: calc(var(--sisu-space-grid) * 3) 0;
+}
+
+.sisu-answer-offer + .sisu-answer-offer {
+  border-top: 1px solid var(--sisu-neutral-200);
+}
+
+.sisu-answer-offer[data-meets="false"] .sisu-answer-offer-name,
+.sisu-answer-offer[data-meets="false"] .sisu-answer-offer-cost {
+  color: var(--sisu-color-text-muted);
+}
+
+/* One bill's part of "Offers compared" (an answer can compare several bills). */
+.sisu-answer-offer-section {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 2);
+}
+
+.sisu-answer-offer-section + .sisu-answer-offer-section {
+  margin-top: calc(var(--sisu-space-grid) * 3);
+  padding-top: calc(var(--sisu-space-grid) * 3);
+  border-top: 1px solid var(--sisu-neutral-200);
+}
+
+.sisu-answer-offer-section-title {
+  margin: 0;
+  color: var(--sisu-color-text);
+}
+
+.sisu-answer-offers-apart {
+  margin: calc(var(--sisu-space-grid) * 2) 0 0;
+  padding-top: calc(var(--sisu-space-grid) * 2);
+  border-top: 1px solid var(--sisu-neutral-200);
+}
+
+.sisu-answer-offer-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: calc(var(--sisu-space-grid) * 2);
+}
+
+.sisu-answer-offer-name {
+  min-width: 0;
+  color: var(--sisu-color-text);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.sisu-answer-offer-cost {
+  flex: none;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.sisu-answer-offer-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px calc(var(--sisu-space-grid) * 2);
+  margin-top: 2px;
+}
+
+.sisu-answer-pill {
+  padding: 1px 8px;
+  border-radius: var(--sisu-radius-pill);
+  font: var(--sisu-type-caption);
+  line-height: 18px;
+}
+
+.sisu-answer-pill[data-tone="good"] { color: var(--sisu-white); background: var(--sisu-green-700); }
+.sisu-answer-pill[data-tone="warn"] { color: var(--sisu-amber-text); background: var(--sisu-amber-background); }
+
+.sisu-answer-misses {
+  margin: 2px 0 0;
+  padding: 0 0 0 16px;
+  color: var(--sisu-amber-text);
+}
+
+.sisu-answer-misses > li { color: var(--sisu-amber-text); }
+
+.sisu-answer-offer-open {
+  align-self: flex-start;
+  margin-top: 2px;
+  font: var(--sisu-type-caption);
+  color: var(--sisu-color-primary);
+}
+
+/* "Sisu will remember …" under an answer: a quiet line, not a card. */
+.sisu-answer-memory {
+  padding: 0 var(--sisu-space-grid);
+}
+
+.sisu-answer-memory > p {
+  font: var(--sisu-type-caption);
+  color: var(--sisu-color-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sisu-answer-panel,
+  .sisu-answer-chevron { transition: none; }
+}

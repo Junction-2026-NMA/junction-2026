@@ -1,0 +1,261 @@
+/* Design tokens: port of ios/Sisu/Theme/SisuTheme.swift and ios/Sisu/Shared/SisuStyle.swift (light look of
+   2026-11-14, ios/BRAND.md). Style the app with these and nothing else. Light only: the .riv has no dark variant.
+   Scoped to .sisu-root (the app root) and .sisu-layer (portalled layers such as sheets). 1 pt = 1 CSS px. */
+
+.sisu-root,
+.sisu-layer {
+  /* Palette (fixed). */
+  --sisu-green-900: #004628;
+  --sisu-green-700: #007841;
+  --sisu-green-500: #00aa46;
+  --sisu-green-300: #99d59f;
+  --sisu-green-200: #91fa9b;
+  --sisu-green-100: #d2fcd5;
+  --sisu-green-50: #ebf7ec;
+  --sisu-green-25: #f7fcf7;
+  --sisu-white: #ffffff;
+  --sisu-neutral-900: #1f1f1f;
+  --sisu-neutral-600: #666666;
+  --sisu-neutral-400: #949494;
+  --sisu-neutral-200: #e6e6e6;
+  /* Heads-up notes only. */
+  --sisu-amber-background: #fff1d8;
+  --sisu-amber-mark: #cf8300;
+  --sisu-amber-text: #885600;
+  /* Tips. */
+  --sisu-info-background: #e0f4ff;
+  --sisu-info-text: #006e87;
+  /* Failed actions only. Spending is never red. */
+  --sisu-error-background: #ffeded;
+  --sisu-error-text: #b70000;
+  /* Dark mode only (kept for completeness; the web app is light only). */
+  --sisu-dark-background: #00301b;
+  --sisu-dark-outline: #1b6b43;
+
+  /* Roles (light values). */
+  --sisu-color-background: #f6f8f7;
+  --sisu-color-card: #ffffff;
+  --sisu-color-hairline: #e3e8e5;
+  --sisu-color-press-edge: #dce3df;
+  --sisu-color-input-fill: #f6f8f7;
+  /* Focus rings: green-700, at least 3:1 on white and the screen colour (WCAG 1.4.11), like the tab bar's outline. */
+  --sisu-color-outline: #007841;
+  --sisu-color-text: #18211c;
+  --sisu-color-text-muted: #5e6662;
+  --sisu-color-primary: #007841;
+  --sisu-color-on-primary: #ffffff;
+  /* Glass tab bar. */
+  --sisu-color-tab-selected: #004628;
+  --sisu-color-tab-idle: #3b4440;
+  --sisu-color-selection-tint: #00aa46;
+  --sisu-color-selection-fill: #ddf3e2;
+  --sisu-color-bar-solid: #fcfdfc;
+  /* Baskets, dark to light. Always shown with an icon and a label. */
+  --sisu-color-basket-fixed: var(--sisu-green-900);
+  --sisu-color-basket-curveballs: var(--sisu-green-700);
+  --sisu-color-basket-leaks: var(--sisu-green-500);
+  --sisu-color-basket-jars: var(--sisu-green-200);
+
+  /* Fonts (next/font/local variables from web/theme/fonts.ts, with the family names as a fallback). */
+  --sisu-font-display: var(--sisu-font-bricolage, "Bricolage Grotesque"), system-ui, -apple-system, sans-serif;
+  --sisu-font-text: var(--sisu-font-figtree, "Figtree"), system-ui, -apple-system, sans-serif;
+  /* Type scale: weight size/line-height family. Use as `font: var(--sisu-type-h2)`. */
+  --sisu-type-hero: 800 64px/1.05 var(--sisu-font-display);
+  --sisu-type-display: 800 40px/1.1 var(--sisu-font-display);
+  --sisu-type-h1: 800 32px/1.15 var(--sisu-font-display);
+  --sisu-type-h2: 700 24px/1.2 var(--sisu-font-display);
+  --sisu-type-h3: 700 20px/1.25 var(--sisu-font-text);
+  --sisu-type-body-large: 400 18px/1.4 var(--sisu-font-text);
+  --sisu-type-body: 400 16px/1.4 var(--sisu-font-text);
+  --sisu-type-label: 600 14px/1.3 var(--sisu-font-text);
+  --sisu-type-caption: 600 12px/1.3 var(--sisu-font-text);
+  --sisu-type-button: 700 17px/1.2 var(--sisu-font-text);
+
+  /* Spacing (4 pt grid). */
+  --sisu-space-grid: 4px;
+  --sisu-space-margin: 20px;
+  --sisu-space-card: 16px;
+  --sisu-space-section: 32px;
+  --sisu-space-tab-bar-clearance: 16px;
+  --sisu-space-touch-target: 48px;
+  --sisu-space-press-edge: 4px;
+
+  /* Radii. Pills use 999px. */
+  --sisu-radius-button: 18px;
+  --sisu-radius-card: 24px;
+  --sisu-radius-sheet: 32px;
+  --sisu-radius-hero: 32px;
+  --sisu-radius-pill: 999px;
+
+  /* Floating glass tab bar. */
+  --sisu-tabbar-height: 64px;
+  --sisu-tabbar-inset: 5px;
+  --sisu-tabbar-side-margin: 20px;
+  --sisu-tabbar-lift: -10px;
+  --sisu-tabbar-icon: 20px;
+  --sisu-tabbar-label: 600 12px/1.15 var(--sisu-font-text);
+  --sisu-tabbar-label-selected: 700 12px/1.15 var(--sisu-font-text);
+  /* Where the bar's bottom edge sits: `lift` into the home-indicator band, but never closer than 12px to the
+     screen edge (a browser without a bottom inset would otherwise push it off screen). */
+  --sisu-tabbar-bottom: max(calc(env(safe-area-inset-bottom, 0px) + var(--sisu-tabbar-lift)), 12px);
+  /* The room screens reserve under their last row: bar bottom + bar height + 2 grid (MainScreen's BottomBar). */
+  --sisu-tabbar-room: calc(var(--sisu-tabbar-bottom) + var(--sisu-tabbar-height) + 2 * var(--sisu-space-grid));
+
+  /* Motion. Springs are sampled from SwiftUI's spring(response:dampingFraction:) as linear() easings. */
+  /* SisuMotion.state: spring(response 0.35, damping 0.72). */
+  --sisu-motion-state-duration: 481ms;
+  --sisu-motion-state-easing: linear(0, 0.036, 0.1246, 0.2421, 0.3708, 0.4982, 0.6161, 0.7199, 0.8073, 0.8781, 0.933, 0.9738, 1.0026, 1.0214, 1.0324, 1.0375, 1.0383, 1.0363, 1.0325, 1.0278, 1.0228, 1.018, 1.0136, 1.0098, 1.0066, 1.0041, 1.0021, 1.0007, 0.9997, 0.999, 1);
+  /* GlassTabBar pill: spring(response 0.4, damping 0.74). */
+  --sisu-motion-tab-duration: 535ms;
+  --sisu-motion-tab-easing: linear(0, 0.0341, 0.1182, 0.2299, 0.3529, 0.4754, 0.5898, 0.6915, 0.7784, 0.8499, 0.9068, 0.9503, 0.9822, 1.0044, 1.0188, 1.0271, 1.0309, 1.0314, 1.0298, 1.0268, 1.0231, 1.0192, 1.0154, 1.0119, 1.0088, 1.0062, 1.0041, 1.0025, 1.0012, 1.0003, 1);
+  /* Reduce Motion: the pill slides with easeInOut 0.2 s; other state changes are instant. */
+  --sisu-motion-reduced-duration: 200ms;
+  --sisu-motion-ease-in-out: cubic-bezier(0.42, 0, 0.58, 1);
+  --sisu-motion-ease-out: cubic-bezier(0, 0, 0.58, 1);
+  /* The tab bar stepping aside for the keyboard, the celebration fade. */
+  --sisu-motion-keyboard-duration: 200ms;
+  --sisu-motion-fade-duration: 250ms;
+  /* One calm vocabulary for things arriving and leaving (sheets, cards, notices, buttons): a quick, soft
+     ease-out in (emphasized decelerate), a shorter ease-in out, and a short press. */
+  --sisu-motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --sisu-motion-ease-emphasized: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --sisu-motion-ease-exit: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --sisu-motion-enter-duration: 360ms;
+  --sisu-motion-exit-duration: 200ms;
+  --sisu-motion-press-duration: 120ms;
+  --sisu-motion-sheet-duration: 420ms;
+  --sisu-motion-sheet-easing: cubic-bezier(0.32, 0.72, 0, 1);
+  --sisu-motion-enter-distance: 10px;
+
+  /* The app background's paper grain: fractal noise in green-900 at about 4% (alpha 0.13 x noise - 0.03),
+     a 180 px seamless tile (no seams, so any layer can paint it without lining up), under 1 KB, light only.
+     Cards stay solid white on top of it. */
+  --sisu-texture: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 .27 0 0 0 0 .16 .13 0 0 0 -.03'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23g)'/%3E%3C/svg%3E");
+  --sisu-texture-size: 180px 180px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sisu-root,
+  .sisu-layer {
+    --sisu-motion-state-duration: 0ms;
+    --sisu-motion-tab-duration: var(--sisu-motion-reduced-duration);
+    --sisu-motion-tab-easing: var(--sisu-motion-ease-in-out);
+    /* Arrivals become a short fade in place; presses and sheets keep a brief, plain ease. */
+    --sisu-motion-enter-duration: 180ms;
+    --sisu-motion-exit-duration: 120ms;
+    --sisu-motion-enter-distance: 0px;
+    --sisu-motion-sheet-duration: 200ms;
+    --sisu-motion-sheet-easing: var(--sisu-motion-ease-in-out);
+    --sisu-motion-press-duration: 0ms;
+  }
+}
+
+/* More contrast asked for: a flat background, no grain. */
+@media (prefers-contrast: more) {
+  .sisu-root,
+  .sisu-layer {
+    --sisu-texture: none;
+  }
+}
+
+/* Base styles. */
+html:has(.sisu-root),
+html:has(.sisu-root) body {
+  background: #f6f8f7;
+  overscroll-behavior: none;
+}
+
+/* The app background with its grain. Every screen sits on it: screens leave their own background transparent;
+   cards and sheets stay solid. `html .sisu-root` outranks web/gate/shell.css's plain `.sisu-root { background }`. */
+html .sisu-root {
+  background-color: var(--sisu-color-background);
+  background-image: var(--sisu-texture);
+  background-size: var(--sisu-texture-size);
+}
+
+.sisu-root {
+  color-scheme: light;
+  color: var(--sisu-color-text);
+  font: var(--sisu-type-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+
+.sisu-root,
+.sisu-layer {
+  -webkit-tap-highlight-color: transparent;
+  /* iOS does not select interface text; inputs and [data-selectable] opt back in. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.sisu-root *,
+.sisu-layer *,
+.sisu-root *::before,
+.sisu-layer *::before,
+.sisu-root *::after,
+.sisu-layer *::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sisu-root input,
+.sisu-root textarea,
+.sisu-root [contenteditable="true"],
+.sisu-root [data-selectable],
+.sisu-layer input,
+.sisu-layer textarea,
+.sisu-layer [contenteditable="true"],
+.sisu-layer [data-selectable] {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+.sisu-root button,
+.sisu-layer button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.sisu-root :focus-visible,
+.sisu-layer :focus-visible {
+  outline: 2px solid var(--sisu-green-700);
+  outline-offset: 2px;
+}
+
+/* Type helpers, one per SisuTheme.Font. */
+.sisu-font-hero { font: var(--sisu-type-hero); }
+.sisu-font-display { font: var(--sisu-type-display); }
+.sisu-font-h1 { font: var(--sisu-type-h1); }
+.sisu-font-h2 { font: var(--sisu-type-h2); }
+.sisu-font-h3 { font: var(--sisu-type-h3); }
+.sisu-font-body-large { font: var(--sisu-type-body-large); }
+.sisu-font-body { font: var(--sisu-type-body); }
+.sisu-font-label { font: var(--sisu-type-label); }
+.sisu-font-caption { font: var(--sisu-type-caption); }
+.sisu-font-button { font: var(--sisu-type-button); }
+
+/* Visually hidden, still read by screen readers. */
+.sisu-visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

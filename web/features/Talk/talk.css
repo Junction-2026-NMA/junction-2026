@@ -1,0 +1,651 @@
+/* The Sisu tab (TalkScreen.tsx, TalkParts.tsx, TalkTranscript.tsx, SisuEmptyState.tsx, VoiceStrip.tsx). Light only.
+   Spacing and type from web/theme/tokens.css. Every class here is sisu-talk-*. No full-screen background: the
+   app-wide texture on .sisu-root shows through; cards stay solid. */
+
+/* The whole column: header, notice, conversation, dock. It keeps to what is visible: above the floating tab bar,
+   or on the keyboard while it is up (--sisu-talk-kb / --sisu-talk-vv-top from the visual viewport; MainScreen gives
+   the bar's room back then). */
+.sisu-talk {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: transparent;
+  padding-top: var(--sisu-talk-vv-top, 0px);
+  padding-bottom: max(var(--sisu-tabbar-room), var(--sisu-talk-kb, 0px));
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+.sisu-talk[data-keyboard="true"] {
+  padding-bottom: var(--sisu-talk-kb, 0px);
+}
+
+/* MARK: Header */
+
+.sisu-talk-header {
+  position: relative;
+  z-index: 2;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 3);
+  min-height: 56px;
+  padding: calc(env(safe-area-inset-top, 0px) + var(--sisu-space-grid) * 4) var(--sisu-space-margin) calc(var(--sisu-space-grid) * 2);
+}
+
+.sisu-talk[data-keyboard="true"] .sisu-talk-header {
+  padding-top: calc(var(--sisu-space-grid) * 2);
+}
+
+.sisu-talk-titles {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sisu-talk-title {
+  margin: 0;
+  font: var(--sisu-type-h1);
+  color: var(--sisu-color-text);
+  letter-spacing: -0.01em;
+}
+
+.sisu-talk-header-liito {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+}
+
+/* The Sisu logo: Liito's face in a small circle, with a list mark that says it opens the history. */
+button.sisu-talk-logo {
+  position: relative;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 160ms var(--sisu-motion-ease-out);
+}
+
+button.sisu-talk-logo:active {
+  transform: scale(0.94);
+}
+
+button.sisu-talk-logo:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--sisu-color-outline);
+}
+
+.sisu-talk-logo-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--sisu-color-primary) url("/app-icons/icon-192.png") center / cover no-repeat;
+  box-shadow: 0 0 0 1px rgba(0, 70, 40, 0.12), 0 4px 12px rgba(0, 70, 40, 0.16);
+}
+
+.sisu-talk-logo-lines {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--sisu-color-card);
+  color: var(--sisu-color-text);
+  box-shadow: 0 0 0 1px var(--sisu-color-hairline), 0 2px 6px rgba(24, 33, 28, 0.12);
+}
+
+.sisu-talk-logo-dot {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--sisu-amber-mark);
+  box-shadow: 0 0 0 2px var(--sisu-color-card);
+}
+
+/* MARK: Liito's badge */
+
+.sisu-talk-badge {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sisu-talk-badge[role="button"] {
+  cursor: pointer;
+}
+
+.sisu-talk-badge:focus-visible {
+  box-shadow: 0 0 0 3px var(--sisu-color-outline);
+}
+
+/* The chat header's badge: the filled circle is the ring behind Liito, and Liito stands in front of it, not cut by
+   it, so the props of every task (the easel, the cards, the waves, the thinking dots) show whole at 64 px. */
+.sisu-talk-badge[data-size="small"] {
+  overflow: visible;
+}
+
+.sisu-talk-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  margin: 0;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: var(--sisu-color-selection-fill);
+  transition: transform 120ms ease-out, opacity 120ms ease-out;
+  pointer-events: none;
+}
+
+.sisu-talk-liito {
+  position: relative;
+  flex: none;
+}
+
+.sisu-talk-badge[data-size="small"] .sisu-talk-liito {
+  translate: 0 2px;
+}
+
+.sisu-talk-badge-stroke {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  border: 2px solid var(--sisu-green-500);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sisu-talk-ring {
+    transition: none;
+  }
+}
+
+/* MARK: Empty conversation */
+
+.sisu-talk-empty-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Text scrolled up under the header fades out instead of being cut mid-glyph (both scrolling areas). */
+.sisu-talk-empty-scroll,
+.sisu-talk-scroll {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 16px);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 16px);
+}
+
+/* With the keyboard up the greeting must still fit: Liito is smaller (TalkScreen), the hint goes. */
+.sisu-talk[data-keyboard="true"] .sisu-talk-empty-hero {
+  gap: var(--sisu-space-grid);
+  padding-top: calc(var(--sisu-space-grid) * 2);
+}
+
+.sisu-talk[data-keyboard="true"] .sisu-talk-empty-line {
+  margin-top: 0;
+}
+
+.sisu-talk[data-keyboard="true"] .sisu-talk-empty-hint {
+  display: none;
+}
+
+.sisu-talk-empty {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--sisu-space-card);
+  min-height: 100%;
+  padding: 0 var(--sisu-space-margin) calc(var(--sisu-space-section) * 1.5);
+}
+
+.sisu-talk-empty-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+  padding-top: var(--sisu-space-grid);
+  text-align: center;
+  animation: sisu-talk-fade 320ms var(--sisu-motion-ease-out) both;
+}
+
+.sisu-talk-empty-line {
+  margin: calc(var(--sisu-space-grid) * 2) 0 0;
+  font: var(--sisu-type-h2);
+  color: var(--sisu-color-text);
+  text-wrap: balance;
+}
+
+.sisu-talk-empty-hint {
+  margin: 0;
+  max-width: 32ch;
+  font: var(--sisu-type-body);
+  color: var(--sisu-color-text-muted);
+  text-wrap: pretty;
+}
+
+/* MARK: Transcript */
+
+.sisu-talk-transcript {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sisu-talk-scroll {
+  position: relative; /* the offsetParent of the rows (TalkTranscript measures layout offsets) */
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sisu-talk-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--sisu-space-card);
+  padding: calc(var(--sisu-space-grid) * 4) var(--sisu-space-margin) var(--sisu-space-card);
+}
+
+/* Under the newest turn: room for its question to sit at the top (height set by TalkTranscript). */
+.sisu-talk-spacer {
+  flex: none;
+  height: 0;
+}
+
+.sisu-talk-bottom {
+  flex: none;
+  height: 1px;
+}
+
+/* "Jump to latest": a small round button in the bottom right corner (44 x 44), so it never sits over the middle of
+   a line, a chip or an Approve button. TalkTranscript shows it only when new content arrived below the view. */
+button.sisu-talk-jump {
+  position: absolute;
+  right: calc(var(--sisu-space-grid) * 2);
+  bottom: calc(var(--sisu-space-grid) * 3);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--sisu-color-hairline);
+  border-radius: 50%;
+  background: var(--sisu-color-card);
+  color: var(--sisu-color-primary);
+  box-shadow: 0 6px 18px rgba(24, 33, 28, 0.16);
+  cursor: pointer;
+  animation: sisu-talk-pill-in 260ms var(--sisu-motion-ease-out) both;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button.sisu-talk-jump:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--sisu-color-outline), 0 8px 24px rgba(24, 33, 28, 0.14);
+}
+
+/* MARK: Dock (notice + composer or voice strip) */
+
+.sisu-talk-dock {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 2);
+  padding: calc(var(--sisu-space-grid) * 2) var(--sisu-space-margin) calc(var(--sisu-space-grid) * 3);
+}
+
+/* The voice-first dock (VoiceLauncher.tsx): the microphone centred, the keyboard button at the trailing edge. */
+.sisu-talk-launcher {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  min-height: 64px;
+  animation: sisu-talk-fade 240ms var(--sisu-motion-ease-out) both;
+}
+
+button.sisu-talk-launcher-mic {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--sisu-color-primary);
+  color: var(--sisu-color-on-primary);
+  box-shadow: 0 8px 24px rgba(0, 70, 40, 0.22);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 160ms var(--sisu-motion-ease-out);
+}
+
+button.sisu-talk-launcher-mic svg {
+  width: 28px;
+  height: 28px;
+}
+
+button.sisu-talk-launcher-mic:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+button.sisu-talk-launcher-mic:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+button.sisu-talk-launcher-type {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 1px solid var(--sisu-color-hairline);
+  border-radius: 50%;
+  background: var(--sisu-color-card);
+  color: var(--sisu-color-text);
+  box-shadow: 0 4px 14px rgba(24, 33, 28, 0.06);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 160ms var(--sisu-motion-ease-out);
+}
+
+button.sisu-talk-launcher-type:active {
+  transform: scale(0.92);
+}
+
+button.sisu-talk-launcher-type:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--sisu-color-outline);
+}
+
+button.sisu-talk-launcher-mic:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--sisu-color-background), 0 0 0 5px var(--sisu-color-outline);
+}
+
+/* A voice problem (speech failed, the microphone refused or interrupted): one calm line, never red. */
+.sisu-talk-notice {
+  margin: 0;
+  padding: calc(var(--sisu-space-grid) * 2) calc(var(--sisu-space-grid) * 3);
+  border-radius: var(--sisu-radius-button);
+  background: var(--sisu-info-background);
+  color: var(--sisu-info-text);
+  font: var(--sisu-type-label);
+  text-align: center;
+}
+
+.sisu-talk-strip {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+  min-height: 60px;
+  box-sizing: border-box;
+  padding: 4px;
+  border: 1px solid rgba(0, 120, 65, 0.18);
+  border-radius: 30px;
+  background: var(--sisu-color-card);
+  box-shadow: 0 6px 20px rgba(0, 70, 40, 0.1);
+  animation: sisu-talk-fade 240ms var(--sisu-motion-ease-out) both;
+}
+
+button.sisu-talk-strip-type {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--sisu-color-background);
+  color: var(--sisu-color-text);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sisu-talk-strip-status {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 3);
+}
+
+.sisu-talk-strip-dot {
+  position: relative;
+  flex: none;
+  width: 22px;
+  height: 22px;
+}
+
+.sisu-talk-strip-halo,
+.sisu-talk-strip-core {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+
+.sisu-talk-strip-halo {
+  background: var(--sisu-color-selection-fill);
+  transition: transform 120ms ease-out;
+}
+
+.sisu-talk-strip-core {
+  inset: 6px;
+  background: var(--sisu-green-500);
+}
+
+.sisu-talk-strip[data-tone="listening"] .sisu-talk-strip-core {
+  animation: sisu-talk-breathe 1.8s ease-in-out infinite;
+}
+
+.sisu-talk-strip[data-tone="thinking"] .sisu-talk-strip-core {
+  background: var(--sisu-green-700);
+  animation: sisu-talk-breathe 0.9s ease-in-out infinite;
+}
+
+.sisu-talk-strip[data-tone="answering"] .sisu-talk-strip-core {
+  background: var(--sisu-color-primary);
+}
+
+.sisu-talk-strip-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sisu-talk-strip-label {
+  font: 700 16px/1.25 var(--sisu-font-text);
+  color: var(--sisu-color-text);
+}
+
+/* Up to two lines, so the instruction (tap Stop, tap End) is never cut off on a narrow phone. */
+.sisu-talk-strip-detail {
+  font: var(--sisu-type-caption);
+  color: var(--sisu-color-text-muted);
+  white-space: normal;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+button.sisu-talk-strip-stop {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 50px;
+  padding: 0 18px 0 16px;
+  border: 0;
+  border-radius: 25px;
+  background: var(--sisu-color-text);
+  color: var(--sisu-color-card);
+  font: var(--sisu-type-label);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 160ms var(--sisu-motion-ease-out), background-color 200ms ease;
+}
+
+button.sisu-talk-strip-stop[data-kind="interrupt"] {
+  background: var(--sisu-color-primary);
+}
+
+button.sisu-talk-strip-stop:active {
+  transform: scale(0.95);
+}
+
+.sisu-talk-strip-stop-mark {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+button.sisu-talk-strip-type:focus-visible,
+button.sisu-talk-strip-stop:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--sisu-color-outline);
+}
+
+/* On the green fill a light gap keeps the ring apart from the button. */
+button.sisu-talk-strip-stop[data-kind="interrupt"]:focus-visible {
+  box-shadow: 0 0 0 2px var(--sisu-color-card), 0 0 0 4px var(--sisu-color-outline);
+}
+
+/* MARK: A project in place of the conversation (web/features/Projects/ProjectScreen.tsx). The project paints no
+   background, so the conversation under it is hidden (not unmounted: its scroll position and draft stay), and
+   hidden content is out of the tab order and the accessibility tree too. */
+
+.sisu-talk-project {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  animation: sisu-talk-rise-soft 320ms var(--sisu-motion-ease-out) both;
+}
+
+.sisu-talk[data-project="true"] > :not(.sisu-talk-project):not(.sisu-history) {
+  visibility: hidden;
+}
+
+/* MARK: Status line */
+
+.sisu-talk-status {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+  min-height: 1.4em;
+  margin: calc(var(--sisu-space-grid) * 3) 0 0;
+  font: var(--sisu-type-label);
+  font-variant-numeric: tabular-nums;
+  color: var(--sisu-color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sisu-talk-status[data-muted="true"] {
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-talk-status[data-compact="true"] {
+  justify-content: flex-start;
+  margin: 0;
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-talk-status-text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.sisu-talk-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--sisu-green-500);
+  opacity: 0.35;
+  transition: opacity 800ms ease-in-out;
+}
+
+.sisu-talk-dot[data-lit="true"] {
+  opacity: 1;
+}
+
+.sisu-talk-dot[data-paused="true"] {
+  background: var(--sisu-amber-mark);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sisu-talk-dot {
+    transition: none;
+  }
+}
+
+@keyframes sisu-talk-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sisu-talk-rise-soft { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes sisu-talk-pill-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes sisu-talk-breathe { 0%, 100% { transform: scale(0.82); } 50% { transform: scale(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .sisu-talk-empty-hero,
+  .sisu-talk-project,
+  button.sisu-talk-jump,
+  .sisu-talk-strip {
+    animation: sisu-talk-fade 200ms ease both;
+  }
+
+  .sisu-talk-strip-core {
+    animation: none !important;
+  }
+
+  button.sisu-talk-logo,
+  button.sisu-talk-strip-stop,
+  .sisu-talk-strip-halo {
+    transition: none;
+  }
+}

@@ -1,0 +1,43 @@
+/* Loading and error states, and the ProgressView spinner (States.tsx, Glyphs.tsx). */
+
+.sisu-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sisu-space-card);
+  width: 100%;
+  /* Centred in the room between the header and the floating tab bar. */
+  min-height: calc(100% - var(--sisu-tabbar-room));
+}
+
+.sisu-state:where(.sisu-screen[data-tabbar="false"] *) { min-height: 100%; }
+
+.sisu-state-padded {
+  padding: 0 var(--sisu-space-margin);
+}
+
+.sisu-state-padded > .sisu-rive { align-self: stretch; }
+
+.sisu-state-muted {
+  margin: 0;
+  font: var(--sisu-type-body);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-state-message {
+  margin: 0;
+  font: var(--sisu-type-body-large);
+  color: var(--sisu-color-text);
+  text-align: center;
+}
+
+.sisu-spinner {
+  display: block;
+  color: var(--sisu-green-700);
+  animation: sisu-spinner-turn 0.8s steps(8) infinite;
+}
+
+@keyframes sisu-spinner-turn {
+  to { transform: rotate(360deg); }
+}

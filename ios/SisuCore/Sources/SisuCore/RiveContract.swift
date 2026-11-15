@@ -137,7 +137,11 @@ public enum RiveBindings {
     public enum ButtonStyle: String, CaseIterable, Sendable { case primary, secondary, onDark, quiet }
     public enum ChoiceState: String, CaseIterable, Sendable { case idle, selected, correct, wrong }
     public enum VoiceState: String, CaseIterable, Sendable { case idle, recording, thinking, speaking }
-    public enum LiitoMood: String, CaseIterable, Sendable { case idle, cheering, proud, gliding, curious, found, focused, cosy, sleepy, thinking }
+    /// The last six show Liito doing the task the agent is doing in a live conversation (set them from real events, never a timer).
+    public enum LiitoMood: String, CaseIterable, Sendable {
+        case idle, cheering, proud, gliding, curious, found, focused, cosy, sleepy, thinking
+        case listening, writing, searching, calculating, comparing, presenting
+    }
     public enum StatKind: String, CaseIterable, Sendable { case streak, berries }
     public enum TagTone: String, CaseIterable, Sendable { case neutral, amber, info }
     public enum StickerKind: String, CaseIterable, Sendable { case firstJar, leakPlugged, streak, lesson }

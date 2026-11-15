@@ -110,7 +110,7 @@ async function check(): Promise<ReadinessReport> {
   const config = getConfig();
   const mockStatus = (role: string, id: ReadinessCheck["id"], sponsor: string): ReadinessCheck => ({ id, sponsor, role, status: "mock", latencyMs: null, detail: "Example data: this server has MODEL_PROVIDER=mock, so nothing was called.", standIn: null, blocksDemo: false });
   const local = (id: "finance" | "store", sponsor: string, role: string, probe: Probe): ReadinessCheck => ({ id, sponsor, role, status: probe.ok ? "ok" : "down", latencyMs: 0, detail: probe.detail, standIn: null, blocksDemo: !probe.ok });
-  const finance = local("finance", "S-Pankki", "The customer's own figures: baskets, bills, safe to spend, patterns", probeFinance());
+  const finance = local("finance", "S-Pankki", "The customer's own figures: baskets, bills, the estimated weekly budget, patterns", probeFinance());
   const store = local("store", "Sisu", "Approvals, memory and the audit log", probeStore());
 
   if (config.isMock) {

@@ -2,6 +2,7 @@
 // Everything is arithmetic on the customer's own rows. The projection is an estimate and says what it assumes.
 import type { CalcStep, CashFlow, Overview, PayCycle, Transaction } from "@/lib/types";
 import { basketOf } from "./baskets";
+import { type BufferFrom, buildWeeklyBudget } from "./budget";
 import { DATA_AS_OF, transactionsFor } from "./data";
 import { median, round2, sum } from "./math";
 
@@ -47,7 +48,9 @@ function buildCycles(rows: Transaction[], paydays: string[]): PayCycle[] {
   });
 }
 
-export function buildCashFlow(overview: Overview): CashFlow {
+// `bufferEur`: a protected buffer the customer stated, for the weekly budget. Leave out for the default assumption.
+// `bufferFrom`: where they stated it, in this chat (the default) or in the app's settings, for the working's wording.
+export function buildCashFlow(overview: Overview, options: { bufferEur?: number | null; bufferFrom?: BufferFrom } = {}): CashFlow {
   const rows = transactionsFor(overview.customerId);
   const paydays = [...new Set(rows.filter((row) => row.category === "Salary").map((row) => row.date))].sort();
   const cycles = buildCycles(rows, paydays).slice(-CYCLES_TO_KEEP);
@@ -90,6 +93,7 @@ export function buildCashFlow(overview: Overview): CashFlow {
     firstWeekShare,
     negativeMonths: new Set(rows.filter((row) => row.balanceAfter < 0 && row.date >= overview.windowFrom).map((row) => row.date.slice(0, 7))).size,
     steps,
+    weeklyBudget: buildWeeklyBudget(overview, { nextPayday, daysToNextPayday, billsBeforePaydayEur: billsTotal, billCount: billsDueBeforePayday.length, averageDailyEverydayEur }, options.bufferEur ?? null, options.bufferFrom),
     assumptions: [
       `Payday is taken as day ${typicalPayday ?? "?"} of the month, the usual day in this customer's history.`,
       "The projection assumes bills and everyday spending follow their 12-month averages. A large one-off purchase would change it.",

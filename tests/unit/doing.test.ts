@@ -146,11 +146,13 @@ describe("room to save: worked out from the customer's own numbers", () => {
     assert.ok(savingRoom(sanna, buildCashFlow(sanna)).nowEur > 10_000);
   });
 
-  it("the summary shows the working behind safe to spend, and the room to save", () => {
-    const summary = JSON.parse(customerSummary(aino, "Helsinki")) as { howSafeToSpendIsWorkedOut: string[]; roomToSave: { couldMoveTodayEur: number; couldMoveEveryMonthEur: number } };
-    assert.equal(summary.howSafeToSpendIsWorkedOut.length, 6);
-    assert.match(summary.howSafeToSpendIsWorkedOut[0], /Money in per month: 1783\.33/);
-    assert.match(summary.howSafeToSpendIsWorkedOut.at(-1) ?? "", /164\.09 per week/);
+  it("the summary shows the working behind the weekly budget, and the room to save", () => {
+    const summary = JSON.parse(customerSummary(aino, "Helsinki")) as { howTheAveragesBudgetIsWorkedOut: string[]; estimatedWeeklyBudgetUntilPayday: { perWeekEur: number; protectedBufferEur: number }; roomToSave: { couldMoveTodayEur: number; couldMoveEveryMonthEur: number } };
+    assert.equal(summary.howTheAveragesBudgetIsWorkedOut.length, 6);
+    assert.match(summary.howTheAveragesBudgetIsWorkedOut[0], /Money in per month: 1783\.33/);
+    assert.match(summary.howTheAveragesBudgetIsWorkedOut.at(-1) ?? "", /164\.09 per week/);
+    assert.equal(summary.estimatedWeeklyBudgetUntilPayday.perWeekEur, 133.64); // (1220.35 - 686.53 - 247.45) / (15 / 7) weeks, as on Today
+    assert.doesNotMatch(customerSummary(aino, "Helsinki"), /safeToSpend|people your age/i);
     assert.deepEqual(Object.keys(summary.roomToSave), ["couldMoveTodayEur", "couldMoveEveryMonthEur", "basis"]);
   });
 });

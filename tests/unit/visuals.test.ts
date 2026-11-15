@@ -5,6 +5,7 @@ import { AINO, ALL, call, collect, freshState, ofType, scriptedModel } from "./h
 import { LIITO_POSE, IDLE, nextActivity, nextPlanActivity } from "@/lib/agent/activity";
 import { checkGrounding } from "@/lib/agent/grounding";
 import { asksForChart } from "@/lib/agent/guards";
+import { asksAboutTheLongRun } from "@/lib/agent/tools/category-cut";
 import { setMockScript } from "@/lib/agent/mock";
 import { runTurn } from "@/lib/agent/orchestrator";
 import { runPlan } from "@/lib/agent/plan";
@@ -60,7 +61,28 @@ describe("charts", () => {
     assert.equal(freed?.value, Math.round(average * 20) / 100);
     assert.equal(facts.find((f) => f.id === "scenario:category-freed-yearly")?.value, Math.round((freed?.value ?? 0) * 12 * 100) / 100);
     assert.ok((freed?.value ?? 0) < 100, "a fifth of an average month of restaurants, not of one unusual month");
+    // Regression, 15 Nov: a monthly-savings question led with a 5-year projection and an "invest it" line.
+    assert.equal(ofType(events, "visual").length, 0, "no futures chart for a question about saving per month");
+    const stages = ofType(events, "stage").map((event) => event.stage);
+    assert.ok(!stages.some((stage) => stage.kind === "impact"), "no years-ahead stage");
+    const calc = stages.find((stage) => stage.data.kind === "calculation");
+    assert.ok(calc?.data.kind === "calculation" && calc.data.resultLabel === "Freed per month" && calc.data.resultValue === freed?.value && calc.data.unit === "EUR/month");
+    assert.ok(!facts.some((f) => f.id.startsWith("scenario:invest") || f.id === "scenario:gain"), "no projection figures to quote");
+  });
+
+  it("tells a question about the years ahead from one about a month or a year", () => {
+    for (const text of ["What would cutting restaurants by 20% add up to in 5 years?", "And if I invested it?", "What would that mean for my future?", "Paljonko säästäisin viidessä vuodessa?", "Mitä jos sijoittaisin sen?", "Hur mycket blir det om 5 år?"]) assert.ok(asksAboutTheLongRun(text), text);
+    for (const text of ["What would spending 20% less at restaurants save?", "How much would that save a year?", "Paljonko säästäisin kuukaudessa, jos söisin ulkona 20 % vähemmän?", "Paljonko se on vuodessa?"]) assert.ok(!asksAboutTheLongRun(text), text);
+  });
+
+  it("a category cut asked about over the years still gets the projection", async () => {
+    freshState();
+    const { script } = scriptedModel([[call("run_scenario", { category: "Restaurants", categoryCutPct: 20, years: 5 })], "That adds up over the years."]);
+    setMockScript(script);
+    const events = await collect(runTurn({ customerId: AINO, text: "What would cutting restaurants by 20% add up to in 5 years?", mode: "text" }));
     assert.equal(ofType(events, "visual")[0]?.visual.kind, "futures_lines");
+    assert.ok(ofType(events, "stage").some((event) => event.stage.kind === "impact"));
+    assert.ok(ofType(events, "grounding")[0].facts.some((f) => f.id === "scenario:category-freed"));
   });
 
   it("a category cut above 500 euros agrees with its receipts and futures", async () => {

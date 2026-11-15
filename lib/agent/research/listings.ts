@@ -16,6 +16,8 @@ export const MAX_PAGES = 3; // Context.dev allows our key ten page reads a minut
 export const RENT_LIMITS: [number, number] = [100, 20_000];
 const ROOM_LIMITS: [number, number] = [1, 12];
 const AREA_LIMITS: [number, number] = [5, 500];
+const DEPOSIT_LIMITS: [number, number] = [0, 60_000];
+const CHARGES_LIMITS: [number, number] = [0, 1_000];
 // Sites that publish Finnish rental listings as ordinary pages. Asking Exa for these keeps blog posts out.
 export const LISTING_SITES = ["vuokraovi.com", "asunnot.oikotie.fi", "lumo.fi", "sato.fi", "etuovi.com", "qasa.com", "rentola.fi"];
 
@@ -37,6 +39,8 @@ export const LISTING_SCHEMA = {
           city: { type: ["string", "null"], description: "City or municipality the flat is in" },
           availableFrom: { type: ["string", "null"], description: "When the flat is free, as the page states it" },
           url: { type: ["string", "null"], description: "Link to this listing's own page, if the page gives one" },
+          depositEur: { type: ["number", "null"], description: "Deposit in euros, only if the page states it" },
+          utilitiesPerMonthEur: { type: ["number", "null"], description: "Water and other monthly charges on top of the rent in euros, only if the page states them" },
         },
       },
     },
@@ -75,6 +79,9 @@ export function cleanListings(extracted: RawListing[], pageUrl: string): { listi
     const title = safeName(raw?.title, 90);
     const price = inRange(raw?.priceEur, RENT_LIMITS);
     if (!title || price === null) return [];
+    // Optional and only when the page states them: absent keys stay absent, so a listing without them reads as before.
+    const deposit = inRange(raw.depositEur, DEPOSIT_LIMITS);
+    const charges = inRange(raw.utilitiesPerMonthEur, CHARGES_LIMITS);
     return [
       {
         title,
@@ -86,6 +93,8 @@ export function cleanListings(extracted: RawListing[], pageUrl: string): { listi
         availableFrom: safeName(raw.availableFrom, 30),
         url: ownLink(raw.url, pageUrl),
         pageUrl,
+        ...(deposit === null ? {} : { depositEur: deposit }),
+        ...(charges === null ? {} : { utilitiesPerMonthEur: charges }),
       },
     ];
   });
@@ -126,8 +135,13 @@ export async function scrapeJson<T>(url: string, schema: Record<string, unknown>
 
 export const hostName = (url: string): string => hostOf(url) ?? url;
 
-// Reads one page of rental listings with Context.dev.
+// Reads one page of rental listings with Context.dev. Mock mode re-reads the example page as it was (a watch's
+// check then finds no change and no error, instead of failing on the missing Context.dev key).
 export async function readListings(url: string, options: { fresh?: boolean; signal?: AbortSignal; city?: string } = {}): Promise<ListingPage> {
+  if (getConfig().isMock) {
+    const page = mockSearch(options.city ?? "").pages[0];
+    return page.url === url ? page : { ...page, url, title: hostName(url), listings: [] };
+  }
   const read = await scrapeJson<{ listings?: RawListing[] }>(url, LISTING_SCHEMA, LISTING_INSTRUCTIONS, options);
   const cleaned = cleanListings(read.data?.listings ?? [], url);
   const { city } = options;
@@ -143,13 +157,21 @@ export function cleanCity(value: unknown): string | null {
 
 export const listingQuery = (city: string): string => `vuokra-asunnot ${city} vapaat vuokrattavat asunnot`;
 
+// Districts of the example listings, so an Espoo watch never shows a Helsinki district. Other cities: not stated.
+const MOCK_DISTRICTS: Record<string, [string, string, string]> = {
+  helsinki: ["Kallio", "Vallila", "Malmi"],
+  espoo: ["Leppävaara", "Tapiola", "Matinkylä"],
+  vantaa: ["Tikkurila", "Myyrmäki", "Martinlaakso"],
+};
+
 // Example listings for mock mode (tests, and a laptop with no keys). Labelled as examples wherever they are shown.
 function mockSearch(city: string): ListingSearch {
   const pageUrl = `https://example.com/vuokra-asunnot/${city.toLowerCase()}`;
+  const districts = MOCK_DISTRICTS[city.trim().toLowerCase()] ?? [null, null, null];
   const listings = [
-    { title: "Esimerkkikatu 4 A", priceEur: 1_040, rooms: 1, areaM2: 31, district: "Kallio" },
-    { title: "Mallitie 12 B", priceEur: 1_180, rooms: 2, areaM2: 44, district: "Vallila" },
-    { title: "Testikuja 7", priceEur: 965, rooms: 1, areaM2: 27, district: "Malmi" },
+    { title: "Esimerkkikatu 4 A", priceEur: 1_040, rooms: 1, areaM2: 31, district: districts[0] },
+    { title: "Mallitie 12 B", priceEur: 1_180, rooms: 2, areaM2: 44, district: districts[1] },
+    { title: "Testikuja 7", priceEur: 965, rooms: 1, areaM2: 27, district: districts[2] },
   ].map((listing, index) => ({ ...listing, city, availableFrom: null, url: `${pageUrl}/${index + 1}`, pageUrl }));
   return { city, topic: null, query: listingQuery(city), pages: [{ url: pageUrl, title: "example.com", listings, dropped: 0, cacheAgeMs: null, tookMs: 0, mock: true }], found: [{ url: pageUrl, title: "Example listings" }], errors: [], retrievedAt: new Date().toISOString(), tookMs: 0, mock: true };
 }

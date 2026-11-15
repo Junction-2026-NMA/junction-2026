@@ -139,16 +139,16 @@ function everydayPatterns(overview: Overview, w: Windows): Pattern[] {
     patterns.push({
       id: `peer-gap:${overPeers.category}`,
       kind: "peer-gap",
-      title: `${overPeers.category}: €${Math.round(gap)} a month above people your age`,
-      detail: `You average €${Math.round(overPeers.monthlyAvg)} a month; the ${overview.peerCount} customers aged ${overview.ageBand} average €${Math.round(overPeers.peerMonthlyAvg ?? 0)}. That gap is €${Math.round(gap * 12)} a year.`,
+      title: `${overPeers.category}: €${Math.round(gap)} a month above other demo profiles`,
+      detail: `You average €${Math.round(overPeers.monthlyAvg)} a month; the ${overview.peerCount} other profiles aged ${overview.ageBand} in the synthetic demo data average €${Math.round(overPeers.peerMonthlyAvg ?? 0)}. That gap is €${Math.round(gap * 12)} a year. A comparison within the demo data, not a statistic about real people.`,
       yearlyImpactEur: round2(gap * 12),
       confidence: "medium",
       billType: null,
       evidence: { ...w.evidence, category: overPeers.category },
       facts: [
         fact(`peer:${overPeers.category}:mine`, `${overPeers.category}, your monthly average`, overPeers.monthlyAvg, "EUR/month", `${overPeers.count} purchases in the last 12 months`, { evidence: { ...w.evidence, category: overPeers.category } }),
-        fact(`peer:${overPeers.category}:peers`, `${overPeers.category}, age ${overview.ageBand} average`, overPeers.peerMonthlyAvg ?? 0, "EUR/month", `${overview.peerCount} customers in the same age band`),
-        fact(`peer:${overPeers.category}:gap-yearly`, `${overPeers.category}, gap per year`, gap * 12, "EUR/year", "monthly gap times 12", { source: "calculation" }),
+        fact(`peer:${overPeers.category}:peers`, `${overPeers.category}, average of demo profiles aged ${overview.ageBand}`, overPeers.peerMonthlyAvg ?? 0, "EUR/month", `${overview.peerCount} other profiles in the synthetic demo data`, { synthetic: true }),
+        fact(`peer:${overPeers.category}:gap-yearly`, `${overPeers.category}, gap to demo profiles per year`, gap * 12, "EUR/year", "monthly gap times 12", { source: "calculation", synthetic: true }),
       ],
       nextSteps: ["get_spending", "run_scenario"],
     });
@@ -226,15 +226,15 @@ function cashPatterns(overview: Overview, w: Windows, cashFlow: CashFlow): Patte
     patterns.push({
       id: "lumpy-costs",
       kind: "lumpy-costs",
-      title: `Now-and-then costs average €${Math.round(irregular.monthlyAvg)} a month, but one was €${Math.round(-biggest.amount)}`,
+      title: `Occasional essentials average €${Math.round(irregular.monthlyAvg)} a month, but one was €${Math.round(-biggest.amount)}`,
       detail: `Costs in this basket arrive in lumps: the largest was a ${biggest.category} payment on ${biggest.date}. Setting aside the monthly average means a lump does not have to come out of that month's money.`,
       yearlyImpactEur: null,
       confidence: "high",
       billType: null,
       evidence: { ...w.evidence, basket: "irregular" },
       facts: [
-        fact("lumpy:monthly", "Now-and-then costs, average per month", irregular.monthlyAvg, "EUR/month", "last 12 months", { evidence: { ...w.evidence, basket: "irregular" } }),
-        fact("lumpy:largest", "Largest single now-and-then cost", -biggest.amount, "EUR", `${biggest.category} on ${biggest.date}`, { evidence: { ...w.evidence, basket: "irregular" } }),
+        fact("lumpy:monthly", "Occasional essentials, average per month", irregular.monthlyAvg, "EUR/month", "last 12 months", { evidence: { ...w.evidence, basket: "irregular" } }),
+        fact("lumpy:largest", "Largest single occasional essential cost", -biggest.amount, "EUR", `${biggest.category} on ${biggest.date}`, { evidence: { ...w.evidence, basket: "irregular" } }),
       ],
       nextSteps: ["check_affordability", "explain_concept", "prepare_action"],
     });
@@ -245,15 +245,15 @@ function cashPatterns(overview: Overview, w: Windows, cashFlow: CashFlow): Patte
     patterns.push({
       id: "idle-cash",
       kind: "idle-cash",
-      title: `Your balance covers ${overview.runwayMonths} months of must-pay costs`,
+      title: `Your balance covers ${overview.runwayMonths} months of essential costs`,
       detail: `A common rule of thumb is a buffer of three to six months. About €${Math.round(idle)} sits above a six-month buffer in an account that, in this data, earns no interest. What to do with it is your decision; Sisu can show what different choices would look like.`,
       yearlyImpactEur: null,
       confidence: "medium",
       billType: null,
       evidence: w.evidence,
       facts: [
-        fact("idle:runway", "Months of must-pay costs covered by the balance", overview.runwayMonths, "months", "balance divided by average must-pay costs", { source: "calculation" }),
-        fact("idle:above-buffer", "Balance above a six-month buffer", idle, "EUR", `balance minus ${IDLE_BUFFER_MONTHS} months of must-pay costs`, { source: "calculation" }),
+        fact("idle:runway", "Months of essential costs covered by the balance", overview.runwayMonths, "months", "balance divided by average essential costs", { source: "calculation" }),
+        fact("idle:above-buffer", "Balance above a six-month buffer", idle, "EUR", `balance minus ${IDLE_BUFFER_MONTHS} months of essential costs`, { source: "calculation" }),
       ],
       nextSteps: ["run_scenario", "explain_concept"],
     });

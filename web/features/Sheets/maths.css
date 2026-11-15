@@ -1,0 +1,31 @@
+/* "How this is worked out" (MathsSheet.tsx): headings, links and the assumptions list. The lines themselves use
+   the sisu-maths-item/line/text classes of sheets.css. */
+
+.sisu-maths-heading {
+  margin: calc(var(--sisu-space-grid) * 2) 0 0;
+  font: var(--sisu-type-h3);
+  color: var(--sisu-color-text);
+}
+
+button.sisu-maths-link {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: var(--sisu-type-button);
+  color: var(--sisu-green-700);
+  text-align: left;
+  cursor: pointer;
+}
+
+button.sisu-maths-link:active { opacity: 0.6; }
+button.sisu-maths-link:focus-visible { outline: 2px solid var(--sisu-green-500); outline-offset: 2px; border-radius: 8px; }
+
+.sisu-maths-assumptions {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 2);
+  margin: 0;
+  padding-left: calc(var(--sisu-space-grid) * 5);
+}

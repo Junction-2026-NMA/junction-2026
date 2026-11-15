@@ -4,15 +4,17 @@
 // plus a search monitor for flats); Sisu polls the monitors' changes, re-reads a page that changed, and code decides
 // whether anything now fits the price the customer said.
 // If monitors cannot be created, the same pages are re-read on a timer instead, and the watch says so (mode).
-import { getConfig } from "@/lib/agent/config";
+// A watch is also shown as a Project (goal, requirements, status, findings): lib/watch/project.ts.
 import { LISTING_SITES, listingKey, readListings } from "@/lib/agent/research/listings";
-import { FLAT_PAGE_INSTRUCTIONS, PRICE_PAGE_INSTRUCTIONS, createPageMonitor, createSearchMonitor, deleteMonitor, getMonitor, listChanges, runMonitorNow } from "@/lib/agent/research/monitors";
+import { getMonitor, listChanges, runMonitorNow } from "@/lib/agent/research/monitors";
 import { readPrices } from "@/lib/agent/research/prices";
 import { buildOverview } from "@/lib/finance/overview";
 import { withAudit } from "@/lib/store/audit";
 import { type SisuState, readState, updateState } from "@/lib/store/state";
 import type { AgentAction, Listing, PropertyWatch, WatchCheck, WatchNotification, WatchPlan, WatchedPage } from "@/lib/types";
 import { type FitEvent, detectFits, fits, ruleFor, toNotification } from "./detect";
+import { closeMonitors, monitorIdsOf, openMonitors } from "./monitoring";
+import { researchListing } from "./research";
 
 const MAX_NOTIFICATIONS = 60;
 const REREAD_EVERY_MS = 30 * 60_000; // pages without a monitor are read again at most this often
@@ -23,13 +25,20 @@ export const listNotifications = (customerId: string): WatchNotification[] => (r
 // Finds a watch only if it belongs to this customer. Someone else's watch looks exactly like a missing one.
 const ownWatch = (customerId: string, watchId: string): PropertyWatch | null => listWatches(customerId).find((watch) => watch.id === watchId) ?? null;
 const same = (a: string | null, b: string | null): boolean => (a ?? "").toLowerCase() === (b ?? "").toLowerCase();
-export const activeWatch = (customerId: string, plan: Pick<WatchPlan, "city" | "topic" | "budgetEur">): PropertyWatch | null => listWatches(customerId).find((watch) => watch.status === "active" && same(watch.city, plan.city) && same(watch.topic, plan.topic) && watch.budgetEur === plan.budgetEur) ?? null;
+// A watch that is running or paused (a paused one can be resumed, so it is not offered again).
+export const activeWatch = (customerId: string, plan: Pick<WatchPlan, "city" | "topic" | "budgetEur">): PropertyWatch | null => listWatches(customerId).find((watch) => watch.status !== "stopped" && same(watch.city, plan.city) && same(watch.topic, plan.topic) && watch.budgetEur === plan.budgetEur) ?? null;
 
 export const isWatchKind = (kind: AgentAction["kind"]): boolean => kind === "property_watch" || kind === "price_watch";
 // What a watch is for, in a few words: "flats in Helsinki" or the topic the customer named.
 export const watchSubject = (watch: Pick<PropertyWatch, "city" | "topic">): string => watch.topic ?? `flats in ${watch.city ?? "your city"}`;
 
-const replaceWatch = (state: SisuState, watch: PropertyWatch): SisuState => ({ ...state, watches: (state.watches ?? []).map((old) => (old.id === watch.id ? watch : old)) });
+export const replaceWatch = (state: SisuState, watch: PropertyWatch): SisuState => ({ ...state, watches: (state.watches ?? []).map((old) => (old.id === watch.id ? watch : old)) });
+export const findWatch = ownWatch;
+const latest = (times: (string | null | undefined)[]): string | null => times.filter((time): time is string => !!time).sort().at(-1) ?? null;
+const earliest = (times: (string | null | undefined)[]): string | null => times.filter((time): time is string => !!time).sort()[0] ?? null;
+// The last time at least one page was read: by Sisu itself, or by a Context.dev monitor that ran without an error.
+export const lastSuccessOf = (pages: WatchedPage[]): string | null => latest(pages.flatMap((page) => [page.lastReadAt, page.monitorId && !page.lastError ? page.monitorLastRunAt : null]));
+export const nextCheckOf = (pages: WatchedPage[]): string | null => earliest(pages.map((page) => (page.monitorId ? page.monitorNextRunAt : null)));
 const hostOf = (url: string): string => new URL(url).hostname.replace(/^www\./, "");
 
 // Starts the watch an approved action describes. Called by the approve routes, straight after the user's approval;
@@ -40,24 +49,16 @@ export async function startWatch(customerId: string, action: AgentAction, now: D
   if (started) return started;
 
   const plan = action.watch;
-  const mock = getConfig().isMock;
-  const monitorName = plan.topic ? `Sisu price watch: ${plan.topic}` : `Sisu flat watch: ${plan.city}`;
-  const monitors = mock ? [] : await Promise.allSettled(plan.urls.map((url) => createPageMonitor(url, monitorName, plan.topic ? PRICE_PAGE_INSTRUCTIONS : FLAT_PAGE_INSTRUCTIONS)));
-  // Listings that appear on other sites are looked for by a search monitor. Flats only: the pages it finds are
-  // read only if they are on a known rental site, and there is no such list for "anything with a price".
-  const search = mock || !plan.city || plan.topic ? null : await createSearchMonitor(plan.city).catch((error: Error) => error);
-  const pages: WatchedPage[] = plan.urls.map((url, index) => {
-    const monitor = monitors[index];
-    return {
-      url,
-      monitorId: monitor?.status === "fulfilled" ? monitor.value.id : null,
-      listings: plan.seen.filter((listing) => listing.pageUrl === url),
-      lastReadAt: action.createdAt,
-      lastChangeAt: null,
-      lastError: monitor?.status === "rejected" ? (monitor.reason as Error).message : null,
-    };
-  });
-  const monitored = pages.filter((page) => page.monitorId).length;
+  const opened = await openMonitors(plan, plan.urls);
+  const pages: WatchedPage[] = plan.urls.map((url, index) => ({
+    url,
+    monitorId: opened.monitorIds[index],
+    listings: plan.seen.filter((listing) => listing.pageUrl === url),
+    lastReadAt: action.createdAt,
+    lastChangeAt: null,
+    lastError: opened.errors[index],
+    title: plan.titles?.[url] ?? action.sources.find((source) => source.url === url)?.title ?? null,
+  }));
   const watch: PropertyWatch = {
     id: crypto.randomUUID(),
     actionId: action.id,
@@ -68,18 +69,22 @@ export async function startWatch(customerId: string, action: AgentAction, now: D
     budgetEur: plan.budgetEur,
     minRooms: plan.minRooms,
     status: "active",
-    mode: monitored > 0 ? "monitor" : "reread",
+    mode: opened.mode,
     pages,
-    searchMonitorId: search && !(search instanceof Error) ? search.id : null,
+    searchMonitorId: opened.searchMonitorId,
     createdAt: now.toISOString(),
     lastCheckedAt: null,
-    problems: [
-      ...(mock ? ["Example data: no key is set, so nothing is being watched on the web."] : []),
-      ...(!mock && monitored < pages.length ? [`Context.dev could not start a monitor for ${pages.length - monitored} of ${pages.length} pages; those are re-read on a timer instead.`] : []),
-      ...(search instanceof Error ? [`No search monitor for new listings (${search.message})`] : []),
-    ],
+    problems: opened.problems,
+    goal: plan.goal ?? null,
+    requirements: plan.requirements ?? {},
+    lastSuccessAt: action.createdAt, // the pages were read when the watch was prepared
+    nextCheckAt: null, // known once Context.dev reports it on the first check
+    visitorSeenAt: now.toISOString(),
+    pausedAt: null,
+    stoppedAt: null,
+    stoppedBecause: null,
   };
-  const how = watch.mode === "monitor" ? `Context.dev monitors ${[...pages.flatMap((page) => (page.monitorId ? [page.monitorId] : [])), ...(watch.searchMonitorId ? [`${watch.searchMonitorId} (search)`] : [])].join(", ")}` : "the pages are re-read on a timer (no monitor)";
+  const how = watch.mode === "monitor" ? `Context.dev monitors ${[...pages.flatMap((page) => (page.monitorId ? [page.monitorId] : [])), ...(watch.searchMonitorId ? [`${watch.searchMonitorId} (search)`] : [])].join(", ")}` : "no monitor, so Sisu re-reads the pages itself when it checks";
   updateState((state) => withAudit({ ...state, watches: [...(state.watches ?? []), watch] }, { customerId, type: "watch_started", actor: "system", actionId: action.id, detail: `Watching ${pages.length} page${pages.length === 1 ? "" : "s"} for ${watchSubject(plan)} at €${plan.budgetEur}${plan.priceUnit === "EUR/month" ? " a month" : ""} or less: ${how}.` }, now));
   return watch;
 }
@@ -106,7 +111,7 @@ async function checkPage(watch: PropertyWatch, page: WatchedPage, runNow: boolea
     if (runNow) await runMonitorNow(page.monitorId).catch(() => null); // a run already in progress is fine
     const [monitor, changes] = await Promise.all([getMonitor(page.monitorId), listChanges(page.monitorId, page.lastChangeAt ?? watch.createdAt)]);
     const fresh = changes.filter((change) => change.detectedAt > (page.lastChangeAt ?? ""));
-    const seen = { ...page, lastError: monitor.lastError };
+    const seen = { ...page, lastError: monitor.lastError, monitorLastRunAt: monitor.lastRunAt, monitorNextRunAt: monitor.nextRunAt };
     if (!fresh.length) return { page: seen, events: [], reread: false, changes: 0, problem: monitor.lastError ? `${hostOf(page.url)}: ${monitor.lastError}` : null };
     // Context.dev says the page changed. What changed is read again by code, not taken from the change's own text.
     const newest = fresh.map((change) => change.detectedAt).sort().at(-1) ?? null;
@@ -148,28 +153,44 @@ function record(watch: PropertyWatch, next: PropertyWatch, notes: WatchNotificat
   });
 }
 
+// What this watch has told the customer before, so a listing that drops off a page and comes back, or one the
+// search monitor finds again, is not reported twice. A simulated finding never hides a real one.
+function alreadyTold(watchId: string, earlier: WatchNotification[], event: FitEvent): boolean {
+  const key = listingKey(event.listing);
+  return earlier.some((note) => note.watchId === watchId && !note.simulated && listingKey(note.listing) === key && note.listing.priceEur <= event.listing.priceEur);
+}
+
+export type CheckOptions = { runNow?: boolean; now?: Date; trigger?: "visitor" | "schedule" };
+
 // Polls every active watch of this customer. `runNow` also asks Context.dev to check each page now instead of
 // waiting for its schedule; that run is queued, so its result is picked up by a later check.
-export async function checkWatches(customerId: string, options: { runNow?: boolean; now?: Date } = {}): Promise<WatchCheck> {
+// trigger: "visitor" (the default: the app checked in, which also keeps the watch alive) or "schedule" (the cron).
+export async function checkWatches(customerId: string, options: CheckOptions = {}): Promise<WatchCheck> {
   const now = options.now ?? new Date();
   const overview = buildOverview(customerId);
   const watches = listWatches(customerId).filter((watch) => watch.status === "active");
   const summary: WatchCheck = { customerId, checked: watches.length, changesSeen: 0, pagesReread: 0, notifications: [], problems: [] };
   if (!overview) return summary;
+  const earlier = listNotifications(customerId);
 
   for (const watch of watches) {
     const results = await Promise.all(watch.pages.map((page) => checkPage(watch, page, options.runNow === true, now)));
     const search = await checkSearch(watch);
     const seenKeys = new Set<string>();
-    const events = [...results.flatMap((result) => result.events), ...search.events].filter((event) => !seenKeys.has(listingKey(event.listing)) && !!seenKeys.add(listingKey(event.listing)));
-    const notes = events.map((event) => toNotification(watch, overview, event, watch.mode === "monitor" ? "context.dev monitor" : "context.dev re-read", now));
+    const events = [...results.flatMap((result) => result.events), ...search.events].filter((event) => !seenKeys.has(listingKey(event.listing)) && !!seenKeys.add(listingKey(event.listing)) && !alreadyTold(watch.id, earlier, event));
+    const by = watch.mode === "monitor" ? "context.dev monitor" : "context.dev re-read";
+    // Background reading with Exa only for the first finding that needs it, so a check never fans out.
+    const research = events.length ? await researchListing(watch, events[0].listing, now) : [];
+    const notes = events.map((event, index) => ({ ...toNotification(watch, overview, event, by, now), ...(index === 0 && research.length ? { research } : {}) }));
     const problems = [...results.flatMap((result) => (result.problem ? [result.problem] : [])), ...(search.problem ? [search.problem] : [])];
     const changes = results.reduce((total, result) => total + result.changes, 0) + search.changes;
     const rereadCount = results.filter((result) => result.reread).length;
-    const next: PropertyWatch = { ...watch, pages: results.map((result) => result.page), lastCheckedAt: now.toISOString(), problems };
-    // A stop/reset can finish while the provider requests above are in flight.
+    const pages = results.map((result) => result.page);
+    const next: PropertyWatch = { ...watch, pages, lastCheckedAt: now.toISOString(), problems, lastSuccessAt: lastSuccessOf(pages) ?? watch.lastSuccessAt ?? null, nextCheckAt: nextCheckOf(pages), ...(options.trigger === "schedule" ? {} : { visitorSeenAt: now.toISOString() }) };
+    const who = options.trigger === "schedule" ? "Scheduled check" : "Checked";
+    // A stop, pause or reset can finish while the provider requests above are in flight.
     if (ownWatch(customerId, watch.id)?.status !== "active") continue;
-    record(watch, next, notes, rereadCount || changes ? `Checked the watch for ${watchSubject(watch)}: Context.dev reported ${changes} change${changes === 1 ? "" : "s"}, ${rereadCount} page${rereadCount === 1 ? "" : "s"} read again, ${notes.length} within the limit.` : null, now);
+    record(watch, next, notes, rereadCount || changes ? `${who} the watch for ${watchSubject(watch)}: Context.dev reported ${changes} change${changes === 1 ? "" : "s"}, ${rereadCount} page${rereadCount === 1 ? "" : "s"} read again, ${notes.length} new within the limit.` : null, now);
     summary.changesSeen += changes;
     summary.pagesReread += rereadCount;
     summary.notifications.push(...notes);
@@ -206,21 +227,22 @@ export function simulatePriceDrop(customerId: string, watchId: string, now: Date
 }
 
 // Stops a watch and removes its Context.dev monitors, so nothing keeps running (or costing credits) after it.
-export async function stopWatch(customerId: string, watchId: string, now: Date = new Date()): Promise<PropertyWatch | null> {
+// because: "user" (the stop button), "inactive" (14 days without the visitor), "demo-reset".
+export async function stopWatch(customerId: string, watchId: string, now: Date = new Date(), because: NonNullable<PropertyWatch["stoppedBecause"]> = "user"): Promise<PropertyWatch | null> {
   const watch = ownWatch(customerId, watchId);
   if (!watch) return null;
   if (watch.status === "stopped") return watch;
-  const ids = [...watch.pages.flatMap((page) => (page.monitorId ? [page.monitorId] : [])), ...(watch.searchMonitorId ? [watch.searchMonitorId] : [])];
-  const removed = await Promise.allSettled(ids.map((id) => deleteMonitor(id)));
-  const failed = removed.filter((result) => result.status === "rejected").length;
-  const stopped: PropertyWatch = { ...watch, status: "stopped", problems: failed ? [`${failed} Context.dev monitor${failed === 1 ? "" : "s"} could not be removed.`] : [] };
-  updateState((state) => withAudit(replaceWatch(state, stopped), { customerId, type: "watch_stopped", actor: "user", actionId: watch.actionId, detail: `Stopped watching ${watchSubject(watch)}; ${ids.length - failed} of ${ids.length} Context.dev monitors removed.` }, now));
+  const total = monitorIdsOf(watch).length;
+  const { failed } = await closeMonitors(watch);
+  const stopped: PropertyWatch = { ...watch, status: "stopped", stoppedAt: now.toISOString(), stoppedBecause: because, nextCheckAt: null, problems: failed ? [`${failed} Context.dev monitor${failed === 1 ? "" : "s"} could not be removed.`] : [] };
+  const why = because === "inactive" ? " because the app had not checked in for 14 days" : "";
+  updateState((state) => withAudit(replaceWatch(state, stopped), { customerId, type: "watch_stopped", actor: because === "user" ? "user" : "system", actionId: watch.actionId, detail: `Stopped watching ${watchSubject(watch)}${why}; ${total - failed} of ${total} Context.dev monitors removed.` }, now));
   return stopped;
 }
 
 // Before a demo reset: stop every watch of these customers so their monitors do not outlive the state that knew them.
 export async function stopAllWatches(customerIds: string[]): Promise<number> {
-  const active = (readState().watches ?? []).filter((watch) => customerIds.includes(watch.customerId) && watch.status === "active");
-  await Promise.all(active.map((watch) => stopWatch(watch.customerId, watch.id)));
-  return active.length;
+  const live = (readState().watches ?? []).filter((watch) => customerIds.includes(watch.customerId) && watch.status !== "stopped");
+  await Promise.all(live.map((watch) => stopWatch(watch.customerId, watch.id, new Date(), "demo-reset")));
+  return live.length;
 }

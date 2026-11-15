@@ -41,12 +41,12 @@ const WORDS: Record<Lang, Words> = {
     saveNow: (eur) => [`Move €${eur} to savings`, `Move ${eur} euros to my savings now`],
     saveMonthly: (eur) => [`Save €${eur} every month`, `Move ${eur} euros to my savings every month`],
     chart: ["Show it as a chart", "Show where my money goes as a chart"],
-    peers: ["Me vs people my age", "Show me against people my age"],
+    peers: ["Me vs other demo profiles", "Show me against other profiles my age in the demo data"], // synthetic data: never "people my age"
     rent: (city, eur) => [`Watch rents under €${eur}`, `Find me a flat in ${city} under ${eur} euros`],
     future: (eur) => [`What €${eur} a month becomes`, `What does ${eur} euros a month add up to in 5 years?`],
     untilAfford: (eur) => ["When can I afford it?", `How long until I have ${eur} euros?`],
     setUp: ["What have you set up?", "What have you set up for me so far?"],
-    watchFound: ["Did my watch find anything?", "Did my watch find anything?"],
+    watchFound: ["Did my project find anything?", "Did my project find anything?"], // watches are shown as Projects
   },
   fi: {
     bill: { electricity: "sähkösopimus", mobile: "puhelinliittymä", internet: "laajakaista" },
@@ -57,12 +57,12 @@ const WORDS: Record<Lang, Words> = {
     saveNow: (eur) => [`Siirrä ${eur} € säästöön`, `Siirrä ${eur} euroa säästötililleni nyt`],
     saveMonthly: (eur) => [`Säästä ${eur} € kuussa`, `Siirrä ${eur} euroa säästötililleni joka kuukausi`],
     chart: ["Näytä kaaviona", "Näytä rahojeni käyttö kaaviona"],
-    peers: ["Minä vs ikätoverit", "Vertaa minua samanikäisiin"],
+    peers: ["Minä vs muut demoprofiilit", "Vertaa minua samanikäisiin profiileihin demoaineistossa"],
     rent: (city, eur) => [`Vahdi alle ${eur} € vuokria`, `Etsi minulle asunto ${city} alle ${eur} euroa`],
     future: (eur) => [`Mitä ${eur} € kuussa tuottaa`, `Paljonko ${eur} euroa kuussa kasvaa 5 vuodessa?`],
     untilAfford: (eur) => ["Milloin minulla on varaa?", `Kauanko kestää, että minulla on ${eur} euroa?`],
     setUp: ["Mitä olet valmistellut?", "Mitä olet valmistellut minulle tähän mennessä?"],
-    watchFound: ["Löysikö vahti jotain?", "Löysikö vahtini jotain?"],
+    watchFound: ["Löysikö projekti jotain?", "Löysikö projektini jotain?"],
   },
 };
 
@@ -83,7 +83,7 @@ function candidates({ overview, cashFlow, city, language, actions, watches }: Su
   const runsShort = patterns.some((p) => p.kind === "overdraft-risk");
   const housing = overview.baskets.flatMap((b) => b.categories).find((c) => c.category === "Housing")?.monthlyAvg ?? 0;
   const rent = Math.floor(housing / RENT_STEP_EUR) * RENT_STEP_EUR;
-  const watching = watches.some((watch) => watch.status === "active");
+  const watching = watches.some((watch) => watch.status === "active" || watch.status === "paused"); // a paused Project still exists
   const list: (Suggestion | null)[] = [
     make("investigate", "investigate", w.investigate),
     bill ? make(`cheaper:${bill}`, "act", w.cheaper(w.bill[bill])) : null,
@@ -134,6 +134,7 @@ export function followUpSuggestions(state: SuggestionState, turn: TurnSummary): 
   const first: Suggestion[] = [];
   if (turn.investigate) used.add("investigate");
   if (turn.tools.includes("show_chart")) used.add("chart");
+  if (turn.tools.includes("get_cash_flow")) used.add("payday"); // the payday working is already on screen
   if (turn.research) used.add(`cheaper:${turn.research.billType}`);
   if (turn.action?.kind === "property_watch" || turn.action?.kind === "price_watch") used.add("watch:rent");
 

@@ -1,0 +1,81 @@
+/* Today's one primary insight or action (PrimaryInsight.tsx). A warning gets the amber marks, nothing louder. */
+
+.sisu-insight { gap: calc(var(--sisu-space-grid) * 3); }
+
+.sisu-insight-warning {
+  border-color: var(--sisu-amber-mark);
+  box-shadow: inset 4px 0 0 var(--sisu-amber-mark);
+}
+
+.sisu-insight-body { display: flex; flex-direction: column; gap: calc(var(--sisu-space-grid) * 2); }
+
+.sisu-insight-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+  margin: 0;
+  font: var(--sisu-type-label);
+  color: var(--sisu-green-700);
+}
+
+.sisu-insight-warning .sisu-insight-eyebrow { color: var(--sisu-amber-text); }
+
+.sisu-insight-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--sisu-amber-background);
+  color: var(--sisu-amber-text);
+  font: var(--sisu-type-caption);
+  font-weight: 700;
+}
+
+.sisu-insight-title {
+  margin: 0;
+  font: var(--sisu-type-h3);
+  color: var(--sisu-color-text);
+  text-wrap: pretty;
+}
+
+.sisu-insight-detail {
+  margin: 0;
+  font: var(--sisu-type-label);
+  color: var(--sisu-color-text-muted);
+  text-wrap: pretty;
+}
+
+.sisu-insight-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sisu-space-grid) calc(var(--sisu-space-grid) * 4);
+}
+
+button.sisu-insight-ask {
+  min-height: 44px;
+  padding: 0 calc(var(--sisu-space-grid) * 5);
+  border: 0;
+  border-radius: var(--sisu-radius-button);
+  background: var(--sisu-color-primary);
+  color: var(--sisu-color-on-primary);
+  font: var(--sisu-type-button);
+  cursor: pointer;
+  transition: transform 160ms ease-out, opacity 160ms ease-out;
+}
+
+button.sisu-insight-see {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--sisu-green-700);
+  font: var(--sisu-type-button);
+  cursor: pointer;
+}
+
+button.sisu-insight-ask:active { transform: scale(0.98); opacity: 0.9; }
+button.sisu-insight-see:active { opacity: 0.6; }
+button.sisu-insight-ask:focus-visible,
+button.sisu-insight-see:focus-visible { outline: 2px solid var(--sisu-green-500); outline-offset: 2px; }

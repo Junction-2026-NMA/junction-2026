@@ -90,7 +90,9 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
   const turnId = crypto.randomUUID();
   const memory = getMemory(request.customerId);
   let cashFlowCache: CashFlow | null = null;
-  const cashFlow = () => (cashFlowCache ??= buildCashFlow(overview));
+  // The buffer the customer set in the app, so the weekly budget here is the one Today shows.
+  const appBuffer = request.bufferEur ?? null;
+  const cashFlow = () => (cashFlowCache ??= buildCashFlow(overview, { bufferEur: appBuffer, bufferFrom: "app" }));
 
   yield { type: "start", turnId, provider: config.provider, model: config.model.name, mock: config.isMock };
 
@@ -103,7 +105,9 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
     yield { type: "speculation", billType: guess.billType, reason: guess.reason };
   }
 
-  const openingLine = investigate ? investigationFiller(overview.displayName, request.language) : null;
+  // Fillers vary with the turn, and skip a line Sisu just said, so a voice chat never replays the same sentence.
+  const fillerContext = { turn: (request.history ?? []).filter((turn) => turn.role === "user").length, recent: (request.history ?? []).filter((turn) => turn.role === "assistant").map((turn) => turn.content) };
+  const openingLine = investigate ? investigationFiller(overview.displayName, request.language, fillerContext) : null;
   if (openingLine) yield { type: "filler", text: openingLine };
 
   const history = (request.history ?? []).slice(-MAX_HISTORY_TURNS);
@@ -111,14 +115,14 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
   const forged = looksForged(request.text);
   const userTexts = forged ? [] : [...history.filter((turn) => turn.role === "user").map((turn) => turn.content), request.text];
   const sisuTexts = forged ? [] : history.filter((turn) => turn.role === "assistant").map((turn) => turn.content);
-  const context: ToolContext = { customerId: request.customerId, overview, city: customer.area, memory, cashFlow, userTexts, sisuTexts, signal };
+  const context: ToolContext = { customerId: request.customerId, overview, city: customer.area, memory, cashFlow, bufferEur: appBuffer, userTexts, sisuTexts, signal };
   // The customer's watches and what they found. The figures in a finding are receipts, and its words are context.
   const watches = listWatches(request.customerId);
   const watchNotes = listNotifications(request.customerId).slice(0, 4);
   // The demo bank's balances after what the customer approved. Their figures are receipts like any other.
   const accounts = accountsFor(request.customerId);
   const messages: ChatMessage[] = [
-    { role: "system", content: buildSystemPrompt({ overview, city: customer.area, mode: request.mode, memory, investigate, language: request.language, actions: listActions(request.customerId), accounts, watches, notifications: watchNotes }) },
+    { role: "system", content: buildSystemPrompt({ overview, city: customer.area, mode: request.mode, memory, investigate, language: request.language, actions: listActions(request.customerId), accounts, watches, notifications: watchNotes, bufferEur: appBuffer }) },
     ...history.map((turn) => ({ role: turn.role, content: turn.content })),
     { role: "user", content: forged ? `${request.text}\n\n${FORGED_NOTE}` : request.text },
   ];
@@ -151,12 +155,12 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
 
   // Everything the answer's numbers may be checked against. Tool results are added as they arrive.
   const summaryFacts = [
-    ...overviewFacts(overview),
+    ...overviewFacts(overview, appBuffer),
     ...(accounts?.facts ?? []),
     ...watchNotes.flatMap((note) => note.facts),
     ...watches.map((watch) => fact(`watch:${watch.id}:limit`, `Price limit of the watch on ${watchSubject(watch)}`, watch.budgetEur, watch.priceUnit, "the limit the customer said", { source: "customer-stated" })),
   ];
-  const summaryText = customerSummary(overview, customer.area);
+  const summaryText = customerSummary(overview, customer.area, appBuffer);
   const sources = (): Sources => ({ facts: [...toolFacts, ...summaryFacts], contextTexts: [summaryText, ...watchNotes.map((note) => `${note.title}. ${note.summary}`), ...toolContents, ...memory.items.map((item) => item.value)], userTexts });
   const corrections: NumberCorrection[] = [];
   const providerNames: string[] = []; // every provider the offer research returned this turn
@@ -296,7 +300,7 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
         // Deeper research takes a few seconds: say so, so a voice conversation never goes quiet.
         if (call.function.name === "web_search" && args.deep === true && !fillerSent && !stepText.trim()) {
           fillerSent = true;
-          const line = researchFiller(request.language);
+          const line = researchFiller(request.language, fillerContext);
           if (line) yield { type: "filler", text: line };
         }
         const billType = call.function.name === "search_offers" ? billTypeOf(args) : null;
@@ -304,7 +308,7 @@ export async function* runTurn(request: AgentRequest, signal?: AbortSignal, sttM
         const { key } = ensureResearch(billType, customer.area);
         if (!fillerSent && !stepText.trim() && !isResearchReady(key)) {
           fillerSent = true;
-          const line = offerFiller(billType, customer.area, request.language);
+          const line = offerFiller(billType, customer.area, request.language, fillerContext);
           if (line) yield { type: "filler", text: line };
         }
       }

@@ -1,0 +1,117 @@
+/* The Rive lab (development only). */
+
+.sisu-lab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sisu-space-card);
+  max-width: 520px;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top, 0px) + var(--sisu-space-margin)) var(--sisu-space-margin)
+    calc(var(--sisu-tabbar-room) + var(--sisu-space-section));
+}
+
+.sisu-lab-intro h1 {
+  margin: 0 0 var(--sisu-space-grid);
+  font: var(--sisu-type-h1);
+}
+
+.sisu-lab-intro p,
+.sisu-lab-purpose {
+  margin: 0;
+  font: var(--sisu-type-body);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-lab-log {
+  margin: var(--sisu-space-card) 0 0;
+  padding: var(--sisu-space-grid) calc(var(--sisu-space-grid) * 3);
+  list-style: none;
+  min-height: 48px;
+  border-radius: var(--sisu-radius-button);
+  background: var(--sisu-color-card);
+  border: 1px solid var(--sisu-color-hairline);
+  font: 400 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--sisu-color-text);
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.sisu-lab-card {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sisu-space-grid) * 3);
+  padding: var(--sisu-space-card);
+  border-radius: var(--sisu-radius-card);
+  background: var(--sisu-color-card);
+  border: 1px solid var(--sisu-color-hairline);
+}
+
+.sisu-lab-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sisu-space-grid);
+}
+
+.sisu-lab-head h2 {
+  margin: 0;
+  font: var(--sisu-type-h3);
+}
+
+.sisu-lab-head span {
+  font: var(--sisu-type-caption);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-lab-stage {
+  display: flex;
+  justify-content: center;
+  padding: var(--sisu-space-grid) 0;
+  background: var(--sisu-color-background);
+  border-radius: var(--sisu-radius-button);
+}
+
+.sisu-lab-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--sisu-space-grid) * 2);
+}
+
+.sisu-lab-button,
+.sisu-lab-enum select {
+  min-height: 36px;
+  padding: 0 calc(var(--sisu-space-grid) * 3);
+  border-radius: var(--sisu-radius-pill);
+  border: 1px solid var(--sisu-color-hairline);
+  background: var(--sisu-color-background);
+  font: var(--sisu-type-label);
+  color: var(--sisu-color-text);
+}
+
+.sisu-lab-enum {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--sisu-space-grid) * 2);
+  font: var(--sisu-type-label);
+  color: var(--sisu-color-text-muted);
+}
+
+.sisu-lab-pressable {
+  display: block;
+  padding: var(--sisu-space-margin);
+  font: var(--sisu-type-button);
+}
+
+.sisu-lab-sheet-head {
+  padding: var(--sisu-space-margin) var(--sisu-space-margin) var(--sisu-space-card);
+}
+
+.sisu-lab-sheet-head h2 {
+  margin: 0;
+  font: var(--sisu-type-h2);
+}
+
+.sisu-lab-sheet-body {
+  padding: 0 var(--sisu-space-margin) var(--sisu-space-section);
+  font: var(--sisu-type-body);
+}
