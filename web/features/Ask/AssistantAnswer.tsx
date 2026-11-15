@@ -1,7 +1,9 @@
 "use client";
 // One answer from Sisu, short by default (rework of 15 Nov): the answer card holds the text, then ONE result with
 // the most useful number, then the details closed (offers compared, how it was worked out, assumptions, sources),
-// each figure said once. While the answer is on its way the live research stage and the steps show under it.
+// each figure said once. Above the card, beUI's activity trace (AnswerActivity): what Sisu is doing while the
+// answer is on its way (it stands in for the card until the first words arrive), folded into "What Sisu did" after.
+// The live research stage shows under the card while it works.
 // Charts that say more than the card, the quiz and the approval cards stay open, since they need a look or a tap.
 // Every figure and sentence comes from the payload through AnswerPresenter / SisuCore presenters.
 import { useMemo } from "react";
@@ -15,12 +17,12 @@ import { RiveComponent } from "@/web/rive/RiveComponent";
 import { SisuButton, SisuCard, SisuMotion, riveAccessible } from "@/web/shared/SisuStyle";
 import { useReducedMotion } from "@/web/theme/motion";
 import { ActionCard } from "./ActionCard";
+import { AnswerActivity } from "./AnswerActivity";
 import { AnswerDetails } from "./AnswerDetails";
 import { MemoryLine } from "./CardParts";
 import { ChartCard } from "./ChartCard";
 import { QuizCard } from "./QuizCard";
 import { ResultLine } from "./ResultLine";
-import { StepsCard } from "./StepsCard";
 import "./answer.css";
 
 const language = "en";
@@ -47,24 +49,29 @@ export function AssistantAnswer({ message, actions, retry, isNew }: {
     ...message.remembered,
   ].filter((item, index, all) => all.findIndex((other) => other.id === item.id) === index);
 
+  // Until the first words (or a result, or an error) arrive, the activity line above says what Sisu is doing.
+  const hasCard = !message.pending || message.text !== "" || message.error != null || view.result != null;
+
   return (
     <div className="sisu-ask-answer">
-      <SisuCard>
-        <AnswerText message={message} retry={retry} />
-        {view.result ? (
-          <div data-anchor={anchor("result")} className={enter(`${message.id}/result`)}>
-            <ResultLine result={view.result} />
-          </div>
-        ) : null}
-        {!message.pending ? <div data-anchor={anchor("details")}><AnswerDetails view={view} /></div> : null}
-      </SisuCard>
+      <div data-anchor={anchor("activity")}><AnswerActivity message={message} view={view} /></div>
+      {hasCard ? (
+        <SisuCard>
+          <AnswerText message={message} retry={retry} />
+          {view.result ? (
+            <div data-anchor={anchor("result")} className={enter(`${message.id}/result`)}>
+              <ResultLine result={view.result} />
+            </div>
+          ) : null}
+          {!message.pending ? <div data-anchor={anchor("details")}><AnswerDetails view={view} /></div> : null}
+        </SisuCard>
+      ) : null}
       {stage != null && stage !== "done" ? (
         <div data-anchor={anchor("indicator")}>
           <RiveComponent component="StageIndicator" values={RiveBindings.stageIndicator(stage, language)}
             {...riveAccessible(RiveBindings.stageLabel(stage, language))} />
         </div>
       ) : null}
-      {message.pending ? <StepsCard message={message} /> : null}
       {view.visuals.map((visual) => (
         <div key={visual.id} data-anchor={anchor(`visual-${visual.id}`)} className={enter(`${message.id}/visual/${visual.id}`)}>
           <ChartCard visual={visual} />
@@ -109,21 +116,9 @@ function teachingCard(message: CoachMessage): TeachingCard | null {
 }
 
 function AnswerText({ message, retry }: { message: CoachMessage; retry: (() => void) | null }) {
-  const thinking = message.text === "" && message.pending;
   return (
     <>
       {message.text !== "" ? <p className="sisu-ask-body-large" data-selectable>{CardText.humanize(message.text, language)}</p> : null}
-      {thinking ? (
-        <div className="sisu-ask-thinking" role="status">
-          <span aria-hidden="true" className="sisu-ask-dots">
-            <RiveComponent component="TypingDots" values={RiveBindings.typingDots(true)} />
-          </span>
-          <p className="sisu-ask-body-large sisu-ask-muted">{message.filler ?? "Sisu is thinking…"}</p>
-        </div>
-      ) : null}
-      {message.pending && message.text !== "" && message.filler && message.runningTool != null ? (
-        <span className="sisu-ask-label sisu-ask-muted">{message.filler}</span>
-      ) : null}
       {message.error ? (
         <>
           <p className="sisu-ask-body" role="alert">{message.error}</p>

@@ -374,6 +374,16 @@ button.sisu-talk-launcher-mic[data-live="true"] {
   transition: transform 120ms ease-out;
 }
 
+/* beUI's VoiceOrb (web/agents) fills the live microphone and a little beyond it; the glyph sits on top. */
+.sisu-talk-launcher-orb {
+  position: absolute;
+  inset: -8px;
+}
+
+button.sisu-talk-launcher-mic[data-muted="false"] svg {
+  filter: drop-shadow(0 1px 3px rgba(0, 70, 40, 0.55));
+}
+
 button.sisu-talk-launcher-mic[data-muted="true"] {
   border: 1px solid var(--sisu-color-hairline);
   background: var(--sisu-color-card);

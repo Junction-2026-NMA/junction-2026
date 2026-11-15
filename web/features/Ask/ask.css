@@ -18,106 +18,12 @@
   padding: 0;
 }
 
-/* The ask box of the Sisu tab: a white pill with the field and Send inside, the microphone beside it. */
+/* The ask box of the Sisu tab: beUI's PromptInput (web/agents/agents.css), the microphone beside it. */
 .sisu-ask-composer {
   flex: none;
   display: flex;
   align-items: flex-end;
   gap: calc(var(--sisu-space-grid) * 2);
-}
-
-.sisu-ask-box {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  align-items: flex-end;
-  gap: var(--sisu-space-grid);
-  min-height: 52px;
-  box-sizing: border-box;
-  padding: 3px 3px 3px 0;
-  border: 1px solid var(--sisu-color-hairline);
-  border-radius: 26px;
-  background: var(--sisu-color-card);
-  box-shadow: 0 6px 20px rgba(24, 33, 28, 0.06);
-  transition: border-color 200ms ease, box-shadow 200ms ease;
-}
-
-.sisu-ask-box:focus-within {
-  border-color: var(--sisu-color-outline);
-  box-shadow: 0 0 0 3px rgba(153, 213, 159, 0.35), 0 6px 20px rgba(24, 33, 28, 0.06);
-}
-
-.sisu-ask-field {
-  flex: 1 1 auto;
-  min-width: 0;
-  box-sizing: border-box;
-  min-height: 44px; /* Apple's touch size: the demo is used standing at a booth */
-  margin: 0;
-  padding: 10px 4px 10px 18px;
-  border: 0;
-  background: transparent;
-  color: var(--sisu-color-text);
-  font: var(--sisu-type-body); /* 16 px: iOS does not zoom into the field */
-  resize: none;
-  overflow-y: hidden;
-  outline: none;
-  user-select: text;
-  -webkit-user-select: text;
-}
-
-/* The box shows focus (:focus-within); the field itself draws no second ring. */
-textarea.sisu-ask-field:focus-visible {
-  outline: none;
-}
-
-.sisu-ask-field::placeholder {
-  color: var(--sisu-color-text-muted);
-  opacity: 1;
-}
-
-button.sisu-ask-send {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  min-height: 44px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: var(--sisu-color-hairline);
-  color: var(--sisu-color-text-muted);
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  transition: background-color 200ms ease, color 200ms ease, transform 160ms var(--sisu-motion-ease-out);
-}
-
-button.sisu-ask-send[data-variant="ready"],
-button.sisu-ask-send[data-variant="stop"] {
-  background: var(--sisu-color-primary);
-  color: var(--sisu-color-on-primary);
-}
-
-button.sisu-ask-send:disabled {
-  cursor: default;
-}
-
-button.sisu-ask-send:active:not(:disabled) {
-  transform: scale(0.92);
-}
-
-button.sisu-ask-send:focus-visible,
-button.sisu-ask-mic:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--sisu-color-outline);
-}
-
-/* On the green fill a light gap keeps the ring apart from the button. */
-button.sisu-ask-send[data-variant="ready"]:focus-visible,
-button.sisu-ask-send[data-variant="stop"]:focus-visible {
-  box-shadow: 0 0 0 2px var(--sisu-color-card), 0 0 0 4px var(--sisu-color-outline);
 }
 
 /* The microphone: the way into the hands-free conversation. Green-tinted, the brand's green glyph. */
@@ -150,35 +56,17 @@ button.sisu-ask-mic:disabled {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  button.sisu-ask-send,
   button.sisu-ask-mic {
     transition: none;
   }
 }
 
-/* The user's bubble: right-aligned, deep green, at least 64 px from the leading edge. */
-.sisu-ask-user {
-  display: flex;
-  justify-content: flex-end;
-  padding-left: calc(var(--sisu-space-section) * 2);
-}
-
+/* The microphone mark in a spoken question's bubble (the bubble itself is beUI's MessageBubble, web/agents). */
 .sisu-ask-user-mic {
   display: inline-block;
   margin-right: 6px;
   vertical-align: -1px;
   opacity: 0.75;
-}
-
-.sisu-ask-user-bubble {
-  margin: 0;
-  padding: calc(var(--sisu-space-grid) * 3) var(--sisu-space-card);
-  border-radius: var(--sisu-radius-card);
-  background: var(--sisu-color-primary);
-  color: var(--sisu-color-on-primary);
-  font: var(--sisu-type-body);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
 }
 
 /* Placeholder (no profile yet). */
